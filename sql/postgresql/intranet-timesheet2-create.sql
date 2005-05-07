@@ -31,166 +31,90 @@ create table im_hours (
 				references im_projects,
 	day			timestamptz,
 	hours			numeric(5,2),
+				-- ArsDigita/ACS billing system
 	billing_rate		numeric(5,2),
 	billing_currency	char(3)
 				constraint im_hours_billing_currency_fk
 				references currency_codes(iso),
+				-- P/O billing system - leave prices to price list
+	material_id		integer
+				constraint im_hours_material_fk
+				references im_materials,
 	note			varchar(4000),
 	primary key(user_id, project_id, day)
 );
+
 create index im_hours_project_id_idx on im_hours(project_id);
 create index im_hours_user_id_idx on im_hours(user_id);
 
--- begin
-    -- add_absences makes it possible to restrict the absence registering to internal stuff
-    select acs_privilege__create_privilege('add_absences','Add Absences','Add Absences');
-    select acs_privilege__add_child('admin', 'add_absences');
--- end;
+-- add_absences makes it possible to restrict the absence registering to internal stuff
+select acs_privilege__create_privilege('add_absences','Add Absences','Add Absences');
+select acs_privilege__add_child('admin', 'add_absences');
 
 
--- begin
-    -- view_absences_all restricts possibility to see absences of others
-    select acs_privilege__create_privilege('view_absences_all','View Absences All','View Absences All');
-    select acs_privilege__add_child('admin', 'view_absences_all');
--- end;
+-- view_absences_all restricts possibility to see absences of others
+select acs_privilege__create_privilege('view_absences_all','View Absences All','View Absences All');
+select acs_privilege__add_child('admin', 'view_absences_all');
 
 
--- begin
-    -- add_hours actually is more of an obligation then a privilege...
-    select acs_privilege__create_privilege('add_hours','Add Hours','Add Hours');
-    select acs_privilege__add_child('admin', 'add_hours');
--- end;
+-- add_hours actually is more of an obligation then a privilege...
+select acs_privilege__create_privilege('add_hours','Add Hours','Add Hours');
+select acs_privilege__add_child('admin', 'add_hours');
 
 
--- begin
-    -- Everybody is able to see his own hours, so view_hours doesn't
-    -- make much sense...
-    select acs_privilege__create_privilege('view_hours_all','View Hours All','View Hours All');
-    select acs_privilege__add_child('admin', 'view_hours_all');
--- end;
-
--- commit;
+-- Everybody is able to see his own hours, so view_hours doesn't
+-- make much sense...
+select acs_privilege__create_privilege('view_hours_all','View Hours All','View Hours All');
+ select acs_privilege__add_child('admin', 'view_hours_all');
 
 
 
 ------------------------------------------------------
 -- Add Absences
 ---
--- BEGIN
-    select im_priv_create('add_absences',        'Accounting');
---END;
 
--- BEGIN
-    select im_priv_create('add_absences',        'Employees');
--- END;
-
--- BEGIN
-    select im_priv_create('add_absences',        'Freelancers');
--- END;
-
--- BEGIN
-    select im_priv_create('add_absences',        'P/O Admins');
--- END;
-
--- BEGIN
-    select im_priv_create('add_absences',        'Project Managers');
--- END;
-
--- BEGIN
-    select im_priv_create('add_absences',        'Sales');
--- END;
-
--- BEGIN
-    select im_priv_create('add_absences',        'Senior Managers');
--- END;
-
+select im_priv_create('add_absences',        'Accounting');
+select im_priv_create('add_absences',        'Employees');
+select im_priv_create('add_absences',        'Freelancers');
+select im_priv_create('add_absences',        'P/O Admins');
+select im_priv_create('add_absences',        'Project Managers');
+select im_priv_create('add_absences',        'Sales');
+select im_priv_create('add_absences',        'Senior Managers');
 
 
 ------------------------------------------------------
 -- View Absences
 ---
--- BEGIN
-    select im_priv_create('view_absences_all',        'Accounting');
--- END;
 
--- BEGIN
-    select im_priv_create('view_absences_all',        'Employees');
--- END;
-
--- BEGIN
-    select im_priv_create('view_absences_all',        'Freelancers');
--- END;
-
--- BEGIN
-    select im_priv_create('view_absences_all',        'P/O Admins');
--- END;
-
--- BEGIN
-    select im_priv_create('view_absences_all',        'Project Managers');
--- END;
-
--- BEGIN
-    select im_priv_create('view_absences_all',        'Sales');
--- END;
-
--- BEGIN
-    select im_priv_create('view_absences_all',        'Senior Managers');
--- END;
-
+select im_priv_create('view_absences_all',        'Accounting');
+select im_priv_create('view_absences_all',        'Employees');
+select im_priv_create('view_absences_all',        'Freelancers');
+select im_priv_create('view_absences_all',        'P/O Admins');
+select im_priv_create('view_absences_all',        'Project Managers');
+select im_priv_create('view_absences_all',        'Sales');
+select im_priv_create('view_absences_all',        'Senior Managers');
 
 
 ------------------------------------------------------
 -- Add Hours
 ---
--- BEGIN
-    select im_priv_create('add_hours',        'Accounting');
--- END;
 
--- BEGIN
-    select im_priv_create('add_hours',        'Employees');
--- END;
-
--- BEGIN
-    select im_priv_create('add_hours',        'P/O Admins');
--- END;
-
--- BEGIN
-    select im_priv_create('add_hours',        'Project Managers');
--- END;
-
--- BEGIN
-    select im_priv_create('add_hours',        'Sales');
--- END;
-
--- BEGIN
-    select im_priv_create('add_hours',        'Senior Managers');
--- END;
--- 
+select im_priv_create('add_hours',        'Accounting');
+select im_priv_create('add_hours',        'Employees');
+select im_priv_create('add_hours',        'P/O Admins');
+select im_priv_create('add_hours',        'Project Managers');
+select im_priv_create('add_hours',        'Sales');
+select im_priv_create('add_hours',        'Senior Managers');
 
 ------------------------------------------------------
 -- View Hours All
----
--- BEGIN
-    select im_priv_create('view_hours_all',        'Accounting');
--- END;
+--
 
--- BEGIN
-    select im_priv_create('view_hours_all',        'P/O Admins');
--- END;
-
--- BEGIN
-    select im_priv_create('view_hours_all',        'Project Managers');
--- END;
-
--- BEGIN
-    select im_priv_create('view_hours_all',        'Sales');
--- END;
-
--- BEGIN
-    select im_priv_create('view_hours_all',        'Senior Managers');
--- END;
-
-
+select im_priv_create('view_hours_all',        'Accounting');
+select im_priv_create('view_hours_all',        'P/O Admins');
+select im_priv_create('view_hours_all',        'Project Managers');
+select im_priv_create('view_hours_all',        'Sales');
+select im_priv_create('view_hours_all',        'Senior Managers');
 
 
 
@@ -240,14 +164,8 @@ BEGIN
         END IF;
 END;' language 'plpgsql';
 
--- show errors
 
--- create or replace function inline_0 ()
--- returns integer as '
--- declare
---    v_plugin            integer;
--- begin
-    select im_component_plugin__new (
+select im_component_plugin__new (
 	null,					-- plugin_id
 	'acs_object',				-- object_type
 	now(),					-- creation_date
@@ -263,17 +181,8 @@ END;' language 'plpgsql';
         50,					-- sort_order
         'im_table_with_title "[_ intranet-timesheet2.Timesheet]" [im_timesheet_project_component $user_id $project_id ]'
     );
---     return 0;
--- end;
 
--- show errors;
---commit;
-
-
--- declare
---    v_plugin            integer;
--- begin
-   select im_component_plugin__new (
+select im_component_plugin__new (
 	null,					-- plugin_id
 	'acs_object',				-- object_type
 	now(),					-- creation_date
@@ -289,13 +198,7 @@ END;' language 'plpgsql';
         80,					-- sort_order
         'im_table_with_title "[_ intranet-timesheet2.Timesheet]" [im_timesheet_home_component $user_id]'
     );
--- end;
-
--- show errors;
--- commit;
-
 
 \i ../common/intranet-timesheet-common.sql
 \i ../common/intranet-timesheet-backup.sql
 
--- commit;
