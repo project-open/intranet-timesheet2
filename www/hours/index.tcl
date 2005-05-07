@@ -1,4 +1,4 @@
-# /packages/intranet-timesheet/www/hours/index.tcl
+# /packages/intranet-timesheet2/www/hours/index.tcl
 #
 # Copyright (C) 1998-2004 various parties
 # The code is based on ArsDigita ACS 3.4
@@ -70,7 +70,7 @@ if {"" ==  $date } {
 	set date [db_string ansi_date_select "select to_char( sysdate, 'YYYY-MM-DD') from dual"]
     }
 } 
-ns_log Notice "/intranet-timesheet/index: date=$date"
+ns_log Notice "/intranet-timesheet2/index: date=$date"
 
 # ---------------------------------------------------------------
 # Render the Calendar widget
@@ -99,7 +99,7 @@ group by
 "
 
 db_foreach hours_logged $sql {
-    ns_log Notice "/intranet-timesheet/index: $julian_date - $hours"
+    ns_log Notice "/intranet-timesheet2/index: $julian_date - $hours"
     set users_hours($julian_date) $hours
 }
 
@@ -183,7 +183,7 @@ set next_month_template "
 set day_bgcolor "#efefef"
 set day_number_template "<!--\$julian_date--><font size=-1>\$day_number</font>"
 
-ns_log Notice "/intranet-timesheet/index: calendar_details=$calendar_details"
+ns_log Notice "/intranet-timesheet2/index: calendar_details=$calendar_details"
 
 set page_body [calendar_basic_month \
 	-calendar_details $calendar_details \

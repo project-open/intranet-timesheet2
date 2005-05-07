@@ -1,4 +1,4 @@
-# /packages/intranet-timesheet/www/hours/history.tcl
+# /packages/intranet-timesheet2/www/hours/history.tcl
 #
 # Copyright (C) 1998-2004 various parties
 # The code is based on ArsDigita ACS 3.4

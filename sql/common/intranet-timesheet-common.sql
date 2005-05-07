@@ -1,4 +1,4 @@
--- /packages/intranet-timesheet/sql/common/intranet-timesheet-create.sql
+-- /packages/intranet-timesheet2/sql/common/intranet-timesheet-create.sql
 --
 -- Copyright (C) 1999-2004 various parties
 -- The code is based on ArsDigita ACS 3.4

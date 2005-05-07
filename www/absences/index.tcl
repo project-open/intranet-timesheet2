@@ -49,7 +49,7 @@ set subsite_id [ad_conn subsite_id]
 set page_title "[_ intranet-timesheet2.Absences]"
 set context_bar [im_context_bar $page_title]
 set page_focus "im_header_form.keywords"
-set site_url "/intranet-timesheet/absences"
+set site_url "/intranet-timesheet2/absences"
 set return_url "$site_url/index"
 
 set user_view_page "/intranet/users/view"

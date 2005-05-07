@@ -1,4 +1,4 @@
--- /packages/intranet-timesheet/sql/oracle/intranet-timesheet-backup.sql
+-- /packages/intranet-timesheet2/sql/oracle/intranet-timesheet-backup.sql
 --
 -- Copyright (C) 1999-2004 various parties
 -- The code is based on ArsDigita ACS 3.4

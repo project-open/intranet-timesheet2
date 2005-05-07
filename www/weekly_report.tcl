@@ -1,4 +1,4 @@
-# /packages/intranet-core/www/intranet/companies/index.tcl
+# /packages/intranet-timesheet/www/weekly_report.tcl
 #
 # Copyright (C) 1998-2004 various parties
 # The code is based on ArsDigita ACS 3.4
@@ -28,7 +28,7 @@ ad_proc im_do_row {
     Returns a row with the hours loged of one user
 } {
     set user_view_page "/intranet/users/view"
-    set absence_view_page "/intranet-timesheet/absences/view"
+    set absence_view_page "/intranet-timesheet2/absences/view"
 
     set date_format "YYYY-MM-DD"
 
@@ -188,13 +188,13 @@ if { $project_id != 0 } {
 set admin_html ""
 
 if { [im_permission $user_id "add_absences"] } {
-    append admin_html "<li><a href=/intranet-timesheet/absences/new>[_ intranet-timesheet2.Add_a_new_Absence]</a>\n"
+    append admin_html "<li><a href=/intranet-timesheet2/absences/new>[_ intranet-timesheet2.Add_a_new_Absence]</a>\n"
 }
 if { [im_permission $user_id "view_absences_all"] } {
-    append admin_html "<li><a href=/intranet-timesheet/absences>[_ intranet-timesheet2.View_all_Absences]</a>\n"
+    append admin_html "<li><a href=/intranet-timesheet2/absences>[_ intranet-timesheet2.View_all_Absences]</a>\n"
 }
 if { [im_permission $user_id "add_hours"] } {
-    append admin_html "<li><a href=/intranet-timesheet/hours>[_ intranet-timesheet2.Log_your_hours]</a>\n"
+    append admin_html "<li><a href=/intranet-timesheet2/hours>[_ intranet-timesheet2.Log_your_hours]</a>\n"
 }
 
 

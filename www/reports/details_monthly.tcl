@@ -1,4 +1,4 @@
-# /packages/intranet-timesheet/www/reports/details_monthly.tcl
+# /packages/intranet-timesheet2/www/reports/details_monthly.tcl
 #
 # Copyright (C) 1998-2004 various parties
 # The code is based on ArsDigita ACS 3.4

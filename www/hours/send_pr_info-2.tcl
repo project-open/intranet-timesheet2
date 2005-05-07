@@ -1,4 +1,4 @@
-# /packages/intranet-timesheet/www/hours/send_pr_info-2.tcl
+# /packages/intranet-timesheet2/www/hours/send_pr_info-2.tcl
 #
 # Copyright (C) 1998-2004 various parties
 # The code is based on ArsDigita ACS 3.4

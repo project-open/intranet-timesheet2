@@ -1,4 +1,4 @@
--- /package/intranet-timesheet/sql/intranet-timesheet-drop.sql
+-- /package/intranet-timesheet2/sql/intranet-timesheet-drop.sql
 --
 -- Copyright (c) 2003-2004 Project/Open
 --

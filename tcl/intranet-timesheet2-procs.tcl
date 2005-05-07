@@ -1,4 +1,4 @@
-# /packages/intranet-timesheet/tcl/intranet-timesheet-procs.tcl
+# /packages/intranet-timesheet2/tcl/intranet-timesheet-procs.tcl
 #
 # Copyright (C) 1998-2004 various parties
 # The code is based on ArsDigita ACS 3.4
@@ -48,7 +48,7 @@ ad_proc -public im_timesheet_home_component {user_id} {
     }
 
     if { $num_hours == 0 && $add_hours } {
-	set log_them_now_link "<a href=/intranet-timesheet/hours/index>"
+	set log_them_now_link "<a href=/intranet-timesheet2/hours/index>"
         append hours_html "<b>[_ intranet-timesheet2.lt_You_havent_logged_you]</a></b>\n"
     } else {
         append hours_html "[_ intranet-timesheet2.lt_You_logged_num_hours_]"
@@ -57,26 +57,26 @@ ad_proc -public im_timesheet_home_component {user_id} {
     if {[im_permission $user_id view_hours_all]} {
         append hours_html "
     <ul>
-    <li><a href=/intranet-timesheet/hours/projects?[export_url_vars user_id]>
+    <li><a href=/intranet-timesheet2/hours/projects?[export_url_vars user_id]>
 	[_ intranet-timesheet2.lt_View_your_hours_on_al]</a>
-    <li><a href=/intranet-timesheet/hours/total?[export_url_vars]>
+    <li><a href=/intranet-timesheet2/hours/total?[export_url_vars]>
 	[_ intranet-timesheet2.lt_View_time_spent_on_al]</a>
-    <li><a href=/intranet-timesheet/hours/projects?[export_url_vars]>
+    <li><a href=/intranet-timesheet2/hours/projects?[export_url_vars]>
 	[_ intranet-timesheet2.lt_View_the_hours_logged]</a>
-    <li><a href=\"/intranet-timesheet/weekly_report\">
+    <li><a href=\"/intranet-timesheet2/weekly_report\">
 	[_ intranet-timesheet2.lt_View_hours_logged_dur]</a>
     "
     }
 
     if {$add_hours} {
-	set log_hours_link "<a href=/intranet-timesheet/hours/index>"
+	set log_hours_link "<a href=/intranet-timesheet2/hours/index>"
 	set add_html "<li>[_ intranet-timesheet2.lt_Log_your_log_hours_li]</a>\n"
     }
 
     # Show the "Work Absences" link only to in-house staff.
     # Clients and Freelancers don't necessarily need it.
     if {$add_absences} {
-        append add_html "/ <a href=/intranet-timesheet/absences/new>[_ intranet-timesheet2.absences]</a>\n"
+        append add_html "/ <a href=/intranet-timesheet2/absences/new>[_ intranet-timesheet2.absences]</a>\n"
     }
     append hours_html "$add_html</ul>"
     return $hours_html
@@ -102,12 +102,12 @@ ad_proc -public im_timesheet_project_component {user_id project_id} {
         if { $total_hours > 0 } {
            append hours_logged "
           <li>
-            <a href=/intranet-timesheet/hours/one-project?project_id=$project_id>
+            <a href=/intranet-timesheet2/hours/one-project?project_id=$project_id>
               [_ intranet-timesheet2.lt_See_the_breakdown_by_]
             </a>\n"
         }
 
-	append hours_logged "<li><a href=\"/intranet-timesheet/weekly_report?project_id=$project_id\">[_ intranet-timesheet2.lt_View_hours_logged_by_]</a>"
+	append hours_logged "<li><a href=\"/intranet-timesheet2/weekly_report?project_id=$project_id\">[_ intranet-timesheet2.lt_View_hours_logged_by_]</a>"
 
 
     }
@@ -118,16 +118,16 @@ ad_proc -public im_timesheet_project_component {user_id project_id} {
         append info_html "<br>[_ intranet-timesheet2.lt_You_have_loged_total_].\n"
         set hours_today [hours_sum_for_user $user_id "" 1]
         if { $hours_today == 0 } {
-	    set log_hours_link "<a href=/intranet-timesheet/hours/new?project_id=$project_id&[export_url_vars return_url]>"
+	    set log_hours_link "<a href=/intranet-timesheet2/hours/new?project_id=$project_id&[export_url_vars return_url]>"
             append hours_logged "<li><font color=\"\#FF0000\">[_ intranet-timesheet2.lt_Today_you_didnt_log_y]</font> [_ intranet-timesheet2.lt_Log_your_log_hours_li]</a>\n"
         } else {
-	    set log_hours_link "<a href=/intranet-timesheet/hours/new?project_id=$project_id&return_url=$return_url>"
+	    set log_hours_link "<a href=/intranet-timesheet2/hours/new?project_id=$project_id&return_url=$return_url>"
             append hours_logged "<li>[_ intranet-timesheet2.lt_Log_your_log_hours_li_1]</a>\n"
         }
 	# Show the "Work Absences" link only to in-house staff.
         # Clients and Freelancers don't necessarily need it.
 	if {[im_permission $user_id "add_absences"]} {
-	    append hours_logged " / <a href=/intranet-timesheet/absences/new>[_ intranet-timesheet2.absences]</a>\n"
+	    append hours_logged " / <a href=/intranet-timesheet2/absences/new>[_ intranet-timesheet2.absences]</a>\n"
 	}
 
     }
@@ -169,7 +169,7 @@ where
     # Process vacation periods and modify array accordingly.
     db_foreach vacation_period $sql {
 	for {set i [max $start_date $first_julian_date]} {$i<=[min $end_date $last_julian_date]} {incr i } {
-	   set vacation($i) "<a href=\"/intranet-timesheet/absences/view?absence_id=$absence_id\">[_ intranet-timesheet2.Absent_1]</a> $absence_type<br>"
+	   set vacation($i) "<a href=\"/intranet-timesheet2/absences/view?absence_id=$absence_id\">[_ intranet-timesheet2.Absent_1]</a> $absence_type<br>"
 	}
     }
     # Return the relevant part of the array as a list.
@@ -288,7 +288,7 @@ ad_proc im_force_user_to_log_hours { conn args why } {
 
     # Pull up the screen to log hours for yesterday
     set return_url [im_url_with_query]
-    ad_returnredirect "/intranet-timesheet/hours/new?[export_url_vars return_url julian_date]"
+    ad_returnredirect "/intranet-timesheet2/hours/new?[export_url_vars return_url julian_date]"
     return filter_return
 }
 
@@ -402,7 +402,7 @@ order by
 
     set ret_val ""
     db_foreach select_next_absence $sql {
-	set ret_val "<a href=\"/intranet-timesheet/absences/view?absence_id=$absence_id\">$start_date - $end_date</a>"
+	set ret_val "<a href=\"/intranet-timesheet2/absences/view?absence_id=$absence_id\">$start_date - $end_date</a>"
 	break
     }
     return $ret_val
