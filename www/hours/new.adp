@@ -4,33 +4,30 @@
 <property name="main_navbar_label">finance</property>
 
 
-<table border=0 cellspacing=0 cellpadding=0>
+<table border=0 cellspacing=0 cellpadding=0 width="100%">
 <tr valign=top>
-  <td>
+  <td width="50%">
 
-	<form method=POST action=new-2>
-	@export_form_vars;noquote@
+	<form action=new method=post>
+	<%= [export_form_vars return_url]  %>
 
 	<table border=0 cellpadding=1 cellspacing=1>
-	 <tr class=rowtitle>
-	  <th>#intranet-timesheet2.Project_name#</th>
-	  <th>#intranet-timesheet2.Hours#	</th>
-	  <th>#intranet-timesheet2.Work_done#   </th>
-	<!--  <th>#intranet-timesheet2.Billing_rate#</th> -->
-	 </tr> 
-	@results;noquote@
+	  <tr class=rowtitle>
+	    <th colspan=99>Timesheet Filters</th>
+	  </tr> 
 	  <tr>
-	    <td></td>
-	    <td colspan=99>
-	      <INPUT TYPE=Submit VALUE="#intranet-timesheet2.Add_hours#">
+	    <td>#intranet-core.Project#</td>
+	    <td><%= [im_project_select project_id $project_id_for_default] %></td>
+	    <td>
+	      <input type=submit value="Go">
 	    </td>
-	  </td>
+	  </tr>
 	</table>
 
 	</form>
 
   </td>
-  <td>
+  <td width="50%">
 
 	<table border=0 cellpadding=1 cellspacing=1>
 	<tr class=rowtitle>
@@ -60,3 +57,25 @@
 </tr>
 </table>
 
+<br>
+
+<form method=POST action=new-2>
+@export_form_vars;noquote@
+
+<table border=0 cellpadding=1 cellspacing=1>
+ <tr class=rowtitle>
+  <th>#intranet-timesheet2.Project_name#</th>
+  <th>#intranet-timesheet2.Hours#	</th>
+  <th>#intranet-timesheet2.Work_done#   </th>
+<!--  <th>#intranet-timesheet2.Billing_rate#</th> -->
+ </tr> 
+@results;noquote@
+  <tr>
+    <td></td>
+    <td colspan=99>
+      <INPUT TYPE=Submit VALUE="#intranet-timesheet2.Add_hours#">
+    </td>
+  </tr>
+</table>
+
+</form>

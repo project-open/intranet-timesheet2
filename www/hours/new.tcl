@@ -37,6 +37,8 @@ set bgcolor(1) " class=rowodd "
 if { [empty_string_p $julian_date] } {
     set julian_date [db_string sysdate_as_julian "select to_char(sysdate,'J') from dual"]
 }
+set project_id_for_default $project_id
+if {0 == $project_id} { set project_id_for_default ""}
 
 # "Log hours for a different day"
 set different_date_url "index?[export_ns_set_vars url [list julian_date]]"
@@ -90,7 +92,7 @@ order by
 
 } else {
 
-    # Project_id unknown => slelect all projects
+    # Project_id unknown => select all projects
     set one_project_only_p 0
     set statement_name "hours_for_groups"
 
