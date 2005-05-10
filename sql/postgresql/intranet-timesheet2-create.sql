@@ -23,25 +23,30 @@
 --
 
 create table im_hours (
-	user_id			integer not null 
+	user_id			integer 
+				constraint im_hours_user_id_nn
+				not null 
 				constraint im_hours_user_id_fk
 				references users,
-	project_id		integer not null 
+	project_id		integer 
+				constraint im_hours_project_id_nn
+				not null 
 				constraint im_hours_project_id_fk
 				references im_projects,
+	timesheet_task_id	integer
+				constraint im_hours_timesheet_task_id_nn
+				not null 
+				constraint im_hours_timesheet_task_id_fk
+				references im_timesheet_tasks,
 	day			timestamptz,
 	hours			numeric(5,2),
-				-- ArsDigita/ACS billing system
+				-- ArsDigita/ACS billing system - log prices with hours
 	billing_rate		numeric(5,2),
 	billing_currency	char(3)
 				constraint im_hours_billing_currency_fk
 				references currency_codes(iso),
-				-- P/O billing system - leave prices to price list
-	material_id		integer
-				constraint im_hours_material_fk
-				references im_materials,
 	note			varchar(4000),
-	primary key(user_id, project_id, day)
+	primary key(user_id, project_id, timesheet_task_id, day)
 );
 
 create index im_hours_project_id_idx on im_hours(project_id);
@@ -59,6 +64,11 @@ create table im_timesheet_tasks (
 	material_id		integer
 				constraint im_timesheet_tasks_material_fk
 				references im_materials,
+	cost_center_id		integer
+				constraint im_timesheet_tasks_cost_center_nn
+				not null
+				constraint im_timesheet_tasks_cost_center_fk
+				references im_cost_centers,
 	uom_id			integer
 				constraint im_timesheet_tasks_uom_fk
 				references im_categories,
@@ -69,220 +79,6 @@ create table im_timesheet_tasks (
 	description		varchar(4000),
 	primary key(project_id, material_id)
 );
-
-
----------------------------------------------------------
--- Timesheet Task Object Type
-
-select acs_object_type__create_type (
-	'im_timesheet task',		-- object_type
-	'Timesheet Task',		-- pretty_name
-	'Timesheet Tasks',		-- pretty_plural
-	'acs_object',		-- supertype
-	'im_timesheet tasks',		-- table_name
-	'timesheet task_id',		-- id_column
-	'intranet-timesheet task',	-- package_name
-	'f',			-- abstract_p
-	null,			-- type_extension_table
-	'im_timesheet task.name'	-- name_method
-    );
-
-
-
-create or replace function im_timesheet task__new (
-	integer,
-	varchar,
-	timestamptz,
-	integer,
-	varchar,
-	integer,
-	
-	varchar,
-	varchar,
-	integer,
-	integer,
-	integer,
-	varchar
-    ) 
-returns integer as '
-declare
-	p_timesheet task_id		alias for $1;		-- timesheet task_id default null
-	p_object_type		alias for $2;		-- object_type default ''im_timesheet task''
-	p_creation_date		alias for $3;		-- creation_date default now()
-	p_creation_user		alias for $4;		-- creation_user
-	p_creation_ip		alias for $5;		-- creation_ip default null
-	p_context_id		alias for $6;		-- context_id default null
-
-	p_timesheet task_name		alias for $7;	
-	p_timesheet task_nr		alias for $8;	
-	p_timesheet task_type_id	alias for $9;
-	p_timesheet task_status_id	alias for $10;
-	p_timesheet task_uom_id	alias for $11;
-	p_description		alias for $12;
-
-	v_timesheet task_id		integer;
-    begin
- 	v_timesheet task_id := acs_object__new (
-                p_timesheet task_id,            -- object_id
-                p_object_type,            -- object_type
-                p_creation_date,          -- creation_date
-                p_creation_user,          -- creation_user
-                p_creation_ip,            -- creation_ip
-                p_context_id,             -- context_id
-                ''t''                     -- security_inherit_p
-        );
-
-	insert into im_timesheet tasks (
-		timesheet task_id,
-		timesheet task_name,
-		timesheet task_nr,
-		timesheet task_type_id,
-		timesheet task_status_id,
-		timesheet task_uom_id,
-		description
-	) values (
-		p_timesheet task_id,
-		p_timesheet task_name,
-		p_timesheet task_nr,
-		p_timesheet task_type_id,
-		p_timesheet task_status_id,
-		p_timesheet task_uom_id,
-		p_description
-	);
-
-	return v_timesheet task_id;
-end;' language 'plpgsql';
-
-
-
--- Delete a single timesheet task (if we know its ID...)
-create or replace function  im_timesheet task__delete (integer)
-returns integer as '
-declare
-	p_timesheet task_id alias for $1;	-- timesheet task_id
-begin
-	-- Erase the timesheet task
-	delete from 	im_timesheet tasks
-	where		timesheet task_id = p_timesheet task_id;
-
-        -- Erase the object
-        PERFORM acs_object__delete(p_timesheet task_id);
-        return 0;
-end;' language 'plpgsql';
-
-
-create or replace function im_timesheet task__name (integer)
-returns varchar as '
-declare
-	p_timesheet task_id alias for $1;	-- timesheet task_id
-	v_name	varchar(40);
-begin
-	select	timesheet task_nr
-	into	v_name
-	from	im_timesheet tasks
-	where	timesheet task_id = p_timesheet task_id;
-	return v_name;
-end;' language 'plpgsql';
-
-
-
----------------------------------------------------------
--- Setup the "Materials" main menu entry
---
-
-create or replace function inline_0 ()
-returns integer as '
-declare
-        -- Menu IDs
-        v_menu                  integer;
-	v_main_menu		integer;
-	v_admin_menu		integer;
-
-        -- Groups
-        v_employees             integer;
-        v_accounting            integer;
-        v_senman                integer;
-        v_companies             integer;
-        v_freelancers           integer;
-        v_proman                integer;
-        v_admins                integer;
-BEGIN
-
-    select group_id into v_admins from groups where group_name = ''P/O Admins'';
-    select group_id into v_senman from groups where group_name = ''Senior Managers'';
-    select group_id into v_proman from groups where group_name = ''Project Managers'';
-    select group_id into v_accounting from groups where group_name = ''Accounting'';
-    select group_id into v_employees from groups where group_name = ''Employees'';
-    select group_id into v_companies from groups where group_name = ''Customers'';
-    select group_id into v_freelancers from groups where group_name = ''Freelancers'';
-
-    select menu_id
-    into v_admin_menu
-    from im_menus
-    where label=''project'';
-
-    v_menu := im_menu__new (
-        null,                   -- p_menu_id
-        ''acs_object'',         -- object_type
-        now(),                  -- creation_date
-        null,                   -- creation_user
-        null,                   -- creation_ip
-        null,                   -- context_id
-        ''intranet-task'',	-- package_name
-        ''task'',   	-- label
-        ''Tasks'',   -- name
-        ''/intranet-task/'', -- url
-        75,                     -- sort_order
-        v_admin_menu,            -- parent_menu_id
-        null                    -- p_visible_tcl
-    );
-
-    PERFORM acs_permission__grant_permission(v_menu, v_admins, ''read'');
-    PERFORM acs_permission__grant_permission(v_menu, v_senman, ''read'');
---    PERFORM acs_permission__grant_permission(v_menu, v_proman, ''read'');
---    PERFORM acs_permission__grant_permission(v_menu, v_accounting, ''read'');
---    PERFORM acs_permission__grant_permission(v_menu, v_employees, ''read'');
---    PERFORM acs_permission__grant_permission(v_menu, v_companies, ''read'');
---    PERFORM acs_permission__grant_permission(v_menu, v_freelancers, ''read'');
-
-    return 0;
-end;' language 'plpgsql';
-
-select inline_0 ();
-drop function inline_0 ();
-
-
-
-
--- Timesheet TaskList
---
-delete from im_view_columns where column_id >= 90000 and column_id < 90099;
-
-insert into im_view_columns (column_id, view_id, group_id, column_name, column_render_tcl,
-extra_select, extra_where, sort_order, visible_for) values (90000,900,NULL,'Nr',
-'"<a href=/intranet-timesheet task/new?[export_url_vars timesheet task_id return_url]>$timesheet task_nr</a>"',
-'','',0,'');
-
-insert into im_view_columns (column_id, view_id, group_id, column_name, column_render_tcl,
-extra_select, extra_where, sort_order, visible_for) values (90002,900,NULL,'Name',
-'"<a href=/intranet-timesheet task/new?[export_url_vars timesheet task_id return_url]>$timesheet task_name</a>"',
-'','',2,'');
-
-insert into im_view_columns (column_id, view_id, group_id, column_name, column_render_tcl,
-extra_select, extra_where, sort_order, visible_for) values (90004,900,NULL,'Type',
-'$timesheet task_type','','',4,'');
-
-insert into im_view_columns (column_id, view_id, group_id, column_name, column_render_tcl,
-extra_select, extra_where, sort_order, visible_for) values (90006,900,NULL,'Status',
-'$timesheet task_status','','',6,'');
-
-insert into im_view_columns (column_id, view_id, group_id, column_name, column_render_tcl,
-extra_select, extra_where, sort_order, visible_for) values (90008,900,NULL,'UoM',
-'$uom','','',8,'');
-
-insert into im_view_columns (column_id, view_id, group_id, column_name, column_render_tcl,
-extra_select, extra_where, sort_order, visible_for) values (90010,900,NULL,
-'Description', '$description', '','',10,'');
 
 
 

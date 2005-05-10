@@ -158,23 +158,30 @@ select
 	t.uom_id,
 	t.planned_units,
 	t.reported_units_cache,
+	m.material_name,
         children.project_id as project_id,
         children.project_nr as project_nr,
         children.project_name as project_name,
-	parent.project_id as parent_project_id,
+        children.parent_id as parent_project_id,
 	parent.project_nr as parent_project_nr,
 	parent.project_name as parent_project_name,
-        tree_level(children.tree_sortkey) - tree_level(parent.tree_sortkey) as subproject_level
+        tree_level(children.tree_sortkey) -1 as subproject_level
 from
         im_projects parent,
         im_projects children
+	left outer join 
+		im_timesheet_tasks t 
+		on (children.project_id = t.project_id)
 	left outer join (
-		select	* 
-		from	im_hours h
-		where	h.day = to_date(:julian_date, 'J')
-			and h.user_id = :user_id	
-	) h on (children.project_id = h.project_id)
-	left outer join im_timesheet_tasks t on (children.project_id = t.project_id)
+			select	* 
+			from	im_hours h
+			where	h.day = to_date(:julian_date, 'J')
+				and h.user_id = :user_id	
+		) h 
+		on (t.task_id = h.timesheet_task_id and h.project_id = children.project_id)
+	left outer join 
+		im_materials m 
+		on (t.material_id = m.material_id)
 where
 	children.tree_sortkey between 
 		parent.tree_sortkey and 
@@ -202,53 +209,90 @@ set old_project_id 0
 db_foreach $statement_name $sql {
 
     set indent ""
-    while {$subproject_level > 0} {
+    set level $subproject_level
+    while {$level > 0} {
         set indent "$nbsps$indent"
-	set subproject_level [expr $subproject_level-1]
+	set level [expr $level-1]
     }
 
     # Insert intermediate header for every new project
     if {$old_project_id != $project_id} {
+
+	# Add an empty line after every main project
+	if {"" == $parent_project_id} {
+	    append results "<tr class=rowplain><td colspan=99>&nbsp;</td></tr>\n"
+	}
+
+	# Add a line for a project. This is useful if there are
+	# no timesheet_tasks yet for this project, because we
+	# always want to allow employees to log their ours in
+	# order not to give them excuses.
+	#
 	append results "
-<tr $bgcolor([expr $ctr % 2])>
-  <td valign=top>
-    <nobr>
-      $indent
-      <A href=/intranet/projects/view?project_id=$project_id>
-        <B>$project_name</B>
-      </A>
-    </nobr>
-  </td>
-  <td valign=top>
-    <INPUT NAME=hours.${project_id}.hours size=5 MAXLENGTH=5 value=\"$hours\"]>
-  </td>
-  <td valign=top>
-    <INPUT NAME=hours.${project_id}.note size=60 value=\"[ns_quotehtml [value_if_exists note]]\">
-  </td>
-</tr>\n"
+	<tr $bgcolor([expr $ctr % 2])>
+	  <td>
+	    <nobr>
+	      $indent
+	      <A href=/intranet/projects/view?project_id=$project_id>
+	        <B>$project_name</B>
+	      </A>
+	    </nobr>
+	    <input type=hidden name=\"project_ids.$ctr\" value=\"$project_id\">
+	    <input type=hidden name=\"timesheet_task_ids.$ctr\" value=\"$task_id\">
+	  </td>
+	"
+
+	if {"" == $task_name} {
+	    append results "
+	  <td>(nothing defined yet)</td>
+	  <td>
+	    <INPUT NAME=hours.$ctr size=5 MAXLENGTH=5 value=\"$hours\">
+	  </td>
+	  <td>
+	    <INPUT NAME=notes.$ctr size=60 value=\"[ns_quotehtml [value_if_exists note]]\">
+	  </td>
+	</tr>
+	"
+
+	} else {
+	    append results "
+	  <td></td>
+	  <td>&nbsp;</td>
+ 	  <td>&nbsp;</td>
+	</tr>
+	"
+	}
 	set old_project_id $project_id
 	incr ctr
     }
     
 
-    append results "
-<tr $bgcolor([expr $ctr % 2])>
-  <td valign=top>
-    <nobr>
-      $indent$nbsps
-      <A href=/intranet-timesheet2-tasks/view?[export_url_vars task_id]>
-        $task_name
-      </A>
-    </nobr>
-  </td>
-  <td valign=top>
-    <INPUT NAME=hours.${project_id}.hours size=5 MAXLENGTH=5 value=\"$hours\"]>
-  </td>
-  <td valign=top>
-    <INPUT NAME=hours.${project_id}.note size=60 value=\"[ns_quotehtml [value_if_exists note]]\">
-  </td>
-</tr>
-"
+    # Don't show the empty tasks that are produced with each project
+    # due to the "left outer join" SQL query
+    if {"" != $task_name} {
+
+	append results "
+	<tr $bgcolor([expr $ctr % 2])>
+	  <td>
+	    <nobr>
+	      $indent$nbsps
+	      <A href=/intranet-timesheet2-tasks/view?[export_url_vars task_id]>
+	        $task_name
+	      </A>
+	    </nobr>
+	    <input type=hidden name=\"project_ids.$ctr\" value=\"$project_id\">
+	    <input type=hidden name=\"timesheet_task_ids.$ctr\" value=\"$task_id\">
+	  </td>
+	  <td>$material_name</td>
+	  <td>
+	    <INPUT NAME=hours.$ctr size=5 MAXLENGTH=5 value=\"$hours\">
+	  </td>
+	  <td>
+	    <INPUT NAME=notes.$ctr size=60 value=\"[ns_quotehtml [value_if_exists note]]\">
+	  </td>
+	</tr>
+	"
+    }
     incr ctr
 }
 

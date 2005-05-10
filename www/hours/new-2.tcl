@@ -23,128 +23,172 @@ ad_page_contract {
     @author mbryzek@arsdigita.com
     @author frank.bergmann@project-open.com
 } {
-    hours:array,html
+    project_ids:array,integer
+    timesheet_task_ids:array,integer
+    hours:array
+    notes:array,html
     julian_date
     { return_url "" }
 }
+
+
+# ----------------------------------------------------------
+# Default & Security
+# ----------------------------------------------------------
 
 set user_id [ad_maybe_redirect_for_registration]
 set user_name [db_string user_name "select first_names || ' ' || last_name from cc_users where user_id=:user_id" -default "User $user_id"]
 set date_format "YYYY-MM-DD"
 set currency [ad_parameter -package_id [im_package_cost_id] "DefaultCurrency" "" "EUR"]
-
+set billing_rate 0
 
 # Please note "_" instead of "-". This is because we use
 # underscores in the invoices and other costs. So the
 # timesheet information gets sorted in the right order.
 set timesheet_log_date_format "YYYY_MM_DD"
 
+set item_nrs [array names hours]
+ns_log Notice "timesheet2-tasks/new-2: items_nrs=$item_nrs"
 
-db_transaction {
-    foreach name [array names hours] {
-	if { ![regsub {\.hours$} $name "" on_what_id] } {
-	    continue
-	}
-	set hours_worked $hours($name)
-	if { [empty_string_p $hours_worked] } {
-	    set hours_worked 0
-	}
-	if { [info exists hours(${on_what_id}.note)] } {
-	    set note [string trim $hours(${on_what_id}.note)]
-	} else {
-	    set note ""
-	}
-	if { [info exists hours(${on_what_id}.billing_rate)] } {
-	    # Explicitely stated billing rate
-	    set billing_rate $hours(${on_what_id}.billing_rate)
-	} else {
-	    set billing_rate ""
+foreach item_nr $item_nrs {
 
-	    # Get the billing rate from the HR module
-	    if {[db_table_exists im_employees]} {
-		db_1row houly_costs "
-			select
-				hourly_cost as billing_rate,
-				currency
-			from
-				im_employees 
-			where 
-				employee_id = :user_id"
-	    }
-	
-	    if {"" == $billing_rate} { set billing_rate 0 }
-	}
+    ns_log Notice "timesheet2-tasks/new-2: item_nr=$item_nr"
 
-	if { $hours_worked == 0 && [empty_string_p $note] } {
-	    db_dml hours_delete "
+    # Extract the parameters from the arrays
+    set hours_worked $hours($item_nr)
+    set project_id $project_ids($item_nr)
+    set note $notes($item_nr)
+    set timesheet_task_id $timesheet_task_ids($item_nr)
+
+    if {"" == $project_id || 0 == $project_id} {
+	ad_return_complaint 1 "Internal Error:<br>
+            There is an empty project_id for item \# $item_nr"
+	return
+    }
+    
+    # Filter & trim parameters
+    if { [empty_string_p $hours_worked] } {
+	set hours_worked 0
+    }
+    set note [string trim $note]
+    
+    if { $hours_worked == 0 && [empty_string_p $note] } {
+
+	db_dml hours_delete "
 		delete from im_hours
 		where
-			project_id = :on_what_id
+			project_id = :project_id
+			and timesheet_task_id = :timesheet_task_id
 			and user_id = :user_id
 			and day = to_date(:julian_date, 'J')
-	    "
+	"
 
-	    if {[db_table_exists im_costs]} {
-		db_dml costs_delete "
+	
+	db_dml costs_delete "
 		delete from im_costs
 		where
 			cost_type_id = [im_cost_type_timesheet]
-			and project_id = :on_what_id
+			and project_id = :project_id
 			and effective_date = to_date(:julian_date, 'J')
-			and cause_object_id = :user_id
-	        "
+			and cause_object_id = :timesheet_task_id
+	"
+
+#	ad_return_complaint 1 "timesheet2-tasks/new-2: delete: hours_worked=$hours_worked, project_id=$project_id, timesheet_task_id=$timesheet_task_id"
+
+    } else {
+
+	if { [regexp {([0-9]+)(\,([0-9]+))?} $hours_worked] } {
+	    regsub "," $hours_worked "." hours_worked
+	    regsub "'" $hours_worked "." hours_worked
+	} elseif { [regexp {([0-9]+)(\'([0-9]+))?} $hours_worked] } {
+	    regsub "'" $hours_worked "." hours_worked
+	    regsub "," $hours_worked "." hours_worked
+	}
+
+	# Check if this entry is coming from a project without a 
+	# timesheet task already defined:
+	if {"" == $timesheet_task_id || 0 == $timesheet_task_id} {
+	    set timesheet_task_id [db_string existing_default_task "
+		select	task_id
+		from	im_timesheet_tasks
+		where	project_id = :project_id
+			and task_nr = 'default'
+            " -default 0]
+	}
+
+	if {"" == $timesheet_task_id || 0 == $timesheet_task_id} {
+
+	    # Create a default timesheet task for this project
+	    set task_id [im_new_object_id]
+	    set task_nr "default"
+	    set task_name "Default Task"
+	    set material_id [db_string default_material "select material_id from im_materials where material_nr='default'" -default 0]
+	    if {!$material_id} { 
+		ad_return_complaint 1 "Configuration Error:<br>Error during the creation of a default timesheet task for project \#$project_id: We couldn't find any default material with the material_nr 'default'. <br>Please inform your system administrator or contact Project/Open."
 	    }
+	    set cost_center_id ""
+	    set uom_id [im_uom_hour]
+	    set task_type_id [im_timesheet_task_type_standard]
+	    set task_status_id [im_timesheet_task_status_active]
+	    set description "Default task for timesheet logging convenience - please update"
 
-	} else {
+	    db_exec_plsql task_insert ""
 
-	    if { [regexp {([0-9]+)(\,([0-9]+))?} $hours_worked] } {
-		regsub "," $hours_worked "." hours_worked
-		regsub "'" $hours_worked "." hours_worked
-	    } elseif { [regexp {([0-9]+)(\'([0-9]+))?} $hours_worked] } {
-		regsub "'" $hours_worked "." hours_worked
-		regsub "," $hours_worked "." hours_worked
-	    }
+	}
+	
+#	ad_return_complaint 1 "timesheet2-tasks/new-2: insert: hours_worked=$hours_worked, project_id=$project_id, timesheet_task_id=$timesheet_task_id"
 
-	    # Update the hours table
-	    #
-	    db_dml hours_update "
+	# Update the hours table
+	#
+	db_dml hours_update "
 		update im_hours
 		set 
-			hours = :hours_worked, note = :note,
-			billing_rate = :billing_rate
+			hours = :hours_worked, 
+			note = :note
 		where 
-			project_id = :on_what_id
+			project_id = :project_id
+			and timesheet_task_id = :timesheet_task_id
 			and user_id = :user_id
 			and day = to_date(:julian_date, 'J')
-	    "
+	"
 
-	    if { [db_resultrows] == 0 } {
-		db_dml hours_insert "
+	if { [db_resultrows] == 0 } {
+	    db_dml hours_insert "
 		insert into im_hours (
-			user_id, project_id, day, 
-			hours, billing_rate, note
+			user_id, project_id, timesheet_task_id,
+			day, hours, billing_rate, note
 		) values (
-			:user_id, :on_what_id, to_date(:julian_date,'J'), 
-			:hours_worked, :billing_rate, :note
+			:user_id, :project_id, :timesheet_task_id, 
+			to_date(:julian_date,'J'), :hours_worked, :billing_rate, :note
 		)"
-	    }
+	}
+	
+	set cost_id [db_string costs_id_exist "
+		select
+			cost_id 
+		from 
+			im_costs 
+		where 
+			cost_type_id = [im_cost_type_timesheet] 
+			and project_id = :project_id
+			and effective_date = to_date(:julian_date, 'J') 
+			and cause_object_id = :user_id
+	" -default 0]
 
-	    set cost_id [db_string costs_id_exist "select cost_id from im_costs where cost_type_id = [im_cost_type_timesheet] and project_id = :on_what_id and effective_date = to_date(:julian_date, 'J') and cause_object_id = :user_id" -default 0]
+	set day [db_string day "select to_char(to_date(:julian_date, 'J'), :timesheet_log_date_format) from dual"]
+	set cost_name "$day $user_name"
+	if {!$cost_id} {
+	    set cost_id [im_cost::new -cost_name $cost_name -cost_type_id [im_cost_type_timesheet]]
+	}
 
-	    set day [db_string day "select to_char(to_date(:julian_date, 'J'), :timesheet_log_date_format) from dual"]
-	    set cost_name "$day $user_name"
-	    if {!$cost_id} {
-		set cost_id [im_cost::new -cost_name $cost_name -cost_type_id [im_cost_type_timesheet]]
-	    }
+	set customer_id [db_string customer_id "select company_id from im_projects where project_id = :project_id" -default 0]
 
-	    set customer_id [db_string customer_id "select company_id from im_projects where project_id = :on_what_id" -default 0]
-
-	    # Update costs table
-	    if {[db_table_exists im_costs]} {
+	# Update costs table
+	if {[db_table_exists im_costs]} {
 	    db_dml cost_update "
 	        update  im_costs set
 	                cost_name               = :cost_name,
-	                project_id              = :on_what_id,
+	                project_id              = :project_id,
 	                customer_id             = :customer_id,
 	                effective_date          = to_date(:julian_date, 'J'),
 	                amount                  = :billing_rate * cast(:hours_worked as numeric),
@@ -152,17 +196,16 @@ db_transaction {
 			payment_days		= 0,
 	                vat                     = 0,
 	                tax                     = 0,
-	                cause_object_id         = :user_id,
+	                cause_object_id         = :timesheet_task_id,
 	                description             = :note
 	        where
 	                cost_id = :cost_id
 	    "
 
-	    }
-
 	}
     }
 }
+
 
 db_release_unused_handles
 
