@@ -46,6 +46,7 @@ create table im_hours (
 
 create index im_hours_project_id_idx on im_hours(project_id);
 create index im_hours_user_id_idx on im_hours(user_id);
+create index im_hours_day_idx on im_hours(day);
 
 
 -- specified how many units of what material are planned for
