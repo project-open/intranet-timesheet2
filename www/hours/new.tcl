@@ -96,6 +96,7 @@ if {0 != $project_id} {
 		im_projects p 
 	where 
 		p.project_id in ([join $project_id_list ","])
+		and p.parent_id is null
 	order by 
 		upper(project_name)
     "
@@ -136,6 +137,7 @@ if {0 != $project_id} {
 		) r
 	where 
 		r.project_id =  p.project_id
+		and p.parent_id is null
 	order by 
 		upper(p.project_name)
     "
@@ -187,7 +189,7 @@ where
 		parent.tree_sortkey and 
 		tree_right(parent.tree_sortkey)
         and parent.project_id in (
-	$project_sql
+	    $project_sql
 	)
 	and children.project_status_id not in (
 		[im_project_status_deleted],

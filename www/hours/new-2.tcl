@@ -83,17 +83,29 @@ foreach item_nr $item_nrs {
 			and day = to_date(:julian_date, 'J')
 	"
 
-	
-	db_dml costs_delete "
+	# Also delete the cost_item if there was a change
+	if { [db_resultrows] == 0 } {
+
+	    db_dml costs_delete "
 		delete from im_costs
 		where
 			cost_type_id = [im_cost_type_timesheet]
 			and project_id = :project_id
 			and effective_date = to_date(:julian_date, 'J')
 			and cause_object_id = :timesheet_task_id
-	"
+	    "
 
-#	ad_return_complaint 1 "timesheet2-tasks/new-2: delete: hours_worked=$hours_worked, project_id=$project_id, timesheet_task_id=$timesheet_task_id"
+	    db_dml update_timesheet_task "
+		update im_timesheet_tasks
+		set reported_units_cache = (
+			select	sum(h.hours)
+			from	im_hours h
+			where	h.timesheet_task_id = task_id
+		)
+		where task_id = :timesheet_task_id
+	    "
+	}
+
 
     } else {
 
@@ -136,8 +148,6 @@ foreach item_nr $item_nrs {
 
 	}
 	
-#	ad_return_complaint 1 "timesheet2-tasks/new-2: insert: hours_worked=$hours_worked, project_id=$project_id, timesheet_task_id=$timesheet_task_id"
-
 	# Update the hours table
 	#
 	db_dml hours_update "
@@ -162,7 +172,17 @@ foreach item_nr $item_nrs {
 			to_date(:julian_date,'J'), :hours_worked, :billing_rate, :note
 		)"
 	}
-	
+
+	db_dml update_timesheet_task "
+		update im_timesheet_tasks
+		set reported_units_cache = (
+			select	sum(h.hours)
+			from	im_hours h
+			where	h.timesheet_task_id = task_id
+		)
+		where task_id = :timesheet_task_id
+	"
+
 	set cost_id [db_string costs_id_exist "
 		select
 			cost_id 
@@ -204,6 +224,7 @@ foreach item_nr $item_nrs {
 
 	}
     }
+
 }
 
 
