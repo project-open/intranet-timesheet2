@@ -55,35 +55,6 @@ create index im_hours_day_idx on im_hours(day);
 create index im_hours_timesheet_task_id_idx on im_hours(timesheet_task_id);
 
 
--- specified how many units of what material are planned for
--- each project / subproject / task (all the same...)
---
-create table im_timesheet_tasks (
-	project_id		integer not null 
-				constraint im_timesheet_tasks_project_fk
-				references im_projects,
-	material_id		integer
-				constraint im_timesheet_tasks_material_fk
-				references im_materials,
-	cost_center_id		integer
-				constraint im_timesheet_tasks_cost_center_nn
-				not null
-				constraint im_timesheet_tasks_cost_center_fk
-				references im_cost_centers,
-	uom_id			integer
-				constraint im_timesheet_tasks_uom_fk
-				references im_categories,
-	planned_units		float,
-	billable_units		float,
-				-- sum of timesheet hours cached here for reporting
-	reported_units_cache	float,
-	description		varchar(4000),
-	primary key(project_id, material_id)
-);
-
-
-
-
 ------------------------------------------------------
 -- Permissions and Privileges
 --
