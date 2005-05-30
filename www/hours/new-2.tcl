@@ -55,9 +55,9 @@ foreach item_nr $item_nrs {
     ns_log Notice "timesheet2-tasks/new-2: item_nr=$item_nr"
 
     # Extract the parameters from the arrays
-    set hours_worked $hours($item_nr)
+    set hours_worked [string trim $hours($item_nr)]
     set project_id $project_ids($item_nr)
-    set note $notes($item_nr)
+    set note [string trim $notes($item_nr)]
     set timesheet_task_id $timesheet_task_ids($item_nr)
 
     if {"" == $project_id || 0 == $project_id} {
@@ -73,6 +73,8 @@ foreach item_nr $item_nrs {
     set note [string trim $note]
     
     if { $hours_worked == 0 && [empty_string_p $note] } {
+
+	# Delete a timesheet entry 
 
 	db_dml hours_delete "
 		delete from im_hours
@@ -108,6 +110,8 @@ foreach item_nr $item_nrs {
 
 
     } else {
+
+	# Create or update a timesheet entry
 
 	if { [regexp {([0-9]+)(\,([0-9]+))?} $hours_worked] } {
 	    regsub "," $hours_worked "." hours_worked
@@ -145,6 +149,7 @@ foreach item_nr $item_nrs {
 	    set description "Default task for timesheet logging convenience - please update"
 
 	    db_exec_plsql task_insert ""
+	    set timesheet_task_id $task_id
 
 	}
 	
