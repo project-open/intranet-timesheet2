@@ -8,7 +8,7 @@
     <singleton-p>t</singleton-p>
     <auto-mount>intranet-timesheet2</auto-mount>
 
-    <version name="3.0.0.0.7" url="http://projop.dnsalias.com/download/apm/intranet-timesheet2-3.0.0.0.7.apm">
+    <version name="3.0.0.1.1" url="http://projop.dnsalias.com/download/apm/intranet-timesheet2-3.0.0.1.1.apm">
 
         <owner url="mailto:fraber@fraber.de">Frank Bergmann</owner>
         <release-date>2004-02-07</release-date>
