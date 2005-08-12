@@ -1,4 +1,4 @@
-# /packages/intranet-timesheet/www/weekly_report.tcl
+# /packages/intranet-timesheet2/www/weekly_report.tcl
 #
 # Copyright (C) 1998-2004 various parties
 # The code is based on ArsDigita ACS 3.4
@@ -110,7 +110,7 @@ ad_page_contract {
 
 set user_id [ad_maybe_redirect_for_registration]
 set subsite_id [ad_conn subsite_id]
-set site_url "/intranet-timesheet"
+set site_url "/intranet-timesheet2"
 set return_url "$site_url/weekly_report"
 set date_format "YYYYMMDD"
     
