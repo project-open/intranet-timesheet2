@@ -135,27 +135,21 @@ if { $start_at == "" && $project_id != 0 } {
     " -default ""]
 
     set todays_date [db_string todays_date "
-	select	to_char(now() :date_format) 
+	select	to_char(now(), :date_format) 
 	from	dual
     " -default ""]
 
-    set start_date $hours_start_date
-    if {"" == $start_date} { 
-	set start_date $project_start_date 
-	ad_return_complaint 1 project_start_date
-    } else {
-	ad_return_complaint 1 hours_start_date
-
+    set start_at $hours_start_date
+    if {"" == $start_at} { 
+	set start_at $project_start_date 
     }
-
-    if {"" == $start_date} { 
-	set start_date $todays_date 
+    if {"" == $start_at} { 
+	set start_at $todays_date 
 	ad_return_complaint 1 todays_date
     }
-
-    if {$start_at == ""} {
+    if {"" == $start_at} {
 	ad_return_complaint 1 "Unable to determine start date for project \#$project_id:<br>
-        please set the 'Start Date' of the project".
+        please set the 'Start Date' of the project"
 	return
     }
 
