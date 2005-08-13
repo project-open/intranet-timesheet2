@@ -121,11 +121,44 @@ if { $owner_id != $user_id && ![im_permission $user_id "view_hours_all"] } {
 }
 
 if { $start_at == "" && $project_id != 0 } {
-    set redirect_sql "
-    	select to_char(max(day), :date_format) 
-    	from im_hours 
-    	where project_id = :project_id"
-    set start_at [db_string get_new_start_at $redirect_sql]
+
+    set hours_start_date [db_string get_new_start_at "
+	select	to_char(max(day), :date_format) 
+	from	im_hours 
+	where	project_id = :project_id
+    " -default ""]
+
+    set project_start_date [db_string get_project_start "
+	select	to_char(start_date, :date_format) 
+	from	im_projects
+	where	project_id = :project_id
+    " -default ""]
+
+    set todays_date [db_string todays_date "
+	select	to_char(now() :date_format) 
+	from	dual
+    " -default ""]
+
+    set start_date $hours_start_date
+    if {"" == $start_date} { 
+	set start_date $project_start_date 
+	ad_return_complaint 1 project_start_date
+    } else {
+	ad_return_complaint 1 hours_start_date
+
+    }
+
+    if {"" == $start_date} { 
+	set start_date $todays_date 
+	ad_return_complaint 1 todays_date
+    }
+
+    if {$start_at == ""} {
+	ad_return_complaint 1 "Unable to determine start date for project \#$project_id:<br>
+        please set the 'Start Date' of the project".
+	return
+    }
+
     ad_returnredirect "$return_url?[export_url_vars start_at duration project_id owner_id]"
     return
 }
