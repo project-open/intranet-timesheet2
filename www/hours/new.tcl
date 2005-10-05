@@ -36,6 +36,7 @@ ad_page_contract {
 # ---------------------------------------------------------
 
 set user_id [ad_maybe_redirect_for_registration]
+if {"" == $return_url} { set return_url [im_url_with_query] }
 set bgcolor(0) " class=roweven "
 set bgcolor(1) " class=rowodd "
 if { [empty_string_p $julian_date] } {
@@ -278,7 +279,7 @@ db_foreach $statement_name $sql {
 	  <td>
 	    <nobr>
 	      $indent$nbsps
-	      <A href=/intranet-timesheet2-tasks/view?[export_url_vars task_id]>
+	      <A href=/intranet-timesheet2-tasks/new?[export_url_vars task_id project_id return_url]>
 	        $task_name
 	      </A>
 	    </nobr>
