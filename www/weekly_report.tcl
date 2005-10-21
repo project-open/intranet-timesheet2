@@ -338,14 +338,14 @@ set active_users_sql "
 select distinct
 	party_id
 from	acs_object_party_privilege_map m
-where	m.object_id = 400
+where	m.object_id = :subsite_id
 	and m.privilege = 'add_hours'
 UNION
 -- Users with the permissions to add absences
 select distinct
 	party_id
 from	acs_object_party_privilege_map m
-where	m.object_id = 400
+where	m.object_id = :subsite_id
 	and m.privilege = 'add_absences'
 UNION
 -- Users who have actually logged absences
