@@ -47,7 +47,7 @@
 <% } %>
 <% if { ![empty_string_p $return_url] } { %>
 	    <li>
-	      <a href=$return_url>#intranet-timesheet2.lt_Return_to_previous_pa#</a>
+	      <a href="@return_url@">#intranet-timesheet2.lt_Return_to_previous_pa#</a>
 <% } %>
 	  </td>
 	</tr>

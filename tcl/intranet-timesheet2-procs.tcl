@@ -89,7 +89,7 @@ ad_proc -public im_timesheet_project_component {user_id project_id} {
     im_project_permissions $user_id $project_id view read write admin
 
     if { ![info exists return_url] } {
-	set return_url ""
+	set return_url "[ad_conn url]?[ad_conn query]"
     }
 
     set hours_logged "<ul>"
@@ -121,7 +121,7 @@ ad_proc -public im_timesheet_project_component {user_id project_id} {
 	    set log_hours_link "<a href=/intranet-timesheet2/hours/new?project_id=$project_id&[export_url_vars return_url]>"
             append hours_logged "<li><font color=\"\#FF0000\">[_ intranet-timesheet2.lt_Today_you_didnt_log_y]</font> [_ intranet-timesheet2.lt_Log_your_log_hours_li]</a>\n"
         } else {
-	    set log_hours_link "<a href=/intranet-timesheet2/hours/new?project_id=$project_id&return_url=$return_url>"
+	    set log_hours_link "<a href=\"/intranet-timesheet2/hours/new?[export_url_vars project_id return_url]\">"
             append hours_logged "<li>[_ intranet-timesheet2.lt_Log_your_log_hours_li_1]</a>\n"
         }
 	# Show the "Work Absences" link only to in-house staff.
