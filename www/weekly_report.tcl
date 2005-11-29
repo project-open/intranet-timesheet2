@@ -145,7 +145,6 @@ if { $start_at == "" && $project_id != 0 } {
     }
     if {"" == $start_at} { 
 	set start_at $todays_date 
-	ad_return_complaint 1 todays_date
     }
     if {"" == $start_at} {
 	ad_return_complaint 1 "Unable to determine start date for project \#$project_id:<br>
@@ -165,12 +164,8 @@ if { $start_at == "" } {
 #    ad_return_complaint 1 "start_at=$start_at"
 }
 
-#    ad_return_complaint 1 "start_at=$start_at"
-
-
-
 if { $project_id != 0 } {
-    set project_name [db_string get_project_name "select project_name from im_projects where project_id = :project_id"]
+    set project_name [db_string get_project_name "select project_name from im_projects where project_id = :project_id" -default "No Name for $project_id"]
 }
 
 # ---------------------------------------------------------------
