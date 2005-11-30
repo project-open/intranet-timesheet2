@@ -362,7 +362,7 @@ select
 	i.descr,
 	to_char(d.day, :date_format) as curr_day
 from
-	users u,
+	cc_users u,
 	($sql_from_imhours
 	  UNION
 	$sql_from_joined
@@ -372,6 +372,7 @@ from
 	($active_users_sql) active_users
 where
 	u.user_id > 0
+	and u.member_state in ('approved')
 	and u.user_id=i.user_id and trunc(to_date(to_char(d.day,:date_format),:date_format),'Day')=trunc(to_date(to_char(i.day,:date_format),:date_format),'Day')
 	and u.user_id = active_users.party_id
 	$sql_where
