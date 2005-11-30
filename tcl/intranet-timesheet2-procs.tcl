@@ -56,17 +56,30 @@ ad_proc -public im_timesheet_home_component {user_id} {
 
     if {[im_permission $user_id view_hours_all]} {
         append hours_html "
-    <ul>
-    <li><a href=/intranet-timesheet2/hours/projects?[export_url_vars user_id]>
-	[_ intranet-timesheet2.lt_View_your_hours_on_al]</a>
-    <li><a href=/intranet-timesheet2/hours/total?[export_url_vars]>
-	[_ intranet-timesheet2.lt_View_time_spent_on_al]</a>
-    <li><a href=/intranet-timesheet2/hours/projects?[export_url_vars]>
-	[_ intranet-timesheet2.lt_View_the_hours_logged]</a>
-    <li><a href=\"/intranet-timesheet2/weekly_report\">
-	[_ intranet-timesheet2.lt_View_hours_logged_dur]</a>
-    "
+	    <ul>
+	    <li><a href=/intranet-timesheet2/hours/projects?[export_url_vars user_id]>
+		[_ intranet-timesheet2.lt_View_your_hours_on_al]</a>
+	    <li><a href=/intranet-timesheet2/hours/total?[export_url_vars]>
+		[_ intranet-timesheet2.lt_View_time_spent_on_al]</a>
+	    <li><a href=/intranet-timesheet2/hours/projects?[export_url_vars]>
+		[_ intranet-timesheet2.lt_View_the_hours_logged]</a>
+	    <li><a href=\"/intranet-timesheet2/weekly_report\">
+		[_ intranet-timesheet2.lt_View_hours_logged_dur]</a>
+        "
     }
+
+    set dw_light_exists_p [db_string dw_light_exists_p {
+        select count(*) from apm_packages
+        where package_key = 'intranet-dw-light'
+    } -default 0]
+
+    if {[im_permission $user_id view_hours_all] && $dw_light_exists_p} {
+        append hours_html "
+	    <li><a href=/intranet-dw-light/timesheet.csv>
+	    [lang::message::lookup "" intranet-dw-light.Export_Timesheet_Cube "Export Timesheet Cube"]
+            </a>\n"
+    }
+
 
     if {$add_hours} {
 	set log_hours_link "<a href=/intranet-timesheet2/hours/index>"
