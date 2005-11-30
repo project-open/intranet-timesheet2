@@ -9,8 +9,7 @@
   <td width="50%">
 
 	<form action=new method=post>
-	<%= [export_form_vars return_url]  %>
-
+	<%= [export_form_vars project_id return_url julian_date project_id_list]  %>
 	<table border=0 cellpadding=1 cellspacing=1>
 	  <tr class=rowtitle>
 	    <th colspan=99>Timesheet Filters</th>
