@@ -408,7 +408,7 @@ select
 from
      im_user_absences, dual
 where
-     owner_id = '$user_id' and
+     owner_id = :user_id and
      start_date >= to_date(sysdate,'yyyy-mm-dd')
 order by
      start_date, end_date"
