@@ -5,9 +5,15 @@
 
 <if "" ne @message@>
 <h1>@header@</h1>
+
+<table width="70%">
+<tr><td>
 <div class="form-error">
 @message@
 </div>
+</tr></td>
+</table>
+
 <p>
 </if>
 

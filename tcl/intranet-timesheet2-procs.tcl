@@ -21,6 +21,26 @@ ad_library {
 }
 
 # ---------------------------------------------------------------------
+#
+# ---------------------------------------------------------------------
+
+ad_proc -public im_package_timesheet2_id {} {
+    Returns the package id of the intranet-timesheet2 package
+} {
+    return [util_memoize "im_package_timesheet2_id_helper"]
+}
+
+ad_proc -private im_package_timesheet2_id_helper {} {
+    return [db_string im_package_core_id {
+        select package_id from apm_packages
+        where package_key = 'intranet-timesheet2'
+    } -default 0]
+}
+
+
+
+
+# ---------------------------------------------------------------------
 # Analyze logged hours
 # ---------------------------------------------------------------------
 
@@ -28,26 +48,43 @@ ad_proc -public im_timesheet_home_component {user_id} {
     Creates a HTML table showing a box with basic statistics about
     the current project and a link to log the users hours.
 } {
-
-    set add_hours [im_permission $user_id "add_hours"]
-
     # skip the entire component if the user doesn't have
     # the permission to log hours
+    set add_hours [im_permission $user_id "add_hours"]
     if {!$add_hours} { return "" }
 
     set add_absences [im_permission $user_id "add_absences"]
     set view_hours_all [im_permission $user_id view_hours_all]
     if {!$add_hours && !$add_absences && !$view_hours_all} { return "" }
 
+    # Get the number of hours in the number of days, and whether
+    # we should redirect if the user didn't log them...
+    #
+    set redirect_p [parameter::get -package_id [im_package_timesheet2_id] -parameter "TimesheetRedirectHomeIfEmptyHoursP" -default 0]
+    set num_days [parameter::get -package_id [im_package_timesheet2_id] -parameter "TimesheetRedirectNumDays" -default 7]
+    set expected_hours [parameter::get -package_id [im_package_timesheet2_id] -parameter "TimesheetRedirectNumHoursInDays" -default 32]
+
     set hours_html ""
 
     if { [catch {
-        set num_hours [hours_sum_for_user $user_id "" 7]
+        set num_hours [hours_sum_for_user $user_id "" $num_days]
     } err_msg] } {
         set num_hours 0
     }
 
-    if { $num_hours == 0 && $add_hours } {
+    if { $num_hours < $expected_hours && $add_hours } {
+
+	if {$redirect_p} {
+	    set default_message "
+You have logged %num_hours% hours in the last %num_days% days.
+However, you are expected to log atleast %expected_hours% hours
+or an equivalent amount of absences.
+Please log your hours now or consult with your supervisor."
+	    set header [lang::message::lookup "" intranet-timesheet2.Please_Log_Your_Hours "Please Log Your Hours"]
+	    set message [lang::message::lookup "" intranet-timesheet2.You_need_to_log_hours $default_message]
+	    ad_returnredirect [export_vars -base "/intranet-timesheet2/hours/index" {header message}]
+	}
+
 	set log_them_now_link "<a href=/intranet-timesheet2/hours/index>"
         append hours_html "<b>[_ intranet-timesheet2.lt_You_havent_logged_you]</a></b>\n"
     } else {
@@ -100,10 +137,11 @@ ad_proc -public im_timesheet_project_component {user_id project_id} {
     the current project and a link to log the users hours.
 } {
     im_project_permissions $user_id $project_id view read write admin
-
     if { ![info exists return_url] } {
 	set return_url "[ad_conn url]?[ad_conn query]"
     }
+
+    set add_hours [im_permission $user_id "add_hours"]
 
     set hours_logged "<ul>"
     set info_html ""
@@ -119,10 +157,7 @@ ad_proc -public im_timesheet_project_component {user_id project_id} {
               [_ intranet-timesheet2.lt_See_the_breakdown_by_]
             </a>\n"
         }
-
 	append hours_logged "<li><a href=\"/intranet-timesheet2/weekly_report?project_id=$project_id\">[_ intranet-timesheet2.lt_View_hours_logged_by_]</a>"
-
-
     }
 
 
@@ -130,6 +165,27 @@ ad_proc -public im_timesheet_project_component {user_id project_id} {
 	set total_hours_str "[hours_sum_for_user $user_id $project_id]"
         append info_html "<br>[_ intranet-timesheet2.lt_You_have_loged_total_].\n"
         set hours_today [hours_sum_for_user $user_id "" 1]
+
+	# Get the number of hours in the number of days, and whether
+	# we should redirect if the user didn't log them...
+	#
+	set redirect_p [parameter::get -package_id [im_package_timesheet2_id] -parameter "TimesheetRedirectProjectIfEmptyHoursP" -default 0]
+	set num_days [parameter::get -package_id [im_package_timesheet2_id] -parameter "TimesheetRedirectNumDays" -default 7]
+	set expected_hours [parameter::get -package_id [im_package_timesheet2_id] -parameter "TimesheetRedirectNumHoursInDays" -default 32]
+        set num_hours [hours_sum_for_user $user_id "" $num_days]
+
+	if { $redirect_p && $num_hours < $expected_hours && $add_hours } {
+
+            set default_message "
+You have logged %num_hours% hours in the last %num_days% days.
+However, you are expected to log atleast %expected_hours% hours
+or an equivalent amount of absences.
+Please log your hours now or consult with your supervisor."
+	    set header [lang::message::lookup "" intranet-timesheet2.Please_Log_Your_Hours "Please Log Your Hours"]
+	    set message [lang::message::lookup "" intranet-timesheet2.You_need_to_log_hours $default_message]
+	    ad_returnredirect [export_vars -base "/intranet-timesheet2/hours/index" {header message}]
+	}
+
         if { $hours_today == 0 } {
 	    set log_hours_link "<a href=/intranet-timesheet2/hours/new?project_id=$project_id&[export_url_vars return_url]>"
             append hours_logged "<li><font color=\"\#FF0000\">[_ intranet-timesheet2.lt_Today_you_didnt_log_y]</font> [_ intranet-timesheet2.lt_Log_your_log_hours_li]</a>\n"
