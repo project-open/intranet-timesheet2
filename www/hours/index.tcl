@@ -27,13 +27,15 @@ ad_page_contract {
     @param return_url Return URL
  
     @author Michael Bryzek (mbryzek@arsdigita.com)
-    @author frank.bergmann@project-open.com
+    @author Frank Bergmann (frank.bergmann@project-open.com)
 } {
     { date "" }
     { julian_date "" }
     { user_id:integer "" }
     { project_id:integer "" }
     { return_url "" }
+    { header "" }
+    { message "" }
 }
 
 # ---------------------------------------------------------------
