@@ -48,6 +48,10 @@ if {"" == $user_id} {
 }
 set user_name [db_string user_name_sql "select im_name_from_user_id(:user_id) from dual"]
 
+if {"" == $return_url} {
+    set return_url "[ad_conn url]?[ad_conn form]"
+}
+
 set user_admin_p [im_is_user_site_wide_or_intranet_admin $current_user_id]
 if {$user_id == $current_user_id} {
     # Can do anything to your own hours :)
