@@ -198,6 +198,7 @@ where
 		[im_project_status_closed]
 	)
 order by
+	lower(parent.project_name),
         children.tree_sortkey
 "
 
