@@ -70,6 +70,7 @@ ad_proc -public im_timesheet_home_component {user_id} {
         set num_hours [hours_sum_for_user $user_id "" $num_days]
     } err_msg] } {
         set num_hours 0
+	ad_return_complaint 1 "<pre>$err_msg</pre>"
     }
 
     if { $num_hours < $expected_hours && $add_hours } {
@@ -250,10 +251,15 @@ where
 }
 
 
-ad_proc hours_sum_for_user { user_id { project_id "" } { number_days "" } } {
+ad_proc hours_sum_for_user { user_id { project_id "" } { number_days "7" } } {
     Returns the total number of hours the specified user logged for
-    whatever else is included in the arg list 
+    whatever else is included in the arg list.
+    Also counts absences with 8 hours.
 } {
+    set hours_per_absence [parameter::get -package_id [im_package_timesheet2_id] -parameter "TimesheetHoursPerAbsence" -default 8]
+
+    # --------------------------------------------------------
+    # Count the number of hours in the last days.
 
     set criteria [list "user_id=:user_id"]
     if { ![empty_string_p $project_id] } {
@@ -263,11 +269,31 @@ ad_proc hours_sum_for_user { user_id { project_id "" } { number_days "" } } {
 	lappend criteria "day >= to_date(to_char(sysdate,'yyyymmdd'),'yyyymmdd') - $number_days"	
     }
     set where_clause [join $criteria "\n    and "]
-    set num [db_string hours_sum \
-	   "select sum(hours) from im_hours, dual  where $where_clause"]
+    set num_hours [db_string hours_sum "
+	select sum(hours) 
+	from im_hours, dual  
+	where $where_clause
+    " -default 0]
+    if {"" == $num_hours} { set num 0}
     
-    if {"" == $num} { set num 0}
-    return $num
+
+    # --------------------------------------------------------
+    # Count the absences in the last days
+
+    set num_absences [db_string absences_sum "
+	select
+		count(*)
+	from
+		im_user_absences a,
+		im_day_enumerator(now()::date - '7'::integer, now()::date) d
+	where
+		owner_id = :user_id
+		and a.start_date <= d.d
+		and a.end_date >= d.d
+    " -default 0]
+
+#    ad_return_complaint 1 [expr $num_hours + $num_absences * $hours_per_absence]
+    return [expr $num_hours + $num_absences * $hours_per_absence]
 }
 
 ad_proc hours_sum { project_id {number_days ""} } {

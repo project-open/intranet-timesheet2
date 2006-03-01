@@ -38,6 +38,13 @@
 	      <a href=@different_date_url;noquote@>
 	        #intranet-timesheet2.lt_Log_hours_for_a_diffe#
 	      </a>
+
+	    <li>
+	      <a href=@absences_url;noquote@>
+	        @absences_link_text@
+	      </a>
+
+
 <% if {[im_permission $user_id view_projects_all]} { %>
 	    <li>
 	      <a href=@different_project_url;noquote@>
