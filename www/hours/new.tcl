@@ -36,6 +36,7 @@ ad_page_contract {
 # ---------------------------------------------------------
 
 set user_id [ad_maybe_redirect_for_registration]
+if {"" == $return_url} { set return_url [im_url_with_query] }
 set bgcolor(0) " class=roweven "
 set bgcolor(1) " class=rowodd "
 if { [empty_string_p $julian_date] } {
@@ -50,6 +51,11 @@ set different_date_url "index?[export_ns_set_vars url [list julian_date]]"
 # "Log hours for a different project"
 set different_project_url "other-projects?[export_url_vars julian_date]"
 
+# Log Absences
+set absences_url [export_vars -base "/intranet-timesheet2/absences/new" {return_url}]
+set absences_link_text [lang::message::lookup "" intranet-timesheet2.Log_Absences "Log Absences"]
+
+
 db_1row user_name_and_date "
 select 
 	im_name_from_user_id(user_id) as user_name,
@@ -60,6 +66,67 @@ where	user_id = :user_id"
 set page_title "[_ intranet-timesheet2.lt_Hours_for_pretty_date]"
 set context_bar [im_context_bar [list index "[_ intranet-timesheet2.Hours]"] "[_ intranet-timesheet2.Add_hours]"]
 
+
+
+# ---------------------------------------------------------
+# Check for registered hours
+# ---------------------------------------------------------
+
+# These are the hours and notes captured from the intranet-timesheet2-task-popup
+# modules, if it's there. The module allows the user to capture notes during the
+# day on what task she is working.
+
+array set popup_hours [list]
+array set popup_notes [list]
+
+set timesheet_popup_installed_p [db_table_exists im_timesheet_popups]
+if {$timesheet_popup_installed_p} {
+
+    set timesheet_popup_sql "
+select
+        p.log_time,
+        round(to_char(min(q.log_time) - p.log_time, 'HH24')::integer
+          + to_char(min(q.log_time) - p.log_time, 'MI')::integer / 60.0
+          + to_char(min(q.log_time) - p.log_time, 'SS')::integer / 3600.0
+	  , 3)  as log_hours,
+        p.task_id,
+        p.note
+from
+        im_timesheet_popups p,
+        im_timesheet_popups q
+where
+	1=1
+	and p.log_time::date = now()::date
+        and q.log_time::date = now()::date
+        and q.log_time > p.log_time
+	and p.user_id = :user_id
+	and q.user_id = :user_id
+group by
+        p.log_time,
+        p.task_id,
+        p.note
+order by
+        p.log_time
+    "
+
+    db_foreach timesheet_popup $timesheet_popup_sql {
+	set p_hours ""
+	if {[info exists popup_hours($task_id)]} { set p_hours $popup_hours($task_id) } 
+	set p_notes ""
+	if {[info exists popup_notes($task_id)]} { set p_notes $popup_notes($task_id) } 
+
+	append p_hours "[expr $log_hours+0]<br>"
+	if {"" != [string trim $note] && ![string equal "Timesheet" [string tolower $note]]} {
+	    append p_notes "$note<br>"
+	}
+
+	set popup_hours($task_id) $p_hours
+	set popup_notes($task_id) $p_notes
+    }
+}
+
+
+# ad_return_complaint 1 [array get popup_hours]
 
 # ---------------------------------------------------------
 # Build the SQL Subquery, determining the (parent)
@@ -197,6 +264,7 @@ where
 		[im_project_status_closed]
 	)
 order by
+	lower(parent.project_name),
         children.tree_sortkey
 "
 
@@ -216,6 +284,15 @@ db_foreach $statement_name $sql {
         set indent "$nbsps$indent"
 	set level [expr $level-1]
     }
+
+    # These are the hours and notes captured from the intranet-timesheet2-task-popup 
+    # modules, if it's there. The module allows the user to capture notes during the
+    # day on what task she is working.
+    set p_hours ""
+    set p_notes ""
+    if {[info exists popup_hours($task_id)]} { set p_hours $popup_hours($task_id) }
+    if {[info exists popup_notes($task_id)]} { set p_notes $popup_notes($task_id) }
+
 
     # Insert intermediate header for every new project
     if {$old_project_id != $project_id} {
@@ -253,9 +330,7 @@ db_foreach $statement_name $sql {
 	  <td>
 	    <INPUT NAME=notes.$ctr size=60 value=\"[ns_quotehtml [value_if_exists note]]\">
 	  </td>
-	</tr>
-	"
-
+	</tr>\n"
 	} else {
 	    append results "
 	  <td></td>
@@ -278,7 +353,7 @@ db_foreach $statement_name $sql {
 	  <td>
 	    <nobr>
 	      $indent$nbsps
-	      <A href=/intranet-timesheet2-tasks/view?[export_url_vars task_id]>
+	      <A href=/intranet-timesheet2-tasks/new?[export_url_vars task_id project_id return_url]>
 	        $task_name
 	      </A>
 	    </nobr>
@@ -288,9 +363,11 @@ db_foreach $statement_name $sql {
 	  <td>$material_name</td>
 	  <td>
 	    <INPUT NAME=hours.$ctr size=5 MAXLENGTH=5 value=\"$hours\">
+            $p_hours
 	  </td>
 	  <td>
 	    <INPUT NAME=notes.$ctr size=60 value=\"[ns_quotehtml [value_if_exists note]]\">
+            $p_notes
 	  </td>
 	</tr>
 	"
@@ -310,3 +387,5 @@ if { [empty_string_p $results] } {
 }
 
 set export_form_vars [export_form_vars julian_date return_url]
+
+

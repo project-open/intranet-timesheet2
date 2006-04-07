@@ -104,7 +104,9 @@ db_foreach column_list_sql $column_sql {
 # absences_types
 
 set absences_types [im_memoize_list select_absences_types "select absence_type_id, absence_type from im_absence_types order by lower(ABSENCE_TYPE)"]
-set absences_types [linsert $absences_types 0 -1 "[_ intranet-timesheet2.All]"]
+set absences_types [linsert $absences_types 0 "All"]
+set absences_types [linsert $absences_types 0 -1]
+
 
 # ---------------------------------------------------------------
 # 5. Generate SQL Query
@@ -128,16 +130,16 @@ if { ![empty_string_p $user_selection] } {
 
 if { ![empty_string_p $absence_type_id] &&  $absence_type_id != -1 } {
      #ns_set put $bind_vars absence_type_id $absence_type_id
-     lappend criteria "a.absence_type=:absence_type_id"
+     lappend criteria "a.absence_type_id = :absence_type_id"
 }
 
 switch $timescale {
     "all" { }
-    "today" { lappend criteria "a.start_date = '[db_string get_today "select sysdate from dual"]'" }
-    "next_1m" { lappend criteria "a.start_date < '[db_string get_next_month "select add_months(sysdate,1) from dual"]' and a.start_date >= '[db_string get_today "select sysdate from dual"]'" }
+    "today" { lappend criteria "a.start_date::date <= now()::date and a.end_date >= now()::date" }
+    "next_1m" { lappend criteria "a.start_date < now()::date + 30 and a.end_date >= now()::date" }
     "past" { lappend criteria "a.start_date < '[db_string get_today "select sysdate from dual"]'" }
     "future" { lappend criteria "a.start_date > '[db_string get_today "select sysdate from dual"]'" }
-    "last_3m" { lappend criteria "a.start_date > '[db_string get_3_months_ago "select add_months(sysdate,-3) from dual"]' and a.start_date < '[db_string get_today "select sysdate from dual"]'" }
+    "last_3m" { lappend criteria "a.start_date < now()::date and a.end_date >= now()::date - 120" }
 }
 
 set order_by_clause ""

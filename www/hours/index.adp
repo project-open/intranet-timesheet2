@@ -3,6 +3,20 @@
 <property name="context">#intranet-timesheet2.context#</property>
 <property name="main_navbar_label">finance</property>
 
+<if "" ne @message@>
+<h1>@header@</h1>
+
+<table width="70%">
+<tr><td>
+<div class="form-error">
+@message@
+</div>
+</tr></td>
+</table>
+
+<p>
+</if>
+
 @page_body;noquote@
 
 

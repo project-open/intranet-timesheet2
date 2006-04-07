@@ -1,4 +1,4 @@
-# /www/intranet/hours/new-2.tcl
+# /www/intranet-timesheet2/hours/new-2.tcl
 #
 # Copyright (C) 1998-2004 various parties
 # The code is based on ArsDigita ACS 3.4
@@ -39,8 +39,6 @@ ad_page_contract {
 set user_id [ad_maybe_redirect_for_registration]
 set user_name [db_string user_name "select first_names || ' ' || last_name from cc_users where user_id=:user_id" -default "User $user_id"]
 set date_format "YYYY-MM-DD"
-set currency [ad_parameter -package_id [im_package_cost_id] "DefaultCurrency" "" "EUR"]
-set billing_rate 0
 
 # Please note "_" instead of "-". This is because we use
 # underscores in the invoices and other costs. So the
@@ -49,6 +47,34 @@ set timesheet_log_date_format "YYYY_MM_DD"
 
 set item_nrs [array names hours]
 ns_log Notice "timesheet2-tasks/new-2: items_nrs=$item_nrs"
+
+
+
+# ----------------------------------------------------------
+# Determine Billing Rate
+# ----------------------------------------------------------
+
+set billing_rate 0
+set billing_currency ""
+
+db_0or1row get_billing_rate "
+	select
+		hourly_cost as billing_rate,
+		currency as billing_currency
+	from
+		im_employees
+	where
+		employee_id = :user_id
+"
+
+if {"" == $billing_currency} {
+	set billing_currency [ad_parameter -package_id [im_package_cost_id] "DefaultCurrency" "" "EUR"]
+}
+
+
+# ----------------------------------------------------------
+# Update items
+# ----------------------------------------------------------
 
 foreach item_nr $item_nrs {
 
@@ -72,10 +98,10 @@ foreach item_nr $item_nrs {
     }
     set note [string trim $note]
     
-    if { $hours_worked == 0 && [empty_string_p $note] } {
+    if { $hours_worked == 0 } {
 
 	# Delete a timesheet entry 
-
+	ns_log Notice "timesheet2-tasks/new-2: Delete timesheet entry for task_id=$timesheet_task_id"
 	db_dml hours_delete "
 		delete from im_hours
 		where
@@ -85,34 +111,19 @@ foreach item_nr $item_nrs {
 			and day = to_date(:julian_date, 'J')
 	"
 
-	# Also delete the cost_item if there was a change
-	if { [db_resultrows] == 0 } {
+	ns_log Notice "timesheet2-tasks/new-2: Delete cost items of timesheet task"
+	if { [db_resultrows] != 0 } {
 
-	    db_dml costs_delete "
-		delete from im_costs
-		where
-			cost_type_id = [im_cost_type_timesheet]
-			and project_id = :project_id
-			and effective_date = to_date(:julian_date, 'J')
-			and cause_object_id = :timesheet_task_id
-	    "
+	    db_exec_plsql delete_timesheet_costs {}
+	    db_dml update_timesheet_task {}
 
-	    db_dml update_timesheet_task "
-		update im_timesheet_tasks
-		set reported_units_cache = (
-			select	sum(h.hours)
-			from	im_hours h
-			where	h.timesheet_task_id = task_id
-		)
-		where task_id = :timesheet_task_id
-	    "
 	}
 
 
     } else {
 
 	# Create or update a timesheet entry
-
+	ns_log Notice "timesheet2-tasks/new-2: Create"
 	if { [regexp {([0-9]+)(\,([0-9]+))?} $hours_worked] } {
 	    regsub "," $hours_worked "." hours_worked
 	    regsub "'" $hours_worked "." hours_worked
@@ -150,8 +161,9 @@ foreach item_nr $item_nrs {
 
 	    db_exec_plsql task_insert ""
 	    set timesheet_task_id $task_id
-
 	}
+
+
 	
 	# Update the hours table
 	#
@@ -167,42 +179,42 @@ foreach item_nr $item_nrs {
 			and day = to_date(:julian_date, 'J')
 	"
 
+	# Add a new im_hour record if there wasn't one before...
 	if { [db_resultrows] == 0 } {
 	    db_dml hours_insert "
 		insert into im_hours (
 			user_id, project_id, timesheet_task_id,
-			day, hours, billing_rate, note
+			day, hours, 
+			billing_rate, billing_currency, 
+			note
 		) values (
 			:user_id, :project_id, :timesheet_task_id, 
-			to_date(:julian_date,'J'), :hours_worked, :billing_rate, :note
+			to_date(:julian_date,'J'), :hours_worked, 
+			:billing_rate, :billing_currency, 
+			:note
 		)"
 	}
 
-	db_dml update_timesheet_task "
-		update im_timesheet_tasks
-		set reported_units_cache = (
-			select	sum(h.hours)
-			from	im_hours h
-			where	h.timesheet_task_id = task_id
-		)
-		where task_id = :timesheet_task_id
-	"
+	# Update the reported hours on the timesheet task
+	db_dml update_timesheet_task ""
 
+
+	ns_log Notice "timesheet2-tasks/new-2: Determine the cost-item related to task"
 	set cost_id [db_string costs_id_exist "
 		select
-			cost_id 
+			min(cost_id)
 		from 
 			im_costs 
 		where 
 			cost_type_id = [im_cost_type_timesheet] 
 			and project_id = :project_id
 			and effective_date = to_date(:julian_date, 'J') 
-			and cause_object_id = :user_id
-	" -default 0]
+			and cause_object_id = :timesheet_task_id
+	" -default ""]
 
 	set day [db_string day "select to_char(to_date(:julian_date, 'J'), :timesheet_log_date_format) from dual"]
 	set cost_name "$day $user_name"
-	if {!$cost_id} {
+	if {"" == $cost_id} {
 	    set cost_id [im_cost::new -cost_name $cost_name -cost_type_id [im_cost_type_timesheet]]
 	}
 
@@ -217,7 +229,7 @@ foreach item_nr $item_nrs {
 	                customer_id             = :customer_id,
 	                effective_date          = to_date(:julian_date, 'J'),
 	                amount                  = :billing_rate * cast(:hours_worked as numeric),
-	                currency                = :currency,
+	                currency                = :billing_currency,
 			payment_days		= 0,
 	                vat                     = 0,
 	                tax                     = 0,

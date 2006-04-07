@@ -9,8 +9,7 @@
   <td width="50%">
 
 	<form action=new method=post>
-	<%= [export_form_vars return_url]  %>
-
+	<%= [export_form_vars return_url julian_date project_id_list]  %>
 	<table border=0 cellpadding=1 cellspacing=1>
 	  <tr class=rowtitle>
 	    <th colspan=99>Timesheet Filters</th>
@@ -39,6 +38,13 @@
 	      <a href=@different_date_url;noquote@>
 	        #intranet-timesheet2.lt_Log_hours_for_a_diffe#
 	      </a>
+
+	    <li>
+	      <a href=@absences_url;noquote@>
+	        @absences_link_text@
+	      </a>
+
+
 <% if {[im_permission $user_id view_projects_all]} { %>
 	    <li>
 	      <a href=@different_project_url;noquote@>
@@ -47,7 +53,7 @@
 <% } %>
 <% if { ![empty_string_p $return_url] } { %>
 	    <li>
-	      <a href=$return_url>#intranet-timesheet2.lt_Return_to_previous_pa#</a>
+	      <a href="@return_url@">#intranet-timesheet2.lt_Return_to_previous_pa#</a>
 <% } %>
 	  </td>
 	</tr>

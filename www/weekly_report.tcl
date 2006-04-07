@@ -1,4 +1,4 @@
-# /packages/intranet-timesheet/www/weekly_report.tcl
+# /packages/intranet-timesheet2/www/weekly_report.tcl
 #
 # Copyright (C) 1998-2004 various parties
 # The code is based on ArsDigita ACS 3.4
@@ -110,7 +110,7 @@ ad_page_contract {
 
 set user_id [ad_maybe_redirect_for_registration]
 set subsite_id [ad_conn subsite_id]
-set site_url "/intranet-timesheet"
+set site_url "/intranet-timesheet2"
 set return_url "$site_url/weekly_report"
 set date_format "YYYYMMDD"
     
@@ -121,11 +121,37 @@ if { $owner_id != $user_id && ![im_permission $user_id "view_hours_all"] } {
 }
 
 if { $start_at == "" && $project_id != 0 } {
-    set redirect_sql "
-    	select to_char(max(day), :date_format) 
-    	from im_hours 
-    	where project_id = :project_id"
-    set start_at [db_string get_new_start_at $redirect_sql]
+
+    set hours_start_date [db_string get_new_start_at "
+	select	to_char(max(day), :date_format) 
+	from	im_hours 
+	where	project_id = :project_id
+    " -default ""]
+
+    set project_start_date [db_string get_project_start "
+	select	to_char(start_date, :date_format) 
+	from	im_projects
+	where	project_id = :project_id
+    " -default ""]
+
+    set todays_date [db_string todays_date "
+	select	to_char(now(), :date_format) 
+	from	dual
+    " -default ""]
+
+    set start_at $hours_start_date
+    if {"" == $start_at} { 
+	set start_at $project_start_date 
+    }
+    if {"" == $start_at} { 
+	set start_at $todays_date 
+    }
+    if {"" == $start_at} {
+	ad_return_complaint 1 "Unable to determine start date for project \#$project_id:<br>
+        please set the 'Start Date' of the project"
+	return
+    }
+
     ad_returnredirect "$return_url?[export_url_vars start_at duration project_id owner_id]"
     return
 }
@@ -138,12 +164,8 @@ if { $start_at == "" } {
 #    ad_return_complaint 1 "start_at=$start_at"
 }
 
-#    ad_return_complaint 1 "start_at=$start_at"
-
-
-
 if { $project_id != 0 } {
-    set project_name [db_string get_project_name "select project_name from im_projects where project_id = :project_id"]
+    set project_name [db_string get_project_name "select project_name from im_projects where project_id = :project_id" -default "No Name for $project_id"]
 }
 
 # ---------------------------------------------------------------
@@ -311,14 +333,14 @@ set active_users_sql "
 select distinct
 	party_id
 from	acs_object_party_privilege_map m
-where	m.object_id = 400
+where	m.object_id = :subsite_id
 	and m.privilege = 'add_hours'
 UNION
 -- Users with the permissions to add absences
 select distinct
 	party_id
 from	acs_object_party_privilege_map m
-where	m.object_id = 400
+where	m.object_id = :subsite_id
 	and m.privilege = 'add_absences'
 UNION
 -- Users who have actually logged absences
@@ -340,7 +362,7 @@ select
 	i.descr,
 	to_char(d.day, :date_format) as curr_day
 from
-	users u,
+	cc_users u,
 	($sql_from_imhours
 	  UNION
 	$sql_from_joined
@@ -350,6 +372,7 @@ from
 	($active_users_sql) active_users
 where
 	u.user_id > 0
+	and u.member_state in ('approved')
 	and u.user_id=i.user_id and trunc(to_date(to_char(d.day,:date_format),:date_format),'Day')=trunc(to_date(to_char(i.day,:date_format),:date_format),'Day')
 	and u.user_id = active_users.party_id
 	$sql_where
