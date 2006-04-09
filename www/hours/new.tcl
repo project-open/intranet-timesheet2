@@ -239,7 +239,7 @@ from
         im_projects parent,
         im_projects children
 	left outer join 
-		im_timesheet_tasks t 
+		im_timesheet_tasks_view t 
 		on (children.project_id = t.project_id)
 	left outer join (
 			select	* 

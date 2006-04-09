@@ -137,7 +137,7 @@ foreach item_nr $item_nrs {
 	if {"" == $timesheet_task_id || 0 == $timesheet_task_id} {
 	    set timesheet_task_id [db_string existing_default_task "
 		select	task_id
-		from	im_timesheet_tasks
+		from	im_timesheet_tasks_view
 		where	project_id = :project_id
 			and task_nr = 'default'
             " -default 0]
