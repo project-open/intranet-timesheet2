@@ -31,5 +31,5 @@
 <input type=submit name=submit_save value=#intranet-timesheet2.Save#>&nbsp;
 <input type=submit name=submit_del value=#intranet-timesheet2.Delete#>
 </form>
-"
+
 
