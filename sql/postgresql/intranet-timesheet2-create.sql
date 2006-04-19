@@ -98,8 +98,9 @@ select im_component_plugin__new (
 	'/intranet/projects/view',		-- page_url
         null,					-- view_name
         50,					-- sort_order
-        'im_table_with_title "[_ intranet-timesheet2.Timesheet]" [im_timesheet_project_component $user_id $project_id ]'
-    );
+        'im_timesheet_project_component $user_id $project_id ',
+	'_ intranet-timesheet2.Timesheet'
+);
 
 select im_component_plugin__new (
 	null,					-- plugin_id
@@ -115,7 +116,8 @@ select im_component_plugin__new (
 	'/intranet/index',			-- page_url
         null,					-- view_name
         80,					-- sort_order
-        'im_table_with_title "[_ intranet-timesheet2.Timesheet]" [im_timesheet_home_component $user_id]'
+        'im_timesheet_home_component $user_id',
+	'intranet-timesheet2.Timesheet'
     );
 
 \i intranet-absences-create.sql
