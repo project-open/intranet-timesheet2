@@ -16,7 +16,7 @@
 	  </tr> 
 	  <tr>
 	    <td>#intranet-core.Project_name#</td>
-	    <td><%= [im_project_select project_id $project_id_for_default] %></td>
+	    <td><%= [im_project_select -exclude_subprojects_p 1 project_id $project_id_for_default "open"] %></td>
 	    <td>
 	      <input type=submit value="Go">
 	    </td>
@@ -71,7 +71,6 @@
 <table border=0 cellpadding=1 cellspacing=1>
  <tr class=rowtitle>
   <th>#intranet-timesheet2.Project_name#</th>
-  <th>#intranet-core.Unit#</th>
   <th>#intranet-timesheet2.Hours#	</th>
   <th>#intranet-timesheet2.Work_done#   </th>
  </tr> 

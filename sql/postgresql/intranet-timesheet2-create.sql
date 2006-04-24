@@ -1,6 +1,6 @@
--- /packages/intranet-timesheet2/sql/oracle/intranet-timesheet-create.sql
+-- /packages/intranet-timesheet2/sql/postgres/intranet-timesheet2-create.sql
 --
--- Copyright (C) 1999-2004 various parties
+-- Copyright (C) 1999-2006 various parties
 -- The code is based on ArsDigita ACS 3.4
 --
 -- This program is free software. You can redistribute it
@@ -33,11 +33,6 @@ create table im_hours (
 				not null 
 				constraint im_hours_project_id_fk
 				references im_projects,
-	timesheet_task_id	integer
-				constraint im_hours_timesheet_task_id_nn
-				not null 
-				constraint im_hours_timesheet_task_id_fk
-				references im_timesheet_tasks,
 	day			timestamptz,
 	hours			numeric(5,2),
 				-- ArsDigita/ACS billing system - log prices with hours
@@ -45,14 +40,14 @@ create table im_hours (
 	billing_currency	char(3)
 				constraint im_hours_billing_currency_fk
 				references currency_codes(iso),
-	note			varchar(4000),
-	primary key(user_id, project_id, timesheet_task_id, day)
+	note			varchar(4000)
 );
 
+alter table im_hours add primary key (user_id, project_id, day);
 create index im_hours_project_id_idx on im_hours(project_id);
 create index im_hours_user_id_idx on im_hours(user_id);
 create index im_hours_day_idx on im_hours(day);
-create index im_hours_timesheet_task_id_idx on im_hours(timesheet_task_id);
+
 
 
 ------------------------------------------------------

@@ -21,9 +21,8 @@ ad_page_contract {
     @param return_url 
 
     @author mbryzek@arsdigita.com
-    @creation-date Jan 2000
-
-    @cvs-id new.tcl,v 3.9.2.8 2000/09/22 01:38:37 kevin Exp
+    @author frank.bergmann@project-open.com
+    @creation-date Jan 2006
 } {
     { project_id:integer 0 }
     { project_id_list:multiple "" }
@@ -215,19 +214,22 @@ if {0 != $project_id} {
 # Build the main hierarchical SQL
 # ---------------------------------------------------------
 
+# The SQL is composed of the following elements:
+#
+# - The "parent" project, which contains the tree_sortkey information
+#   that is necessary to determine its children.
+#
+# - The "children" project, which represents sub-projects
+#   of "parent" of any depth.
+#
+# - 
+
 set sql "
 select
 	h.hours, 
 	h.note, 
 	h.billing_rate,
-	t.task_id,
-	t.task_nr,
-	t.task_name,
-	t.material_id,
-	t.uom_id,
-	t.planned_units,
-	t.reported_units_cache,
-	m.material_name,
+	parent.project_id as top_project_id,
         children.project_id as project_id,
         children.project_nr as project_nr,
         children.project_name as project_name,
@@ -238,19 +240,13 @@ select
 from
         im_projects parent,
         im_projects children
-	left outer join 
-		im_timesheet_tasks_view t 
-		on (children.project_id = t.project_id)
 	left outer join (
 			select	* 
 			from	im_hours h
 			where	h.day = to_date(:julian_date, 'J')
 				and h.user_id = :user_id	
 		) h 
-		on (t.task_id = h.timesheet_task_id and h.project_id = children.project_id)
-	left outer join 
-		im_materials m 
-		on (t.material_id = m.material_id)
+		on (h.project_id = children.project_id)
 where
 	children.tree_sortkey between 
 		parent.tree_sortkey and 
@@ -285,82 +281,68 @@ db_foreach $statement_name $sql {
 	set level [expr $level-1]
     }
 
+    # Highlight main projects
+    if {0 == $subproject_level} { set project_name "<b>$project_name</b>" }
+
     # These are the hours and notes captured from the intranet-timesheet2-task-popup 
     # modules, if it's there. The module allows the user to capture notes during the
     # day on what task she is working.
     set p_hours ""
     set p_notes ""
-    if {[info exists popup_hours($task_id)]} { set p_hours $popup_hours($task_id) }
-    if {[info exists popup_notes($task_id)]} { set p_notes $popup_notes($task_id) }
+    if {[info exists popup_hours($project_id)]} { set p_hours $popup_hours($project_id) }
+    if {[info exists popup_notes($project_id)]} { set p_notes $popup_notes($project_id) }
 
 
-    # Insert intermediate header for every new project
-    if {$old_project_id != $project_id} {
+    # Insert intermediate header for every parent_project
+    if {$old_project_id != $top_project_id} {
 
 	# Add an empty line after every main project
 	if {"" == $parent_project_id} {
 	    append results "<tr class=rowplain><td colspan=99>&nbsp;</td></tr>\n"
 	}
-
+    
 	# Add a line for a project. This is useful if there are
 	# no timesheet_tasks yet for this project, because we
 	# always want to allow employees to log their ours in
 	# order not to give them excuses.
 	#
-	append results "
+	append resultssss "
 	<tr $bgcolor([expr $ctr % 2])>
 	  <td>
 	    <nobr>
-	      $indent
+	      $indent i
 	      <A href=/intranet/projects/view?project_id=$project_id>
 	        <B>$project_name</B>
 	      </A>
 	    </nobr>
 	    <input type=hidden name=\"project_ids.$ctr\" value=\"$project_id\">
-	    <input type=hidden name=\"timesheet_task_ids.$ctr\" value=\"$task_id\">
+	    <input type=hidden name=\"timesheet_task_ids.$ctr\" value=\"\$task_id\">
 	  </td>
-	"
-
-	if {"" == $task_name} {
-	    append results "
-	  <td>(nothing defined yet)</td>
-	  <td>
-	    <INPUT NAME=hours.$ctr size=5 MAXLENGTH=5 value=\"$hours\">
-	  </td>
-	  <td>
-	    <INPUT NAME=notes.$ctr size=60 value=\"[ns_quotehtml [value_if_exists note]]\">
-	  </td>
-	</tr>\n"
-	} else {
-	    append results "
 	  <td></td>
 	  <td>&nbsp;</td>
  	  <td>&nbsp;</td>
 	</tr>
 	"
-	}
-	set old_project_id $project_id
+	set old_project_id $top_project_id
 	incr ctr
     }
     
+  
 
     # Don't show the empty tasks that are produced with each project
     # due to the "left outer join" SQL query
-    if {"" != $task_name} {
-
-	append results "
+    append results "
 	<tr $bgcolor([expr $ctr % 2])>
 	  <td>
 	    <nobr>
-	      $indent$nbsps
+	      $indent
 	      <A href=/intranet-timesheet2-tasks/new?[export_url_vars task_id project_id return_url]>
-	        $task_name
+	        $project_name
 	      </A>
 	    </nobr>
 	    <input type=hidden name=\"project_ids.$ctr\" value=\"$project_id\">
-	    <input type=hidden name=\"timesheet_task_ids.$ctr\" value=\"$task_id\">
+	    <input type=hidden name=\"timesheet_task_ids.$ctr\" value=\"$project_id\">
 	  </td>
-	  <td>$material_name</td>
 	  <td>
 	    <INPUT NAME=hours.$ctr size=5 MAXLENGTH=5 value=\"$hours\">
             $p_hours
@@ -370,13 +352,11 @@ db_foreach $statement_name $sql {
             $p_notes
 	  </td>
 	</tr>
-	"
-    }
+    "
     incr ctr
 }
 
-
-if { [empty_string_p $results] } {
+if { [empty_string_p results] } {
     append results "
 <tr>
   <td align=center><b>
