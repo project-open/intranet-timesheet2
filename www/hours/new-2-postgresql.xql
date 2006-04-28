@@ -39,13 +39,13 @@ $ -->
   <fullquery name="update_timesheet_task">
     <querytext>
 
-	update im_timesheet_tasks
-	set reported_units_cache = (
+	update im_projects
+	set reported_hours_cache = (
 		select	sum(h.hours)
 		from	im_hours h
-		where	h.timesheet_task_id = task_id
+		where	h.project_id = project_id
 	)
-	where task_id = :timesheet_task_id
+	where project_id = :project_id
 
     </querytext>
   </fullquery>
