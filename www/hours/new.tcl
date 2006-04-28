@@ -281,9 +281,6 @@ db_foreach $statement_name $sql {
 	set level [expr $level-1]
     }
 
-    # Highlight main projects
-    if {0 == $subproject_level} { set project_name "<b>$project_name</b>" }
-
     # These are the hours and notes captured from the intranet-timesheet2-task-popup 
     # modules, if it's there. The module allows the user to capture notes during the
     # day on what task she is working.
@@ -293,62 +290,29 @@ db_foreach $statement_name $sql {
     if {[info exists popup_notes($project_id)]} { set p_notes $popup_notes($project_id) }
 
 
-    # Insert intermediate header for every parent_project
-    if {$old_project_id != $top_project_id} {
+    # Insert intermediate header for every top-project
+    if {0 == $subproject_level} { 
+	set project_name "<b>$project_name</b>"
 
 	# Add an empty line after every main project
 	if {"" == $parent_project_id} {
 	    append results "<tr class=rowplain><td colspan=99>&nbsp;</td></tr>\n"
 	}
-    
-	# Add a line for a project. This is useful if there are
-	# no timesheet_tasks yet for this project, because we
-	# always want to allow employees to log their ours in
-	# order not to give them excuses.
-	#
-	append resultssss "
-	<tr $bgcolor([expr $ctr % 2])>
-	  <td>
-	    <nobr>
-	      $indent i
-	      <A href=/intranet/projects/view?project_id=$project_id>
-	        <B>$project_name</B>
-	      </A>
-	    </nobr>
-	    <input type=hidden name=\"project_ids.$ctr\" value=\"$project_id\">
-	    <input type=hidden name=\"timesheet_task_ids.$ctr\" value=\"\$task_id\">
-	  </td>
-	  <td></td>
-	  <td>&nbsp;</td>
- 	  <td>&nbsp;</td>
-	</tr>
-	"
-	set old_project_id $top_project_id
-	incr ctr
     }
-    
-  
 
-    # Don't show the empty tasks that are produced with each project
-    # due to the "left outer join" SQL query
+    # Allow hour logging
+    set project_url [export_vars -base "/intranet/projects/view?" {project_id return_url}]
     append results "
 	<tr $bgcolor([expr $ctr % 2])>
 	  <td>
-	    <nobr>
-	      $indent
-	      <A href=/intranet-timesheet2-tasks/new?[export_url_vars task_id project_id return_url]>
-	        $project_name
-	      </A>
-	    </nobr>
-	    <input type=hidden name=\"project_ids.$ctr\" value=\"$project_id\">
-	    <input type=hidden name=\"timesheet_task_ids.$ctr\" value=\"$project_id\">
+	    <nobr>$indent <A href=\"$project_url\">$project_name</A></nobr>
 	  </td>
 	  <td>
-	    <INPUT NAME=hours.$ctr size=5 MAXLENGTH=5 value=\"$hours\">
+	    <INPUT NAME=hours.$project_id size=5 MAXLENGTH=5 value=\"$hours\">
             $p_hours
 	  </td>
 	  <td>
-	    <INPUT NAME=notes.$ctr size=60 value=\"[ns_quotehtml [value_if_exists note]]\">
+	    <INPUT NAME=notes.$project_id size=60 value=\"[ns_quotehtml [value_if_exists note]]\">
             $p_notes
 	  </td>
 	</tr>
@@ -367,5 +331,4 @@ if { [empty_string_p results] } {
 }
 
 set export_form_vars [export_form_vars julian_date return_url]
-
 
