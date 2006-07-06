@@ -43,7 +43,7 @@ $ -->
 	set reported_hours_cache = (
 		select	sum(h.hours)
 		from	im_hours h
-		where	h.project_id = project_id
+		where	h.project_id = :project_id
 	)
 	where project_id = :project_id
 
