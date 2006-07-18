@@ -234,6 +234,8 @@ select
         children.project_nr as project_nr,
         children.project_name as project_name,
         children.parent_id as parent_project_id,
+	children.project_status_id as project_status_id,
+	im_category_from_id(children.project_status_id) as project_status,
 	parent.project_nr as parent_project_nr,
 	parent.project_name as parent_project_name,
         tree_level(children.tree_sortkey) -1 as subproject_level
@@ -254,26 +256,88 @@ where
         and parent.project_id in (
 	    $project_sql
 	)
-	and children.project_status_id not in (
-		[im_project_status_deleted],
-		[im_project_status_canceled],
-		[im_project_status_closed]
-	)
 order by
 	lower(parent.project_name),
         children.tree_sortkey
 "
 
+# doesn't work, because it only supresses the child
+# itself, but not the child's children (the entire
+# branch).
+set old_status_query "
+	and children.project_status_id not in (
+		[im_project_status_deleted],
+		[im_project_status_canceled],
+		[im_project_status_closed]
+	)
+"
+
+
 # ---------------------------------------------------------
 # Execute query and format results
 # ---------------------------------------------------------
+
+# Don't show closed and deleted projects:
+# The tree algorithm maintains a "closed_level"
+# that determines the sub_level of the last closed
+# intermediate project.
+
+
+# Determine all the members of the "closed" super-status
+set closed_stati [db_list closed_stati "
+	select	child_id
+	from	im_category_hierarchy
+	where	parent_id = 81
+    UNION
+	select	81 as child_id
+"]
+
 
 set results ""
 set ctr 0
 set nbsps "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
 set old_project_id 0
+set closed_level 99
+set closed_status [im_project_status_open]
 db_foreach $statement_name $sql {
 
+    ns_log Notice "timesheet2/hours: pid=$project_id, depth=$subproject_level, status=$project_status, closed_stati=$closed_stati"
+
+    # ---------------------------------------------
+    # Deal with the open and closed subprojects
+
+    # Check for closed_p - if the project is in one of the closed states
+    set project_closed_p 0
+    if {[lsearch -exact $closed_stati $project_status_id] > -1} { 
+	set project_closed_p 1
+    }
+
+    # We've just discovered a status change from open to closed:
+    # Remember at what level this has happened to undo the change
+    # once we're at the same level again:
+    if {$project_closed_p && $closed_status == [im_project_status_open]} {
+	ns_log Notice "timesheet2/hours: action: set to closed"
+	set closed_status [im_project_status_closed]
+	set closed_level $subproject_level
+    }
+
+    # Change back from a closed branch to an open branch
+    if {$subproject_level == $closed_level && $project_status_id == [im_project_status_open] && $closed_status == [im_project_status_closed]} {
+	ns_log Notice "timesheet2/hours: action: reset to open"
+	set closed_status [im_project_status_open]
+	set closed_level 99
+    }
+
+    if {$closed_status == [im_project_status_closed]} {
+	# We're below a closed project - skip this.
+	ns_log Notice "timesheet2/hours: action: continue"
+	continue
+    }
+
+
+
+    # ---------------------------------------------
+    # Indent the project line
     set indent ""
     set level $subproject_level
     while {$level > 0} {
