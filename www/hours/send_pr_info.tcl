@@ -14,7 +14,7 @@
 # See the GNU General Public License for more details.
 
 ad_page_contract {
-    Purpose: Send proyect status info by e-mail
+    Purpose: Send project status info by e-mail
 
     @author jruiz@competitiveness.com
     @creation-date May 2003
