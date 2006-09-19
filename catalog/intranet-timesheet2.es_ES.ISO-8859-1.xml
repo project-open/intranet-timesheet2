@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
-<message_catalog package_key="intranet-timesheet2" package_version="3.1.0.0.0" locale="es_ES" charset="ISO-8859-1">
+<message_catalog package_key="intranet-timesheet2" package_version="3.2.2.0.0" locale="es_ES" charset="ISO-8859-1">
 
   <msg key="1_Euro_equals">1 euro equivale a:</msg>
   <msg key="A">A</msg>
@@ -24,6 +24,7 @@
   <msg key="Amount_EUR">Importe (EUR)</msg>
   <msg key="Amount_in_Euros">Importe en Euros</msg>
   <msg key="AMOUNTS">IMPORTES</msg>
+  <msg key="Apply">Applicar</msg>
   <msg key="April">Abril</msg>
   <msg key="Aug">Ago</msg>
   <msg key="August">Agosto</msg>
@@ -47,6 +48,7 @@
   <msg key="Daily_project_notes">Notas de proyecto diario</msg>
   <msg key="Date">Fecha</msg>
   <msg key="Day">Día</msg>
+  <msg key="Day_of_Expense">Día del gasto</msg>
   <msg key="DAYS">DÍAS</msg>
   <msg key="days">días</msg>
   <msg key="Dec">Dic</msg>
@@ -73,11 +75,14 @@
   <msg key="February">Febrero</msg>
   <msg key="Filter">Filtro</msg>
   <msg key="Filter_Absences">Filtrar ausencias</msg>
+  <msg key="For_which_project">Para que proyecto:</msg>
   <msg key="Friday">Viernes</msg>
   <msg key="From">De:</msg>
   <msg key="from">de:</msg>
   <msg key="Future">Futuro</msg>
   <msg key="G">G</msg>
+  <msg key="Go">Ir</msg>
+  <msg key="go">ir</msg>
   <msg key="Grand_Total">Total</msg>
   <msg key="H">H</msg>
   <msg key="here">aquí</msg>
@@ -94,6 +99,7 @@
   <msg key="J">J</msg>
   <msg key="January">Enero</msg>
   <msg key="July">Julio</msg>
+  <msg key="Jun">Junio</msg>
   <msg key="June">Junio</msg>
   <msg key="K">K</msg>
   <msg key="L">L</msg>
@@ -170,7 +176,7 @@
   <msg key="lt_View_hours_logged_by_">Ver horas registradas por los miembros del equipo</msg>
   <msg key="lt_View_hours_logged_dur">Ver horas registradas por todos durante la última semana</msg>
   <msg key="lt_View_the_hours_logged">Ver las horas registradas por otra persona</msg>
-  <msg key="lt_View_time_spent_on_al">Ver el tiempo empleado en todos los proyectos por todos</msg>
+  <msg key="lt_View_time_spent_on_al">Ver el tiempo empleado por todos en todos los proyectos</msg>
   <msg key="lt_View_your_hours_on_al">Ver sus horas en todos los proyectos</msg>
   <msg key="lt_We_couldnt_find_absen">No se ha podido encontrar la ausencia #%absence_id%; Mmm... ¡debe haber algún error en nuestra página!</msg>
   <msg key="lt_We_couldnt_find_the_u">No se ha podido encontrar al usuario #%user_id% en la base de datos. Por favor, realice una copia de seguridad, cargue de nuevo la página e inténtelo de nuevo.</msg>
@@ -253,7 +259,7 @@
   <msg key="this_day_entry">registro de este día</msg>
   <msg key="Thursday">Jueves</msg>
   <msg key="Timescale">Escala de tiempo:</msg>
-  <msg key="Timesheet">Parte de trabajo</msg>
+  <msg key="Timesheet">Hoja de tiempos</msg>
   <msg key="Timesheet_Summary">Resumen de partes de trabajo</msg>
   <msg key="to">destinatario:</msg>
   <msg key="Today">Hoy</msg>
