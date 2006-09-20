@@ -185,12 +185,20 @@ foreach project_id $item_nrs {
 	    if {"" == $cost_id} {
 		set cost_id [im_cost::new -cost_name $cost_name -cost_type_id [im_cost_type_timesheet]]
 	    }
-	    set customer_id [db_string customer_id "select company_id from im_projects where project_id = :project_id" -default 0]
+
+	    set customer_id [db_string customer_id "
+		select company_id 
+		from im_projects 
+		where project_id = :project_id
+	    " -default 0]
+
+            set cost_center_id [im_costs_default_cost_center_for_user $user_id]
 
 	    db_dml cost_update "
 	        update  im_costs set
 	                cost_name               = :cost_name,
 	                project_id              = :project_id,
+	                cost_center_id		= :cost_center_id,
 	                customer_id             = :customer_id,
 	                effective_date          = to_date(:julian_date, 'J'),
 	                amount                  = :billing_rate * cast(:hours_worked as numeric),
