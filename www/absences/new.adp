@@ -1,7 +1,7 @@
 <master src="../../../intranet-core/www/master">
 <property name="title">@page_title;noquote@</property>
 <property name="context">context</property>
-<property name="main_navbar_label">finance</property>
+<property name="main_navbar_label">timesheet2_absences</property>
 
 <form action="new-2.tcl" method=GET>
 <%= [export_form_vars absence_id owner_id return_url] %>

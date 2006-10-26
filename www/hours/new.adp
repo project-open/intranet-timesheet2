@@ -1,7 +1,7 @@
 <master src="../../../intranet-core/www/master">
 <property name="title">#intranet-timesheet2.Timesheet#</property>
 <property name="context">#intranet-timesheet2.context#</property>
-<property name="main_navbar_label">finance</property>
+<property name="main_navbar_label">timesheet2_timesheet</property>
 
 
 <table border=0 cellspacing=0 cellpadding=0 width="100%">
