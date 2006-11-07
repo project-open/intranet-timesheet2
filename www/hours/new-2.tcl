@@ -178,12 +178,16 @@ foreach project_id $item_nrs {
 		where 
 			cost_type_id = [im_cost_type_timesheet] 
 			and project_id = :project_id
+			and cause_object_id = :user_id
 			and effective_date = to_date(:julian_date, 'J')
 	    " -default ""]
 
 	    set cost_name "$today $user_name"
 	    if {"" == $cost_id} {
-		set cost_id [im_cost::new -cost_name $cost_name -cost_type_id [im_cost_type_timesheet]]
+		set cost_id [im_cost::new \
+			-cost_name $cost_name \
+			-cost_type_id [im_cost_type_timesheet] \
+		]
 	    }
 
 	    set customer_id [db_string customer_id "
@@ -198,6 +202,7 @@ foreach project_id $item_nrs {
 	        update  im_costs set
 	                cost_name               = :cost_name,
 	                project_id              = :project_id,
+	                cause_object_id		= :user_id,
 	                cost_center_id		= :cost_center_id,
 	                customer_id             = :customer_id,
 	                effective_date          = to_date(:julian_date, 'J'),

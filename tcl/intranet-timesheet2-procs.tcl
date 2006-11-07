@@ -39,6 +39,86 @@ ad_proc -private im_package_timesheet2_id_helper {} {
 
 
 
+# ---------------------------------------------------------------------
+# Create Cost Items for timesheet hours
+# ---------------------------------------------------------------------
+
+ad_proc -public im_timesheet2_sync_timesheet_costs {} {
+    Check for im_hour items without associated timesheet
+    cost items and generate the required items.
+    This routine is called in two different ways:
+    <li>As part of timesheet2/new-2 to generate items
+        after a user has logged his/her hours and
+    <li>Periodically as a schedule routine in order to
+        create costs for new im_hours entries coming
+        from an external application
+} {
+    if {![db_table_exists im_costs]} { return "" }
+
+    set default_currency [ad_parameter -package_id [im_package_cost_id] "DefaultCurrency" "" "EUR"]
+
+
+    # Determine Billing Rate
+    set billing_rate 0
+    set billing_currency ""
+
+    db_0or1row get_billing_rate "
+	select
+		hourly_cost as billing_rate,
+		currency as billing_currency
+	from
+		im_employees
+	where
+		employee_id = :user_id
+    "
+
+    if {"" == $billing_currency} { set billing_currency $default_currency }
+
+    ns_log Notice "timesheet2-tasks/new-2: Determine the cost-item related to task"
+    set cost_id [db_string costs_id_exist "
+		select
+			min(cost_id)
+		from 
+			im_costs 
+		where 
+			cost_type_id = [im_cost_type_timesheet] 
+			and project_id = :project_id
+			and effective_date = to_date(:julian_date, 'J')
+    " -default ""]
+
+    set cost_name "$today $user_name"
+    if {"" == $cost_id} {
+	set cost_id [im_cost::new -cost_name $cost_name -cost_type_id [im_cost_type_timesheet]]
+    }
+    
+    set customer_id [db_string customer_id "
+		select company_id 
+		from im_projects 
+		where project_id = :project_id
+    " -default 0]
+
+    set cost_center_id [im_costs_default_cost_center_for_user $user_id]
+
+    db_dml cost_update "
+	        update  im_costs set
+	                cost_name               = :cost_name,
+	                project_id              = :project_id,
+	                cost_center_id		= :cost_center_id,
+	                customer_id             = :customer_id,
+	                effective_date          = to_date(:julian_date, 'J'),
+	                amount                  = :billing_rate * cast(:hours_worked as numeric),
+	                currency                = :billing_currency,
+			payment_days		= 0,
+	                vat                     = 0,
+	                tax                     = 0,
+	                description             = :note
+	        where
+	                cost_id = :cost_id
+    "
+
+   
+}
+
 
 # ---------------------------------------------------------------------
 # Analyze logged hours
