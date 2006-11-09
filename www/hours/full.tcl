@@ -55,20 +55,34 @@ set context_bar [im_context_bar [list projects "[_ intranet-timesheet2.View_empl
 set page_body "<ul>\n"
 
 set sql "
-select 
-    to_char(day,'fmDay') as pretty_day_fmday,
-    to_char(day,'fmMonth') as pretty_day_fmmonth,
-    to_char(day,'fmDD') as pretty_day_fmdd,
-    to_char(day, 'J') as j_day,
-    hours, 
-    billing_rate,
-    hours * billing_rate as amount_earned, 
-    note 
-from im_hours
-where project_id = :project_id 
-and user_id = :user_id
-and hours is not null
-order by day"
+	select 
+		to_char(day,'fmDay') as pretty_day_fmday,
+		to_char(day,'fmMonth') as pretty_day_fmmonth,
+		to_char(day,'fmDD') as pretty_day_fmdd,
+		to_char(day, 'J') as j_day,
+		hours, 
+		billing_rate,
+		hours * billing_rate as amount_earned, 
+		note 
+	from
+		im_hours
+	where
+		project_id in (
+			select	children.project_id
+			from	im_projects parent,
+				im_projects children
+			where
+				children.tree_sortkey between
+					parent.tree_sortkey
+					and tree_right(parent.tree_sortkey)
+				and parent.project_id = :project_id
+			    UNION
+				select :project_id as project_id
+		)
+		and user_id = :user_id
+		and hours is not null
+	order by day
+"
 
 
 set total_hours_on_project 0

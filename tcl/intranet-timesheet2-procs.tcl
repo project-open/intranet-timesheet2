@@ -243,7 +243,8 @@ ad_proc -public im_timesheet_project_component {user_id project_id} {
 
 
     if {$read} {
-	set total_hours_str "[hours_sum_for_user $user_id $project_id]"
+	set total_hours_str [hours_sum_for_user $user_id $project_id ""]
+
         append info_html "<br>[_ intranet-timesheet2.lt_You_have_loged_total_].\n"
         set hours_today [hours_sum_for_user $user_id "" 1]
 
@@ -341,20 +342,33 @@ ad_proc hours_sum_for_user { user_id { project_id "" } { number_days "7" } } {
     # --------------------------------------------------------
     # Count the number of hours in the last days.
 
-    set criteria [list "user_id=:user_id"]
+    set criteria [list "user_id = :user_id"]
     if { ![empty_string_p $project_id] } {
-	lappend criteria "project_id = :project_id"
+	lappend criteria "
+		project_id in (
+			select	children.project_id
+			from	im_projects parent,
+				im_projects children
+			where
+				children.tree_sortkey between 
+					parent.tree_sortkey 
+					and tree_right(parent.tree_sortkey)
+				and parent.project_id = :project_id
+		    UNION
+			select	:project_id as project_id
+		)
+	"
     }
     if { ![empty_string_p $number_days] } {
-	lappend criteria "day >= to_date(to_char(sysdate,'yyyymmdd'),'yyyymmdd') - $number_days"	
+	lappend criteria "day >= to_date(to_char(now(),'yyyymmdd'),'yyyymmdd') - $number_days"	
     }
     set where_clause [join $criteria "\n    and "]
     set num_hours [db_string hours_sum "
-	select sum(hours) 
-	from im_hours, dual  
-	where $where_clause
+	select	sum(hours) 
+	from	im_hours
+	where	$where_clause
     " -default 0]
-    if {"" == $num_hours} { set num 0}
+    if {"" == $num_hours} { set num_hours 0}
     
 
     # --------------------------------------------------------
@@ -371,8 +385,8 @@ ad_proc hours_sum_for_user { user_id { project_id "" } { number_days "7" } } {
 		and a.start_date <= d.d
 		and a.end_date >= d.d
     " -default 0]
+    if {"" == $num_absences} { set num_absences 0}
 
-#    ad_return_complaint 1 [expr $num_hours + $num_absences * $hours_per_absence]
     return [expr $num_hours + $num_absences * $hours_per_absence]
 }
 
@@ -393,9 +407,20 @@ select
 from
 	im_hours
 where
-	project_id = :project_id
+	project_id in (
+		select  children.project_id
+		from    im_projects parent,
+			im_projects children
+		where
+			children.tree_sortkey between
+				parent.tree_sortkey
+				and tree_right(parent.tree_sortkey)
+			and parent.project_id = :project_id
+	    UNION
+		select  :project_id as project_id
+	)
 	$days_back_sql
-"]
+    "]
 
     if {"" == $num} { set num 0 }
     return $num

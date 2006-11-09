@@ -42,22 +42,34 @@ set page_body "
 "
 
 set sql "
-select 
-	u.user_id, 
-	im_name_from_user_id(u.user_id) as  user_name,
-	to_char(sum(h.hours),'999G999G999') as total_hours,
-	min(day) as first_day,
-	max(day) as last_day
-from 
-	users u, 
-	im_hours h
-where 
-	u.user_id = h.user_id
-	and h.project_id = :project_id
-group by 
-	u.user_id
-order by 
-	upper(im_name_from_user_id(u.user_id))"
+	select 
+		u.user_id, 
+		im_name_from_user_id(u.user_id) as  user_name,
+		to_char(sum(h.hours),'999G999G999') as total_hours,
+		min(day) as first_day,
+		max(day) as last_day
+	from 
+		users u, 
+		im_hours h
+	where 
+		u.user_id = h.user_id
+		and h.project_id in (
+			select	children.project_id
+			from	im_projects parent,
+				im_projects children
+			where
+				children.tree_sortkey between
+					parent.tree_sortkey
+					and tree_right(parent.tree_sortkey)
+				and parent.project_id = :project_id
+			    UNION
+				select :project_id as project_id
+		)
+	group by 
+		u.user_id
+	order by 
+		upper(im_name_from_user_id(u.user_id))
+"
 
 db_foreach hours_on_one_projects $sql {
     set first_day_str "[util_AnsiDatetoPrettyDate $first_day]"
