@@ -59,6 +59,7 @@ set sql "
 		to_char(day,'fmDay') as pretty_day_fmday,
 		to_char(day,'fmMonth') as pretty_day_fmmonth,
 		to_char(day,'fmDD') as pretty_day_fmdd,
+		to_char(day,'YYYY') as pretty_day_year,
 		to_char(day, 'J') as j_day,
 		hours, 
 		billing_rate,
@@ -90,7 +91,7 @@ set total_hours_billed_hourly 0
 set hourly_bill 0
 
 db_foreach hours_on_project $sql {
-    set pretty_day "[_ intranet-timesheet2.$pretty_day_fmday], [_ intranet-timesheet2.$pretty_day_fmmonth] $pretty_day_fmdd"
+    set pretty_day "[_ intranet-timesheet2.$pretty_day_fmday], [_ intranet-timesheet2.$pretty_day_fmmonth] $pretty_day_fmdd $pretty_day_year"
     append page_body "<p><li>$pretty_day <br><em>[_ intranet-timesheet2.hours_units]</em>\n"
 
     set total_hours_on_project [expr $total_hours_on_project + $hours]
