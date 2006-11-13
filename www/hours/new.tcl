@@ -123,9 +123,8 @@ order by
 	set popup_notes($task_id) $p_notes
     }
 }
-
-
 # ad_return_complaint 1 [array get popup_hours]
+
 
 # ---------------------------------------------------------
 # Build the SQL Subquery, determining the (parent)
@@ -136,76 +135,51 @@ if {0 != $project_id} {
 
     # Project specified => only one project
     set one_project_only_p 1
-    set statement_name "hours_for_one_group"
 
     set project_sql "
-	select
-		p.project_id
-	from 
-		im_projects p
-	where 
-		p.project_id = :project_id
-	order by 
-		upper(project_name)
+	select	p.project_id
+	from	im_projects p
+	where 	p.project_id = :project_id
+	order by upper(project_name)
     "
 
 } elseif {"" != $project_id_list} {
 
     # An entire list of project has been selected
     set one_project_only_p 0
-    set statement_name "hours_for_one_group"
 
     set project_sql "
-	select
-		p.project_id
-	from 
-		im_projects p 
-	where 
-		p.project_id in ([join $project_id_list ","])
+	select	p.project_id
+	from	im_projects p 
+	where	p.project_id in ([join $project_id_list ","])
 		and p.parent_id is null
-	order by 
-		upper(project_name)
+	order by upper(project_name)
     "
 
 } else {
 
     # Project_id unknown => select all projects
     set one_project_only_p 0
-    set statement_name "hours_for_groups"
 
     set project_sql "   
-	select
-		p.project_id
-	from 
-		im_projects p,
-		(   select 
-			r.object_id_one as project_id 
-		    from 
-			im_projects p,
-			acs_rels r,
-			im_categories psc
-		    where
-			r.object_id_one = p.project_id
-			and object_id_two = :user_id
-			and p.project_status_id = psc.category_id
-			and upper(psc.category) not in (
-			    'CLOSED','INVOICED','PARTIALLY PAID',
-	                    'DECLINED','DELIVERED','PAID','DELETED','CANCELED'
-	        )
-		UNION
-		    select
-			project_id
-		    from
-			im_hours h
-		    where
-			h.user_id = :user_id
-			and h.day = to_date(:julian_date, 'J')
+	select	p.project_id
+	from	im_projects p,
+		(	select 	r.object_id_one as project_id 
+			from	im_projects p,
+				acs_rels r
+			where	r.object_id_one = p.project_id
+				and object_id_two = :user_id
+		    UNION
+			select	project_id
+			from	im_hours h
+			where	h.user_id = :user_id
+				and h.day = to_date(:julian_date, 'J')
 		) r
 	where 
 		r.project_id =  p.project_id
 		and p.parent_id is null
-	order by 
-		upper(p.project_name)
+		and p.project_status_id not in (select * from im_sub_categories(81))
+	order by upper(p.project_name)
     "
 }
 
@@ -299,7 +273,7 @@ set nbsps "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
 set old_project_id 0
 set closed_level 99
 set closed_status [im_project_status_open]
-db_foreach $statement_name $sql {
+db_foreach hours_timesheet $sql {
 
     ns_log Notice "timesheet2/hours: pid=$project_id, depth=$subproject_level, status=$project_status, closed_stati=$closed_stati"
 
@@ -356,7 +330,7 @@ db_foreach $statement_name $sql {
 
     # Insert intermediate header for every top-project
     if {0 == $subproject_level} { 
-	set project_name "<b>$project_name</b>"
+	set project_name "<b>$project_nr - $project_name</b>"
 
 	# Add an empty line after every main project
 	if {"" == $parent_project_id} {
@@ -368,13 +342,8 @@ db_foreach $statement_name $sql {
     set project_url [export_vars -base "/intranet/projects/view?" {project_id return_url}]
     append results "
 	<tr $bgcolor([expr $ctr % 2])>
-	  <td>
-	    <nobr>$indent <A href=\"$project_url\">$project_name</A></nobr>
-	  </td>
-	  <td>
-	    <INPUT NAME=hours.$project_id size=5 MAXLENGTH=5 value=\"$hours\">
-            $p_hours
-	  </td>
+	  <td><nobr>$indent <A href=\"$project_url\">$project_name</A> $project_status</nobr></td>
+	  <td><INPUT NAME=hours.$project_id size=5 MAXLENGTH=5 value=\"$hours\">$p_hours</td>
 	  <td>
 	    <INPUT NAME=notes.$project_id size=60 value=\"[ns_quotehtml [value_if_exists note]]\">
             $p_notes
