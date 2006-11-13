@@ -34,6 +34,8 @@ ad_page_contract {
 # Default & Security
 # ---------------------------------------------------------
 
+set debug 0
+
 set user_id [ad_maybe_redirect_for_registration]
 if {"" == $return_url} { set return_url [im_url_with_query] }
 set bgcolor(0) " class=roweven "
@@ -163,21 +165,19 @@ if {0 != $project_id} {
 
     set project_sql "   
 	select	p.project_id
-	from	im_projects p,
-		(	select 	r.object_id_one as project_id 
-			from	im_projects p,
-				acs_rels r
-			where	r.object_id_one = p.project_id
-				and object_id_two = :user_id
-		    UNION
-			select	project_id
-			from	im_hours h
-			where	h.user_id = :user_id
-				and h.day = to_date(:julian_date, 'J')
-		) r
+	from	im_projects p
 	where 
-		r.project_id =  p.project_id
-		and p.parent_id is null
+		p.parent_id is null
+		and p.project_id in (
+				select	r.object_id_one
+				from	acs_rels r
+				where	r.object_id_two = :user_id
+			    UNION
+				select	project_id
+				from	im_hours h
+				where	h.user_id = :user_id
+					and h.day = to_date(:julian_date, 'J')
+		)
 		and p.project_status_id not in (select * from im_sub_categories(81))
 	order by upper(p.project_name)
     "
@@ -207,12 +207,14 @@ select
         children.project_id as project_id,
         children.project_nr as project_nr,
         children.project_name as project_name,
-        children.parent_id as parent_project_id,
 	children.project_status_id as project_status_id,
 	im_category_from_id(children.project_status_id) as project_status,
+        parent.project_id as parent_project_id,
 	parent.project_nr as parent_project_nr,
 	parent.project_name as parent_project_name,
-        tree_level(children.tree_sortkey) -1 as subproject_level
+        tree_level(children.tree_sortkey) -1 as subproject_level,
+	substring(parent.tree_sortkey from 17) as parent_tree_sortkey,
+	substring(children.tree_sortkey from 17) as child_tree_sortkey
 from
         im_projects parent,
         im_projects children
@@ -224,7 +226,8 @@ from
 		) h 
 		on (h.project_id = children.project_id)
 where
-	children.tree_sortkey between 
+	parent.parent_id is null
+	and children.tree_sortkey between 
 		parent.tree_sortkey and 
 		tree_right(parent.tree_sortkey)
         and parent.project_id in (
@@ -234,18 +237,6 @@ order by
 	lower(parent.project_name),
         children.tree_sortkey
 "
-
-# doesn't work, because it only supresses the child
-# itself, but not the child's children (the entire
-# branch).
-set old_status_query "
-	and children.project_status_id not in (
-		[im_project_status_deleted],
-		[im_project_status_canceled],
-		[im_project_status_closed]
-	)
-"
-
 
 # ---------------------------------------------------------
 # Execute query and format results
@@ -258,14 +249,7 @@ set old_status_query "
 
 
 # Determine all the members of the "closed" super-status
-set closed_stati [db_list closed_stati "
-	select	child_id
-	from	im_category_hierarchy
-	where	parent_id = 81
-    UNION
-	select	81 as child_id
-"]
-
+set closed_stati [db_list closed_stati "select * from im_sub_categories(81)"]
 
 set results ""
 set ctr 0
@@ -273,9 +257,10 @@ set nbsps "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
 set old_project_id 0
 set closed_level 99
 set closed_status [im_project_status_open]
+set old_parent_project_nr ""
 db_foreach hours_timesheet $sql {
 
-    ns_log Notice "timesheet2/hours: pid=$project_id, depth=$subproject_level, status=$project_status, closed_stati=$closed_stati"
+    ns_log Notice "timesheet2/hours: pid=$project_id, depth=$subproject_level, status=$project_status"
 
     # ---------------------------------------------
     # Deal with the open and closed subprojects
@@ -300,6 +285,12 @@ db_foreach hours_timesheet $sql {
 	ns_log Notice "timesheet2/hours: action: reset to open"
 	set closed_status [im_project_status_open]
 	set closed_level 99
+    }
+
+    # Reset status which new main project
+    if {$parent_project_nr != $old_parent_project_nr} {
+        set closed_status [im_project_status_open]
+        set closed_level 99
     }
 
     if {$closed_status == [im_project_status_closed]} {
@@ -329,20 +320,29 @@ db_foreach hours_timesheet $sql {
 
 
     # Insert intermediate header for every top-project
-    if {0 == $subproject_level} { 
-	set project_name "<b>$project_nr - $project_name</b>"
+    if {$parent_project_nr != $old_parent_project_nr} { 
+	set project_name "<b>$project_name</b>"
+	set project_nr "<b>$project_nr</b>"
 
 	# Add an empty line after every main project
-	if {"" == $parent_project_id} {
+	if {"" != $old_parent_project_nr} {
 	    append results "<tr class=rowplain><td colspan=99>&nbsp;</td></tr>\n"
 	}
+	
+	if {$debug} { append results "<tr class=rowplain><td>$parent_tree_sortkey</td><td>$parent_project_nr</td><td colspan=99>$parent_project_name</td></tr>\n" }
+	set old_parent_project_nr $parent_project_nr
     }
 
     # Allow hour logging
     set project_url [export_vars -base "/intranet/projects/view?" {project_id return_url}]
     append results "
-	<tr $bgcolor([expr $ctr % 2])>
-	  <td><nobr>$indent <A href=\"$project_url\">$project_name</A> $project_status</nobr></td>
+	<tr $bgcolor([expr $ctr % 2])>"
+    if {$debug} { append results "
+	  <td>$child_tree_sortkey</td>
+	  <td>$parent_project_nr</td>\n"
+    }
+    append results "
+	  <td><nobr>$indent <A href=\"$project_url\">$project_name</A> ($project_status)</nobr></td>
 	  <td><INPUT NAME=hours.$project_id size=5 MAXLENGTH=5 value=\"$hours\">$p_hours</td>
 	  <td>
 	    <INPUT NAME=notes.$project_id size=60 value=\"[ns_quotehtml [value_if_exists note]]\">
