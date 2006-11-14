@@ -255,15 +255,18 @@ set results ""
 set ctr 0
 set nbsps "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
 set old_project_id 0
-set closed_level 99
+set closed_level 0
 set closed_status [im_project_status_open]
 set old_parent_project_nr ""
 db_foreach hours_timesheet $sql {
 
-    ns_log Notice "timesheet2/hours: pid=$project_id, depth=$subproject_level, status=$project_status"
-
     # ---------------------------------------------
     # Deal with the open and closed subprojects
+    # A closed project will prevent all sub-projects from
+    # being displayed. So it "leaves a trace" by setting
+    # the "closed_level" to its's current level.
+    # The "closed_status" will be reset to "open", as soon
+    # as the next project reaches the same "closed_level".
 
     # Check for closed_p - if the project is in one of the closed states
     set project_closed_p 0
@@ -271,31 +274,34 @@ db_foreach hours_timesheet $sql {
 	set project_closed_p 1
     }
 
+    # Change back from a closed branch to an open branch
+    if {$subproject_level <= $closed_level} {
+	ns_log Notice "new: action: reset to open"
+	set closed_status [im_project_status_open]
+	set closed_level 0
+    }
+
+    ns_log Notice "new: p=$project_id, depth=$subproject_level, closed_level=$closed_level, status=$project_status"
+
+
     # We've just discovered a status change from open to closed:
     # Remember at what level this has happened to undo the change
     # once we're at the same level again:
     if {$project_closed_p && $closed_status == [im_project_status_open]} {
-	ns_log Notice "timesheet2/hours: action: set to closed"
+	ns_log Notice "new: action: set to closed"
 	set closed_status [im_project_status_closed]
 	set closed_level $subproject_level
-    }
-
-    # Change back from a closed branch to an open branch
-    if {$subproject_level == $closed_level && $project_status_id == [im_project_status_open] && $closed_status == [im_project_status_closed]} {
-	ns_log Notice "timesheet2/hours: action: reset to open"
-	set closed_status [im_project_status_open]
-	set closed_level 99
     }
 
     # Reset status which new main project
     if {$parent_project_nr != $old_parent_project_nr} {
         set closed_status [im_project_status_open]
-        set closed_level 99
+        set closed_level 0
     }
 
     if {$closed_status == [im_project_status_closed]} {
 	# We're below a closed project - skip this.
-	ns_log Notice "timesheet2/hours: action: continue"
+	ns_log Notice "new: action: continue"
 	continue
     }
 
@@ -342,7 +348,7 @@ db_foreach hours_timesheet $sql {
 	  <td>$parent_project_nr</td>\n"
     }
     append results "
-	  <td><nobr>$indent <A href=\"$project_url\">$project_name</A> ($project_status)</nobr></td>
+	  <td><nobr>$indent <A href=\"$project_url\">$project_name</A></nobr></td>
 	  <td><INPUT NAME=hours.$project_id size=5 MAXLENGTH=5 value=\"$hours\">$p_hours</td>
 	  <td>
 	    <INPUT NAME=notes.$project_id size=60 value=\"[ns_quotehtml [value_if_exists note]]\">
