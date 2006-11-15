@@ -44,8 +44,7 @@ set date_format "YYYY-MM-DD"
 set timesheet_log_date_format "YYYY_MM_DD"
 
 set item_nrs [array names hours]
-ns_log Notice "timesheet2-tasks/new-2: items_nrs=$item_nrs"
-
+set im_costs_exists_p [db_table_exists im_costs]
 
 set today [db_string day "
 	select to_char(to_date(:julian_date, 'J'), :timesheet_log_date_format) 
@@ -75,6 +74,32 @@ if {"" == $billing_currency} {
 
 
 # ----------------------------------------------------------
+# Get the list of the hours of the current user today
+# ----------------------------------------------------------
+
+
+set sql "
+	select
+		project_id as hour_project_id,
+		cost_id as hour_cost_id
+	from
+		im_hours
+	where
+		user_id = :user_id
+		and day = to_date(:julian_date, 'J')
+"
+db_foreach hours $sql {
+
+    ns_log Notice "new-2: pid=$hour_project_id => $hour_cost_id"
+    set hours_exists_p($hour_project_id) 1
+
+    if {"" != $hour_cost_id} {
+        set hours_cost_id($hour_project_id) $hour_cost_id
+    }
+}
+
+
+# ----------------------------------------------------------
 # Update items
 # ----------------------------------------------------------
 
@@ -97,32 +122,50 @@ foreach project_id $item_nrs {
 	set hours_worked 0
     }
     set note [string trim $note]
-    
-    if { $hours_worked == 0 } {
 
-	# Delete a timesheet entry 
-	ns_log Notice "timesheet2-tasks/new-2: Delete timesheet entry for project_id=$project_id"
-	db_dml hours_delete "
-		delete	from im_hours
+
+    # Always delete the cost item (both delete, update and new)
+    if {[info exists hours_cost_id($project_id)]} {
+
+	ns_log Notice "new-2: Delete timesheet entry for project_id=$project_id"
+	db_dml update_hours "
+		update im_hours
+		set cost_id = null
 		where	project_id = :project_id
 			and user_id = :user_id
 			and day = to_date(:julian_date, 'J')
 	"
 
-	ns_log Notice "timesheet2-tasks/new-2: Delete cost items of timesheet task"
-	if { [db_resultrows] != 0 } {
+	set cost_id $hours_cost_id($project_id)
+	ns_log Notice "new-2: Delete cost item=$cost_id for project_id=$project_id"
+	db_string del_ts_costs "select im_cost__delete(:cost_id)"
 
-	    db_exec_plsql delete_timesheet_costs {}
-	    db_dml update_timesheet_task {}
+	#ToDo: !!! Update the project's accumulated TS cost cache
+
+    }
+
+    if {$hours_worked == 0 || "" == $hours_worked} {
+
+	# Check the array before deleting - saves a lot of sql statements...
+	if {[info exists hours_exists_p($project_id)]} {
+
+	    ns_log Notice "new-2: Delete timesheet entry for project_id=$project_id"
+	    db_dml hours_delete "
+		delete	from im_hours
+		where	project_id = :project_id
+			and user_id = :user_id
+			and day = to_date(:julian_date, 'J')
+	    "
+	    # Update the project's accummulated hours cache
+	    if { [db_resultrows] != 0 } {
+		db_dml update_timesheet_task {}
+	    }
 
 	}
 
-
     } else {
 
-	# Create or update a timesheet entry
 	ns_log Notice "timesheet2-tasks/new-2: Create"
-
 
 	# Replace "," by "."
 	if { [regexp {([0-9]+)(\,([0-9]+))?} $hours_worked] } {
@@ -139,8 +182,9 @@ foreach project_id $item_nrs {
 		update im_hours
 		set 
 			hours = :hours_worked, 
-			note = :note
-		where 
+			note = :note,
+			cost_id = null
+		where
 			project_id = :project_id
 			and user_id = :user_id
 			and day = to_date(:julian_date, 'J')
@@ -165,61 +209,12 @@ foreach project_id $item_nrs {
 	# Update the reported hours on the timesheet task
 	db_dml update_timesheet_task ""
 
-
-	# Update costs table
-	if {[db_table_exists im_costs]} {
-
-	    ns_log Notice "timesheet2-tasks/new-2: Determine the cost-item related to task"
-	    set cost_id [db_string costs_id_exist "
-		select
-			min(cost_id)
-		from 
-			im_costs 
-		where 
-			cost_type_id = [im_cost_type_timesheet] 
-			and project_id = :project_id
-			and cause_object_id = :user_id
-			and effective_date = to_date(:julian_date, 'J')
-	    " -default ""]
-
-	    set cost_name "$today $user_name"
-	    if {"" == $cost_id} {
-		set cost_id [im_cost::new \
-			-cost_name $cost_name \
-			-cost_type_id [im_cost_type_timesheet] \
-		]
-	    }
-
-	    set customer_id [db_string customer_id "
-		select company_id 
-		from im_projects 
-		where project_id = :project_id
-	    " -default 0]
-
-            set cost_center_id [im_costs_default_cost_center_for_user $user_id]
-
-	    db_dml cost_update "
-	        update  im_costs set
-	                cost_name               = :cost_name,
-	                project_id              = :project_id,
-	                cause_object_id		= :user_id,
-	                cost_center_id		= :cost_center_id,
-	                customer_id             = :customer_id,
-	                effective_date          = to_date(:julian_date, 'J'),
-	                amount                  = :billing_rate * cast(:hours_worked as numeric),
-	                currency                = :billing_currency,
-			payment_days		= 0,
-	                vat                     = 0,
-	                tax                     = 0,
-	                description             = :note
-	        where
-	                cost_id = :cost_id
-	    "
-
-	}
     }
-
 }
+
+
+# Creat the necessary cost items for the timesheet hours
+im_timesheet2_sync_timesheet_costs -project_id $project_id
 
 
 db_release_unused_handles

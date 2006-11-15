@@ -43,7 +43,11 @@ ad_proc -private im_package_timesheet2_id_helper {} {
 # Create Cost Items for timesheet hours
 # ---------------------------------------------------------------------
 
-ad_proc -public im_timesheet2_sync_timesheet_costs {} {
+ad_proc -public im_timesheet2_sync_timesheet_costs {
+    {-user_id 448}
+    {-project_id 0}
+    {-julian_date ""}
+} {
     Check for im_hour items without associated timesheet
     cost items and generate the required items.
     This routine is called in two different ways:
@@ -53,60 +57,61 @@ ad_proc -public im_timesheet2_sync_timesheet_costs {} {
         create costs for new im_hours entries coming
         from an external application
 } {
-    if {![db_table_exists im_costs]} { return "" }
-
     set default_currency [ad_parameter -package_id [im_package_cost_id] "DefaultCurrency" "" "EUR"]
 
+    set user_sql ""
+    set project_sql ""
+    set julian_date_sql ""
+    if {0 != $user_id} { set user_sql "and h.user_id = :user_id" }
+    if {0 != $project_id} { set project_sql "and h.project_id = :project_id" }
 
-    # Determine Billing Rate
-    set billing_rate 0
-    set billing_currency ""
-
-    db_0or1row get_billing_rate "
+    set sql "
 	select
-		hourly_cost as billing_rate,
-		currency as billing_currency
+		h.*,
+		h.day::date as hour_date,
+		h.user_id as hour_user_id,
+		coalesce(e.hourly_cost, 0) as billing_rate,
+		coalesce(e.currency, :default_currency) as billing_currency,
+		p.company_id as customer_id,
+		p.project_nr,
+		im_name_from_user_id(h.user_id) as user_name
 	from
-		im_employees
+		im_hours h
+		LEFT OUTER JOIN im_employees e ON (h.user_id = e.employee_id)
+		LEFT OUTER JOIN im_projects p ON (h.project_id = p.project_id)
 	where
-		employee_id = :user_id
+		h.cost_id is null
+		$user_sql
+		$project_sql
     "
 
-    if {"" == $billing_currency} { set billing_currency $default_currency }
+    set cost_ids [list]
+    db_foreach hours $sql {
 
-    ns_log Notice "timesheet2-tasks/new-2: Determine the cost-item related to task"
-    set cost_id [db_string costs_id_exist "
-		select
-			min(cost_id)
-		from 
-			im_costs 
-		where 
-			cost_type_id = [im_cost_type_timesheet] 
-			and project_id = :project_id
-			and effective_date = to_date(:julian_date, 'J')
-    " -default ""]
-
-    set cost_name "$today $user_name"
-    if {"" == $cost_id} {
+	ns_log Notice "sync: uid=$hour_user_id, pid=$project_id, day=$day"
+	set cost_name "Timesheet $hour_date $project_nr $user_name"
 	set cost_id [im_cost::new -cost_name $cost_name -cost_type_id [im_cost_type_timesheet]]
-    }
-    
-    set customer_id [db_string customer_id "
-		select company_id 
-		from im_projects 
-		where project_id = :project_id
-    " -default 0]
+	lappend cost_ids $cost_id
+	db_dml update_hours "
+		update	im_hours
+		set	cost_id = :cost_id
+		where
+			user_id = :hour_user_id
+			and project_id = :project_id
+			and day = :day
+	"
 
-    set cost_center_id [im_costs_default_cost_center_for_user $user_id]
+	set cost_center_id [util_memoize "im_costs_default_cost_center_for_user $hour_user_id" 5]
 
-    db_dml cost_update "
+        db_dml cost_update "
 	        update  im_costs set
 	                cost_name               = :cost_name,
 	                project_id              = :project_id,
 	                cost_center_id		= :cost_center_id,
 	                customer_id             = :customer_id,
-	                effective_date          = to_date(:julian_date, 'J'),
-	                amount                  = :billing_rate * cast(:hours_worked as numeric),
+			provider_id		= :hour_user_id,
+	                effective_date          = :day::timestamptz,
+	                amount                  = :billing_rate * cast(:hours as numeric),
 	                currency                = :billing_currency,
 			payment_days		= 0,
 	                vat                     = 0,
@@ -114,9 +119,9 @@ ad_proc -public im_timesheet2_sync_timesheet_costs {} {
 	                description             = :note
 	        where
 	                cost_id = :cost_id
-    "
-
-   
+        "
+    }
+    return $cost_ids
 }
 
 
