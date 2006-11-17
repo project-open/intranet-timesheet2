@@ -44,7 +44,7 @@ ad_proc -private im_package_timesheet2_id_helper {} {
 # ---------------------------------------------------------------------
 
 ad_proc -public im_timesheet2_sync_timesheet_costs {
-    {-user_id 448}
+    {-user_id 0}
     {-project_id 0}
     {-julian_date ""}
 } {
@@ -90,7 +90,7 @@ ad_proc -public im_timesheet2_sync_timesheet_costs {
 
 	ns_log Notice "sync: uid=$hour_user_id, pid=$project_id, day=$day"
 	set cost_name "Timesheet $hour_date $project_nr $user_name"
-	set cost_id [im_cost::new -cost_name $cost_name -cost_type_id [im_cost_type_timesheet]]
+	set cost_id [im_cost::new -cost_name $cost_name -user_id $hour_user_id -creation_ip "0.0.0.0" -cost_type_id [im_cost_type_timesheet]]
 	lappend cost_ids $cost_id
 	db_dml update_hours "
 		update	im_hours
