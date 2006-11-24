@@ -57,6 +57,9 @@ ad_proc -public im_timesheet2_sync_timesheet_costs {
         create costs for new im_hours entries coming
         from an external application
 } {
+    set sync_timesheet_costs [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter SyncHoursP -default 1]
+    if {!$sync_timesheet_costs} { return }
+    
     set default_currency [ad_parameter -package_id [im_package_cost_id] "DefaultCurrency" "" "EUR"]
 
     set user_sql ""

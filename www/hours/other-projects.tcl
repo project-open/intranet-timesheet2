@@ -55,6 +55,8 @@ set page_body "
 #  2. Checkoff a set of projects and hit the submit button at 
 #     the end of the page
 
+# ToDo: Decide and cleanup!!!
+
 set sql "
 
 select
@@ -80,6 +82,7 @@ from
                 ) see_all
         where
                 p.project_id = r.object_id
+	 	and p.project_status_id in ([im_project_status_open])
 	) perm,
 	im_projects p
 where
@@ -96,7 +99,7 @@ db_foreach projects_list $sql {
     append page_body "
   <input type=checkbox name=project_id_list value=$project_id> 
   <a href=$target?on_what_id=$project_id&[export_url_vars on_which_table julian_date]>
-    $project_name
+    $project_nr - $project_name
   </a>
   <br>
 "

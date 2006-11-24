@@ -348,7 +348,7 @@ db_foreach hours_timesheet $sql {
 	  <td>$parent_project_nr</td>\n"
     }
     append results "
-	  <td><nobr>$indent <A href=\"$project_url\">$project_name</A></nobr></td>
+	  <td><nobr>$indent <A href=\"$project_url\">$project_nr - $project_name</A></nobr></td>
 	  <td><INPUT NAME=hours.$project_id size=5 MAXLENGTH=5 value=\"$hours\">$p_hours</td>
 	  <td>
 	    <INPUT NAME=notes.$project_id size=60 value=\"[ns_quotehtml [value_if_exists note]]\">
