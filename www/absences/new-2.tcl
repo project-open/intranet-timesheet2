@@ -56,6 +56,18 @@ if { $exception_count > 0 } {
     return
 }
 
+set start_date_and_user_exists_p [db_string unique_check "
+	select	count(*)
+	from	im_user_absences
+	where	start_date = :start_date
+		and owner_id = :owner_id
+"]
+if {$start_date_and_user_exists_p} {
+    ad_return_complaint 1 [lang::message::lookup "" intranet-timesheet2.Entry_alread_exists_for_same_start_date "<b>Duplicate Absence Error</b>:<br>There is already an entry for you for the same Start Date. Please choose another start date for your absence."]
+    return
+}
+
+
 if {"" != $submit_del} {
 
     if {$absence_id > 0} {
@@ -72,6 +84,7 @@ if {"" != $submit_save} {
     set exists [db_string absence_exists "select count(*) from im_user_absences where absence_id = :absence_id"]
 
     if {!$exists} {
+
 	if [catch {
 	    db_dml insert_absence "
 			INSERT INTO im_user_absences (
