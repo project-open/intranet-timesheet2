@@ -243,8 +243,11 @@ if {[empty_string_p $user_id_list]} {
 }
 
 db_foreach get_employee_names "
-   select first_names||' '||last_name as employee, user_id from users
-   where user_id in ([join $user_id_list ", "])" {
+	select	im_name_from_user_id(user_id) as employee, 
+		user_id 
+	from	users
+	where	user_id in ([join $user_id_list ", "])
+" {
        set employees($user_id) $employee 
 }
 
