@@ -35,7 +35,6 @@ ad_page_contract {
 # ----------------------------------------------------------
 
 set user_id [ad_maybe_redirect_for_registration]
-set user_name [db_string user_name "select first_names || ' ' || last_name from cc_users where user_id=:user_id" -default "User $user_id"]
 set date_format "YYYY-MM-DD"
 
 # Please note "_" instead of "-". This is because we use
