@@ -67,7 +67,7 @@ where	user_id = :user_id"
 set page_title "[_ intranet-timesheet2.lt_Hours_for_pretty_date]"
 set context_bar [im_context_bar [list index "[_ intranet-timesheet2.Hours]"] "[_ intranet-timesheet2.Add_hours]"]
 
-
+set permissive_logging [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter PermissiveHourLogging -default "permissive"]
 
 # ---------------------------------------------------------
 # Check for registered hours
@@ -142,7 +142,6 @@ if {0 != $project_id} {
 	select	p.project_id
 	from	im_projects p
 	where 	p.project_id = :project_id
-	order by upper(project_name)
     "
 
 } elseif {"" != $project_id_list} {
@@ -155,7 +154,6 @@ if {0 != $project_id} {
 	from	im_projects p 
 	where	p.project_id in ([join $project_id_list ","])
 		and p.parent_id is null
-	order by upper(project_name)
     "
 
 } else {
@@ -178,8 +176,26 @@ if {0 != $project_id} {
 				where	h.user_id = :user_id
 					and h.day = to_date(:julian_date, 'J')
 		)
-		and p.project_status_id not in (select * from im_sub_categories(81))
-	order by upper(p.project_name)
+		and p.project_status_id not in (
+			select * from im_sub_categories([im_project_status_closed])
+		)
+    "
+}
+
+
+set children_sql ""
+if {![string equal "permissive" $permissive_logging]} {
+    set children_sql "
+		and children.project_id in (
+				select	r.object_id_one
+				from	acs_rels r
+				where	r.object_id_two = :user_id
+			    UNION
+				select	project_id
+				from	im_hours h
+				where	h.user_id = :user_id
+					and h.day = to_date(:julian_date, 'J')
+		)
     "
 }
 
@@ -199,43 +215,50 @@ if {0 != $project_id} {
 # - 
 
 set sql "
-select
-	h.hours, 
-	h.note, 
-	h.billing_rate,
-	parent.project_id as top_project_id,
-        children.project_id as project_id,
-        children.project_nr as project_nr,
-        children.project_name as project_name,
-	children.project_status_id as project_status_id,
-	im_category_from_id(children.project_status_id) as project_status,
-        parent.project_id as parent_project_id,
-	parent.project_nr as parent_project_nr,
-	parent.project_name as parent_project_name,
-        tree_level(children.tree_sortkey) -1 as subproject_level,
-	substring(parent.tree_sortkey from 17) as parent_tree_sortkey,
-	substring(children.tree_sortkey from 17) as child_tree_sortkey
-from
-        im_projects parent,
-        im_projects children
-	left outer join (
-			select	* 
-			from	im_hours h
-			where	h.day = to_date(:julian_date, 'J')
-				and h.user_id = :user_id	
-		) h 
-		on (h.project_id = children.project_id)
-where
-	parent.parent_id is null
-	and children.tree_sortkey between 
-		parent.tree_sortkey and 
-		tree_right(parent.tree_sortkey)
-        and parent.project_id in (
-	    $project_sql
-	)
-order by
-	lower(parent.project_name),
-        children.tree_sortkey
+	select
+		h.hours, 
+		h.note, 
+		h.billing_rate,
+		parent.project_id as top_project_id,
+	        children.project_id as project_id,
+	        children.project_nr as project_nr,
+	        children.project_name as project_name,
+		children.project_status_id as project_status_id,
+		im_category_from_id(children.project_status_id) as project_status,
+	        parent.project_id as parent_project_id,
+		parent.project_nr as parent_project_nr,
+		parent.project_name as parent_project_name,
+	        tree_level(children.tree_sortkey) -1 as subproject_level,
+		substring(parent.tree_sortkey from 17) as parent_tree_sortkey,
+		substring(children.tree_sortkey from 17) as child_tree_sortkey
+	from
+	        im_projects parent,
+	        im_projects children
+		left outer join (
+				select	* 
+				from	im_hours h
+				where	h.day = to_date(:julian_date, 'J')
+					and h.user_id = :user_id	
+			) h 
+			on (h.project_id = children.project_id)
+	where
+		parent.parent_id is null
+		and children.tree_sortkey between 
+			parent.tree_sortkey and 
+			tree_right(parent.tree_sortkey)
+		and parent.project_status_id not in (
+			select * from im_sub_categories([im_project_status_closed])
+		)
+		and children.project_status_id not in (
+			select * from im_sub_categories([im_project_status_closed])
+		)
+	        and parent.project_id in (
+		    $project_sql
+		)
+		$children_sql
+	order by
+		lower(parent.project_name),
+	        children.tree_sortkey
 "
 
 # ---------------------------------------------------------
@@ -249,7 +272,7 @@ order by
 
 
 # Determine all the members of the "closed" super-status
-set closed_stati [db_list closed_stati "select * from im_sub_categories(81)"]
+set closed_stati [db_list closed_stati "select * from im_sub_categories([im_project_status_closed])"]
 
 set results ""
 set ctr 0
