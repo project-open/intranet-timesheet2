@@ -3,6 +3,12 @@
 <property name="context">#intranet-timesheet2.context#</property>
 <property name="main_navbar_label">timesheet2_timesheet</property>
 
+<if @edit_hours_p@ eq "f">
+<font color=red>
+<h3>@edit_hours_closed_message@</h3>
+</font>
+</if>
+
 
 <table border=0 cellspacing=0 cellpadding=0 width="100%">
 <tr valign=top>

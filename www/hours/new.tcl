@@ -80,6 +80,8 @@ set edit_hours_p "t"
 # When should we consider the last month to be closed?
 set last_month_closing_day [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter TimesheetLastMonthClosingDay -default 0]
 
+set last_month_closing_day 3
+
 if {0 != $last_month_closing_day && "" != $last_month_closing_day} {
 
     # Check that $julian_date is before the Nth of the next month:
@@ -87,9 +89,11 @@ if {0 != $last_month_closing_day && "" != $last_month_closing_day} {
     set first_of_last_month [db_string last_month "
 	select to_char(now()::date - :last_month_closing_day::integer + '0 Month'::interval, 'YYYY-MM-01')
     "]
-
     set edit_hours_p [db_string e "select to_date(:julian_date, 'J') > :first_of_last_month::date"]
+
 }
+
+set edit_hours_closed_message [lang::message::lookup "" intranet-timesheet2.Logging_hours_has_been_closed "Logging hours for this date has already been closed. Please contact your supervisor or the HR department."]
 
 
 # ---------------------------------------------------------
