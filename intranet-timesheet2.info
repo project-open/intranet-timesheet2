@@ -13,7 +13,7 @@
         <release-date>2004-02-07</release-date>
         <vendor url="http://www.project-open.com/">]project-open[</vendor>
 
-        <provides url="intranet-timesheet2" version="3.2.4.0.0"/>
+        <provides url="intranet-timesheet2" version="3.2.6.0.0"/>
         <requires url="intranet-core" version="3.0.0"/>
         <requires url="intranet-cost" version="3.0.0"/>
         <requires url="intranet-material" version="3.0.0"/>
@@ -22,6 +22,7 @@
         <callbacks>
         </callbacks>
         <parameters>
+            <parameter datatype="string"  min_n_values="1"  max_n_values="1"  name="PermissiveHourLogging"  default="permissive" description="Should be be permissive about letting users log their hours? &quot;permissive&quot; means that we allow Employees to log their hours basicly on every project in the system. &quot;restrictive&quot; means that users can only log to projects (and the project's Tasks) if they are a member of the project. Default is &quot;permissive&quot;, which is useful for small organizations where the biggest problem is to get Employees to log their hours at all..."/>
             <parameter datatype="number"  min_n_values="1"  max_n_values="1"  name="SyncHoursInterval"  default="1000000" description="Interval for the Hours-Costs synchronizer to between checks if new im_hours items have been generated to be synchronized. This interval can be &quot;never&quot; (1000000) if timesheet hours are captured by the system itself. However, you should set this interval to something less for systems importing im_hours from an external source."/>
             <parameter datatype="number"  min_n_values="1"  max_n_values="1"  name="SyncHoursP"  default="1" description="Should we create im_cost Cost-Items for each timesheet hour? This is usually the case, unless the profit &amp; loss function is not being used."/>
             <parameter datatype="number"  min_n_values="1"  max_n_values="1"  name="TimesheetHoursPerAbsence"  default="8" description="Specifies the equivalent hours of a day of absences. 8 by default."/>
