@@ -69,6 +69,29 @@ set context_bar [im_context_bar [list index "[_ intranet-timesheet2.Hours]"] "[_
 
 set permissive_logging [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter PermissiveHourLogging -default "permissive"]
 
+
+
+# ---------------------------------------------------------
+# Logic to check if the user is allowed to log hours
+# ---------------------------------------------------------
+
+set edit_hours_p "t"
+
+# When should we consider the last month to be closed?
+set last_month_closing_day [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter TimesheetLastMonthClosingDay -default 0]
+
+if {0 != $last_month_closing_day && "" != $last_month_closing_day} {
+
+    # Check that $julian_date is before the Nth of the next month:
+    # Select the 1st day of the last month:
+    set first_of_last_month [db_string last_month "
+	select to_char(now()::date - :last_month_closing_day::integer + '0 Month'::interval, 'YYYY-MM-01')
+    "]
+
+    set edit_hours_p [db_string e "select to_date(:julian_date, 'J') > :first_of_last_month::date"]
+}
+
+
 # ---------------------------------------------------------
 # Check for registered hours
 # ---------------------------------------------------------
@@ -370,15 +393,26 @@ db_foreach hours_timesheet $sql {
 	  <td>$child_tree_sortkey</td>
 	  <td>$parent_project_nr</td>\n"
     }
-    append results "
+    
+    if {"t" == $edit_hours_p} {
+	append results "
 	  <td><nobr>$indent <A href=\"$project_url\">$project_nr - $project_name</A></nobr></td>
 	  <td><INPUT NAME=hours.$project_id size=5 MAXLENGTH=5 value=\"$hours\">$p_hours</td>
 	  <td>
 	    <INPUT NAME=notes.$project_id size=60 value=\"[ns_quotehtml [value_if_exists note]]\">
             $p_notes
 	  </td>
-	</tr>
-    "
+        "
+    } else {
+
+	if {"" == $hours} { set hours "-" }
+	append results "
+	  <td><nobr>$indent <A href=\"$project_url\">$project_nr - $project_name</A></nobr></td>
+	  <td align=right>$hours</td>
+	  <td>[value_if_exists note] $p_notes</td>
+        "
+    }
+    append results "</tr>\n"
     incr ctr
 }
 
