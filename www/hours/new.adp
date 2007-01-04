@@ -78,7 +78,9 @@
   <tr>
     <td></td>
     <td colspan=99>
+<if @edit_hours_p@ eq "t">
       <INPUT TYPE=Submit VALUE="#intranet-timesheet2.Add_hours#">
+</if>
     </td>
   </tr>
 </table>
