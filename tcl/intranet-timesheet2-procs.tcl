@@ -153,6 +153,7 @@ ad_proc -public im_timesheet_home_component {user_id} {
     set expected_hours [parameter::get -package_id [im_package_timesheet2_id] -parameter "TimesheetRedirectNumHoursInDays" -default 32]
 
     set hours_html ""
+    set log_them_now_link "<a href=/intranet-timesheet2/hours/index>"
 
     if { [catch {
         set num_hours [hours_sum_for_user $user_id "" $num_days]
@@ -161,24 +162,32 @@ ad_proc -public im_timesheet_home_component {user_id} {
 	ad_return_complaint 1 "<pre>$err_msg</pre>"
     }
 
+
+    if {$num_hours == 0} {
+        set message "<b>[_ intranet-timesheet2.lt_You_havent_logged_you]</a></b>\n"
+    } else {
+        set message "[_ intranet-timesheet2.lt_You_logged_num_hours_]"
+    }
+
+
     if { $num_hours < $expected_hours && $add_hours } {
 
+	set default_message "
+		<b>You have logged %num_hours% hours in the last %num_days% days.
+		However, you are expected to log atleast %expected_hours% hours
+		or an equivalent amount of absences.
+		Please log your hours now or consult with your supervisor.</b>
+	"
+	set message [lang::message::lookup "" intranet-timesheet2.You_need_to_log_hours $default_message]
+
 	if {$redirect_p} {
-	    set default_message "
-You have logged %num_hours% hours in the last %num_days% days.
-However, you are expected to log atleast %expected_hours% hours
-or an equivalent amount of absences.
-Please log your hours now or consult with your supervisor."
 	    set header [lang::message::lookup "" intranet-timesheet2.Please_Log_Your_Hours "Please Log Your Hours"]
-	    set message [lang::message::lookup "" intranet-timesheet2.You_need_to_log_hours $default_message]
 	    ad_returnredirect [export_vars -base "/intranet-timesheet2/hours/index" {header message}]
 	}
-
-	set log_them_now_link "<a href=/intranet-timesheet2/hours/index>"
-        append hours_html "<b>[_ intranet-timesheet2.lt_You_havent_logged_you]</a></b>\n"
-    } else {
-        append hours_html "[_ intranet-timesheet2.lt_You_logged_num_hours_]"
     }
+
+
+    append hours_html $message
 
     if {[im_permission $user_id view_hours_all]} {
         append hours_html "
