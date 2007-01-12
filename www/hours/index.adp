@@ -9,7 +9,7 @@
 <table width="70%">
 <tr><td>
 <div class="form-error">
-@message@
+@message;noquote@
 </div>
 </tr></td>
 </table>

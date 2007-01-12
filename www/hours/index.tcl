@@ -35,7 +35,7 @@ ad_page_contract {
     { project_id:integer "" }
     { return_url "" }
     { header "" }
-    { message "" }
+    { message:allhtml "" }
 }
 
 # ---------------------------------------------------------------
