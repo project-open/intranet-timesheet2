@@ -17,10 +17,64 @@
 -- @author      frank.bergmann@project-open.com
 
 ------------------------------------------------------------
+-- delete timesheet1 instances
+--
+create or replace function inline_0 (varchar)
+returns integer as '
+DECLARE
+  p_name alias for $1;
+  package apm_packages%ROWTYPE;
+  version apm_package_versions%ROWTYPE;
+  node site_nodes%ROWTYPE;
+BEGIN
+  perform im_menu__del_module(p_name);
+  perform im_component_plugin__del_module(p_name);
+
+  FOR package IN 
+    SELECT package_id FROM apm_packages WHERE package_key= p_name
+  LOOP
+    PERFORM apm_package__delete(package.package_id);
+  END LOOP;
+
+  FOR node IN 
+    SELECT site_nodes.node_id 
+    FROM apm_packages, site_nodes  
+    WHERE apm_packages.package_id = site_nodes.object_id
+      AND apm_packages.package_key = p_name
+  LOOP
+    update site_nodes set object_id = null where node_id = node;
+  END LOOP;
+
+  DELETE from lang_message_keys  where package_key = p_name;
+
+  PERFORM apm_package_type__drop_type( p_name, ''t'' );
+
+  RETURN 0;
+END;
+' language 'plpgsql';
+select inline_0 ('intranet-timesheet');
+drop function inline_0 (varchar);
+
+
+------------------------------------------------------------
 -- Hours
 --
 -- We record logged hours of both project and client related work
 --
+
+create or replace function inline_0 ()
+returns integer as '
+declare
+        v_count                 integer;
+begin
+        select count(*)
+        into v_count
+        from user_tab_columns
+        where   table_name = ''IM_HOURS'';
+
+        if v_count > 0 then
+            return 0;
+        end if;
 
 create table im_hours (
 	user_id			integer 
@@ -48,14 +102,36 @@ create index im_hours_project_id_idx on im_hours(project_id);
 create index im_hours_user_id_idx on im_hours(user_id);
 create index im_hours_day_idx on im_hours(day);
 
+    return 0;
+end;' language 'plpgsql';
+select inline_0 ();
+drop function inline_0 ();
 
 
 -- Add the sum of timesheet hours cached here for reporting
 -- to the im_projects table
 --
+create or replace function inline_0 ()
+returns integer as '
+declare
+        v_count                 integer;
+begin
+        select count(*)
+        into v_count
+        from user_tab_columns
+        where   table_name = ''IM_PROJECTS''
+                and column_name = ''REPORTED_HOURS_CACHE'';
+
+        if v_count > 0 then
+            return 0;
+        end if;
+
 alter table im_projects add reported_hours_cache float;
 
-
+    return 0;
+end;' language 'plpgsql';
+select inline_0 ();
+drop function inline_0 ();
 
 ------------------------------------------------------
 -- Permissions and Privileges
