@@ -69,6 +69,14 @@ set context_bar [im_context_bar [list index "[_ intranet-timesheet2.Hours]"] "[_
 
 set permissive_logging [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter PermissiveHourLogging -default "permissive"]
 
+set log_hours_on_potential_project_p [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter TimesheetLogHoursOnPotentialProjectsP -default 1]
+
+
+# What is a closed status?
+set closed_stati_select "select * from im_sub_categories([im_project_status_closed])"
+if {!$log_hours_on_potential_project_p} {
+    append closed_stati_select " UNION select * from im_sub_categories([im_project_status_potential])"
+}
 
 
 # ---------------------------------------------------------
@@ -78,7 +86,8 @@ set permissive_logging [parameter::get_from_package_key -package_key intranet-ti
 set edit_hours_p "t"
 
 # When should we consider the last month to be closed?
-set last_month_closing_day [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter TimesheetLastMonthClosingDay -default 0]
+set last_month_closing_day [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter TimesheetLastMonthClosingDay -default 5]
+
 
 if {0 != $last_month_closing_day && "" != $last_month_closing_day} {
 
@@ -87,7 +96,7 @@ if {0 != $last_month_closing_day && "" != $last_month_closing_day} {
     set first_of_last_month [db_string last_month "
 	select to_char(now()::date - :last_month_closing_day::integer + '0 Month'::interval, 'YYYY-MM-01')
     "]
-    set edit_hours_p [db_string e "select to_date(:julian_date, 'J') > :first_of_last_month::date"]
+    set edit_hours_p [db_string e "select to_date(:julian_date, 'J') >= :first_of_last_month::date"]
 
 }
 
@@ -201,9 +210,7 @@ if {0 != $project_id} {
 				where	h.user_id = :user_id
 					and h.day = to_date(:julian_date, 'J')
 		)
-		and p.project_status_id not in (
-			select * from im_sub_categories([im_project_status_closed])
-		)
+		and p.project_status_id not in ($closed_stati_select)
     "
 }
 
@@ -220,6 +227,13 @@ if {![string equal "permissive" $permissive_logging]} {
 				from	im_hours h
 				where	h.user_id = :user_id
 					and h.day = to_date(:julian_date, 'J')
+			    UNION
+				select	project_id from im_projects where project_id = :project_id
+			    UNION
+				select	p.project_id
+				from	im_projects p
+				where	p.project_id in ([join [lappend project_id_list 0] ","])
+					and p.parent_id is null
 		)
     "
 }
@@ -271,15 +285,9 @@ set sql "
 		and children.tree_sortkey between 
 			parent.tree_sortkey and 
 			tree_right(parent.tree_sortkey)
-		and parent.project_status_id not in (
-			select * from im_sub_categories([im_project_status_closed])
-		)
-		and children.project_status_id not in (
-			select * from im_sub_categories([im_project_status_closed])
-		)
-	        and parent.project_id in (
-		    $project_sql
-		)
+		and parent.project_status_id not in ($closed_stati_select)
+		and children.project_status_id not in ($closed_stati_select)
+	        and parent.project_id in ($project_sql)
 		$children_sql
 	order by
 		lower(parent.project_name),
@@ -297,7 +305,7 @@ set sql "
 
 
 # Determine all the members of the "closed" super-status
-set closed_stati [db_list closed_stati "select * from im_sub_categories([im_project_status_closed])"]
+set closed_stati [db_list closed_stati $closed_stati_select]
 
 set results ""
 set ctr 0

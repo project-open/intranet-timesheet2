@@ -129,14 +129,10 @@ for { set current_date $first_julian_date
 } {
     if { [info exists users_hours($current_date)] && ![empty_string_p $users_hours($current_date)] } {
  	set html "$users_hours($current_date) hours"
-	if {1 == $hours} { set html "1 hour" }
-	 set hours_for_this_week [expr $hours_for_this_week + $users_hours($current_date)]
+	set hours_for_this_week [expr $hours_for_this_week + $users_hours($current_date)]
      } else {
-	 set curr_absence [lindex $absence_list $absence_index]
-	 set html ""
-	 #if { [string equal $html work] } {
-	     set html "<font color=#666666><em>[_ intranet-timesheet2.log_hours]</em></font>"
-	 #}
+	set curr_absence [lindex $absence_list $absence_index]
+	set html "<font color=#666666><em>[_ intranet-timesheet2.log_hours]</em></font>"
     }
 
     if {$user_admin_p } {

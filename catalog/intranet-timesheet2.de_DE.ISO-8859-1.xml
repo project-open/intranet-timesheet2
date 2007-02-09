@@ -7,7 +7,7 @@
   <msg key="Absence_Type">Abwesenheitstyp</msg>
   <msg key="Absence_Type_1">Abwesenheitstyp</msg>
   <msg key="Absences">Abwesenheiten</msg>
-  <msg key="absences">Abwesehnheiten</msg>
+  <msg key="absences">Abwesenheiten</msg>
   <msg key="Absent">Abwesend</msg>
   <msg key="Absent_1">Abwesend</msg>
   <msg key="Add_a_new_Absence">Neue Abwesenheit</msg>
@@ -110,7 +110,7 @@
   <msg key="log_dedication">Stunden erfassen</msg>
   <msg key="log_hours">Stunden erfassen</msg>
   <msg key="Log_your_hours">Erfassen sie ihre Stunden</msg>
-  <msg key="lt_A_total_of_total_hour">Es wurden insgesamt %total_hours_str% Sunden auf diesem Projekt erfaßt.</msg>
+  <msg key="lt_A_total_of_total_hour">Es wurden insgesamt %total_hours_str% Stunden auf diesem Projekt erfaßt.</msg>
   <msg key="lt_Add_hours_on_other_pr">Stunden erfassen auf anderen Projekten</msg>
   <msg key="lt_based_select_hours_pe">%based_select% Stunden pro Woche</msg>
   <msg key="lt_Choose_an_employee_to">Wählen sie einen Miterbeiter, um seine erfaßten Stunden zu sehen</msg>
@@ -153,7 +153,7 @@
   <msg key="lt_Weekly_total_by_user_">Wöchentliche Summe von %user_name% </msg>
   <msg key="lt_You_have_loged_total_">Sie haben %total_hours_str% auf diesem Projekt erfaßt</msg>
   <msg key="lt_You_have_no_rights_to">Sie haben unzureichende Berechtigungen, um diese Seite zu sehen.</msg>
-  <msg key="lt_You_havent_logged_you">Sie haben in der letzen Woche keine Zeit erfaßt, bitte %log_them_now_link% tuen sie das jetzt</msg>
+  <msg key="lt_You_havent_logged_you">Sie haben in der letzen Woche keine Stunden erfaßt, bitte %log_them_now_link% tun Sie das jetzt</msg>
   <msg key="lt_You_logged_num_hours_">Sie haben %num_hours% Stunden in den letzten 7 Tagen erfaßt.</msg>
   <msg key="M">M</msg>
   <msg key="March">März</msg>

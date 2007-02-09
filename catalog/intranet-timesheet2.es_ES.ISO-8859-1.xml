@@ -15,7 +15,7 @@
   <msg key="Add_lines">Añadir líneas</msg>
   <msg key="Add_more_lines">Añadir más líneas</msg>
   <msg key="Admin">Administrador</msg>
-  <msg key="Admin_Absences">Administrar ausencias</msg>
+  <msg key="Admin_Absences">Administración de Ausencias</msg>
   <msg key="Administration">Administración</msg>
   <msg key="All">Todo</msg>
   <msg key="All_dates">Todas las fechas</msg>
@@ -280,7 +280,6 @@
   <msg key="user_not_logged_in">el usuario no ha iniciado sesión</msg>
   <msg key="Users">Usuarios</msg>
   <msg key="V">V</msg>
-  <msg key="View">Ver</msg>
   <msg key="View_Absence">Ver ausencia</msg>
   <msg key="View_all_Absences">Ver todas las ausencias</msg>
   <msg key="View_employees_hours">Ver horas de empleados</msg>

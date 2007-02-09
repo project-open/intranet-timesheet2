@@ -1,5 +1,5 @@
 <master src="../../intranet-core/www/master">
-<property name="title">Absences</property>
+<property name="title">Weekly Hours</property>
 <property name="context">context</property>
 <property name="main_navbar_label">finance</property>
 

@@ -43,6 +43,20 @@ ad_page_contract {
 set exception_count 0
 set exception_text ""
 
+# Check that Start & End-Date have correct format
+if {![regexp {^[0-9][0-9][0-9][0-9]\-[0-9][0-9]\-[0-9][0-9]$} $start_date]} {
+    ad_return_complaint 1 "Start Date doesn't have the right format.<br>
+    Current value: '$start_date'<br>
+    Expected format: 'YYYY-MM-DD'"
+}
+
+if {![regexp {^[0-9][0-9][0-9][0-9]\-[0-9][0-9]\-[0-9][0-9]$} $end_date]} {
+    ad_return_complaint 1 "End Date doesn't have the right format.<br>
+    Current value: '$end_date'<br>
+    Expected format: 'YYYY-MM-DD'"
+}
+
+
 regexp {[0-9]*-[0-9]*-[0-9]*} $start_date start_date_int
 regexp {[0-9]*-[0-9]*-[0-9]*} $end_date end_date_int
 

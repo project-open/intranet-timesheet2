@@ -151,6 +151,9 @@ ad_proc -public im_timesheet_home_component {user_id} {
     set redirect_p [parameter::get -package_id [im_package_timesheet2_id] -parameter "TimesheetRedirectHomeIfEmptyHoursP" -default 0]
     set num_days [parameter::get -package_id [im_package_timesheet2_id] -parameter "TimesheetRedirectNumDays" -default 7]
     set expected_hours [parameter::get -package_id [im_package_timesheet2_id] -parameter "TimesheetRedirectNumHoursInDays" -default 32]
+    set available_perc [util_memoize "db_string percent_available \"select availability from im_employees where employee_id = $user_id\" -default 100" 60]
+    if {"" == $available_perc} { set available_perc 100 }
+    set expected_hours [expr $expected_hours * $available_perc / 100]
 
     set hours_html ""
     set log_them_now_link "<a href=/intranet-timesheet2/hours/index>"
@@ -173,10 +176,8 @@ ad_proc -public im_timesheet_home_component {user_id} {
     if { $num_hours < $expected_hours && $add_hours } {
 
 	set default_message "
-		<b>You have logged %num_hours% hours in the last %num_days% days.
-		However, you are expected to log atleast %expected_hours% hours
-		or an equivalent amount of absences.
-		Please log your hours now or consult with your supervisor.</b>
+		<b>Sie haben bisher lediglich %num_hours% von erforderlichen %expected_hours% Stunden in den letzten %num_days% Tagen erfasst.
+		Bitte aktualisieren Sie ihre Stunden oder setzen Sie sich mit Ihrem Vorgesetzten in Verbindung.</b>
 	"
 	set message [lang::message::lookup "" intranet-timesheet2.You_need_to_log_hours $default_message]
 
@@ -215,7 +216,6 @@ ad_proc -public im_timesheet_home_component {user_id} {
             </a>\n"
     }
 
-
     if {$add_hours} {
 	set log_hours_link "<a href=/intranet-timesheet2/hours/index>"
 	set add_html "<li>[_ intranet-timesheet2.lt_Log_your_log_hours_li]</a>\n"
@@ -226,7 +226,20 @@ ad_proc -public im_timesheet_home_component {user_id} {
     if {$add_absences} {
         append add_html "/ <a href=/intranet-timesheet2/absences/new>[_ intranet-timesheet2.absences]</a>\n"
     }
-    append hours_html "$add_html</ul>"
+    append hours_html "$add_html"
+    append hours_html "</ul>"
+
+
+    # Add the <ul>-List of associated menus
+    set bind_vars [ad_tcl_vars_to_ns_set]
+    set menu_html [im_menu_ul_list "reporting-timesheet" $bind_vars]
+    if {"" != $menu_html} {
+	append hours_html "
+		[lang::message::lookup "" intranet-timesheet2.Associated_reports "Associated Reports"]
+		$menu_html
+	"
+    }
+
     return $hours_html
 }
 
@@ -239,12 +252,16 @@ ad_proc -public im_timesheet_project_component {user_id project_id} {
 	set return_url "[ad_conn url]?[ad_conn query]"
     }
 
+    # disable the component for users who can neither see stuff nor add stuff
     set add_hours [im_permission $user_id "add_hours"]
+    set view_hours_all [im_permission $user_id "add_hours"]
+    if {!$add_hours & !$view_hours_all} { return "" }
 
     set hours_logged "<ul>"
     set info_html ""
 
-    if {$admin} {
+    # fraber 2007-01-31: Admin doesn't make sense.
+    if {$write} {
         set total_hours [hours_sum $project_id]
 	set total_hours_str "[util_commify_number $total_hours]"
         set info_html "[_ intranet-timesheet2.lt_A_total_of_total_hour]"
@@ -255,7 +272,7 @@ ad_proc -public im_timesheet_project_component {user_id project_id} {
               [_ intranet-timesheet2.lt_See_the_breakdown_by_]
             </a>\n"
         }
-	append hours_logged "<li><a href=\"/intranet-timesheet2/weekly_report?project_id=$project_id\">[_ intranet-timesheet2.lt_View_hours_logged_by_]</a>"
+#	append hours_logged "<li><a href=\"/intranet-timesheet2/weekly_report?project_id=$project_id\">[_ intranet-timesheet2.lt_View_hours_logged_by_]</a>"
     }
 
 
@@ -271,6 +288,9 @@ ad_proc -public im_timesheet_project_component {user_id project_id} {
 	set redirect_p [parameter::get -package_id [im_package_timesheet2_id] -parameter "TimesheetRedirectProjectIfEmptyHoursP" -default 0]
 	set num_days [parameter::get -package_id [im_package_timesheet2_id] -parameter "TimesheetRedirectNumDays" -default 7]
 	set expected_hours [parameter::get -package_id [im_package_timesheet2_id] -parameter "TimesheetRedirectNumHoursInDays" -default 32]
+	set available_perc [util_memoize "db_string percent_available \"select availability from im_employees where employee_id = $user_id\" -default 100" 60]
+	if {"" == $available_perc} { set available_perc 100 }
+	set expected_hours [expr $expected_hours * $available_perc / 100]
         set num_hours [hours_sum_for_user $user_id "" $num_days]
 
 	if { $redirect_p && $num_hours < $expected_hours && $add_hours } {
@@ -304,6 +324,36 @@ Please log your hours now or consult with your supervisor."
         append hours_logged "</ul>\n"
     }
     append info_html "$hours_logged</ul>"
+
+
+
+    # Add the <ul>-List of associated menus
+    set start_date "2000-01-01"
+    set end_date "2100-01-01"
+
+    set menu_select_sql "
+        select  m.*
+        from    im_menus m
+        where   label = 'reporting-timesheet-customer-project'
+                and im_object_permission_p(m.menu_id, :user_id, 'read') = 't'
+    "
+
+    set menu_html "<ul>\n"
+    set ctr 0
+    db_foreach menu_select $menu_select_sql {
+        regsub -all " " $name "_" name_key
+	append url "project_id=$project_id&level_of_detail=3&start_date=$start_date&end_date=$end_date"
+        append menu_html "<li><a href=\"$url\">[lang::message::lookup "" intranet-invoices.$name_key $name]</a></li>\n"
+        incr ctr
+    }
+    append menu_html "</ul>\n"
+
+    if {$ctr > 0} {
+	append info_html "
+		[lang::message::lookup "" intranet-timesheet2.Associated_reports "Associated Reports"]
+		$menu_html
+	"
+    }
 
     return $info_html
 }

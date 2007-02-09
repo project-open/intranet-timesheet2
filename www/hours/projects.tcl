@@ -35,16 +35,14 @@ if { [empty_string_p $user_id] } {
     set rows_found_p 0
 
     set sql "
-select
-	u.user_id, 
-	im_name_from_user_id(u.user_id) as user_name 
-from 
-	users u
-where 
-	exists (select 1 from im_hours where user_id = u.user_id)
-order by user_name"
+	select
+		u.*,
+		im_name_from_user_id(u.user_id) as user_name 
+	from
+		(select distinct user_id from im_hours) u
+	order by user_name
+    "
 
-#order by lower(user_name)
     db_foreach users_who_logged_hours $sql {
         append page_body "<li><a href=projects?[export_url_vars user_id]>$user_name</a>\n"
     } if_no_rows {
@@ -67,22 +65,22 @@ order by user_name"
     set page_body "<ul>\n"
 
     set sql "
-select 
-	p.project_name, 
-	p.project_id,
-	round(sum(h.hours)) as total_hours,
-	min(h.day) as first_day, 
-	max(h.day) as last_day
-from 
-	im_projects p,
-	im_hours h
-where 
-	p.project_id = h.project_id
-	and h.user_id = :user_id
-group by 
-	p.project_name, 
-	p.project_id
-"
+	select 
+		p.project_name, 
+		p.project_id,
+		sum(h.hours) as total_hours,
+		min(h.day) as first_day, 
+		max(h.day) as last_day
+	from 
+		im_projects p,
+		im_hours h
+	where 
+		p.project_id = h.project_id
+		and h.user_id = :user_id
+	group by 
+		p.project_name, 
+		p.project_id
+    "
 
     db_foreach hours_on_project $sql {
 	set first_day_str "[util_AnsiDatetoPrettyDate $first_day]"
