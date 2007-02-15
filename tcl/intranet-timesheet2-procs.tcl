@@ -331,10 +331,14 @@ Please log your hours now or consult with your supervisor."
     set start_date "2000-01-01"
     set end_date "2100-01-01"
 
+
+    # show those menus from the Timesheet group ('reporting-timesheet-%')
+    # that have a '?' in the URL, indicating that they take arguments.
     set menu_select_sql "
         select  m.*
         from    im_menus m
-        where   label = 'reporting-timesheet-customer-project'
+        where   label like 'reporting-timesheet-%'
+		and position('?' in url) != 0
                 and im_object_permission_p(m.menu_id, :user_id, 'read') = 't'
     "
 
