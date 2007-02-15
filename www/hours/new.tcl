@@ -86,7 +86,7 @@ if {!$log_hours_on_potential_project_p} {
 set edit_hours_p "t"
 
 # When should we consider the last month to be closed?
-set last_month_closing_day [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter TimesheetLastMonthClosingDay -default 5]
+set last_month_closing_day [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter TimesheetLastMonthClosingDay -default 0]
 
 
 if {0 != $last_month_closing_day && "" != $last_month_closing_day} {
