@@ -259,6 +259,7 @@ set sql "
 		h.note, 
 		h.billing_rate,
 		parent.project_id as top_project_id,
+	        children.parent_id as parent_id,
 	        children.project_id as project_id,
 	        children.project_nr as project_nr,
 	        children.project_name as project_name,
@@ -269,7 +270,8 @@ set sql "
 		parent.project_name as parent_project_name,
 	        tree_level(children.tree_sortkey) -1 as subproject_level,
 		substring(parent.tree_sortkey from 17) as parent_tree_sortkey,
-		substring(children.tree_sortkey from 17) as child_tree_sortkey
+		substring(children.tree_sortkey from 17) as child_tree_sortkey,
+		lower(children.project_nr) as sort_order
 	from
 	        im_projects parent,
 	        im_projects children
@@ -289,9 +291,6 @@ set sql "
 		and children.project_status_id not in ($closed_stati_select)
 	        and parent.project_id in ($project_sql)
 		$children_sql
-	order by
-		lower(parent.project_name),
-	        children.tree_sortkey
 "
 
 # ---------------------------------------------------------
@@ -314,7 +313,12 @@ set old_project_id 0
 set closed_level 0
 set closed_status [im_project_status_open]
 set old_parent_project_nr ""
-db_foreach hours_timesheet $sql {
+
+db_multirow hours_multirow hours_timesheet $sql
+
+multirow_sort_tree hours_multirow project_id parent_id sort_order
+
+template::multirow foreach hours_multirow {
 
     # ---------------------------------------------
     # Deal with the open and closed subprojects
