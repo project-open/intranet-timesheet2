@@ -311,3 +311,165 @@ select im_component_plugin__new (
 update im_component_plugins set title_tcl = '_ ' || title_tcl where title_tcl like 'intranet-timesh%';
 
 
+
+
+-- upgrade-3.2.3.0.0-3.2.4.0.0.sql
+-- Add a new column "cost_id" to im_hours, in order
+-- to store the associated cost item:
+
+
+
+create or replace function inline_0 ()
+returns integer as '
+declare
+        v_count                 integer;
+begin
+        select count(*) into v_count
+        from user_tab_columns where   table_name = ''IM_HOURS'' and column_name = ''COST_ID'';
+        if v_count > 0 then return 0; end if;
+
+
+
+	alter table im_hours add cost_id integer;
+	alter table im_hours add constraint im_hours_cost_fk
+	foreign key (cost_id) references im_costs;
+	
+	-- Set the "cause_object_id" of all existing timesheet
+	-- cost items to the objects creation_user. That works
+	-- only with the "old" timesheet costs that have been
+	-- created by the user itself.
+	update im_costs
+	set cause_object_id = (
+		select creation_user
+		from acs_objects
+		where object_id = cost_id
+	);
+	
+	
+	-- Try to associate im_cost elements to the corresponding
+	-- im_hours entries.
+	update im_hours
+	set cost_id = (
+		select	c.cost_id
+		from	im_costs c
+		where
+			c.cost_type_id = 3718
+			and c.effective_date::date = im_hours.day::date
+			and c.cause_object_id = im_hours.user_id
+			and c.project_id = im_hours.project_id
+	);
+
+        return 0;
+end;' language 'plpgsql';
+select inline_0 ();
+drop function inline_0 ();
+
+
+
+
+
+
+
+--
+-- upgrade-3.1.3-3.2.0.sql
+
+
+
+create or replace function inline_0 ()
+returns integer as '
+declare
+	-- Menu IDs
+	v_menu		   integer;	v_parent_menu	   integer;
+	-- Groups
+	v_employees	   integer;	v_accounting	   integer;
+	v_senman	   integer;	v_customers	   integer;
+	v_freelancers      integer;	v_proman	   integer;
+	v_admins	   integer;
+
+	v_count			integer;
+BEGIN
+    select group_id into v_admins from groups where group_name = ''P/O Admins'';
+    select group_id into v_senman from groups where group_name = ''Senior Managers'';
+    select group_id into v_proman from groups where group_name = ''Project Managers'';
+    select group_id into v_accounting from groups where group_name = ''Accounting'';
+    select group_id into v_employees from groups where group_name = ''Employees'';
+    select group_id into v_customers from groups where group_name = ''Customers'';
+    select group_id into v_freelancers from groups where group_name = ''Freelancers'';
+
+    select menu_id into v_parent_menu
+    from im_menus where label=''main'';
+
+    select count(*) into v_count from im_menus
+    where label = ''timesheet2_timesheet'';
+
+    IF v_count = 0 THEN
+
+	    v_menu := im_menu__new (
+		null,				-- p_menu_id
+		''acs_object'',			-- object_type
+		now(),				-- creation_date
+		null,				-- creation_user
+		null,				-- creation_ip
+		null,				-- context_id
+		''intranet-timesheet2'',	-- package_name
+		''timesheet2_timesheet'',	-- label
+		''Timesheet'',			-- name
+		''/intranet-timesheet2/hours/index'', -- url
+		73,				-- sort_order
+		v_parent_menu,			-- parent_menu_id
+		null				-- p_visible_tcl
+	    );
+
+	    PERFORM acs_permission__grant_permission(v_menu, v_admins, ''read'');
+	    PERFORM acs_permission__grant_permission(v_menu, v_senman, ''read'');
+	    PERFORM acs_permission__grant_permission(v_menu, v_proman, ''read'');
+	    PERFORM acs_permission__grant_permission(v_menu, v_accounting, ''read'');
+	    PERFORM acs_permission__grant_permission(v_menu, v_employees, ''read'');
+	    PERFORM acs_permission__grant_permission(v_menu, v_customers, ''read'');
+	    PERFORM acs_permission__grant_permission(v_menu, v_freelancers, ''read'');
+
+    END IF;
+
+
+    select count(*) into v_count from im_menus
+    where label = ''timesheet2_timesheet'';
+
+    IF v_count = 0 THEN
+
+	    v_menu := im_menu__new (
+		null,				-- p_menu_id
+		''acs_object'',			-- object_type
+		now(),				-- creation_date
+		null,				-- creation_user
+		null,				-- creation_ip
+		null,				-- context_id
+		''intranet-timesheet2'',	-- package_name
+		''timesheet2_absences'',	-- label
+		''Absences'',			-- name
+		''/intranet-timesheet2/absences/index'', -- url
+		74,				-- sort_order
+		v_parent_menu,			-- parent_menu_id
+		null				-- p_visible_tcl
+	    );
+	
+	    PERFORM acs_permission__grant_permission(v_menu, v_admins, ''read'');
+	    PERFORM acs_permission__grant_permission(v_menu, v_senman, ''read'');
+	    PERFORM acs_permission__grant_permission(v_menu, v_proman, ''read'');
+	    PERFORM acs_permission__grant_permission(v_menu, v_accounting, ''read'');
+	    PERFORM acs_permission__grant_permission(v_menu, v_employees, ''read'');
+	    PERFORM acs_permission__grant_permission(v_menu, v_customers, ''read'');
+	    PERFORM acs_permission__grant_permission(v_menu, v_freelancers, ''read'');
+    END IF;
+
+    return 0;
+end;' language 'plpgsql';
+select inline_0 ();
+drop function inline_0 ();
+
+
+update im_menus set url='/intranet-timesheet2/absences/index' where label = 'timesheet2_absences';
+
+
+
+
+
