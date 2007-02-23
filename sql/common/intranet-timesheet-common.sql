@@ -25,16 +25,6 @@ select category_id as absence_type_id, category as absence_type
 from im_categories
 where category_type = 'Intranet Absence Type';
 
--- 5000 - 5099 Absence types
-insert into im_categories ( CATEGORY_DESCRIPTION, ENABLED_P, CATEGORY_ID, CATEGORY, CATEGORY_TYPE) values
-('', 'f', '5000', 'Vacation', 'Intranet Absence Type');
-insert into im_categories ( CATEGORY_DESCRIPTION, ENABLED_P, CATEGORY_ID, CATEGORY, CATEGORY_TYPE) values
-('', 'f', '5001', 'Personal', 'Intranet Absence Type');
-insert into im_categories ( CATEGORY_DESCRIPTION, ENABLED_P, CATEGORY_ID, CATEGORY, CATEGORY_TYPE) values
-('', 'f', '5002', 'Sick', 'Intranet Absence Type');
-insert into im_categories ( CATEGORY_DESCRIPTION, ENABLED_P, CATEGORY_ID, CATEGORY, CATEGORY_TYPE) values
-('', 'f', '5003', 'Travel', 'Intranet Absence Type');
-
 
 
 -- Insert additional columns into the "project_status"
@@ -51,13 +41,14 @@ extra_select, extra_where, sort_order, visible_for) values (2209,22,NULL,'Estim.
 -- Create User Absences View
 -- vws to "absences" items: 50-59
 
+-- view_columns to "absences" items: 20000-20099
+delete from im_view_columns where view_id >= 200 and view_id < 209;
+
+
 delete from im_views where view_id >= 200 and view_id < 209;
 insert into im_views (view_id, view_name, visible_for) 
 values (200, 'absence_list_home', 'view_absences_all');
 
-
--- view_columns to "absences" items: 20000-20099
-delete from im_view_columns where column_id >= 20000 and column_id < 20099;
 
 insert into im_view_columns (column_id, view_id, group_id, column_name, column_render_tcl,
 extra_select, extra_where, sort_order, visible_for) values (20003,200,NULL,'Date',
