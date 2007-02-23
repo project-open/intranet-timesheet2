@@ -22,41 +22,39 @@
 create or replace function inline_0 (varchar)
 returns integer as '
 DECLARE
-  p_name alias for $1;
-  package apm_packages%ROWTYPE;
-  version apm_package_versions%ROWTYPE;
-  node site_nodes%ROWTYPE;
+	p_name alias for $1;
+	package apm_packages%ROWTYPE;
+	version apm_package_versions%ROWTYPE;
+	node site_nodes%ROWTYPE;
 BEGIN
-  perform im_menu__del_module(p_name);
-  perform im_component_plugin__del_module(p_name);
+	perform im_menu__del_module(p_name);
+	perform im_component_plugin__del_module(p_name);
 
-  FOR package IN 
-    SELECT package_id FROM apm_packages WHERE package_key= p_name
-  LOOP
-    PERFORM apm_package__delete(package.package_id);
-  END LOOP;
+	FOR package IN 
+	  SELECT package_id FROM apm_packages WHERE package_key= p_name
+	LOOP
+	  PERFORM apm_package__delete(package.package_id);
+	END LOOP;
 
-  FOR node IN 
-    SELECT site_nodes.node_id 
-    FROM apm_packages, site_nodes  
-    WHERE apm_packages.package_id = site_nodes.object_id
-      AND apm_packages.package_key = p_name
-  LOOP
-    update site_nodes set object_id = null where node_id = node;
-  END LOOP;
+	FOR node IN 
+	  SELECT site_nodes.node_id 
+	  FROM apm_packages, site_nodes  
+	  WHERE apm_packages.package_id = site_nodes.object_id
+	    AND apm_packages.package_key = p_name
+	LOOP
+	  update site_nodes set object_id = null where node_id = node;
+	END LOOP;
 
-  DELETE from lang_message_keys  where package_key = p_name;
+	DELETE from lang_message_keys  where package_key = p_name;
 
-  PERFORM apm_package_type__drop_type( p_name, ''t'' );
+	PERFORM apm_package_type__drop_type( p_name, ''t'' );
 
-  RETURN 0;
+	RETURN 0;
 END;
 ' language 'plpgsql';
 select inline_0 ('intranet-timesheet');
 drop function inline_0 (varchar);
 
-
--- !!!!!!! v_count !!!
 
 ------------------------------------------------------------
 -- Hours
@@ -78,33 +76,33 @@ begin
             return 0;
         end if;
 
-create table im_hours (
-	user_id			integer 
-				constraint im_hours_user_id_nn
-				not null 
-				constraint im_hours_user_id_fk
-				references users,
-	project_id		integer 
-				constraint im_hours_project_id_nn
-				not null 
-				constraint im_hours_project_id_fk
-				references im_projects,
-	day			timestamptz,
-	hours			numeric(5,2),
-				-- ArsDigita/ACS billing system - log prices with hours
-	billing_rate		numeric(5,2),
-	billing_currency	char(3)
-				constraint im_hours_billing_currency_fk
-				references currency_codes(iso),
-	note			varchar(4000)
-);
+	create table im_hours (
+		user_id			integer 
+					constraint im_hours_user_id_nn
+					not null 
+					constraint im_hours_user_id_fk
+					references users,
+		project_id		integer 
+					constraint im_hours_project_id_nn
+					not null 
+					constraint im_hours_project_id_fk
+					references im_projects,
+		day			timestamptz,
+		hours			numeric(5,2),
+					-- ArsDigita/ACS billing system - log prices with hours
+		billing_rate		numeric(5,2),
+		billing_currency	char(3)
+					constraint im_hours_billing_currency_fk
+					references currency_codes(iso),
+		note			varchar(4000)
+	);
+	
+	alter table im_hours add primary key (user_id, project_id, day);
+	create index im_hours_project_id_idx on im_hours(project_id);
+	create index im_hours_user_id_idx on im_hours(user_id);
+	create index im_hours_day_idx on im_hours(day);
 
-alter table im_hours add primary key (user_id, project_id, day);
-create index im_hours_project_id_idx on im_hours(project_id);
-create index im_hours_user_id_idx on im_hours(user_id);
-create index im_hours_day_idx on im_hours(day);
-
-    return 0;
+	return 0;
 end;' language 'plpgsql';
 select inline_0 ();
 drop function inline_0 ();
@@ -128,9 +126,9 @@ begin
             return 0;
         end if;
 
-alter table im_projects add reported_hours_cache float;
+	alter table im_projects add reported_hours_cache float;
 
-    return 0;
+	return 0;
 end;' language 'plpgsql';
 select inline_0 ();
 drop function inline_0 ();
@@ -139,29 +137,44 @@ drop function inline_0 ();
 -- Permissions and Privileges
 --
 
--- add_hours actually is more of an obligation then a privilege...
-select acs_privilege__create_privilege('add_hours','Add Hours','Add Hours');
-select acs_privilege__add_child('admin', 'add_hours');
 
+create or replace function inline_0 ()
+returns integer as '
+declare
+        v_count                 integer;
+begin
+        select count(*) into v_count
+        from acs_privileges where privilege = ''add_hours'';
+        if v_count > 0 then return 0; end if;
+	
+	-- add_hours actually is more of an obligation then a privilege...
+	select acs_privilege__create_privilege(''add_hours'',''Add Hours'',''Add Hours'');
+	select acs_privilege__add_child(''admin'', ''add_hours'');
+	
+	
+	-- Everybody is able to see his own hours, so view_hours doesnt
+	-- make much sense...
+	select acs_privilege__create_privilege(''view_hours_all'',''View Hours All'',''View Hours All'');
+	select acs_privilege__add_child(''admin'', ''view_hours_all'');
+	
+	
+	select im_priv_create(''add_hours'', ''Accounting'');
+	select im_priv_create(''add_hours'', ''Employees'');
+	select im_priv_create(''add_hours'', ''P/O Admins'');
+	select im_priv_create(''add_hours'', ''Project Managers'');
+	select im_priv_create(''add_hours'', ''Sales'');
+	select im_priv_create(''add_hours'', ''Senior Managers'');
+	
+	select im_priv_create(''view_hours_all'', ''Accounting'');
+	select im_priv_create(''view_hours_all'', ''P/O Admins'');
+	select im_priv_create(''view_hours_all'', ''Project Managers'');
+	select im_priv_create(''view_hours_all'', ''Sales'');
+	select im_priv_create(''view_hours_all'', ''Senior Managers'');
 
--- Everybody is able to see his own hours, so view_hours doesn't
--- make much sense...
-select acs_privilege__create_privilege('view_hours_all','View Hours All','View Hours All');
-select acs_privilege__add_child('admin', 'view_hours_all');
-
-
-select im_priv_create('add_hours', 'Accounting');
-select im_priv_create('add_hours', 'Employees');
-select im_priv_create('add_hours', 'P/O Admins');
-select im_priv_create('add_hours', 'Project Managers');
-select im_priv_create('add_hours', 'Sales');
-select im_priv_create('add_hours', 'Senior Managers');
-
-select im_priv_create('view_hours_all', 'Accounting');
-select im_priv_create('view_hours_all', 'P/O Admins');
-select im_priv_create('view_hours_all', 'Project Managers');
-select im_priv_create('view_hours_all', 'Sales');
-select im_priv_create('view_hours_all', 'Senior Managers');
+        return 0;
+end;' language 'plpgsql';
+select inline_0 ();
+drop function inline_0 ();
 
 
 
@@ -175,6 +188,8 @@ declare
 	v_senman	   integer;	v_customers	   integer;
 	v_freelancers      integer;	v_proman	   integer;
 	v_admins	   integer;
+
+	v_count		integer;
 BEGIN
     select group_id into v_admins from groups where group_name = ''P/O Admins'';
     select group_id into v_senman from groups where group_name = ''Senior Managers'';
@@ -183,6 +198,10 @@ BEGIN
     select group_id into v_employees from groups where group_name = ''Employees'';
     select group_id into v_customers from groups where group_name = ''Customers'';
     select group_id into v_freelancers from groups where group_name = ''Freelancers'';
+
+    select count(*) into v_count 
+    from im_menus where label = ''timesheet2_timesheet'';
+    IF v_count > 0 THEN return 0; END IF;
 
     select menu_id into v_parent_menu
     from im_menus where label=''main'';
@@ -234,6 +253,7 @@ BEGIN
     PERFORM acs_permission__grant_permission(v_menu, v_employees, ''read'');
     PERFORM acs_permission__grant_permission(v_menu, v_customers, ''read'');
     PERFORM acs_permission__grant_permission(v_menu, v_freelancers, ''read'');
+
     return 0;
 end;' language 'plpgsql';
 select inline_0 ();
