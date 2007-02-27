@@ -19,6 +19,8 @@ ad_page_contract {
     @param project_id
     @param julian_date 
     @param return_url 
+    @param list_sort_order "nr" "name" "order"
+
 
     @author mbryzek@arsdigita.com
     @author frank.bergmann@project-open.com
@@ -28,6 +30,7 @@ ad_page_contract {
     { project_id_list:multiple "" }
     { julian_date "" }
     { return_url "" }
+    { list_sort_order "nr" }
 }
 
 # ---------------------------------------------------------
@@ -253,6 +256,17 @@ if {![string equal "permissive" $permissive_logging]} {
 #
 # - 
 
+if { $list_sort_order=="name" } {
+    set sort_order "lower(children.project_name)"
+    set sort_integer 0
+} elseif { $list_sort_order=="order" } {
+    set sort_order "children.sort_order"
+    set sort_integer 1
+} else {
+    set sort_order "lower(children.project_nr)"
+    set sort_integer 0
+}
+
 set sql "
 	select
 		h.hours, 
@@ -271,7 +285,7 @@ set sql "
 	        tree_level(children.tree_sortkey) -1 as subproject_level,
 		substring(parent.tree_sortkey from 17) as parent_tree_sortkey,
 		substring(children.tree_sortkey from 17) as child_tree_sortkey,
-		lower(children.project_nr) as sort_order
+		$sort_order as sort_order
 	from
 	        im_projects parent,
 	        im_projects children
@@ -316,7 +330,11 @@ set old_parent_project_nr ""
 
 db_multirow hours_multirow hours_timesheet $sql
 
-multirow_sort_tree hours_multirow project_id parent_id sort_order
+if {$sort_integer} {
+    multirow_sort_tree -integer hours_multirow project_id parent_id sort_order
+} else {
+    multirow_sort_tree hours_multirow project_id parent_id sort_order
+}
 
 template::multirow foreach hours_multirow {
 
