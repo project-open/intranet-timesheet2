@@ -32,6 +32,7 @@
             <parameter datatype="number"  min_n_values="1"  max_n_values="1"  name="TimesheetRedirectNumDays"  default="7" description="The number of days to check for redirection"/>
             <parameter datatype="number"  min_n_values="1"  max_n_values="1"  name="TimesheetRedirectNumHoursInDays"  default="32" description="The number of hours that should be logged in NumDays (see above)"/>
             <parameter datatype="number"  min_n_values="1"  max_n_values="1"  name="TimesheetRedirectProjectIfEmptyHoursP"  default="0" description="Redirect the user from the project pages to the timesheet if there are not enough hours logged?"/>
+            <parameter datatype="string"  min_n_values="1"  max_n_values="1"  name="TimesheetAddHoursSortOrder"  default="order" description="Sort the timessheet tasks on the &quot;add hours&quot; page by &quot;order&quot; (gantt sort order), &quot;name&quot; (task name) or &quot;nr&quot; (task id). The default is the gantt sort order."/>
         </parameters>
 
     </version>

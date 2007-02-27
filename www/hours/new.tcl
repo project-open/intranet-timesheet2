@@ -19,8 +19,6 @@ ad_page_contract {
     @param project_id
     @param julian_date 
     @param return_url 
-    @param list_sort_order "nr" "name" "order"
-
 
     @author mbryzek@arsdigita.com
     @author frank.bergmann@project-open.com
@@ -30,7 +28,6 @@ ad_page_contract {
     { project_id_list:multiple "" }
     { julian_date "" }
     { return_url "" }
-    { list_sort_order "nr" }
 }
 
 # ---------------------------------------------------------
@@ -74,6 +71,7 @@ set permissive_logging [parameter::get_from_package_key -package_key intranet-ti
 
 set log_hours_on_potential_project_p [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter TimesheetLogHoursOnPotentialProjectsP -default 1]
 
+set list_sort_order [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter TimesheetAddHoursSortOrder -default "order"]
 
 # What is a closed status?
 set closed_stati_select "select * from im_sub_categories([im_project_status_closed])"
