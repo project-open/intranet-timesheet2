@@ -209,11 +209,14 @@ foreach project_id $item_nrs {
 	db_dml update_timesheet_task ""
 
     }
+    
+    # Create the necessary cost items for the timesheet hours
+    im_timesheet2_sync_timesheet_costs -project_id $project_id
+
+    # Update the project's logged hours cache
+    hours_sum $project_id
 }
 
-
-# Creat the necessary cost items for the timesheet hours
-im_timesheet2_sync_timesheet_costs -project_id $project_id
 
 
 db_release_unused_handles
