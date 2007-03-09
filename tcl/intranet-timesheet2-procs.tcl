@@ -86,6 +86,7 @@ ad_proc -public im_timesheet2_sync_timesheet_costs {
 		h.cost_id is null
 		$user_sql
 		$project_sql
+	LIMIT 100
     "
 
     set cost_ids [list]
@@ -473,27 +474,35 @@ ad_proc hours_sum { project_id {number_days ""} } {
     }
 
     set num [db_string hours_sum_for_group "
-select 
-	sum(hours)
-from
-	im_hours
-where
-	project_id in (
-		select  children.project_id
-		from    im_projects parent,
-			im_projects children
-		where
-			children.tree_sortkey between
-				parent.tree_sortkey
-				and tree_right(parent.tree_sortkey)
-			and parent.project_id = :project_id
-	    UNION
-		select  :project_id as project_id
-	)
+	select	sum(hours)
+	from	im_hours
+	where
+		project_id in (
+			select  children.project_id
+			from    im_projects parent,
+				im_projects children
+			where
+				children.tree_sortkey between
+					parent.tree_sortkey
+					and tree_right(parent.tree_sortkey)
+				and parent.project_id = :project_id
+		    UNION
+			select  :project_id as project_id
+		)
 	$days_back_sql
     "]
 
     if {"" == $num} { set num 0 }
+
+    # Update im_project reported_hours_cache
+    if {[empty_string_p $number_days]} {
+	db_dml update_project_reported_hours "
+		update im_projects
+		set reported_hours_cache = :num
+		where project_id = :project_id
+	"
+    }
+
     return $num
 }
 
