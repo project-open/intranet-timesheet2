@@ -27,9 +27,6 @@ DECLARE
 	version apm_package_versions%ROWTYPE;
 	node site_nodes%ROWTYPE;
 BEGIN
-	perform im_menu__del_module(p_name);
-	perform im_component_plugin__del_module(p_name);
-
 	FOR package IN 
 	  SELECT package_id FROM apm_packages WHERE package_key= p_name
 	LOOP
