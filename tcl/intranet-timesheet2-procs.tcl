@@ -98,7 +98,8 @@ ad_proc -public im_timesheet2_sync_timesheet_costs {
 	lappend cost_ids $cost_id
 	db_dml update_hours "
 		update	im_hours
-		set	cost_id = :cost_id
+		set	billing_rate = :billing_rate,
+			cost_id = :cost_id
 		where
 			user_id = :hour_user_id
 			and project_id = :project_id
