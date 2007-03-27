@@ -252,17 +252,19 @@ if {![string equal "permissive" $permissive_logging]} {
 # - The "children" project, which represents sub-projects
 #   of "parent" of any depth.
 #
-# - 
 
+set sort_integer 0
+set sort_legacy  0
 if { $list_sort_order=="name" } {
     set sort_order "lower(children.project_name)"
-    set sort_integer 0
 } elseif { $list_sort_order=="order" } {
     set sort_order "children.sort_order"
     set sort_integer 1
+} elseif { $list_sort_order=="legacy" } {
+    set sort_order "children.tree_sortkey" 
+    set sort_legacy 1
 } else {
     set sort_order "lower(children.project_nr)"
-    set sort_integer 0
 }
 
 set sql "
@@ -303,6 +305,9 @@ set sql "
 		and children.project_status_id not in ($closed_stati_select)
 	        and parent.project_id in ($project_sql)
 		$children_sql
+	order by
+		lower(parent.project_name),
+	        children.tree_sortkey
 "
 
 # ---------------------------------------------------------
@@ -328,15 +333,17 @@ set old_parent_project_nr ""
 
 db_multirow hours_multirow hours_timesheet $sql
 
-if {$sort_integer} {
-    multirow_sort_tree -integer hours_multirow project_id parent_id sort_order
-} else {
-    multirow_sort_tree hours_multirow project_id parent_id sort_order
+if ($sort_legacy==0) {
+    if {$sort_integer} {
+	multirow_sort_tree -integer hours_multirow project_id parent_id sort_order
+    } else {
+	multirow_sort_tree hours_multirow project_id parent_id sort_order
+    }
 }
 
 template::multirow foreach hours_multirow {
 
-    # ---------------------------------------------
+    # --------------------------------------------- 
     # Deal with the open and closed subprojects
     # A closed project will prevent all sub-projects from
     # being displayed. So it "leaves a trace" by setting
