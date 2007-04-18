@@ -211,7 +211,6 @@ if {0 != $project_id} {
 				where	h.user_id = :user_id
 					and h.day = to_date(:julian_date, 'J')
 		)
-		and p.project_status_id not in ($closed_stati_select)
     "
 }
 
@@ -301,8 +300,6 @@ set sql "
 		and children.tree_sortkey between 
 			parent.tree_sortkey and 
 			tree_right(parent.tree_sortkey)
-		and parent.project_status_id not in ($closed_stati_select)
-		and children.project_status_id not in ($closed_stati_select)
 	        and parent.project_id in ($project_sql)
 		$children_sql
 	order by
