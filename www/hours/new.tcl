@@ -373,19 +373,11 @@ template::multirow foreach hours_multirow {
 	set closed_level $subproject_level
     }
 
-    # Reset status which new main project
-    if {$parent_project_nr != $old_parent_project_nr} {
-        set closed_status [im_project_status_open]
-        set closed_level 0
-    }
-
-    if {$closed_status == [im_project_status_closed]} {
+    if {$closed_status == [im_project_status_closed] } {
 	# We're below a closed project - skip this.
 	ns_log Notice "new: action: continue"
 	continue
     }
-
-
 
     # ---------------------------------------------
     # Indent the project line
