@@ -159,14 +159,8 @@ ad_proc -public im_timesheet_home_component {user_id} {
 
     set hours_html ""
     set log_them_now_link "<a href=/intranet-timesheet2/hours/index>"
-
-    if { [catch {
-        set num_hours [hours_sum_for_user $user_id "" $num_days]
-    } err_msg] } {
-        set num_hours 0
-	ad_return_complaint 1 "<pre>$err_msg</pre>"
-    }
-
+    set num_hours [im_timesheet_hours_sum -user_id $user_id -number_days $num_days]
+    set absences_hours [im_timesheet_absences_sum -user_id $user_id -number_days $num_days]
 
     if {$num_hours == 0} {
         set message "<b>[_ intranet-timesheet2.lt_You_havent_logged_you]</a></b>\n"
@@ -175,10 +169,14 @@ ad_proc -public im_timesheet_home_component {user_id} {
     }
 
 
-    if { $num_hours < $expected_hours && $add_hours } {
+    if { [expr $num_hours + $absences_hours] < $expected_hours && $add_hours } {
+
+	set absences_hours_message ""
+	if {$absences_hours > 0} { set absences_hours_message "und %absences_hours% Stunden Absenzen" }
 
 	set default_message "
-		<b>Sie haben bisher lediglich %num_hours% von erforderlichen %expected_hours% Stunden in den letzten %num_days% Tagen erfasst.
+		<b>Sie haben bisher lediglich %num_hours% Stunden Arbeitszeit $absences_hours_message
+		erfasst von erforderlichen %expected_hours% Stunden in den letzten %num_days% Tagen.
 		Bitte aktualisieren Sie ihre Stunden oder setzen Sie sich mit Ihrem Vorgesetzten in Verbindung.</b>
 	"
 	set message [lang::message::lookup "" intranet-timesheet2.You_need_to_log_hours $default_message]
@@ -233,7 +231,7 @@ ad_proc -public im_timesheet_home_component {user_id} {
 
 
     # Add the <ul>-List of associated menus
-    set bind_vars [ad_tcl_vars_to_ns_set]
+    set bind_vars [ad_tcl_vars_to_ns_set user_id]
     set menu_html [im_menu_ul_list "reporting-timesheet" $bind_vars]
     if {"" != $menu_html} {
 	append hours_html "
@@ -264,7 +262,7 @@ ad_proc -public im_timesheet_project_component {user_id project_id} {
 
     # fraber 2007-01-31: Admin doesn't make sense.
     if {$write} {
-        set total_hours [hours_sum $project_id]
+        set total_hours [im_timesheet_hours_sum -project_id $project_id]
 	set total_hours_str "[util_commify_number $total_hours]"
         set info_html "[_ intranet-timesheet2.lt_A_total_of_total_hour]"
         if { $total_hours > 0 } {
@@ -277,12 +275,10 @@ ad_proc -public im_timesheet_project_component {user_id project_id} {
 #	append hours_logged "<li><a href=\"/intranet-timesheet2/weekly_report?project_id=$project_id\">[_ intranet-timesheet2.lt_View_hours_logged_by_]</a>"
     }
 
-
     if {$read} {
-	set total_hours_str [hours_sum_for_user $user_id $project_id ""]
-
+	set total_hours_str [im_timesheet_hours_sum -user_id $user_id -project_id $project_id]
         append info_html "<br>[_ intranet-timesheet2.lt_You_have_loged_total_].\n"
-        set hours_today [hours_sum_for_user $user_id "" 1]
+        set hours_today [im_timesheet_hours_sum -user_id $user_id -number_days 1]
 
 	# Get the number of hours in the number of days, and whether
 	# we should redirect if the user didn't log them...
@@ -293,8 +289,7 @@ ad_proc -public im_timesheet_project_component {user_id project_id} {
 	set available_perc [util_memoize "db_string percent_available \"select availability from im_employees where employee_id = $user_id\" -default 100" 60]
 	if {"" == $available_perc} { set available_perc 100 }
 	set expected_hours [expr $expected_hours * $available_perc / 100]
-        set num_hours [hours_sum_for_user $user_id "" $num_days]
-
+        set num_hours [im_timesheet_hours_sum -user_id $user_id -number_days $num_days]
 	if { $redirect_p && $num_hours < $expected_hours && $add_hours } {
 
             set default_message "
@@ -405,18 +400,22 @@ where
 }
 
 
-ad_proc hours_sum_for_user { user_id { project_id "" } { number_days "7" } } {
+ad_proc im_timesheet_hours_sum { 
+    {-user_id 0}
+    {-project_id 0}
+    {-number_days 0}
+} {
     Returns the total number of hours the specified user logged for
     whatever else is included in the arg list.
-    Also counts absences with 8 hours.
 } {
-    set hours_per_absence [parameter::get -package_id [im_package_timesheet2_id] -parameter "TimesheetHoursPerAbsence" -default 8]
-
     # --------------------------------------------------------
     # Count the number of hours in the last days.
 
-    set criteria [list "user_id = :user_id"]
-    if { ![empty_string_p $project_id] } {
+    if {0 != $user_id} {
+	set criteria [list "user_id = :user_id"]
+    }
+
+    if {0 != $project_id} {
 	lappend criteria "
 		project_id in (
 			select	children.project_id
@@ -432,20 +431,30 @@ ad_proc hours_sum_for_user { user_id { project_id "" } { number_days "7" } } {
 		)
 	"
     }
-    if { ![empty_string_p $number_days] } {
+
+    if {0 != $number_days} {
 	lappend criteria "day >= to_date(to_char(now(),'yyyymmdd'),'yyyymmdd') - $number_days"	
     }
     set where_clause [join $criteria "\n    and "]
-    set num_hours [db_string hours_sum "
+    set num_hours [db_string sum_hours "
 	select	sum(hours) 
 	from	im_hours
 	where	$where_clause
     " -default 0]
     if {"" == $num_hours} { set num_hours 0}
     
+    return $num_hours
+}
 
-    # --------------------------------------------------------
-    # Count the absences in the last days
+
+
+ad_proc im_timesheet_absences_sum { 
+    -user_id:required
+    {-number_days 7} 
+} {
+    Returns the total number of absences multiplied by 8 hours per absence.
+} {
+    set hours_per_absence [parameter::get -package_id [im_package_timesheet2_id] -parameter "TimesheetHoursPerAbsence" -default 8]
 
     set num_absences [db_string absences_sum "
 	select
@@ -460,53 +469,28 @@ ad_proc hours_sum_for_user { user_id { project_id "" } { number_days "7" } } {
     " -default 0]
     if {"" == $num_absences} { set num_absences 0}
 
-    return [expr $num_hours + $num_absences * $hours_per_absence]
+    return [expr $num_absences * $hours_per_absence]
 }
 
-ad_proc hours_sum { project_id {number_days ""} } {
-    Returns the total hours registered for the specified table and
-    id. 
+
+ad_proc im_timesheet_update_timesheet_cache {
+    -project_id:required
 } {
-
-    if { [empty_string_p $number_days] } {
-	set days_back_sql ""
-    } else {
-	set days_back_sql " and day >= sysdate-:number_days"
-    }
-
-    set num [db_string hours_sum_for_group "
-	select	sum(hours)
-	from	im_hours
-	where
-		project_id in (
-			select  children.project_id
-			from    im_projects parent,
-				im_projects children
-			where
-				children.tree_sortkey between
-					parent.tree_sortkey
-					and tree_right(parent.tree_sortkey)
-				and parent.project_id = :project_id
-		    UNION
-			select  :project_id as project_id
-		)
-	$days_back_sql
-    "]
-
-    if {"" == $num} { set num 0 }
+    Returns the total hours registered for the specified table and id.
+} {
+    set num_hours [im_timesheet_hours_sum -project_id $project_id]
+    set cached_hours [db_string cached_hours "select reported_hours_cache from im_projects where project_id = :project_id" -default 0]
 
     # Update im_project reported_hours_cache
-    if {[empty_string_p $number_days]} {
+    if {$num_hours != $cached_hours} {
 	db_dml update_project_reported_hours "
 		update im_projects
-		set reported_hours_cache = :num
+		set reported_hours_cache = :num_hours
 		where project_id = :project_id
 	"
     }
-
-    return $num
+    return $num_hours
 }
-
 
 
 ad_proc im_force_user_to_log_hours { conn args why } {
