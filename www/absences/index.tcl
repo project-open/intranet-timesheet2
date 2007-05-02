@@ -52,10 +52,21 @@ set page_focus "im_header_form.keywords"
 set site_url "/intranet-timesheet2/absences"
 set return_url "$site_url/index"
 
+
+if {![im_permission $user_id "view_absences"]} { 
+    ad_return_complaint 1 "You don't have permissions to see absences"
+    ad_script_abort
+}
+
+
 set user_view_page "/intranet/users/view"
 set absence_view_page "$site_url/absences/view"
 
 set user_selection_types [list "all" "All" "mine" "Mine"]
+if {![im_permission $user_id "view_absences_all"]} {
+    set user_selection_types [list "mine" "Mine"]
+}
+
 set timescale_types [list "all" "All" "today" "Today" "next_1m" "Next_Month" "past" "Past" "future" "Future" "last_3m" "Last_3_months"]
 
 if { ![exists_and_not_null absence_type_id] } {
@@ -154,6 +165,10 @@ if { ![empty_string_p $where_clause] } {
     set where_clause " and $where_clause"
 }
 
+
+set perm_clause "and owner_id = :user_id"
+if {[im_permission $user_id "view_absences_all"]} { set perm_clause "" }
+
 set sql "
 select
         a.absence_id,
@@ -167,7 +182,9 @@ select
 from
         im_user_absences a
 where
-        1=1 $where_clause
+        1=1 
+	$where_clause
+	$perm_clause
 "
 
 # ---------------------------------------------------------------
@@ -202,6 +219,8 @@ ns_log Notice $selection
 # 6. Format the Filter
 # ---------------------------------------------------------------
 
+
+
 set filter_html "
 <form method=get action='$return_url' name=filter_form>
 [export_form_vars start_idx order_by how_many view_name]
@@ -216,7 +235,7 @@ set filter_html "
 <td valign=top>[im_select absence_type_id $absences_types ""]</td>
 </tr>
 <tr>
-  <td valign=top>[_ intranet-timesheet2.Display_Users] </td>
+  <td valign=top>[lang::message::lookup "" intranet-timesheet2.Show_Users "Show Users"]</td>
 <td valign=top>[im_select user_selection $user_selection_types ""]</td>
 </tr>
 <tr>
@@ -233,10 +252,26 @@ set filter_html "
 # ----------------------------------------------------------
 # Do we have to show administration links?
 
-set admin_html "<li><a href=$site_url/new>[_ intranet-timesheet2.Add_a_new_Absence]</a>\n"
+set admin_html ""
+if {[im_permission $user_id "add_absences"]} { 
+	set admin_html "
+	    <table border=0 cellpadding=0 cellspacing=0>
+	    <tr>
+	      <td class=rowtitle align=center>
+	        [_ intranet-timesheet2.Admin_Absences]
+	      </td>
+	    </tr>
+	    <tr>
+	      <td>
+	        <li><a href=$site_url/new>[_ intranet-timesheet2.Add_a_new_Absence]</a>
+	      </td>
+	    </tr>
+	    </table>
+	"
+}
 
-if {"" != $admin_html} {
-    set absence_filter_html "
+
+set absence_filter_html "
 
 <table border=0 cellpadding=0 cellspacing=0>
 <tr>
@@ -244,24 +279,11 @@ if {"" != $admin_html} {
     $filter_html
   </td> <!-- end of left hand filter TD -->
   <td>&nbsp;</td>
-  <td valign=top>
-    <table border=0 cellpadding=0 cellspacing=0>
-    <tr>
-      <td class=rowtitle align=center>
-        [_ intranet-timesheet2.Admin_Absences]
-      </td>
-    </tr>
-    <tr>
-      <td>
-        $admin_html
-      </td>
-    </tr>
-    </table>
-  </td>
+  <td valign=top>$admin_html</td>
 </tr>
 </table>
 "
-}
+
 
 
 # ---------------------------------------------------------------

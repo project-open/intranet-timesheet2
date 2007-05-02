@@ -19,7 +19,7 @@ ad_page_contract {
 
     @author mai-bee@gmx.net
 } {
-    absence_id:integer 
+    absence_id:integer,notnull
 }
 
 set user_id [ad_maybe_redirect_for_registration]
@@ -34,20 +34,11 @@ if {[info exists return_url] && "" == $return_url} {
 set date_format "YYYY-MM-DD"
 
 # ---------------------------------------------------------------
-# Permission
-# ---------------------------------------------------------------
-
-if {![im_permission $user_id "view_absences_all"]} {
-    ad_return_complaint "[_ intranet-timesheet2.lt_Insufficient_Privileg]" "
-    <li>[_ intranet-timesheet2.lt_You_dont_have_suffici]"
-}
-
-# ---------------------------------------------------------------
 # Get Absence Data
 # ---------------------------------------------------------------
 
-if {[info exists absence_id] && ![empty_string_p $absence_id]} {
-    db_1row absence_data "
+
+if {[catch {db_1row absence_data "
     	select 
     		a.owner_id, 
     		description,
@@ -60,17 +51,44 @@ if {[info exists absence_id] && ![empty_string_p $absence_id]} {
     		im_user_absences a 
     	where 
     		a.absence_id = :absence_id
-    	"
-
-# See if current user is owner of absence (if yes, he may edit it)
-set admin_html ""
-if { $user_id == $owner_id} {
-    set admin_html "<input type=submit name=submit value=[_ intranet-timesheet2.Edit]>"
+"} errmsg]} {
+    ad_return_complaint 1 "Unkown Absence: \#$absence_id"
+    ad_script_abort
 }
+
+# ---------------------------------------------------------------
+# Permission
+# ---------------------------------------------------------------
+
+if {![im_permission $user_id "view_absences"]} {
+    ad_return_complaint "[_ intranet-timesheet2.lt_Insufficient_Privileg]" "
+    <li>[_ intranet-timesheet2.lt_You_dont_have_suffici]"
+}
+
+if {![im_permission $user_id "view_absences_all"]} {
+    if {$owner_id != $user_id} {
+	ad_return_complaint "[_ intranet-timesheet2.lt_Insufficient_Privileg]" "
+        <li>[_ intranet-timesheet2.lt_You_dont_have_suffici]"
+	ad_script_abort
+    }
+}
+
 
 # ---------------------------------------------------------------
 # Format Absence Data
 # ---------------------------------------------------------------
+
+# See if current user is owner of absence (if yes, he may edit it)
+set edit_html ""
+if {$user_id == $owner_id} {
+    set edit_html "
+	<TR class=rowplain>
+	    <TD></TD>
+	    <TD><input type=submit name=submit value=[_ intranet-timesheet2.Edit]></TD>
+	</TR>
+    "
+}
+
 
 set page_body "
 <form action=\"new.tcl\" method=GET>
@@ -98,10 +116,12 @@ set page_body "
   <TR class=rowodd>
     <TD>[_ intranet-timesheet2.Absence_Type_1]</TD>
     <TD>$absence_type</TD></TR>
+
+  $edit_html
+
 </TBODY></TABLE>
-$admin_html
 </form>
 "
-}
+
 
 #doc_return  200 text/html [im_return_template]

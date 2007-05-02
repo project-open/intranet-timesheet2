@@ -37,7 +37,7 @@ set date_format "YYYY-MM-DD"
 # Permission
 # ---------------------------------------------------------------
 
-if {![im_permission $user_id "view_absences_all"]} {
+if {![im_permission $user_id "add_absences"]} {
     ad_return_complaint "[_ intranet-timesheet2.lt_Insufficient_Privileg]" "
     <li>[_ intranet-timesheet2.lt_You_dont_have_suffici]"
 }
