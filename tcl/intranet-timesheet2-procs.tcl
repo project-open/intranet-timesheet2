@@ -175,9 +175,12 @@ ad_proc -public im_timesheet_home_component {user_id} {
 	if {$absences_hours > 0} { set absences_hours_message "und %absences_hours% Stunden Absenzen" }
 
 	set default_message "
-		<b>Sie haben bisher lediglich %num_hours% Stunden Arbeitszeit $absences_hours_message
+		<!--<b>Sie haben bisher lediglich %num_hours% Stunden Arbeitszeit $absences_hours_message
 		erfasst von erforderlichen %expected_hours% Stunden in den letzten %num_days% Tagen.
-		Bitte aktualisieren Sie ihre Stunden oder setzen Sie sich mit Ihrem Vorgesetzten in Verbindung.</b>
+		Bitte aktualisieren Sie ihre Stunden oder setzen Sie sich mit Ihrem Vorgesetzten in Verbindung.</b>-->
+                <b>You have logged %num_hours% hours $absences_hours_message
+                 from expexted %expected_hours% hours in the last %num_days%.
+	         Please log your missing hours.</b>
 	"
 	set message [lang::message::lookup "" intranet-timesheet2.You_need_to_log_hours $default_message]
 
