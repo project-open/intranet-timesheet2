@@ -168,6 +168,14 @@ begin
 	select im_priv_create(''view_hours_all'', ''Sales'');
 	select im_priv_create(''view_hours_all'', ''Senior Managers'');
 
+	-- New Privilege to allow accounting guys to change hours
+	select acs_privilege__create_privilege('edit_hours_all','Edit Hours All','Edit Hours All');
+	select acs_privilege__add_child('admin', 'edit_hours_all');
+	
+	select im_priv_create('edit_hours_all', 'Accounting');
+	select im_priv_create('edit_hours_all', 'P/O Admins');
+	select im_priv_create('edit_hours_all', 'Senior Managers');
+
         return 0;
 end;' language 'plpgsql';
 select inline_0 ();

@@ -30,6 +30,11 @@ ad_page_contract {
 }
 
 set caller_id [ad_maybe_redirect_for_registration]
+set return_url [im_url_with_query]
+
+# Has the current user the right to edit all timesheet information?
+set edit_timesheet_p [im_permission $caller_id "edit_hours_all"]
+
 
 if { [empty_string_p $user_id] && ($caller_id != 0) } {
     set looking_at_self_p 1
@@ -61,12 +66,13 @@ set sql "
 		to_char(day,'fmDD') as pretty_day_fmdd,
 		to_char(day,'YYYY') as pretty_day_year,
 		to_char(day, 'J') as j_day,
-		hours, 
-		billing_rate,
-		hours * billing_rate as amount_earned, 
-		note 
+		h.hours, 
+		h.billing_rate,
+		h.hours * h.billing_rate as amount_earned, 
+		h.note,
+		h.project_id as hours_project_id
 	from
-		im_hours
+		im_hours h
 	where
 		project_id in (
 			select	children.project_id
@@ -92,7 +98,13 @@ set hourly_bill 0
 
 db_foreach hours_on_project $sql {
     set pretty_day "[_ intranet-timesheet2.$pretty_day_fmday], [_ intranet-timesheet2.$pretty_day_fmmonth] $pretty_day_fmdd $pretty_day_year"
-    append page_body "<p><li>$pretty_day <br><em>[_ intranet-timesheet2.hours_units]</em>\n"
+    set note_url [export_vars -base "/intranet-timesheet2/hours/one" {{julian_date $j_day} user_id {project_id $hours_project_id} return_url}]
+
+    set hours_units [_ intranet-timesheet2.hours_units]
+    if {$edit_timesheet_p} {
+        set hours_units "<a href=\"$note_url\">$hours_units</a>\n"
+    }
+    append page_body "<p><li>$pretty_day <br><em>$hours_units</em>\n"
 
     set total_hours_on_project [expr $total_hours_on_project + $hours]
 
@@ -100,6 +112,10 @@ db_foreach hours_on_project $sql {
         append page_body " (@ \$[format %4.2f $billing_rate]/hour = \$[format %4.2f $amount_earned])"
         set hourly_bill [expr $hourly_bill + $amount_earned]
         set total_hours_billed_hourly [expr $total_hours_billed_hourly + $hours]
+    }
+
+    if {$edit_timesheet_p} {
+	set note "<a href=\"[export_vars -base "/intranet-timesheet2/hours/one" {{julian_date $j_day} user_id {project_id $hours_project_id} return_url}]\">$note</a>\n"
     }
 
     if ![empty_string_p $note] {
