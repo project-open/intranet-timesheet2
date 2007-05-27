@@ -149,7 +149,7 @@ drop function inline_0 ();
 -- it does not care about user_vacations!
 create or replace function on_vacation_p (timestamptz) returns CHAR as '
 DECLARE
-	p_vacation_until alias for $1	-- vacation_until
+	p_vacation_until alias for $1;
 BEGIN
         IF (p_vacation_until is not null) AND (p_vacation_until >= now()) THEN
                 RETURN ''t'';
@@ -157,4 +157,5 @@ BEGIN
                 RETURN ''f'';
         END IF;
 END;' language 'plpgsql';
+
 
