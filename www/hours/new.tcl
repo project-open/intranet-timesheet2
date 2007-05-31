@@ -71,7 +71,9 @@ set permissive_logging [parameter::get_from_package_key -package_key intranet-ti
 
 set log_hours_on_potential_project_p [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter TimesheetLogHoursOnPotentialProjectsP -default 1]
 
-set list_sort_order [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter TimesheetAddHoursSortOrder -default "order"]
+set list_sort_order [parameter::get_from_package_key -package_key "intranet-timesheet2" -parameter TimesheetAddHoursSortOrder -default "order"]
+
+set show_project_nr_p [parameter::get_from_package_key -package_key "intranet-core" -parameter ShowProjectNrAndProjectNameP -default 0]
 
 # What is a closed status?
 set closed_stati_select "select * from im_sub_categories([im_project_status_closed])"
@@ -420,9 +422,11 @@ template::multirow foreach hours_multirow {
 	  <td>$parent_project_nr</td>\n"
     }
     
+    if {$show_project_nr_p} { set ptitle "$project_nr - $project_name" } else { set ptitle $project_name }
+
     if {"t" == $edit_hours_p} {
 	append results "
-	  <td><nobr>$indent <A href=\"$project_url\">$project_nr - $project_name</A></nobr></td>
+	  <td><nobr>$indent <A href=\"$project_url\">$ptitle</A></nobr></td>
 	  <td><INPUT NAME=hours.$project_id size=5 MAXLENGTH=5 value=\"$hours\">$p_hours</td>
 	  <td>
 	    <INPUT NAME=notes.$project_id size=60 value=\"[ns_quotehtml [value_if_exists note]]\">
@@ -433,7 +437,7 @@ template::multirow foreach hours_multirow {
 
 	if {"" == $hours} { set hours "-" }
 	append results "
-	  <td><nobr>$indent <A href=\"$project_url\">$project_nr - $project_name</A></nobr></td>
+	  <td><nobr>$indent <A href=\"$project_url\">$ptitle</A></nobr></td>
 	  <td align=right>$hours</td>
 	  <td>[value_if_exists note] $p_notes</td>
         "
