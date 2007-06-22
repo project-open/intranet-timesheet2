@@ -324,6 +324,12 @@ of those units were billed hourly, for a total amount of</msg>
   <msg key="Worked_Day">Worked Day</msg>
   <msg key="X">X</msg>
   <msg key="Y">Y</msg>
+  <msg key="You_need_to_log_hours">
+  You have so far logged only %num_hours% hours worktime
+  %absences_hours_message% of the required %expected_hours% hours in the last
+  %num_days% days. Please log you hours now or contact your manager.
+  </msg>
+  <msg key="and_absences_hours">and %absences_hours% hours absences</msg>
   <msg key="Your_hours">Your hours</msg>
   <msg key="Your_workspace">Your workspace</msg>
 </message_catalog>

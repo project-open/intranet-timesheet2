@@ -172,21 +172,24 @@ ad_proc -public im_timesheet_home_component {user_id} {
     if { [expr $num_hours + $absences_hours] < $expected_hours && $add_hours } {
 
 	set absences_hours_message ""
-	if {$absences_hours > 0} { set absences_hours_message "und %absences_hours% Stunden Absenzen" }
+	if {$absences_hours > 0} { 
+	    set absences_hours_message [lang::message::lookup "" \
+					intranet-timesheet2.and_absences_hours \
+					"und %absences_hours% Stunden Absenzen"]
+	}
 
 	set default_message "
-		<b>Sie haben bisher lediglich %num_hours% Stunden Arbeitszeit $absences_hours_message
+		Sie haben bisher lediglich %num_hours% Stunden Arbeitszeit %absences_hours_message%
 		erfasst von erforderlichen %expected_hours% Stunden in den letzten %num_days% Tagen.
-		Bitte aktualisieren Sie ihre Stunden oder setzen Sie sich mit Ihrem Vorgesetzten in Verbindung.</b>
+		Bitte aktualisieren Sie ihre Stunden oder setzen Sie sich mit Ihrem Vorgesetzten in Verbindung.
 	"
-	set message [lang::message::lookup "" intranet-timesheet2.You_need_to_log_hours $default_message]
+	set message "<b>[lang::message::lookup "" intranet-timesheet2.You_need_to_log_hours $default_message]</b>"
 
 	if {$redirect_p} {
 	    set header [lang::message::lookup "" intranet-timesheet2.Please_Log_Your_Hours "Please Log Your Hours"]
 	    ad_returnredirect [export_vars -base "/intranet-timesheet2/hours/index" {header message}]
 	}
     }
-
 
     append hours_html $message
 

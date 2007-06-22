@@ -262,6 +262,12 @@
   <msg key="Worked_Day">Arbeitstag</msg>
   <msg key="X">X</msg>
   <msg key="Y">Y</msg>
+  <msg key="You_need_to_log_hours">
+  Sie haben bisher lediglich %num_hours% Stunden Arbeitszeit %absences_hours_message%
+  erfasst von erforderlichen %expected_hours% Stunden in den letzten %num_days% Tagen.
+  Bitte aktualisieren Sie ihre Stunden oder setzen Sie sich mit Ihrem Vorgesetzten in Verbindung.
+  </msg>
+  <msg key="and_absences_hours">und %absences_hours% Stunden Absenzen</msg>
   <msg key="Your_hours">Ihre Stunden</msg>
   <msg key="Your_workspace">Ihr Arbeitsbereich</msg>
 </message_catalog>
