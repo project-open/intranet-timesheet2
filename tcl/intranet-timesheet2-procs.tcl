@@ -175,10 +175,18 @@ ad_proc -public im_timesheet_home_component {user_id} {
 	if {$absences_hours > 0} { 
 	    set absences_hours_message [lang::message::lookup "" \
 					intranet-timesheet2.and_absences_hours \
-					"und %absences_hours% Stunden Absenzen"]
+					"and %absences_hours% hours of absences"]
 	}
 
+	set ttt "und %absences_hours% Stunden Absenzen"
+
+
 	set default_message "
+		You have only logged %num_hours% hours %absences_hours_message% 
+		in the last %num_days% days out of %expected_hours% expected hours.
+	"
+
+	set ttt "
 		Sie haben bisher lediglich %num_hours% Stunden Arbeitszeit %absences_hours_message%
 		erfasst von erforderlichen %expected_hours% Stunden in den letzten %num_days% Tagen.
 		Bitte aktualisieren Sie ihre Stunden oder setzen Sie sich mit Ihrem Vorgesetzten in Verbindung.
