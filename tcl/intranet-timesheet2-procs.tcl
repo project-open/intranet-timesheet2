@@ -186,11 +186,6 @@ ad_proc -public im_timesheet_home_component {user_id} {
 		in the last %num_days% days out of %expected_hours% expected hours.
 	"
 
-	set ttt "
-		Sie haben bisher lediglich %num_hours% Stunden Arbeitszeit %absences_hours_message%
-		erfasst von erforderlichen %expected_hours% Stunden in den letzten %num_days% Tagen.
-		Bitte aktualisieren Sie ihre Stunden oder setzen Sie sich mit Ihrem Vorgesetzten in Verbindung.
-	"
 	set message "<b>[lang::message::lookup "" intranet-timesheet2.You_need_to_log_hours $default_message]</b>"
 
 	if {$redirect_p} {
