@@ -53,7 +53,7 @@ set site_url "/intranet-timesheet2/absences"
 set return_url "$site_url/index"
 
 
-if {![im_permission $user_id "view_absences"]} { 
+if {![im_permission $user_id "view_absences"] && ![im_permission $user_id "view_absences_all"]} { 
     ad_return_complaint 1 "You don't have permissions to see absences"
     ad_script_abort
 }
