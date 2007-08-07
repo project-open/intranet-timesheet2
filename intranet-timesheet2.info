@@ -34,7 +34,8 @@
             <parameter datatype="number"  min_n_values="1"  max_n_values="1"  name="TimesheetRedirectNumDays"  default="7" description="The number of days to check for redirection"/>
             <parameter datatype="number"  min_n_values="1"  max_n_values="1"  name="TimesheetRedirectNumHoursInDays"  default="32" description="The number of hours that should be logged in NumDays (see above)"/>
             <parameter datatype="number"  min_n_values="1"  max_n_values="1"  name="TimesheetRedirectProjectIfEmptyHoursP"  default="0" description="Redirect the user from the project pages to the timesheet if there are not enough hours logged?"/>
+            <parameter datatype="number"  min_n_values="1"  max_n_values="1"  name="LogHoursOnParentWithChildrenP"  default="1" description="Is it allowed to log hours on main projects, even though they have children? Set this parameter to 0 if you want to force employees to log their hours on the subprojects/tasks only."/>
+            <parameter datatype="string"  min_n_values="1"  max_n_values="1"  name="TimesheetTaskVisibilityScope"  default="sub_project" description="Does an employee need to be a member of a subproject in order to log hours? Option 'main_project': It's sufficient for the employee to be member of the main project in order to log hours on all subprojects. That's comfortable, but permissive, and the list of tasks may get long. Option 'sub_project': The employee needs to be a member of the subprojects in order to see the subproject's tasks. Option 'task': The employee needs to be assigned expressively to each task in order to log his hours. May incur a considerable admin overhead to assign all employees to all tasks..."/>
         </parameters>
-
     </version>
 </package>

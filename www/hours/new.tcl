@@ -50,6 +50,10 @@ if {0 == $project_id} { set project_id_for_default ""}
 set different_date_url "index?[export_ns_set_vars url [list julian_date]]"
 
 # "Log hours for a different project"
+#    ad_return_complaint 1 [array get has_children_hash]
+
+#    ad_return_complaint 1 [array get has_children_hash]
+
 set different_project_url "other-projects?[export_url_vars julian_date]"
 
 # Log Absences
@@ -74,6 +78,15 @@ set log_hours_on_potential_project_p [parameter::get_from_package_key -package_k
 set list_sort_order [parameter::get_from_package_key -package_key "intranet-timesheet2" -parameter TimesheetAddHoursSortOrder -default "order"]
 
 set show_project_nr_p [parameter::get_from_package_key -package_key "intranet-core" -parameter ShowProjectNrAndProjectNameP -default 0]
+
+# Should we allow users to log hours on a parent project, even though it has children?
+set log_hours_on_parent_with_children_p [parameter::get_from_package_key -package_key "intranet-core" -parameter LogHoursOnParentWithChildrenP -default 1]
+
+# Determine how to show the tasks of projects. There are several options:
+#	- main_project: The main project determines the subproject/task visibility space
+#	- sub_project: Each (sub-) project determines the visibility of its tasks
+#	- task: Each task has its own space - the user needs to be member of all tasks to log hours.
+set task_visibility_scope [parameter::get_from_package_key -package_key "intranet-core" -parameter TimesheetTaskVisibilityScope -default "sub_project"]
 
 # What is a closed status?
 set closed_stati_select "select * from im_sub_categories([im_project_status_closed])"
@@ -121,30 +134,30 @@ set timesheet_popup_installed_p [db_table_exists im_timesheet_popups]
 if {$timesheet_popup_installed_p} {
 
     set timesheet_popup_sql "
-select
-        p.log_time,
-        round(to_char(min(q.log_time) - p.log_time, 'HH24')::integer
-          + to_char(min(q.log_time) - p.log_time, 'MI')::integer / 60.0
-          + to_char(min(q.log_time) - p.log_time, 'SS')::integer / 3600.0
-	  , 3)  as log_hours,
-        p.task_id,
-        p.note
-from
-        im_timesheet_popups p,
-        im_timesheet_popups q
-where
-	1=1
-	and p.log_time::date = now()::date
-        and q.log_time::date = now()::date
-        and q.log_time > p.log_time
-	and p.user_id = :user_id
-	and q.user_id = :user_id
-group by
-        p.log_time,
-        p.task_id,
-        p.note
-order by
-        p.log_time
+	select
+	        p.log_time,
+	        round(to_char(min(q.log_time) - p.log_time, 'HH24')::integer
+	          + to_char(min(q.log_time) - p.log_time, 'MI')::integer / 60.0
+	          + to_char(min(q.log_time) - p.log_time, 'SS')::integer / 3600.0
+		  , 3)  as log_hours,
+	        p.task_id,
+	        p.note
+	from
+	        im_timesheet_popups p,
+	        im_timesheet_popups q
+	where
+		1=1
+		and p.log_time::date = now()::date
+	        and q.log_time::date = now()::date
+	        and q.log_time > p.log_time
+		and p.user_id = :user_id
+		and q.user_id = :user_id
+	group by
+	        p.log_time,
+	        p.task_id,
+	        p.note
+	order by
+	        p.log_time
     "
 
     db_foreach timesheet_popup $timesheet_popup_sql {
@@ -169,6 +182,9 @@ order by
 # Build the SQL Subquery, determining the (parent)
 # projects to be displayed 
 # ---------------------------------------------------------
+
+# Remove funny "{" or "}" characters in list
+regsub -all {[\{\}]} $project_id_list "" project_id_list
 
 if {0 != $project_id} {
 
@@ -213,30 +229,117 @@ if {0 != $project_id} {
 				where	h.user_id = :user_id
 					and h.day = to_date(:julian_date, 'J')
 		)
+		and p.project_status_id not in ([join [im_sub_categories [im_project_status_closed]] ","])
     "
 }
+
+
+# Determine how to show the tasks of projects.
+switch $task_visibility_scope {
+    "main_project" {
+	# main_project: The main project determines the subproject/task visibility space
+	set task_visibility_sql "
+				select	sub.project_id
+				from	acs_rels r,
+					im_projects main,
+					im_projects sub
+				where	r.object_id_two = :user_id
+					and r.object_id_one = main.project_id
+					and main.tree_sortkey = tree_ancestor_key(sub.tree_sortkey, 1)
+					and main.project_status_id not in ([join [im_sub_categories [im_project_status_closed]] ","])
+					and sub.project_status_id not in ([join [im_sub_categories [im_project_status_closed]] ","])
+	"
+    }
+    "sub_project" {
+	# sub_project: Each (sub-) project determines the visibility of its tasks.
+	# So we are looking for the "lowest" in the project hierarchy subproject
+	# that's just above its tasks and controls the visibility of the tasks.
+	# There are four conditions to get the list of the "controlling" projects quickly:
+	#	- the controlling_project is a project
+	#	- the task directly below the ctrl_project is a task.
+	#	- the current user is member of the controlling project
+	#	- the controlling_project is below the visible main projects 
+	#	  (optional, may speedup query, but does not in general when all projects are selected)
+	#
+	# This query is slightly too permissive, because a single task associated with a main project
+	# would make the main project the "controlling" project and show _all_ tasks in all subprojects,
+	# even if the user doesn't have permissions for those. However, this can be fixed on the TCL level.
+	set ctrl_projects_sql "
+		select	distinct ctrl.project_id
+		from	im_projects ctrl,
+			im_projects task,
+			acs_rels r
+		where	
+			task.parent_id = ctrl.project_id
+			and ctrl.project_type_id != 100
+			and task.project_type_id = 100
+			and ctrl.project_status_id not in ([join [im_sub_categories [im_project_status_closed]] ","])
+			and task.project_status_id not in ([join [im_sub_categories [im_project_status_closed]] ","])
+			and r.object_id_one = ctrl.project_id
+			and r.object_id_two = :user_id
+	"
+
+	set task_visibility_sql "
+				-- Select any subprojects of control projects
+				select	sub.project_id
+				from	im_projects main,
+					($ctrl_projects_sql) ctrl,
+					im_projects sub
+				where	ctrl.project_id = main.project_id
+					and main.project_status_id not in ([join [im_sub_categories [im_project_status_closed]] ","])
+					and sub.project_status_id not in ([join [im_sub_categories [im_project_status_closed]] ","])
+					and sub.tree_sortkey between
+						main.tree_sortkey and
+						tree_right(main.tree_sortkey)
+			UNION
+				-- Select any project or task with explicit membership
+				select  r.object_id_one
+				from    acs_rels r
+				where   r.object_id_two = :user_id
+			UNION
+				-- Select projects or tasks where the user has logged hours today
+				select  project_id
+				from    im_hours h
+				where   h.user_id = :user_id
+					and h.day = to_date(:julian_date, 'J')
+	"
+
+    }
+    "task" {
+	# task: Each task has its own space - the user needs to be member of all tasks to log hours.
+	set task_visibility_sql "
+				-- Show sub-project/tasks only with direct membership
+				select	r.object_id_one
+				from	acs_rels r
+				where	r.object_id_two = :user_id
+	"
+    }
+}
+
+
+# ad_return_complaint 1 [db_list vis $task_visibility_sql]
+
 
 
 set children_sql ""
 if {![string equal "permissive" $permissive_logging]} {
     set children_sql "
-		and children.project_id in (
-				select	r.object_id_one
-				from	acs_rels r
-				where	r.object_id_two = :user_id
+				$task_visibility_sql
 			    UNION
+				-- Always show projects and tasks where user has logged hours
 				select	project_id
 				from	im_hours h
 				where	h.user_id = :user_id
 					and h.day = to_date(:julian_date, 'J')
 			    UNION
+				-- Always show the main project itself (it showing a single project, 0 otherwise)
 				select	project_id from im_projects where project_id = :project_id
 			    UNION
+				-- Always show the list of selected projects to be shown
 				select	p.project_id
 				from	im_projects p
 				where	p.project_id in ([join [lappend project_id_list 0] ","])
 					and p.parent_id is null
-		)
     "
 }
 
@@ -274,22 +377,24 @@ set sql "
 		h.note, 
 		h.billing_rate,
 		parent.project_id as top_project_id,
-	        children.parent_id as parent_id,
-	        children.project_id as project_id,
-	        children.project_nr as project_nr,
-	        children.project_name as project_name,
+		parent.parent_id as top_parent_id,
+		children.parent_id as parent_id,
+		children.project_id as project_id,
+		children.project_nr as project_nr,
+		children.project_name as project_name,
 		children.project_status_id as project_status_id,
+		children.project_type_id as project_type_id,
 		im_category_from_id(children.project_status_id) as project_status,
-	        parent.project_id as parent_project_id,
+		parent.project_id as parent_project_id,
 		parent.project_nr as parent_project_nr,
 		parent.project_name as parent_project_name,
-	        tree_level(children.tree_sortkey) -1 as subproject_level,
+		tree_level(children.tree_sortkey) -1 as subproject_level,
 		substring(parent.tree_sortkey from 17) as parent_tree_sortkey,
 		substring(children.tree_sortkey from 17) as child_tree_sortkey,
 		$sort_order as sort_order
 	from
-	        im_projects parent,
-	        im_projects children
+		im_projects parent,
+		im_projects children
 		left outer join (
 				select	* 
 				from	im_hours h
@@ -302,12 +407,51 @@ set sql "
 		and children.tree_sortkey between 
 			parent.tree_sortkey and 
 			tree_right(parent.tree_sortkey)
-	        and parent.project_id in ($project_sql)
-		$children_sql
+		and parent.project_id in ($project_sql)
+		and children.project_id in ($children_sql)
 	order by
 		lower(parent.project_name),
-	        children.tree_sortkey
+		children.tree_sortkey
 "
+
+# ---------------------------------------------------------
+# Get the list of open projects with direct membership
+# Task are all considered open
+# ---------------------------------------------------------
+
+set open_projects_sql "
+	select	p.project_id
+	from	im_projects p,
+		acs_rels r
+	where	r.object_id_two = :user_id
+		and r.object_id_one = p.project_id
+		and p.project_status_id not in ([join [im_sub_categories [im_project_status_closed]] ","])
+"
+array set open_projects_hash {}
+db_foreach open_projects $open_projects_sql {
+	set open_projects_hash($project_id) 1
+}
+
+# ---------------------------------------------------------
+# Has-Children? This is used to disable super-projects with children
+# ---------------------------------------------------------
+
+if {!$log_hours_on_parent_with_children_p} {
+    set has_children_sql "
+        select  parent.project_id as parent_id,
+		child.project_id as child_id
+        from    im_projects parent,
+		im_projects child
+        where	child.parent_id = parent.project_id
+		and parent.project_status_id not in ([join [im_sub_categories [im_project_status_closed]] ","])
+		and child.project_status_id not in ([join [im_sub_categories [im_project_status_closed]] ","])
+    "
+    array set has_children_hash {}
+    db_foreach has_children $has_children_sql {
+        set has_children_hash($parent_id) 1
+    }
+}
+
 
 # ---------------------------------------------------------
 # Execute query and format results
@@ -332,13 +476,18 @@ set old_parent_project_nr ""
 
 db_multirow hours_multirow hours_timesheet $sql
 
-if ($sort_legacy==0) {
-    if {$sort_integer} {
-	multirow_sort_tree -integer hours_multirow project_id parent_id sort_order
-    } else {
-	multirow_sort_tree hours_multirow project_id parent_id sort_order
-    }
-}
+# ad_return_complaint 1 "$sort_legacy $sort_integer"
+
+
+multirow_sort_tree hours_multirow project_id parent_id sort_order
+
+#if ($sort_legacy==0) {
+#    if {$sort_integer} {
+#	multirow_sort_tree -integer hours_multirow project_id parent_id sort_order
+#    } else {
+#	multirow_sort_tree hours_multirow project_id parent_id sort_order
+#    }
+#}
 
 template::multirow foreach hours_multirow {
 
@@ -351,9 +500,23 @@ template::multirow foreach hours_multirow {
     # as the next project reaches the same "closed_level".
 
     # Check for closed_p - if the project is in one of the closed states
-    set project_closed_p 0
-    if {[lsearch -exact $closed_stati $project_status_id] > -1} { 
-	set project_closed_p 1
+    switch $task_visibility_scope {
+	"main_project" {
+	    # Membership is not necessary - just check status
+	    set project_closed_p 0
+	    if {[lsearch -exact $closed_stati $project_status_id] > -1} {
+		set project_closed_p 1
+	    }
+	}
+	"sub_project" {
+	    # Control is with subprojects, tasks are always considered open.
+	    set project_closed_p [expr 1-[info exists open_projects_hash($project_id)]]
+	    if {$project_type_id == [im_project_type_task]} { set project_closed_p 0 }
+	}
+	"task" {
+	    # Control is with each task individually
+	    set project_closed_p [expr 1-[info exists open_projects_hash($project_id)]]
+	}
     }
 
     # Change back from a closed branch to an open branch
@@ -386,7 +549,7 @@ template::multirow foreach hours_multirow {
     set indent ""
     set level $subproject_level
     while {$level > 0} {
-        set indent "$nbsps$indent"
+	set indent "$nbsps$indent"
 	set level [expr $level-1]
     }
 
@@ -424,23 +587,25 @@ template::multirow foreach hours_multirow {
     
     if {$show_project_nr_p} { set ptitle "$project_nr - $project_name" } else { set ptitle $project_name }
 
-    if {"t" == $edit_hours_p} {
+    set log_on_parent_p 1
+    if {[info exists has_children_hash($project_id)]} { set log_on_parent_p 0 }
+
+    if {"t" == $edit_hours_p && $log_on_parent_p} {
 	append results "
 	  <td><nobr>$indent <A href=\"$project_url\">$ptitle</A></nobr></td>
 	  <td><INPUT NAME=hours.$project_id size=5 MAXLENGTH=5 value=\"$hours\">$p_hours</td>
 	  <td>
 	    <INPUT NAME=notes.$project_id size=60 value=\"[ns_quotehtml [value_if_exists note]]\">
-            $p_notes
+	    $p_notes
 	  </td>
-        "
+	"
     } else {
-
-	if {"" == $hours} { set hours "-" }
+	if {"" == $hours} { set hours "" }
 	append results "
 	  <td><nobr>$indent <A href=\"$project_url\">$ptitle</A></nobr></td>
 	  <td align=right>$hours</td>
 	  <td>[value_if_exists note] $p_notes</td>
-        "
+	"
     }
     append results "</tr>\n"
     incr ctr
