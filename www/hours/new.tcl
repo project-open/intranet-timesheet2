@@ -321,9 +321,7 @@ switch $task_visibility_scope {
 
 
 
-set children_sql ""
-if {![string equal "permissive" $permissive_logging]} {
-    set children_sql "
+set children_sql "
 				$task_visibility_sql
 			    UNION
 				-- Always show projects and tasks where user has logged hours
@@ -340,8 +338,8 @@ if {![string equal "permissive" $permissive_logging]} {
 				from	im_projects p
 				where	p.project_id in ([join [lappend project_id_list 0] ","])
 					and p.parent_id is null
-    "
-}
+"
+
 
 
 # ---------------------------------------------------------
