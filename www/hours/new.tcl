@@ -186,15 +186,15 @@ if {$timesheet_popup_installed_p} {
 # Remove funny "{" or "}" characters in list
 regsub -all {[\{\}]} $project_id_list "" project_id_list
 
+# ad_return_complaint 1 $project_id
+
 if {0 != $project_id} {
 
     # Project specified => only one project
     set one_project_only_p 1
 
     set project_sql "
-	select	p.project_id
-	from	im_projects p
-	where 	p.project_id = :project_id
+	select	:project_id::integer
     "
 
 } elseif {"" != $project_id_list} {
@@ -232,7 +232,6 @@ if {0 != $project_id} {
 		and p.project_status_id not in ([join [im_sub_categories [im_project_status_closed]] ","])
     "
 }
-
 
 # Determine how to show the tasks of projects.
 switch $task_visibility_scope {
@@ -317,10 +316,6 @@ switch $task_visibility_scope {
 }
 
 
-# ad_return_complaint 1 [db_list vis $task_visibility_sql]
-
-
-
 set children_sql "
 				$task_visibility_sql
 			    UNION
@@ -339,8 +334,6 @@ set children_sql "
 				where	p.project_id in ([join [lappend project_id_list 0] ","])
 					and p.parent_id is null
 "
-
-
 
 # ---------------------------------------------------------
 # Build the main hierarchical SQL
@@ -418,7 +411,7 @@ set sql "
 # ---------------------------------------------------------
 
 set open_projects_sql "
-	select	p.project_id
+	select	p.project_id as open_project_id
 	from	im_projects p,
 		acs_rels r
 	where	r.object_id_two = :user_id
@@ -427,8 +420,9 @@ set open_projects_sql "
 "
 array set open_projects_hash {}
 db_foreach open_projects $open_projects_sql {
-	set open_projects_hash($project_id) 1
+	set open_projects_hash($open_project_id) 1
 }
+
 
 # ---------------------------------------------------------
 # Has-Children? This is used to disable super-projects with children
