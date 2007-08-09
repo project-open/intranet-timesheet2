@@ -212,9 +212,6 @@ foreach project_id $item_nrs {
     
     # Create the necessary cost items for the timesheet hours
     im_timesheet2_sync_timesheet_costs -project_id $project_id
-
-    # Update the project's logged hours cache
-#    im_timesheet_update_timesheet_cache -project_id $project_id
 }
 
 
