@@ -36,6 +36,15 @@ ad_page_contract {
 
 set debug 0
 
+if {0 != $project_id} {
+    set parent_id [db_string parent_id "select parent_id from im_projects where project_id = :project_id" -default ""]
+    while {"" != $parent_id} {
+	set project_id $parent_id
+	set parent_id [db_string parent_id "select parent_id from im_projects where project_id = :project_id" -default ""]
+    }
+}
+
+
 set user_id [ad_maybe_redirect_for_registration]
 if {"" == $return_url} { set return_url [im_url_with_query] }
 set bgcolor(0) " class=roweven "
