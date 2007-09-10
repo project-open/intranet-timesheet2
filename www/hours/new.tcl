@@ -89,7 +89,7 @@ set list_sort_order [parameter::get_from_package_key -package_key "intranet-time
 set show_project_nr_p [parameter::get_from_package_key -package_key "intranet-core" -parameter ShowProjectNrAndProjectNameP -default 0]
 
 # Should we allow users to log hours on a parent project, even though it has children?
-set log_hours_on_parent_with_children_p [parameter::get_from_package_key -package_key "intranet-core" -parameter LogHoursOnParentWithChildrenP -default 1]
+set log_hours_on_parent_with_children_p [parameter::get_from_package_key -package_key "intranet-timesheet2" -parameter LogHoursOnParentWithChildrenP -default 1]
 
 # Determine how to show the tasks of projects. There are several options:
 #	- main_project: The main project determines the subproject/task visibility space
