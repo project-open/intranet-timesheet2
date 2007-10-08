@@ -28,6 +28,14 @@ ad_page_contract {
 }
 
 
+set current_user_id [ad_maybe_redirect_for_registration]
+set view_ours_all_p [im_permission $current_user_id "view_hours_all"]
+if {!$view_ours_all_p} { 
+    ad_return_complaint 1 "<li>[_ intranet-core.lt_You_have_insufficient_6]"
+    ad_script_abort
+}
+
+
 set show_notes_p 1
 
 set page_title "[_ intranet-timesheet2.Units]"
@@ -40,6 +48,10 @@ set page_body "
 [_ intranet-timesheet2.lt_Click_on_a_persons_na]
 <ul>
 "
+
+
+
+
 
 set sql "
 	select 

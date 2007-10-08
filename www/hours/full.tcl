@@ -29,18 +29,27 @@ ad_page_contract {
     { item "" }
 }
 
-set caller_id [ad_maybe_redirect_for_registration]
-set return_url [im_url_with_query]
+
+set current_user_id [ad_maybe_redirect_for_registration]
 
 # Has the current user the right to edit all timesheet information?
-set edit_timesheet_p [im_permission $caller_id "edit_hours_all"]
+set edit_timesheet_p [im_permission $current_user_id "edit_hours_all"]
+set view_ours_all_p [im_permission $current_user_id "view_hours_all"]
+set view_finance_p [im_permission $current_user_id "view_finance"]
 
 
-if { [empty_string_p $user_id] && ($caller_id != 0) } {
+if {!$view_ours_all_p} {
+    ad_return_complaint 1 "<li>[_ intranet-core.lt_You_have_insufficient_6]"
+    ad_script_abort
+}
+
+set return_url [im_url_with_query]
+
+if { [empty_string_p $user_id] && ($current_user_id != 0) } {
     set looking_at_self_p 1
-    set user_id $caller_id
+    set user_id $current_user_id
 } else {
-    if {$caller_id == $user_id} {
+    if {$current_user_id == $user_id} {
         set looking_at_self_p 1
     } else {
         set looking_at_self_p 0
@@ -108,7 +117,7 @@ db_foreach hours_on_project $sql {
 
     set total_hours_on_project [expr $total_hours_on_project + $hours]
 
-    if ![empty_string_p $amount_earned] {
+    if {$view_finance_p && ![empty_string_p $amount_earned]} {
         append page_body " (@ \$[format %4.2f $billing_rate]/hour = \$[format %4.2f $amount_earned])"
         set hourly_bill [expr $hourly_bill + $amount_earned]
         set total_hours_billed_hourly [expr $total_hours_billed_hourly + $hours]

@@ -258,6 +258,8 @@ ad_proc -public im_timesheet_project_component {user_id project_id} {
 	set return_url "[ad_conn url]?[ad_conn query]"
     }
 
+    set view_ours_all_p [im_permission $user_id "view_hours_all"]
+
     # disable the component for users who can neither see stuff nor add stuff
     set add_hours [im_permission $user_id "add_hours"]
     set view_hours_all [im_permission $user_id "add_hours"]
@@ -267,7 +269,7 @@ ad_proc -public im_timesheet_project_component {user_id project_id} {
     set info_html ""
 
     # fraber 2007-01-31: Admin doesn't make sense.
-    if {$write} {
+    if {$read && $view_ours_all_p} {
         set total_hours [im_timesheet_hours_sum -project_id $project_id]
 	set total_hours_str "[util_commify_number $total_hours]"
         set info_html "[_ intranet-timesheet2.lt_A_total_of_total_hour]"
