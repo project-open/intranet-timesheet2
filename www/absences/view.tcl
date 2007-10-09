@@ -60,11 +60,6 @@ if {[catch {db_1row absence_data "
 # Permission
 # ---------------------------------------------------------------
 
-if {![im_permission $user_id "view_absences"]} {
-    ad_return_complaint "[_ intranet-timesheet2.lt_Insufficient_Privileg]" "
-    <li>[_ intranet-timesheet2.lt_You_dont_have_suffici]"
-}
-
 if {![im_permission $user_id "view_absences_all"]} {
     if {$owner_id != $user_id} {
 	ad_return_complaint "[_ intranet-timesheet2.lt_Insufficient_Privileg]" "
