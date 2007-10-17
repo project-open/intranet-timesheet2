@@ -17,7 +17,7 @@
 <p>
 </if>
 
-@page_body;noquote@
+<%= [im_table_with_title "Timesheet" $page_body] %>
 
 
 

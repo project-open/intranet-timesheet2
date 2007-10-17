@@ -226,11 +226,6 @@ set filter_html "
 [export_form_vars start_idx order_by how_many view_name]
 <table border=0 cellpadding=0 cellspacing=0>
 <tr>
-  <td colspan='2' class=rowtitle align=center>
-[_ intranet-timesheet2.Filter_Absences]
-  </td>
-</tr>
-<tr>
   <td valign=top>[_ intranet-timesheet2.Absence_Type] </td>
 <td valign=top>[im_select absence_type_id $absences_types ""]</td>
 </tr>
@@ -254,36 +249,11 @@ set filter_html "
 
 set admin_html ""
 if {[im_permission $user_id "add_absences"]} { 
-	set admin_html "
-	    <table border=0 cellpadding=0 cellspacing=0>
-	    <tr>
-	      <td class=rowtitle align=center>
-	        [_ intranet-timesheet2.Admin_Absences]
-	      </td>
-	    </tr>
-	    <tr>
-	      <td>
-	        <li><a href=$site_url/new>[_ intranet-timesheet2.Add_a_new_Absence]</a>
-	      </td>
-	    </tr>
-	    </table>
+	set admin_html "<ul>
+	        <li><a href=$site_url/new>[_ intranet-timesheet2.Add_a_new_Absence]</a></li>
+	      </ul>
 	"
 }
-
-
-set absence_filter_html "
-
-<table border=0 cellpadding=0 cellspacing=0>
-<tr>
-  <td> <!-- TD for the left hand filter HTML -->
-    $filter_html
-  </td> <!-- end of left hand filter TD -->
-  <td>&nbsp;</td>
-  <td valign=top>$admin_html</td>
-</tr>
-</table>
-"
-
 
 
 # ---------------------------------------------------------------
