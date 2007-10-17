@@ -145,7 +145,7 @@ for { set current_date $first_julian_date
 	<br>
 	<table width=100% cellpadding=0 border=0 cellspacing=0>
 	  <tr>
-	    <td align=right><font size=-1>
+	    <td align=right><font size=\"-1\">
               <a href=week?julian_date=[ns_urlencode $current_date]&[export_url_vars user_id]>[_ intranet-timesheet2.Week_total_1] $hours_for_this_week
               </a></font>
             </td>
@@ -156,7 +156,7 @@ for { set current_date $first_julian_date
 	</table>
 	"
     } else {
-	set html "<p>&nbsp;<br>$html"
+	set html "<p>&nbsp;<br/>$html</p>"
     }
 
     ns_set put $calendar_details $current_date $html

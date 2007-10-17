@@ -7,14 +7,16 @@
 <h1>@header@</h1>
 
 <table width="70%">
-<tr><td>
-<div class="form-error">
-@message;noquote@
-</div>
-</tr></td>
+   <tr>
+      <td>
+         <div class="form-error">
+            @message;noquote@
+         </div>
+      </td>
+   </tr>
 </table>
 
-<p>
+<p></p>
 </if>
 
 <%= [im_table_with_title "Timesheet" $page_body] %>
