@@ -179,7 +179,7 @@ if { $display == "all" } { set sel_all "selected" }
 if { $display == "project" } { set sel_pro "selected" }
 
 if { $project_id != 0 } {
-    set filter_form_html "<td>
+    set filter_form_html "
 <form method=get action='$return_url' name=filter_form>
 [export_form_vars start_at duration owner_id project_id]
 <table border=0 cellpadding=0 cellspacing=0>
@@ -202,7 +202,7 @@ if { $project_id != 0 } {
 </tr>
 </table>
 <!-- <a href=\"$return_url?\">[_ intranet-timesheet2.lt_Display_all_hours_on_]</a> -->
-</form></td><td>&nbsp;</td>"
+</form>"
 } else {
      set filter_form_html ""
 }
@@ -210,39 +210,17 @@ if { $project_id != 0 } {
 set admin_html ""
 
 if { [im_permission $user_id "add_absences"] } {
-    append admin_html "<li><a href=/intranet-timesheet2/absences/new>[_ intranet-timesheet2.Add_a_new_Absence]</a>\n"
+    append admin_html "<li><a href=/intranet-timesheet2/absences/new>[_ intranet-timesheet2.Add_a_new_Absence]</a></li>\n"
 }
 if { [im_permission $user_id "view_absences_all"] } {
-    append admin_html "<li><a href=/intranet-timesheet2/absences>[_ intranet-timesheet2.View_all_Absences]</a>\n"
+    append admin_html "<li><a href=/intranet-timesheet2/absences>[_ intranet-timesheet2.View_all_Absences]</a></li>\n"
 }
 if { [im_permission $user_id "add_hours"] } {
-    append admin_html "<li><a href=/intranet-timesheet2/hours>[_ intranet-timesheet2.Log_your_hours]</a>\n"
+    append admin_html "<li><a href=/intranet-timesheet2/hours>[_ intranet-timesheet2.Log_your_hours]</a></li>\n"
 }
 
-
 if { $admin_html != "" } {
-    set filter_html "
-
-<table border=0 cellpadding=0 cellspacing=0>
-<tr>
-    $filter_form_html
-  <td valign=top>
-    <table border=0 cellpadding=0 cellspacing=0>
-    <tr>
-	<td class=rowtitle align=center>
-	[_ intranet-timesheet2.Admin]
-	</td>
-    </tr>
-    <tr>
-	<td>
-	$admin_html
-	</td>
-    </tr>
-    </table>
-  </td>
-</tr>
-</table><br>
-"
+    set filter_html "<ul>$admin_html</ul>"
 } else {
     set filter_html $filter_form_html
 }
