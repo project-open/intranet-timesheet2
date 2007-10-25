@@ -33,24 +33,23 @@ if {[info exists return_url] && "" == $return_url} {
 }
 set date_format "YYYY-MM-DD"
 
+set absence_objectified_p [db_string ofied {select count(*) from acs_object_types where object_type = 'im_user_absence'}]
+
 # ---------------------------------------------------------------
 # Get Absence Data
 # ---------------------------------------------------------------
 
 
 if {[catch {db_1row absence_data "
-    	select 
-    		a.owner_id, 
-    		description,
-    		contact_info,
-    		to_char(a.start_date, :date_format) as start_date,
-		to_char(a.end_date, :date_format) as end_date,
+
+	select	a.*,
+    		to_char(a.start_date, :date_format) as start_date_pretty,
+		to_char(a.end_date, :date_format) as end_date_pretty,
     		im_name_from_user_id(owner_id) as owner_name, 
     		im_category_from_id(a.absence_type_id) as absence_type 
-    	from 
-    		im_user_absences a 
-    	where 
-    		a.absence_id = :absence_id
+    	from	im_user_absences a 
+    	where	a.absence_id = :absence_id
+
 "} errmsg]} {
     ad_return_complaint 1 "Unkown Absence: \#$absence_id"
     ad_script_abort
@@ -85,6 +84,35 @@ if {$user_id == $owner_id} {
 }
 
 
+set absence_name_html ""
+if {$absence_objectified_p} {
+
+    set absence_name_html "
+	  <TR class=roweven>
+	    <TD>[lang::message::lookup "" intranet-timesheet2.Absence_Name "Absence Name"]</TD>
+	    <TD>$absence_name</TD>
+	  </TR>
+    "
+
+    if {"" == $absence_name} { set absence_name_html "" }
+}
+
+
+set absence_status_html ""
+if {$absence_objectified_p} {
+
+    set absence_status [im_category_from_id $absence_status_id]
+    set absence_status_html "
+	  <TR class=roweven>
+	    <TD>[lang::message::lookup "" intranet-timesheet2.Absence_Status "Absence Status"]</TD>
+	    <TD>$absence_status</TD>
+	  </TR>
+    "
+
+    if {"" == $absence_status} { set absence_status_html "" }
+}
+
+
 set page_body "
 <form action=\"new.tcl\" method=GET>
 [export_form_vars absence_id return_url]
@@ -92,25 +120,35 @@ set page_body "
 <TABLE border=0>
   <TBODY>
   <TR>
-    <TD class=rowtitle align=middle colSpan=2>[_ intranet-timesheet2.Absence]</TD></TR>
+    <TD class=rowtitle align=middle colSpan=2>[_ intranet-timesheet2.Absence]</TD>
+  </TR>
+  $absence_name_html
   <TR class=rowodd>
     <TD>[_ intranet-timesheet2.User]</TD>
-    <TD><a href=\"/intranet/users/view=owner_id=$owner_id\">$owner_name</a></TD></TR>
+    <TD><a href=\"/intranet/users/view=owner_id=$owner_id\">$owner_name</a></TD>
+  </TR>
   <TR class=roweven>
     <TD>[_ intranet-timesheet2.Start_Date]</TD>
-    <TD>$start_date</TD></TR>
+    <TD>$start_date_pretty</TD>
+  </TR>
   <TR class=rowodd>
     <TD>[_ intranet-timesheet2.End_Date]</TD>
-    <TD>$end_date</TD></TR>
+    <TD>$end_date_pretty</TD>
+  </TR>
   <TR class=roweven>
     <TD>[_ intranet-timesheet2.Description]</TD>
-    <TD>$description</TD></TR>
+    <TD>$description</TD>
+  </TR>
   <TR class=rowodd>
     <TD>[_ intranet-timesheet2.Contact_Info]</TD>
-    <TD>$contact_info</TD></TR>
+    <TD>$contact_info</TD>
+  </TR>
   <TR class=rowodd>
     <TD>[_ intranet-timesheet2.Absence_Type_1]</TD>
-    <TD>$absence_type</TD></TR>
+    <TD>$absence_type</TD>
+  </TR>
+
+  $absence_status_html
 
   $edit_html
 

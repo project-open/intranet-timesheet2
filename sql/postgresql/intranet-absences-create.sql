@@ -53,7 +53,9 @@ begin
 	create table im_user_absences (
 	        absence_id              integer
 	                                constraint im_user_absences_pk
-	                                primary key,
+	                                primary key
+					constraint im_user_absences_id_fk
+					references acs_objects,
 
 		absence_name		varchar(1000),
 
@@ -281,9 +283,9 @@ drop function inline_0 ();
 
 
 insert into im_categories(category_id, category, category_type) 
-values (16000, 'Active', 'Intranet Absences Status');
+values (16000, 'Active', 'Intranet Absence Status');
 insert into im_categories(category_id, category, category_type) 
-values (16002, 'Deleted', 'Intranet Absences Status');
+values (16002, 'Deleted', 'Intranet Absence Status');
 
 
 
@@ -294,13 +296,13 @@ values (16002, 'Deleted', 'Intranet Absences Status');
 create or replace view im_user_absence_status as
 select	category_id as absence_status_id, category as absence_status
 from	im_categories
-where	category_type = 'Intranet Absences Status'
+where	category_type = 'Intranet Absence Status'
 	and (enabled_p is null or enabled_p = 't');
 
 create or replace view im_user_absence_types as
 select	category_id as absence_type_id, category as absence_type
 from	im_categories
-where	category_type = 'Intranet Absences Type'
+where	category_type = 'Intranet Absencey Type'
 	and (enabled_p is null or enabled_p = 't');
 
 

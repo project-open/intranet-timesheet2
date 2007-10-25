@@ -33,6 +33,9 @@ if {[info exists return_url] && "" == $return_url} {
 
 set date_format "YYYY-MM-DD"
 
+set absence_objectified_p [db_string ofied {select count(*) from acs_object_types where object_type = 'im_user_absence'}]
+
+
 # ---------------------------------------------------------------
 # Permission
 # ---------------------------------------------------------------
@@ -48,19 +51,13 @@ if {![im_permission $user_id "add_absences"]} {
 
 if {[info exists absence_id] && $absence_id > 0} {
     set result [db_0or1row absence_data "
-	select 
-		owner_id,
-		description,
-		contact_info,
-		absence_type_id,
-		to_char(a.start_date, :date_format) as start_date,
-		to_char(a.end_date, :date_format) as end_date,
+	select	*,
+		to_char(a.start_date, :date_format) as start_date_pretty,
+		to_char(a.end_date, :date_format) as end_date_pretty,
 		im_name_from_user_id(a.owner_id) as owner_name 
-	from 
-		im_user_absences a 
-	where 
-		a.absence_id = :absence_id
-	"]
+	from	im_user_absences a 
+	where	a.absence_id = :absence_id
+    "]
 
     if { $result != 1 } {
 	ad_return_complaint "[_ intranet-timesheet2.Bad_Absence]" "
@@ -79,11 +76,13 @@ if {[info exists absence_id] && $absence_id > 0} {
     set owner_id $user_id
     set absence_id [im_new_object_id]
     db_1row user_name_date "select im_name_from_user_id(:user_id) as owner_name from dual"
-    set start_date [db_string get_today "select sysdate from dual"]
-    set end_date [db_string get_today "select sysdate from dual"]
+    set start_date_pretty [db_string get_today "select sysdate from dual"]
+    set end_date_pretty [db_string get_today "select sysdate from dual"]
     set description ""
+    set absence_name ""
     set contact_info ""
     set absence_type_id ""
+    set absence_status_id ""
     set page_title "[_ intranet-timesheet2.New_Absence]"
     set context_bar [im_context_bar $page_title]
 

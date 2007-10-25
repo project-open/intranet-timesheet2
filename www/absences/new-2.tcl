@@ -30,15 +30,35 @@ ad_page_contract {
     @author mai-bee@gmx.net
 } {
     {absence_id:integer 0}
+    {absence_name ""}
     owner_id:notnull
     start_date:notnull
     end_date:notnull
     description:notnull
     contact_info:notnull
-    absence_type_id:notnull
+    absence_type_id:integer
+    { absence_status_id:integer 16000}
     { submit_save "" }
     { submit_del "" }
 }
+
+
+# ---------------------------------------------------------------
+# Permission
+# ---------------------------------------------------------------
+
+set current_user_id [ad_maybe_redirect_for_registration]
+
+if {![im_permission $current_user_id "add_absences"]} {
+    ad_return_complaint "[_ intranet-timesheet2.lt_Insufficient_Privileg]" "
+    <li>[_ intranet-timesheet2.lt_You_dont_have_suffici]"
+}
+
+
+
+# ---------------------------------------------------------------
+# 
+# ---------------------------------------------------------------
 
 set exception_count 0
 set exception_text ""
@@ -55,6 +75,11 @@ if {![regexp {^[0-9][0-9][0-9][0-9]\-[0-9][0-9]\-[0-9][0-9]$} $end_date]} {
     Current value: '$end_date'<br>
     Expected format: 'YYYY-MM-DD'"
 }
+
+
+if {"" == $absence_name} { set absence_name $description }
+
+set absence_objectified_p [db_string ofied {select count(*) from acs_object_types where object_type = 'im_user_absence'}]
 
 
 regexp {[0-9]*-[0-9]*-[0-9]*} $start_date start_date_int
@@ -80,7 +105,6 @@ if {"" != $submit_del} {
 	}
     }
 }
-
 
 if {"" != $submit_save} {
     
@@ -114,6 +138,24 @@ if {"" != $submit_save} {
 	} errmsg] {
 	    ad_return_complaint "Argument Error" " <pre>$errmsg</pre>"
 	}
+
+
+	if {$absence_objectified_p} {
+
+	    db_string ofied "
+		SELECT acs_object__new(
+			:absence_id,
+			'im_user_absence',
+			now(),
+			:current_user_id,
+			'[ns_conn peeraddr]',
+			null,
+			'f'
+		)
+	    "
+
+	}
+
     }
 
     if [catch {
@@ -132,6 +174,38 @@ if {"" != $submit_save} {
 	return
     }
     
+    if {$absence_objectified_p} {
+	db_dml update_absences "
+		UPDATE im_user_absences set
+			absence_name = :absence_name,
+			absence_status_id = :absence_status_id
+		WHERE
+			absence_id = :absence_id
+	"
+    }
+
+
+    set obj_exists_p [db_string oexists "select count(*) from acs_objects where object_id = :absence_id"]
+    if {!$obj_exists_p} {
+	db_dml insert_object "
+		INSERT into acs_objects (
+			object_id,
+			object_type,
+			creation_date,
+			creation_user,
+			creation_ip,
+			security_inherit_p
+		) values (
+			:absence_id,
+			'im_user_absence',
+			now(),
+			:current_user_id,
+			'[ns_conn peeraddr]',
+			'f'
+		)
+	"
+    }
+
 }
 
 db_release_unused_handles
