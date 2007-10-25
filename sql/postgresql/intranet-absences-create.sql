@@ -286,6 +286,8 @@ insert into im_categories(category_id, category, category_type)
 values (16000, 'Active', 'Intranet Absence Status');
 insert into im_categories(category_id, category, category_type) 
 values (16002, 'Deleted', 'Intranet Absence Status');
+insert into im_categories(category_id, category, category_type) 
+values (16004, 'Requested', 'Intranet Absence Status');
 
 
 

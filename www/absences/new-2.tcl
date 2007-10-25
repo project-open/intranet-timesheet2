@@ -37,7 +37,7 @@ ad_page_contract {
     description:notnull
     contact_info:notnull
     absence_type_id:integer
-    { absence_status_id:integer 16000}
+    { absence_status_id:integer 16004}
     { submit_save "" }
     { submit_del "" }
 }
@@ -141,7 +141,6 @@ if {"" != $submit_save} {
 
 
 	if {$absence_objectified_p} {
-
 	    db_string ofied "
 		SELECT acs_object__new(
 			:absence_id,
@@ -153,8 +152,46 @@ if {"" != $submit_save} {
 			'f'
 		)
 	    "
+	}
+
+	# Create a workflow
+        if {$absence_objectified_p} {
+	    set wf_key [db_string wf_key "
+		select	aux_string1
+		from	im_categories
+		where	category_id = :absence_type_id
+	    " -default ""]
+
+	    if {"" != $wf_key} {
+
+
+		
+		# Check that the workflow_key is available
+		set wf_valid_p [db_string wf_valid_check "
+		        select count(*)
+		        from acs_object_types
+		        where object_type = :wf_key
+		"]
+
+		if {!$wf_valid_p} {
+		    ad_return_complaint 1 "Workflow '$wf_key' does not exist"
+		    ad_script_abort
+		}
+
+		# Launch the Workflow case
+		# Context_key not used aparently...
+		set context_key ""
+		set case_id [wf_case_new \
+		                $wf_key \
+		                $context_key \
+		                $absence_id
+		]
+
+	    }
 
 	}
+
+
 
     }
 
