@@ -97,12 +97,16 @@ set log_hours_on_parent_with_children_p [parameter::get_from_package_key -packag
 #	- task: Each task has its own space - the user needs to be member of all tasks to log hours.
 set task_visibility_scope [parameter::get_from_package_key -package_key "intranet-core" -parameter TimesheetTaskVisibilityScope -default "sub_project"]
 
+
 # What is a closed status?
 set closed_stati_select "select * from im_sub_categories([im_project_status_closed])"
 if {!$log_hours_on_potential_project_p} {
     append closed_stati_select " UNION select * from im_sub_categories([im_project_status_potential])"
 }
 
+# Determine all the members of the "closed" super-status
+set closed_stati [db_list closed_stati $closed_stati_select]
+set closed_stati_list [join $closed_stati ","]
 
 # ---------------------------------------------------------
 # Logic to check if the user is allowed to log hours
@@ -238,7 +242,7 @@ if {0 != $project_id} {
 				where	h.user_id = :user_id
 					and h.day = to_date(:julian_date, 'J')
 		)
-		and p.project_status_id not in ([join [im_sub_categories [im_project_status_closed]] ","])
+		and p.project_status_id not in ($closed_stati_list)
     "
 }
 
@@ -254,15 +258,15 @@ switch $task_visibility_scope {
 				where	r.object_id_two = :user_id
 					and r.object_id_one = main.project_id
 					and main.tree_sortkey = tree_ancestor_key(sub.tree_sortkey, 1)
-					and main.project_status_id not in ([join [im_sub_categories [im_project_status_closed]] ","])
-					and sub.project_status_id not in ([join [im_sub_categories [im_project_status_closed]] ","])
+					and main.project_status_id not in ($closed_stati_list)
+					and sub.project_status_id not in ($closed_stati_list)
 	"
     }
     "sub_project" {
 	# sub_project: Each (sub-) project determines the visibility of its tasks.
 	# So we are looking for the "lowest" in the project hierarchy subproject
 	# that's just above its tasks and controls the visibility of the tasks.
-	# There are four conditions to get the list of the "controlling" projects quickly:
+	# There are four conditions to determine the list of the "controlling" projects efficiently:
 	#	- the controlling_project is a project
 	#	- the task directly below the ctrl_project is a task.
 	#	- the current user is member of the controlling project
@@ -281,8 +285,8 @@ switch $task_visibility_scope {
 			task.parent_id = ctrl.project_id
 			and ctrl.project_type_id != 100
 			and task.project_type_id = 100
-			and ctrl.project_status_id not in ([join [im_sub_categories [im_project_status_closed]] ","])
-			and task.project_status_id not in ([join [im_sub_categories [im_project_status_closed]] ","])
+			and ctrl.project_status_id not in ($closed_stati_list)
+			and task.project_status_id not in ($closed_stati_list)
 			and r.object_id_one = ctrl.project_id
 			and r.object_id_two = :user_id
 	"
@@ -294,8 +298,8 @@ switch $task_visibility_scope {
 					($ctrl_projects_sql) ctrl,
 					im_projects sub
 				where	ctrl.project_id = main.project_id
-					and main.project_status_id not in ([join [im_sub_categories [im_project_status_closed]] ","])
-					and sub.project_status_id not in ([join [im_sub_categories [im_project_status_closed]] ","])
+					and main.project_status_id not in ($closed_stati_list)
+					and sub.project_status_id not in ($closed_stati_list)
 					and sub.tree_sortkey between
 						main.tree_sortkey and
 						tree_right(main.tree_sortkey)
@@ -425,7 +429,7 @@ set open_projects_sql "
 		acs_rels r
 	where	r.object_id_two = :user_id
 		and r.object_id_one = p.project_id
-		and p.project_status_id not in ([join [im_sub_categories [im_project_status_closed]] ","])
+		and p.project_status_id not in ($closed_stati_list)
 "
 array set open_projects_hash {}
 db_foreach open_projects $open_projects_sql {
@@ -444,8 +448,8 @@ if {!$log_hours_on_parent_with_children_p} {
         from    im_projects parent,
 		im_projects child
         where	child.parent_id = parent.project_id
-		and parent.project_status_id not in ([join [im_sub_categories [im_project_status_closed]] ","])
-		and child.project_status_id not in ([join [im_sub_categories [im_project_status_closed]] ","])
+		and parent.project_status_id not in ($closed_stati_list)
+		and child.project_status_id not in ($closed_stati_list)
     "
     array set has_children_hash {}
     db_foreach has_children $has_children_sql {
@@ -463,9 +467,6 @@ if {!$log_hours_on_parent_with_children_p} {
 # that determines the sub_level of the last closed
 # intermediate project.
 
-
-# Determine all the members of the "closed" super-status
-set closed_stati [db_list closed_stati $closed_stati_select]
 
 set results ""
 set ctr 0
