@@ -3,13 +3,11 @@
 <property name="context">context</property>
 <property name="main_navbar_label">timesheet2_absences</property>
 
+<%= [im_box_header [_ intranet-timesheet2.Absence]] %>
 <form action="new-2.tcl" method=GET>
 <%= [export_form_vars absence_id owner_id return_url] %>
 <TABLE border=0>
   <TBODY>
-  <TR>
-    <TD class=rowtitle align=middle colSpan=2>#intranet-timesheet2.Absence#</TD>
-  </TR>
   <TR class=rowodd>
     <TD>#intranet-timesheet2.User#</TD>
     <TD><a href="/intranet/users/view?[export_url_vars owner_id#">@owner_name@</a></TD>
@@ -55,3 +53,4 @@
 <input type=submit name=submit_save value=#intranet-timesheet2.Save#>&nbsp;
 <input type=submit name=submit_del value=#intranet-timesheet2.Delete#>
 </form>
+<%= [im_box_footer] %>
