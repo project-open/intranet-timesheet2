@@ -267,43 +267,76 @@ drop function inline_0 ();
 
 
 
+create or replace function inline_0 ()
+returns integer as '
+declare
+        v_count                 integer;
+begin
+	select count(*) into v_count
+	from im_component_plugins
+	where plugin_name = ''Project Timesheet Component'';
+	if v_count > 0 then return 0; end if;
+
+	select im_component_plugin__new (
+		null,					-- plugin_id
+		''acs_object'',				-- object_type
+		now(),					-- creation_date
+		null,					-- creation_user
+		null,					-- creattion_ip
+		null,					-- context_id
+	
+		''Project Timesheet Component'',		-- plugin_name
+		''intranet-timesheet'',			-- package_name
+		''right'',				-- location
+		''/intranet/projects/view'',		-- page_url
+		null,					-- view_name
+		50,					-- sort_order
+		''im_timesheet_project_component $user_id $project_id '',
+		''_ intranet-timesheet2.Timesheet''
+	);
+
+        return 0;
+end;' language 'plpgsql';
+select inline_0 ();
+drop function inline_0 ();
 
 
-select im_component_plugin__new (
-	null,					-- plugin_id
-	'acs_object',				-- object_type
-	now(),					-- creation_date
-	null,					-- creation_user
-	null,					-- creattion_ip
-	null,					-- context_id
 
-	'Project Timesheet Component',		-- plugin_name
-	'intranet-timesheet',			-- package_name
-	'right',				-- location
-	'/intranet/projects/view',		-- page_url
-	null,					-- view_name
-	50,					-- sort_order
-	'im_timesheet_project_component $user_id $project_id ',
-	'_ intranet-timesheet2.Timesheet'
-);
+create or replace function inline_0 ()
+returns integer as '
+declare
+        v_count                 integer;
+begin
+	select count(*) into v_count
+	from im_component_plugins
+	where plugin_name = ''Home Timesheet Component'';
+	if v_count > 0 then return 0; end if;
 
-select im_component_plugin__new (
-	null,					-- plugin_id
-	'acs_object',				-- object_type
-	now(),					-- creation_date
-	null,					-- creation_user
-	null,					-- creattion_ip
-	null,					-- context_id
+	select im_component_plugin__new (
+		null,					-- plugin_id
+		''acs_object'',				-- object_type
+		now(),					-- creation_date
+		null,					-- creation_user
+		null,					-- creattion_ip
+		null,					-- context_id
+	
+		''Home Timesheet Component'',		-- plugin_name
+		''intranet-timesheet'',			-- package_name
+		''right'',				-- location
+		''/intranet/index'',			-- page_url
+		null,					-- view_name
+		80,					-- sort_order
+		''im_timesheet_home_component $user_id'',
+		''_ intranet-timesheet2.Timesheet''
+	);
 
-	'Home Timesheet Component',		-- plugin_name
-	'intranet-timesheet',			-- package_name
-	'right',				-- location
-	'/intranet/index',			-- page_url
-	null,					-- view_name
-	80,					-- sort_order
-	'im_timesheet_home_component $user_id',
-	'intranet-timesheet2.Timesheet'
-);
+        return 0;
+end;' language 'plpgsql';
+select inline_0 ();
+drop function inline_0 ();
+
+
+
 
 \i intranet-absences-create.sql
 \i ../common/intranet-timesheet-common.sql
