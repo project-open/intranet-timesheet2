@@ -58,6 +58,12 @@ if {0 == $project_id} { set project_id_for_default ""}
 # "Log hours for a different day"
 set different_date_url "index?[export_ns_set_vars url [list julian_date]]"
 
+
+# Append user-defined menus
+set bind_vars [ad_tcl_vars_to_ns_set user_id julian_date return_url]
+set menu_links_html [im_menu_ul_list -no_uls 1 "timesheet_hours_new_admin" $bind_vars]
+
+
 # "Log hours for a different project"
 #    ad_return_complaint 1 [array get has_children_hash]
 

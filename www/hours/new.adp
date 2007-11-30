@@ -59,6 +59,10 @@
 	      <a href="@return_url@">#intranet-timesheet2.lt_Return_to_previous_pa#</a>
 <% } %>
             </li>
+
+	    <!-- Dynamically added menu links -->
+	    @menu_links_html;noquote@
+
          </ul>
       </div>
    </div> <!-- filter -->
