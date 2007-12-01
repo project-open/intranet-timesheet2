@@ -23,8 +23,14 @@ ad_page_contract {
     @author mbryzek@arsdigita.com
     @author frank.bergmann@project-open.com
 } {
-    hours:array
-    notes:array,html
+    hours0:array,optional
+    hours1:array,optional
+    hours2:array,optional
+    hours3:array,optional
+    hours4:array,optional
+    hours5:array,optional
+    hours6:array,optional
+    notes0:array,optional
     julian_date
     { return_url "" }
 }
@@ -42,7 +48,7 @@ set date_format "YYYY-MM-DD"
 # timesheet information gets sorted in the right order.
 set timesheet_log_date_format "YYYY_MM_DD"
 
-set item_nrs [array names hours]
+set item_nrs [array names hours0]
 set im_costs_exists_p [db_table_exists im_costs]
 
 set today [db_string day "
@@ -107,8 +113,11 @@ foreach project_id $item_nrs {
     ns_log Notice "timesheet2-tasks/new-2: project_id=$project_id"
 
     # Extract the parameters from the arrays
-    set hours_worked [string trim $hours($project_id)]
-    set note [string trim $notes($project_id)]
+
+    set hours_worked 0
+    set note 0
+    if {[info exists hours0($project_id)]} { set hours_worked [string trim $hours0($project_id)] }
+    if {[info exists notes0($project_id)]} { set note [string trim $notes0($project_id)] }
 
     if {"" == $project_id || 0 == $project_id} {
 	ad_return_complaint 1 "Internal Error:<br>
@@ -139,8 +148,7 @@ foreach project_id $item_nrs {
 	ns_log Notice "new-2: Delete cost item=$cost_id for project_id=$project_id"
 	db_string del_ts_costs "select im_cost__delete(:cost_id)"
 
-	#ToDo: !!! Update the project's accumulated TS cost cache
-
+	# The project's timesheet cache is updated every X minutes by a sweeper..
     }
 
     if {$hours_worked == 0 || "" == $hours_worked} {
@@ -155,6 +163,7 @@ foreach project_id $item_nrs {
 			and user_id = :user_id
 			and day = to_date(:julian_date, 'J')
 	    "
+
 	    # Update the project's accummulated hours cache
 	    if { [db_resultrows] != 0 } {
 		db_dml update_timesheet_task {}

@@ -311,12 +311,17 @@ Please log your hours now or consult with your supervisor."
 	}
 
         if { $hours_today == 0 } {
+
 	    set log_hours_link "<a href=/intranet-timesheet2/hours/new?project_id=$project_id&[export_url_vars return_url]>"
             append hours_logged "<li><font color=\"\#FF0000\">[_ intranet-timesheet2.lt_Today_you_didnt_log_y]</font> [_ intranet-timesheet2.lt_Log_your_log_hours_li]</a>\n"
+
         } else {
+
 	    set log_hours_link "<a href=\"/intranet-timesheet2/hours/new?[export_url_vars project_id return_url]\">"
             append hours_logged "<li>[_ intranet-timesheet2.lt_Log_your_log_hours_li_1]</a>\n"
+
         }
+
 	# Show the "Work Absences" link only to in-house staff.
         # Clients and Freelancers don't necessarily need it.
 	if {[im_permission $user_id "add_absences"]} {

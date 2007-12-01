@@ -52,10 +52,10 @@ if {"" == $return_url} {
     set return_url "[ad_conn url]?[ad_conn form]"
 }
 
-set user_admin_p [im_is_user_site_wide_or_intranet_admin $current_user_id]
+set write_p [im_is_user_site_wide_or_intranet_admin $current_user_id]
 if {$user_id == $current_user_id} {
     # Can do anything to your own hours :)
-    set user_admin_p 1
+    set write_p 1
 }
 set page_title "[_ intranet-timesheet2.Hours_by_user_name]"
 set context_bar [im_context_bar "[_ intranet-timesheet2.Hours]"]
@@ -77,6 +77,7 @@ if {"" ==  $date } {
     }
 } 
 ns_log Notice "/intranet-timesheet2/index: date=$date"
+
 
 # ---------------------------------------------------------------
 # Render the Calendar widget
@@ -109,13 +110,6 @@ db_foreach hours_logged $sql {
     set users_hours($julian_date) $hours
 }
 
-# Choose between daily/weekly time entry screen
-if { [string compare [ad_parameter TimeEntryScreen "" "daily"] "weekly"] == 0 } {
-    set target "time-entry"
-} else {
-    set target "new"
-}
-
 set hours_for_this_week 0.0
 set first_day 1
 set absence_list [absence_list_for_user_and_time_period $user_id $first_julian_date $last_julian_date]
@@ -123,43 +117,53 @@ set absence_index 0
 set curr_absence ""
 
 # And now fill in information for every day of the month
-for { set current_date $first_julian_date 
-} { $current_date <= $last_julian_date 
-} { incr current_date 
-} {
+for { set current_date $first_julian_date} { $current_date <= $last_julian_date } { incr current_date } {
+
+    # User's hours for the day
+    set hours ""
     if { [info exists users_hours($current_date)] && ![empty_string_p $users_hours($current_date)] } {
- 	set html "$users_hours($current_date) hours"
+ 	set hours "$users_hours($current_date) hours"
 	set hours_for_this_week [expr $hours_for_this_week + $users_hours($current_date)]
-     } else {
-	set curr_absence [lindex $absence_list $absence_index]
-	set html "<font color=#666666><em>[_ intranet-timesheet2.log_hours]</em></font>"
+    } else {
+	set hours "<font color=#666666><em>[_ intranet-timesheet2.log_hours]</em></font>"
     }
 
-    if {$user_admin_p } {
-	set html "$curr_absence <a href=$target?[export_url_vars user_id return_url]&julian_date=[ad_urlencode $current_date]>$html</a>"
+    # Render the "Sunday" link to log "hours for the week"
+    if {$first_day == 1 } {
+	set hours "
+		<a href=[export_vars -base "new" {user_id {julian_date $current_date} {show_week_p 1} return_url}]
+		><font color=#666666><em>log hours for the week</em></font></a>
+	"
     }
 
-    # Render the "Sunday" sum of the weekly hours
-    if { $first_day == 7 } {
+
+    # User's Absences for the day
+    set curr_absence [lindex $absence_list $absence_index]
+    if {"" != $curr_absence} { set curr_absence "<br>$curr_absence" }
+
+    if {$write_p} {
 	set html "
-	<br>
-	<table width=100% cellpadding=0 border=0 cellspacing=0>
-	  <tr>
-	    <td align=right><font size=\"-1\">
-              <a href=week?julian_date=[ns_urlencode $current_date]&[export_url_vars user_id]>[_ intranet-timesheet2.Week_total_1] $hours_for_this_week
-              </a></font>
-            </td>
-	  </tr>
-	<tr>
-	  <td align=left>$html</td>
-	</tr>
-	</table>
+		<a href=[export_vars -base "new" {user_id {julian_date $current_date} {show_week_p 0} return_url}]>$hours</a>
+		$curr_absence 
 	"
     } else {
-	set html "<p>&nbsp;<br/>$html</p>"
+	set html "
+		$curr_absence 
+	"
     }
 
-    ns_set put $calendar_details $current_date $html
+
+    # Render the "Saturday" sum of the weekly hours
+    if {$first_day == 7 } {
+	append html "
+		<br>
+		<a href=[export_vars -base "week" {{julian_date $current_date} user_id}]
+		>[_ intranet-timesheet2.Week_total_1] $hours_for_this_week</a>
+	"
+    }
+
+
+    ns_set put $calendar_details $current_date "$html<br>&nbsp;"
     
     # we keep track of the day of the week we are on
     incr first_day
@@ -198,5 +202,3 @@ set page_body [calendar_basic_month \
 	-prev_next_links_in_title 1 \
 	-fill_all_days 1 \
 	-empty_bgcolor "#cccccc"]
-
-#doc_return  200 text/html [im_return_template]

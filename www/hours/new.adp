@@ -17,7 +17,7 @@
         </div>
 
 	<form action=new method=post>
-	<%= [export_form_vars return_url julian_date project_id_list]  %>
+	<%= [export_form_vars return_url julian_date project_id_list show_week_p]  %>
 	<table border=0 cellpadding=1 cellspacing=1>
 	  <tr>
 	    <td>#intranet-core.Project_name#</td>
@@ -75,8 +75,15 @@
 <table border=0 cellpadding=1 cellspacing=1>
  <tr class=rowtitle>
   <th>#intranet-timesheet2.Project_name#</th>
+
+<if @show_week_p@ eq 0>
   <th>#intranet-timesheet2.Hours#	</th>
   <th>#intranet-timesheet2.Work_done#   </th>
+</if>
+<else>
+  @week_header_html;noquote@
+</else>
+
  </tr> 
 @results;noquote@
   <tr>

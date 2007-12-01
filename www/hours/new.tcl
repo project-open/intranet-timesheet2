@@ -28,6 +28,7 @@ ad_page_contract {
     { project_id_list:multiple "" }
     { julian_date "" }
     { return_url "" }
+    { show_week_p 1 }
 }
 
 # ---------------------------------------------------------
@@ -122,7 +123,7 @@ set edit_hours_p "t"
 
 # When should we consider the last month to be closed?
 set last_month_closing_day [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter TimesheetLastMonthClosingDay -default 0]
-
+set weekly_logging_days [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter TimesheetWeeklyLoggingDays -default "1 2 3 4 5"]
 
 if {0 != $last_month_closing_day && "" != $last_month_closing_day} {
 
@@ -383,9 +384,6 @@ if { $list_sort_order=="name" } {
 
 set sql "
 	select
-		h.hours, 
-		h.note, 
-		h.billing_rate,
 		parent.project_id as top_project_id,
 		parent.parent_id as top_parent_id,
 		children.parent_id as parent_id,
@@ -405,13 +403,6 @@ set sql "
 	from
 		im_projects parent,
 		im_projects children
-		left outer join (
-				select	* 
-				from	im_hours h
-				where	h.day = to_date(:julian_date, 'J')
-					and h.user_id = :user_id	
-			) h 
-			on (h.project_id = children.project_id)
 	where
 		parent.parent_id is null
 		and children.tree_sortkey between 
@@ -423,6 +414,44 @@ set sql "
 		lower(parent.project_name),
 		children.tree_sortkey
 "
+
+
+# ---------------------------------------------------------
+# Select out the hours for the different projects and dates
+#
+# Effectively, we are replacing here an SQL join with a join
+# over a TCL hash array. This simplifies the SQL and the TCL
+# logic later.
+# Also, there is a "LEFT OUTER" join logic, because we need
+# to show the projects even if there are no hours available
+# for them at that moment.
+# ---------------------------------------------------------
+
+set day_restriction "h.day = to_date(:julian_date, 'J')"
+if {$show_week_p} {
+    set day_restriction "h.day between to_date(:julian_date, 'J') and to_date(:julian_date, 'J')+7 "
+}
+
+set hours_sql "
+	select
+		h.hours,
+		h.note,
+		to_char(h.day, 'J') as julian_day,
+		p.project_id
+	from
+		im_hours h,
+		($sql) p
+	where
+		h.project_id = p.project_id and
+		h.user_id = :user_id and
+		$day_restriction
+"
+db_foreach hours_hash $hours_sql {
+
+    set hours_hours($project_id-$julian_day) $hours
+    set hours_note($project_id-$julian_day) $note
+
+}
 
 # ---------------------------------------------------------
 # Get the list of open projects with direct membership
@@ -554,6 +583,7 @@ template::multirow foreach hours_multirow {
 
     # ---------------------------------------------
     # Indent the project line
+    #
     set indent ""
     set level $subproject_level
     while {$level > 0} {
@@ -561,6 +591,7 @@ template::multirow foreach hours_multirow {
 	set level [expr $level-1]
     }
 
+    # ---------------------------------------------
     # These are the hours and notes captured from the intranet-timesheet2-task-popup 
     # modules, if it's there. The module allows the user to capture notes during the
     # day on what task she is working.
@@ -570,6 +601,7 @@ template::multirow foreach hours_multirow {
     if {[info exists popup_notes($project_id)]} { set p_notes $popup_notes($project_id) }
 
 
+    # ---------------------------------------------
     # Insert intermediate header for every top-project
     if {$parent_project_nr != $old_parent_project_nr} { 
 	set project_name "<b>$project_name</b>"
@@ -584,7 +616,8 @@ template::multirow foreach hours_multirow {
 	set old_parent_project_nr $parent_project_nr
     }
 
-    # Allow hour logging
+    # ---------------------------------------------
+    # Write out the HTML for logging hours
     set project_url [export_vars -base "/intranet/projects/view?" {project_id return_url}]
     append results "
 	<tr $bgcolor([expr $ctr % 2])>"
@@ -599,14 +632,32 @@ template::multirow foreach hours_multirow {
     if {[info exists has_children_hash($project_id)]} { set log_on_parent_p 0 }
 
     if {"t" == $edit_hours_p && $log_on_parent_p} {
-	append results "
-	  <td><nobr>$indent <A href=\"$project_url\">$ptitle</A></nobr></td>
-	  <td><INPUT NAME=hours.$project_id size=5 MAXLENGTH=5 value=\"$hours\">$p_hours</td>
-	  <td>
-	    <INPUT NAME=notes.$project_id size=60 value=\"[ns_quotehtml [value_if_exists note]]\">
-	    $p_notes
-	  </td>
-	"
+
+	append results "<td><nobr>$indent <A href=\"$project_url\">$ptitle</A></nobr></td>\n"
+
+	if {!$show_week_p} {
+
+	    set hours ""
+	    set note ""
+	    if {[info exists hours_hours($project_id-$julian_date)]} { set hours $hours_hours($project_id-$julian_date) }
+	    if {[info exists hours_note($project_id-$julian_date)]} { set note $hours_note($project_id-$julian_date) }
+
+	    append results "<td><INPUT NAME=hours0.$project_id size=5 MAXLENGTH=5 value=\"$hours\">$p_hours</td>\n"
+	    append results "<td><INPUT NAME=notes0.$project_id size=60 value=\"[ns_quotehtml [value_if_exists note]]\">$p_notes</td>\n"
+
+	} else {
+
+	    foreach i $weekly_logging_days {
+		set julian_day_offset [expr $julian_date + $i]
+		set hours ""
+		set note ""
+		if {[info exists hours_hours($project_id-$julian_day_offset)]} { set hours $hours_hours($project_id-$julian_day_offset) }
+		if {[info exists hours_note($project_id-$julian_day_offset)]} { set note $hours_note($project_id-$julian_day_offset) }
+		append results "<td><INPUT NAME=hours${i}.$project_id size=5 MAXLENGTH=5 value=\"$hours\">$p_hours</td>\n"
+	    }
+
+	}
+
     } else {
 	if {"" == $hours} { set hours "" }
 	append results "
@@ -631,3 +682,22 @@ if { [empty_string_p results] } {
 
 set export_form_vars [export_form_vars julian_date return_url]
 
+
+# ---------------------------------------------------------
+# Format the weekly column headers
+# ---------------------------------------------------------
+
+# Date format for formatting
+set weekly_column_date_format "YYYY<br>MM-DD"
+
+set week_header_html ""
+foreach i $weekly_logging_days {
+
+    set julian_day_offset [expr $julian_date + $i]
+
+    set header_day_of_week [db_string day_of_week "select to_char(to_date($julian_date, 'J')+:i::integer, 'Dy')"]
+    set header_day_of_week_l10n [lang::message::lookup "" intranet-timesheet2.Day_of_week_$header_day_of_week $header_day_of_week]
+    set header_date [db_string header "select to_char(to_date($julian_date, 'J')+:i::integer, :weekly_column_date_format)"]
+
+    append week_header_html "<th>$header_day_of_week_l10n<br>$header_date</th>\n"
+}
