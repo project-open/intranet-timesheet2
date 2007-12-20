@@ -212,7 +212,7 @@ of those units were billed hourly, for a total amount of</msg>
   <msg key="lt_You_cant_edit_someone">You can't edit someone else's hours</msg>
   <msg key="lt_You_dont_have_suffici">You don't have sufficient privileges to see absences.</msg>
   <msg key="lt_You_dont_have_suffici_1">You don't have sufficient privileges to modify this absence.</msg>
-  <msg key="lt_You_have_loged_total_">You have loged %total_hours_str% units on this project</msg>
+  <msg key="lt_You_have_logged_total_">You have logged %total_hours_str% units on this project</msg>
   <msg key="lt_You_have_no_rights_to">You have no rights to see this page</msg>
   <msg key="lt_You_havent_logged_you">You haven't logged your hours in the last week,
         please %log_them_now_link% log them now</msg>
