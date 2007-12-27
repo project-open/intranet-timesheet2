@@ -50,22 +50,20 @@ if {![im_permission $user_id "add_absences"]} {
 # Delete pressed?
 # ------------------------------------------------------------------
 
+set actions [list {"Edit" edit} ]
+if {[im_permission $user_id add_absences]} {
+    lappend actions {"Delete" delete}
+}
+
 set button_pressed [template::form get_action absence]
 if {"delete" == $button_pressed} {
-    db_string absence_delete "
-	select im_user_absence__delete(:absence_id)
-    "
+    db_string absence_delete "select im_user_absence__delete(:absence_id)"
     ad_returnredirect $return_url
 }
 
 # ------------------------------------------------------------------
 # Build the form
 # ------------------------------------------------------------------
-
-set actions [list {"Edit" edit} ]
-if {[im_permission $user_id add_absences]} {
-    lappend actions {"Delete" delete}
-}
 
 ad_form \
     -name absence \
@@ -80,11 +78,30 @@ ad_form \
 	{absence_name:text(text) {label "[_ intranet-timesheet2.Name]"} {html {size 40}}}
 	{absence_type_id:text(im_category_tree) {label "[_ intranet-timesheet2.Type]"} {custom {category_type "Intranet Absence Type"}}}
 	{absence_status_id:text(im_category_tree) {label "[_ intranet-timesheet2.Status]"} {custom {category_type "Intranet Absence Status"}}}
+
 	{start_date:date(date),optional {label "[_ intranet-timesheet2.Start_Date]"} {format "DD Month YYYY HH24:MI"}}
 	{end_date:date(date),optional {label "[_ intranet-timesheet2.End_Date]"} {format "DD Month YYYY HH24:MI"}}
 	{description:text(textarea),optional {label "[_ intranet-timesheet2.Description]"} {html {cols 40}}}
 	{contact_info:text(textarea),optional {label "[_ intranet-timesheet2.Contact_Info]"} {html {cols 40}}}
     }
+
+
+# Add the right dynfields for the given type
+set absence_type_id 0
+if {[info exists absence_id]} {
+    set absence_type_id [db_string ptype "select absence_type_id from im_user_absences where absence_id = :absence_id" -default 0]
+}
+set my_absence_id 0
+if {[info exists absence_id]} { set my_absence_id $absence_id }
+set field_cnt [im_dynfield::append_attributes_to_form \
+    -object_subtype_id $absence_type_id \
+    -object_type "im_user_absence" \
+    -form_id absence \
+    -object_id $my_absence_id \
+    -form_display_mode $form_mode \
+
+]
+
 
 ad_form -extend -name absence -on_request {
 
@@ -106,6 +123,16 @@ ad_form -extend -name absence -on_request {
     set start_date_sql [template::util::date get_property sql_timestamp $start_date]
     set end_date_sql [template::util::date get_property sql_timestamp $end_date]
 
+    if { [db_string exists "
+		select	count(*) 
+		from	im_user_absences
+		where	start_date = to_timestamp(:start_date, 'YYYY MM DD HH24 MI')
+	   "]
+     } {
+	ad_return_complaint 1 [lang::message::lookup {} intranet-timesheet2.Absence_Duplicate_Start {There is already an absence with exactly the same start date.}]
+    }
+
+
     db_transaction {
 	set absence_id [db_string new_absence "
 		SELECT im_user_absence__new(
@@ -126,7 +153,24 @@ ad_form -extend -name absence -on_request {
 			:contact_info
 		)
 	"]
+
+	im_dynfield::attribute_store \
+	    -object_type "im_user_absence" \
+	    -object_id $absence_id \
+	    -form_id absence
+
+	set wf_key [db_string wf "select aux_string1 from im_categories where category_id = :absence_type_id" -default ""]
+	set wf_exists_p [db_string wf_exists "select count(*) from wf_workflows where workflow_key = :wf_key"]
+	if {$wf_exists_p} {
+	    set context_key ""
+	    set case_id [wf_case_new \
+			     $wf_key \
+			     $context_key \
+			     $absence_id
+			]
+	}
     }
+
 } -edit_data {
 
     set start_date_sql [template::util::date get_property sql_timestamp $start_date]
@@ -145,7 +189,29 @@ ad_form -extend -name absence -on_request {
 		WHERE
 			absence_id = :absence_id
     "
+
+    im_dynfield::attribute_store \
+        -object_type "im_user_absence" \
+        -object_id $absence_id \
+        -form_id absence
+
 } -after_submit {
 	ad_returnredirect $return_url
 	ad_script_abort
+}
+
+set ttt {
+
+ -validate {
+    {start_date
+        { [db_string exists "
+		select	count(*) 
+		from	im_user_absences
+		where	start_date = to_timestamp(:start_date, 'YYYY MM DD HH24 MI')
+	   "] == 0
+	}
+        "[lang::message::lookup {} intranet-timesheet2.Absence_Duplicate_Start {There is already an absence with exactly the same start date.}]"
+    }
+}
+
 }

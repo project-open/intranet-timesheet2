@@ -30,3 +30,7 @@
     </td>
   </tr>
 </table>
+
+<if @form_mode@ eq "display" >
+      <%= [im_component_bay bottom] %>
+</if>

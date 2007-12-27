@@ -76,6 +76,7 @@ if { ![exists_and_not_null absence_type_id] } {
 
 set end_idx [expr $start_idx + $how_many - 1]
 set date_format "YYYY-MM-DD"
+set date_time_format "YYYY-MM-DD HH24:MI"
 
 # ---------------------------------------------------------------
 # 3. Define Table Columns
@@ -178,8 +179,8 @@ select
 	coalesce(absence_name, absence_id::varchar) as absence_name_pretty,
 	substring(a.description from 1 for 40) as description_pretty,
 	substring(a.contact_info from 1 for 40) as contact_info_pretty,
-	to_char(a.start_date, :date_format) as start_date_pretty,
-	to_char(a.end_date, :date_format) as end_date_pretty,
+	to_char(a.start_date, :date_time_format) as start_date_pretty,
+	to_char(a.end_date, :date_time_format) as end_date_pretty,
 	im_name_from_user_id(a.owner_id) as owner_name,
 	im_category_from_id(a.absence_status_id) as absence_status,
 	im_category_from_id(a.absence_type_id) as absence_type
