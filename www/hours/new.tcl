@@ -123,7 +123,7 @@ set edit_hours_p "t"
 
 # When should we consider the last month to be closed?
 set last_month_closing_day [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter TimesheetLastMonthClosingDay -default 0]
-set weekly_logging_days [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter TimesheetWeeklyLoggingDays -default "1 2 3 4 5"]
+set weekly_logging_days [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter TimesheetWeeklyLoggingDays -default "0 1 2 3 4 5 6"]
 
 if {0 != $last_month_closing_day && "" != $last_month_closing_day} {
 
