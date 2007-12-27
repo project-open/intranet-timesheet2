@@ -20,10 +20,10 @@
 ad_page_contract {
     Shows all absences. Filters for type, who and when
 
-    @param absence_type_id if specified, limits view to absences of this type
-    @param user_selection  if specified, limits view to absences to mine or all
-    @param timescale       if specified, limits view to absences of this time slice
-    @param order_by  Specifies order for the table
+    @param absence_type_id	if specified, limits view to absences of this type
+    @param user_selection	if specified, limits view to absences to mine or all
+    @param timescale		if specified, limits view to absences of this time slice
+    @param order_by		Specifies order for the table
 
     @author mbryzek@arsdigita.com
     @author Frank Bergmann (frank.bergmann@project-open.com)
@@ -47,11 +47,11 @@ ad_page_contract {
 set user_id [ad_maybe_redirect_for_registration]
 set subsite_id [ad_conn subsite_id]
 set page_title "[_ intranet-timesheet2.Absences]"
+set context [list $page_title]
 set context_bar [im_context_bar $page_title]
 set page_focus "im_header_form.keywords"
-set site_url "/intranet-timesheet2/absences"
-set return_url "$site_url/index"
-
+set absences_url "/intranet-timesheet2/absences"
+set return_url [im_url_with_query]
 
 if {![im_permission $user_id "view_absences"] && ![im_permission $user_id "view_absences_all"]} { 
     ad_return_complaint 1 "You don't have permissions to see absences"
@@ -60,7 +60,7 @@ if {![im_permission $user_id "view_absences"] && ![im_permission $user_id "view_
 
 
 set user_view_page "/intranet/users/view"
-set absence_view_page "$site_url/absences/view"
+set absence_view_page "$absences_url/new"
 
 set user_selection_types [list "all" "All" "mine" "Mine"]
 if {![im_permission $user_id "view_absences_all"]} {
@@ -89,24 +89,27 @@ set column_headers [list]
 set column_vars [list]
 
 set column_sql "
-select
-        column_name,
-        column_render_tcl,
-        visible_for
-from
-        im_view_columns
-where
-        view_id=:view_id
-        and group_id is null
-order by
-        sort_order"
+	select
+		column_name,
+		column_render_tcl,
+		visible_for
+	from
+		im_view_columns
+	where
+		view_id=:view_id
+		and group_id is null
+	order by
+		sort_order
+"
 
 db_foreach column_list_sql $column_sql {
     if {$visible_for == "" || [eval $visible_for]} {
-        lappend column_headers "$column_name"
-        lappend column_vars "$column_render_tcl"
+	lappend column_headers "$column_name"
+	lappend column_vars "$column_render_tcl"
     }
 }
+
+
 
 # ---------------------------------------------------------------
 # 4. Define Filter Categories
@@ -160,7 +163,7 @@ switch $order_by {
     "Type" { set order_by_clause "order by upper(absence_type_name), owner_name" }
 }
 
-set where_clause [join $criteria " and\n            "]
+set where_clause [join $criteria " and\n	    "]
 if { ![empty_string_p $where_clause] } {
     set where_clause " and $where_clause"
 }
@@ -171,18 +174,19 @@ if {[im_permission $user_id "view_absences_all"]} { set perm_clause "" }
 
 set sql "
 select
-        a.absence_id,
-        a.owner_id,
-        substring(a.description from 1 for 40) as description,
-        substring(a.contact_info from 1 for 40) as contact_info,
-        to_char(a.start_date, :date_format) as start_date,
-        to_char(a.end_date, :date_format) as end_date,
-        im_name_from_user_id(a.owner_id) as owner_name,
-        im_category_from_id(a.absence_type_id) as absence_type
+	a.*,
+	coalesce(absence_name, absence_id::varchar) as absence_name_pretty,
+	substring(a.description from 1 for 40) as description_pretty,
+	substring(a.contact_info from 1 for 40) as contact_info_pretty,
+	to_char(a.start_date, :date_format) as start_date_pretty,
+	to_char(a.end_date, :date_format) as end_date_pretty,
+	im_name_from_user_id(a.owner_id) as owner_name,
+	im_category_from_id(a.absence_status_id) as absence_status,
+	im_category_from_id(a.absence_type_id) as absence_type
 from
-        im_user_absences a
+	im_user_absences a
 where
-        1=1 
+	1=1 
 	$where_clause
 	$perm_clause
 "
@@ -190,8 +194,6 @@ where
 # ---------------------------------------------------------------
 # 5a. Limit the SQL query to MAX rows and provide << and >>
 # ---------------------------------------------------------------
-
-#TODO all this
 
 # Limit the search results to N data sets only
 # to be able to manage large sites
@@ -201,24 +203,16 @@ set limited_query [im_select_row_range $sql $start_idx $end_idx]
 # sort inside the table on the page for only those users in the
 # query results
 set total_in_limited [db_string projects_total_in_limited "
-   select count(*)
-   from
-      im_user_absences a
-   where
-      1=1
-      $where_clause
+	select count(*)
+	from	im_user_absences a
+	where	1=1
+		$where_clause
    "]
 set selection "$sql $order_by_clause"
-
-#    set selection "select z.* from ($limited_query) z $order_by_clause"
-
-
-ns_log Notice $selection
 
 # ---------------------------------------------------------------
 # 6. Format the Filter
 # ---------------------------------------------------------------
-
 
 
 set filter_html "
@@ -250,7 +244,7 @@ set filter_html "
 set admin_html ""
 if {[im_permission $user_id "add_absences"]} { 
 	set admin_html "<ul>
-	        <li><a href=$site_url/new>[_ intranet-timesheet2.Add_a_new_Absence]</a></li>
+		<li><a href=$absences_url/new>[_ intranet-timesheet2.Add_a_new_Absence]</a></li>
 	      </ul>
 	"
 }
@@ -276,13 +270,16 @@ if { ![empty_string_p $query_string] } {
 append table_header_html "<tr>\n"
 foreach col $column_headers {
     regsub -all " " $col "_" col_key
+    set col_txt [lang::message::lookup "" intranet-core.$col_key $col]
     if { [string equal $order_by $col] } {
-        append table_header_html "  <td class=rowtitle>[_ intranet-timesheet2.$col_key]</td>\n"
+	append table_header_html "  <td class=rowtitle>$col_txt</td>\n"
     } else {
-        append table_header_html "  <td class=rowtitle><a href=\"${url}order_by=[ns_urlencode $col]\">[_ intranet-timesheet2.$col_key]</a></td>\n"
+	append table_header_html "  <td class=rowtitle><a href=\"${url}order_by=[ns_urlencode $col]\">$col_txt</a></td>\n"
     }
 }
 append table_header_html "</tr>\n"
+
+
 
 # ---------------------------------------------------------------
 # 8. Format the Result Data
@@ -293,21 +290,24 @@ set bgcolor(0) " class=roweven "
 set bgcolor(1) " class=rowodd "
 set ctr 0
 set idx $start_idx
-db_foreach projects_info_query $selection {
+db_foreach absences_list $selection {
+
+    set absence_view_url [export_vars -base "$absences_url/new" {absence_id return_url {form_mode "display"}}]
+
     #Append together a line of data based on the "column_vars" parameter list
     append table_body_html "<tr$bgcolor([expr $ctr % 2])>\n"
     foreach column_var $column_vars {
-        append table_body_html "\t<td valign=top>"
+	append table_body_html "\t<td valign=top>"
 #	regsub -all "\"" $column_var "" column_var
-        set cmd "append table_body_html $column_var"
-        eval $cmd
-        append table_body_html "</td>\n"
+	set cmd "append table_body_html $column_var"
+	eval $cmd
+	append table_body_html "</td>\n"
     }
     append table_body_html "</tr>\n"
 
     incr ctr
     if { $how_many > 0 && $ctr >= $how_many } {
-        break
+	break
     }
     incr idx
 } 
@@ -315,9 +315,9 @@ db_foreach projects_info_query $selection {
 # Show a reasonable message when there are no result rows:
 if { [empty_string_p $table_body_html] } {
     set table_body_html "
-        <tr><td colspan=$colspan><ul><li><b>
-        [_ intranet-timesheet2.lt_There_are_currently_n]
-        </b></ul></td></tr>"
+	<tr><td colspan=$colspan><ul><li><b>
+	[_ intranet-timesheet2.lt_There_are_currently_n]
+	</b></ul></td></tr>"
 }
 
 if { $ctr == $how_many && $end_idx < $total_in_limited } {

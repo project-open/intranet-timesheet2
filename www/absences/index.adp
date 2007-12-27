@@ -1,6 +1,6 @@
 <master src="../../../intranet-core/www/master">
 <property name="title">Absences</property>
-<property name="context">context</property>
+<property name="@context@">context</property>
 <property name="main_navbar_label">timesheet2_absences</property>
 
 <div class="filter-list">

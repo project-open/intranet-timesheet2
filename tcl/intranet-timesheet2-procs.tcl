@@ -21,6 +21,48 @@ ad_library {
 }
 
 # ---------------------------------------------------------------------
+# Constants
+# ---------------------------------------------------------------------
+
+ad_proc -public im_absence_type_vacation {} { return 5000 }
+ad_proc -public im_absence_type_personal {} { return 5001 }
+ad_proc -public im_absence_type_sick {} { return 5002 }
+ad_proc -public im_absence_type_travel {} { return 5003 }
+
+ad_proc -public im_absence_status_active {} { return 16000 }
+ad_proc -public im_absence_status_deleted {} { return 16002 }
+ad_proc -public im_absence_status_requested {} { return 16004 }
+ad_proc -public im_absence_status_rejected {} { return 16006 }
+
+
+
+# ---------------------------------------------------------------------
+# Absences Permissions
+# ---------------------------------------------------------------------
+
+ad_proc -public im_absence_permissions {user_id absence_id view_var read_var write_var admin_var} {
+    Fill the "by-reference" variables read, write and admin
+    with the permissions of $user_id on $absence_id
+} {
+    upvar $view_var view
+    upvar $read_var read
+    upvar $write_var write
+    upvar $admin_var admin
+    
+    set view 1
+    set read 1
+    set write 1
+    set admin 1
+    
+    # No read - no write...
+    if {!$read} {
+        set write 0
+        set admin 0
+    }
+}
+
+
+# ---------------------------------------------------------------------
 #
 # ---------------------------------------------------------------------
 
