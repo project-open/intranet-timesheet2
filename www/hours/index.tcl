@@ -130,7 +130,7 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
 
     # Render the "Sunday" link to log "hours for the week"
     if {$first_day == 1 } {
-	set hours "
+	append hours "<br>
 		<a href=[export_vars -base "new" {user_id {julian_date $current_date} {show_week_p 1} return_url}]
 		><font color=#666666><em>log hours for the week</em></font></a>
 	"
