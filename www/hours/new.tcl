@@ -659,7 +659,7 @@ template::multirow foreach hours_multirow {
 	}
 
     } else {
-	if {"" == $hours} { set hours "" }
+	if {![info exists hours] || "" == $hours} { set hours "" }
 	append results "
 	  <td><nobr>$indent <A href=\"$project_url\">$ptitle</A></nobr></td>
 	  <td align=right>$hours</td>
