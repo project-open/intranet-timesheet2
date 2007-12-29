@@ -37,6 +37,9 @@ insert into im_view_columns (column_id, view_id, group_id, column_name, column_r
 extra_select, extra_where, sort_order, visible_for) values (2209,22,NULL,'Estim. Days',
 '$est_days','','',5,'im_permission $user_id view_projects');
 
+
+
+
 --------------------------------------------------------------
 -- Create User Absences View
 -- vws to "absences" items: 50-59
@@ -81,6 +84,7 @@ extra_select, extra_where, sort_order, visible_for) values (20011,200,NULL,'Cont
 '"$contact_info"',
 '','',11,'');
 
+
 --------------------------------------------------------------
 -- Add view column to users overview
 -- 
@@ -90,6 +94,10 @@ insert into im_view_columns (column_id, view_id, group_id, column_name, column_r
 extra_select, extra_where, sort_order, visible_for) values (207, 10, NULL, 'Next Absence',
 '"[im_get_next_absence_link $user_id ]"',
 '','',10,'');
+
+
+
+
 
 
 

@@ -28,6 +28,8 @@ ad_proc -public im_absence_type_vacation {} { return 5000 }
 ad_proc -public im_absence_type_personal {} { return 5001 }
 ad_proc -public im_absence_type_sick {} { return 5002 }
 ad_proc -public im_absence_type_travel {} { return 5003 }
+ad_proc -public im_absence_type_bank_holiday {} { return 5004 }
+
 
 ad_proc -public im_absence_status_active {} { return 16000 }
 ad_proc -public im_absence_status_deleted {} { return 16002 }

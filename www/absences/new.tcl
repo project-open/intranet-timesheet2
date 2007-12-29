@@ -24,14 +24,15 @@ ad_page_contract {
 set user_id [ad_maybe_redirect_for_registration]
 
 set action_url "/intranet-timesheet2/absences/new"
+set cancel_url "/intranet-timesheet2/absences/index"
+if {"" == $return_url} { set return_url "/intranet-timesheet2/absences/index" }
+
 set focus "absence.var_name"
 set date_format "YYYY-MM-DD-HH24"
 set date_time_format "YYYY MM DD HH24 MI SS"
 
 set page_title [_ intranet-timesheet2.New_Absence]
 set context [list $page_title]
-
-if {"" == $return_url} { set return_url "/intranet-timesheet2/absences/index" }
 
 set read [im_permission $user_id "read_absences_all"]
 set write [im_permission $user_id "add_absences"]
@@ -46,6 +47,7 @@ if {![im_permission $user_id "add_absences"]} {
 }
 
 
+
 # ------------------------------------------------------------------
 # Delete pressed?
 # ------------------------------------------------------------------
@@ -58,7 +60,7 @@ if {[im_permission $user_id add_absences]} {
 set button_pressed [template::form get_action absence]
 if {"delete" == $button_pressed} {
     db_string absence_delete "select im_user_absence__delete(:absence_id)"
-    ad_returnredirect $return_url
+    ad_returnredirect $cancel_url
 }
 
 # ------------------------------------------------------------------
@@ -67,11 +69,11 @@ if {"delete" == $button_pressed} {
 
 ad_form \
     -name absence \
-    -cancel_url $return_url \
+    -cancel_url $cancel_url \
     -action $action_url \
     -actions $actions \
     -mode $form_mode \
-    -export {next_url user_id return_url} \
+    -export {user_id return_url} \
     -form {
 	absence_id:key
 	{owner_id:text(hidden)}
@@ -200,18 +202,3 @@ ad_form -extend -name absence -on_request {
 	ad_script_abort
 }
 
-set ttt {
-
- -validate {
-    {start_date
-        { [db_string exists "
-		select	count(*) 
-		from	im_user_absences
-		where	start_date = to_timestamp(:start_date, 'YYYY MM DD HH24 MI')
-	   "] == 0
-	}
-        "[lang::message::lookup {} intranet-timesheet2.Absence_Duplicate_Start {There is already an absence with exactly the same start date.}]"
-    }
-}
-
-}

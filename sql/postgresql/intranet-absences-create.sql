@@ -34,6 +34,14 @@ SELECT acs_object_type__create_type (
 );
 
 
+-- Setup status and type columns for im_user_absences
+update acs_object_types set 
+	status_column = 'absence_status_id', 
+	type_column='absence_type_id', 
+	status_type_table='im_user_absences' 
+where object_type = 'im_user_absence';
+
+
 ------------------------------------------------------
 -- Absences Table
 --
@@ -257,37 +265,41 @@ drop function inline_0 ();
 -- 16000-16099	Intranet Absence Status
 -- 16100-16999	reserved
 
-
-create or replace function inline_0 ()
-returns integer as '
-declare
-        v_count                 integer;
-begin
-        select count(*) into v_count
-        from im_categories where category_id = 5000;
-        if v_count > 0 then return 0; end if;
-
-	insert into im_categories ( CATEGORY_DESCRIPTION, ENABLED_P, CATEGORY_ID, CATEGORY, CATEGORY_TYPE) values
-	('''', ''f'', ''5000'', ''Vacation'', ''Intranet Absence Type'');
-	insert into im_categories ( CATEGORY_DESCRIPTION, ENABLED_P, CATEGORY_ID, CATEGORY, CATEGORY_TYPE) values
-	('''', ''f'', ''5001'', ''Personal'', ''Intranet Absence Type'');
-	insert into im_categories ( CATEGORY_DESCRIPTION, ENABLED_P, CATEGORY_ID, CATEGORY, CATEGORY_TYPE) values
-	('''', ''f'', ''5002'', ''Sick'', ''Intranet Absence Type'');
-	insert into im_categories ( CATEGORY_DESCRIPTION, ENABLED_P, CATEGORY_ID, CATEGORY, CATEGORY_TYPE) values
-	('''', ''f'', ''5003'', ''Travel'', ''Intranet Absence Type'');
-
-        return 0;
-end;' language 'plpgsql';
-select inline_0 ();
-drop function inline_0 ();
+SELECT im_category_new (16000, 'Active', 'Intranet Absence Status');
+SELECT im_category_new (16002, 'Deleted', 'Intranet Absence Status');
+SELECT im_category_new (16004, 'Requested', 'Intranet Absence Status');
+SELECT im_category_new (16006, 'Rejected', 'Intranet Absence Status');
 
 
-insert into im_categories(category_id, category, category_type) 
-values (16000, 'Active', 'Intranet Absence Status');
-insert into im_categories(category_id, category, category_type) 
-values (16002, 'Deleted', 'Intranet Absence Status');
-insert into im_categories(category_id, category, category_type) 
-values (16004, 'Requested', 'Intranet Absence Status');
+SELECT im_category_new (5000, 'Vacation', 'Intranet Absence Type');
+SELECT im_category_new (5001, 'Personal', 'Intranet Absence Type');
+SELECT im_category_new (5002, 'Sick', 'Intranet Absence Type');
+SELECT im_category_new (5003, 'Travel', 'Intranet Absence Type');
+SELECT im_category_new (5004, 'Bank Holiday', 'Intranet Absence Type');
+
+
+
+-- Set the default WF for each absence type
+update im_categories
+set aux_string1 = 'vacation_approval_wf'
+where category_id = 5000;
+
+update im_categories
+set aux_string1 = 'personal_approval_wf'
+where category_id = 5001;
+
+update im_categories
+set aux_string1 = 'sick_approval_wf'
+where category_id = 5002;
+
+update im_categories
+set aux_string1 = 'travel_approval_wf'
+where category_id = 5003;
+
+update im_categories
+set aux_string1 = 'bank_holiday_approval_wf'
+where category_id = 5004;
+
 
 
 
