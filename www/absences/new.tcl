@@ -40,10 +40,20 @@ if {[info exists absence_id]} {
     im_absence_permissions $user_id $absence_id view read write admin
 }
 
-#!!! Check permission
+# ToDo !!! Check permission
 if {![im_permission $user_id "add_absences"]} {
     ad_return_complaint "[_ intranet-timesheet2.lt_Insufficient_Privileg]" "
     <li>[_ intranet-timesheet2.lt_You_dont_have_suffici]"
+}
+
+
+
+# Set the old absence type. Used to detect changes in the absence type and 
+# therefore the need to display new DynField fields in a second page.
+if {![info exists absence_id]} {
+    set previous_absence_type_id 0
+} else {
+    set previous_absence_type_id [db_string prev_ptype "select absence_type_id from im_user_absences where absence_id = :absence_id" -default 0]
 }
 
 
@@ -52,13 +62,19 @@ if {![im_permission $user_id "add_absences"]} {
 # Delete pressed?
 # ------------------------------------------------------------------
 
-set actions [list {"Edit" edit} ]
-if {[im_permission $user_id add_absences]} {
-    lappend actions {"Delete" delete}
+set actions [list [list [lang::message::lookup {} intranet-timesheet2.Edit Edit] edit] ]
+
+# You need to be the owner of the absence in order to delete it.
+if {[info exists absence_id]} {
+    set owner_id [db_string owner "select creation_user from acs_objects where object_id = :absence_id" -default 0]
+    if {$user_id == $owner_id} {
+	lappend actions {"Delete" delete}
+    }
 }
 
 set button_pressed [template::form get_action absence]
 if {"delete" == $button_pressed} {
+    db_dml del_tokens "delete from wf_tokens where case_id in (select case_id from wf_cases where object_id = :absence_id)"
     db_string absence_delete "select im_user_absence__delete(:absence_id)"
     ad_returnredirect $cancel_url
 }
@@ -79,13 +95,22 @@ ad_form \
 	{owner_id:text(hidden)}
 	{absence_name:text(text) {label "[_ intranet-timesheet2.Name]"} {html {size 40}}}
 	{absence_type_id:text(im_category_tree) {label "[_ intranet-timesheet2.Type]"} {custom {category_type "Intranet Absence Type"}}}
-	{absence_status_id:text(im_category_tree) {label "[_ intranet-timesheet2.Status]"} {custom {category_type "Intranet Absence Status"}}}
+    }
 
+if {[im_permission $user_id edit_absence_status]} {
+    set form_list {{absence_status_id:text(im_category_tree) {label "[lang::message::lookup {} intranet-timesheet2.Status Status]"} {custom {category_type "Intranet Absence Status"}}}}
+} else {
+    set form_list {{absence_status_id:text(hidden)}}
+
+}
+ad_form -extend -name absence -form $form_list
+
+ad_form -extend -name absence -form {
 	{start_date:date(date),optional {label "[_ intranet-timesheet2.Start_Date]"} {format "DD Month YYYY HH24:MI"}}
 	{end_date:date(date),optional {label "[_ intranet-timesheet2.End_Date]"} {format "DD Month YYYY HH24:MI"}}
 	{description:text(textarea),optional {label "[_ intranet-timesheet2.Description]"} {html {cols 40}}}
 	{contact_info:text(textarea),optional {label "[_ intranet-timesheet2.Contact_Info]"} {html {cols 40}}}
-    }
+}
 
 
 # Add the right dynfields for the given type
@@ -198,7 +223,28 @@ ad_form -extend -name absence -on_request {
         -form_id absence
 
 } -after_submit {
-	ad_returnredirect $return_url
-	ad_script_abort
+
+
+    # -----------------------------------------------------------------
+    # Where do we want to go now?
+    #
+    # "Wizard" type of operation: We need to display a second page
+    # with all the potentially new DynField fields if the type of the
+    # absence has changed.
+    
+    if {[info exists previous_absence_type_id]} {
+        if {$absence_type_id != $previous_absence_type_id} {
+	    
+            # Check that there is atleast one dynfield. Otherwise
+            # it's not necessary to show the same page again
+            if {$field_cnt > 0} {
+                set return_url [export_vars -base "/intranet-timesheet2/absences/new?" {absence_id return_url}]
+            }
+        }
+    }
+
+
+    ad_returnredirect $return_url
+    ad_script_abort
 }
 
