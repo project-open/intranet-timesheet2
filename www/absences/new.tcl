@@ -13,6 +13,7 @@ ad_page_contract {
     { return_url "" }
     edit_p:optional
     message:optional
+    { absence_type_id:integer 0 }
     { form_mode "edit" }
 }
 
@@ -31,7 +32,12 @@ set focus "absence.var_name"
 set date_format "YYYY-MM-DD-HH24"
 set date_time_format "YYYY MM DD HH24 MI SS"
 
-set page_title [_ intranet-timesheet2.New_Absence]
+set absence_type "Absence"
+if {[info exists absence_id]} { 
+    set absence_type_id [db_string type "select absence_type_id from im_user_absences where absence_id = :absence_id" -default 0]
+    set absence_type [im_category_from_id $absence_type_id]
+}
+set page_title [lang::message::lookup "" intranet-timesheet2.New_Absence_Type "New %absence_type%"]
 set context [list $page_title]
 
 set read [im_permission $user_id "read_absences_all"]
@@ -50,9 +56,9 @@ if {![im_permission $user_id "add_absences"]} {
 
 # Set the old absence type. Used to detect changes in the absence type and 
 # therefore the need to display new DynField fields in a second page.
-if {![info exists absence_id]} {
-    set previous_absence_type_id 0
-} else {
+set previous_absence_type_id 0
+if {[info exists absence_type_id]} { set previous_absence_type_id $absence_type_id}
+if {[info exists absence_id]} {
     set previous_absence_type_id [db_string prev_ptype "select absence_type_id from im_user_absences where absence_id = :absence_id" -default 0]
 }
 
@@ -114,20 +120,20 @@ ad_form -extend -name absence -form {
 
 
 # Add the right dynfields for the given type
-set absence_type_id 0
 if {[info exists absence_id]} {
     set absence_type_id [db_string ptype "select absence_type_id from im_user_absences where absence_id = :absence_id" -default 0]
 }
 set my_absence_id 0
 if {[info exists absence_id]} { set my_absence_id $absence_id }
+
 set field_cnt [im_dynfield::append_attributes_to_form \
     -object_subtype_id $absence_type_id \
     -object_type "im_user_absence" \
     -form_id absence \
     -object_id $my_absence_id \
     -form_display_mode $form_mode \
-
 ]
+
 
 
 ad_form -extend -name absence -on_request {

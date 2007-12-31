@@ -95,7 +95,7 @@ begin
 	                                constraint im_user_absences_type_nn 
 					not null
 	);
-	alter table im_user_absences add constraint owner_and_start_date_unique unique (owner_id,start_date);
+	alter table im_user_absences add constraint owner_and_start_date_unique unique (owner_id,absence_type_id, start_date);
 	
 	create index im_user_absences_user_id_idx on im_user_absences(owner_id);
 	create index im_user_absences_dates_idx on im_user_absences(start_date, end_date);
@@ -223,30 +223,30 @@ begin
 
 
 	-- add_absences makes it possible to restrict the absence registering to internal stuff
-	select acs_privilege__create_privilege(''add_absences'',''Add Absences'',''Add Absences'');
-	select acs_privilege__add_child(''admin'', ''add_absences'');
+	PERFORM acs_privilege__create_privilege(''add_absences'',''Add Absences'',''Add Absences'');
+	PERFORM acs_privilege__add_child(''admin'', ''add_absences'');
 	
 	-- view_absences_all restricts possibility to see absences of others
-	select acs_privilege__create_privilege(''view_absences_all'',''View Absences All'',''View Absences All'');
-	select acs_privilege__add_child(''admin'', ''view_absences_all'');
+	PERFORM acs_privilege__create_privilege(''view_absences_all'',''View Absences All'',''View Absences All'');
+	PERFORM acs_privilege__add_child(''admin'', ''view_absences_all'');
 	
 	
-	select im_priv_create(''add_absences'', ''Accounting'');
-	select im_priv_create(''add_absences'', ''Employees'');
-	select im_priv_create(''add_absences'', ''Freelancers'');
-	select im_priv_create(''add_absences'', ''P/O Admins'');
-	select im_priv_create(''add_absences'', ''Project Managers'');
-	select im_priv_create(''add_absences'', ''Sales'');
-	select im_priv_create(''add_absences'', ''Senior Managers'');
+	PERFORM im_priv_create(''add_absences'', ''Accounting'');
+	PERFORM im_priv_create(''add_absences'', ''Employees'');
+	PERFORM im_priv_create(''add_absences'', ''Freelancers'');
+	PERFORM im_priv_create(''add_absences'', ''P/O Admins'');
+	PERFORM im_priv_create(''add_absences'', ''Project Managers'');
+	PERFORM im_priv_create(''add_absences'', ''Sales'');
+	PERFORM im_priv_create(''add_absences'', ''Senior Managers'');
 	
 	
-	select im_priv_create(''view_absences_all'', ''Accounting'');
-	select im_priv_create(''view_absences_all'', ''Employees'');
-	select im_priv_create(''view_absences_all'', ''Freelancers'');
-	select im_priv_create(''view_absences_all'', ''P/O Admins'');
-	select im_priv_create(''view_absences_all'', ''Project Managers'');
-	select im_priv_create(''view_absences_all'', ''Sales'');
-	select im_priv_create(''view_absences_all'', ''Senior Managers'');
+	PERFORM im_priv_create(''view_absences_all'', ''Accounting'');
+	PERFORM im_priv_create(''view_absences_all'', ''Employees'');
+	PERFORM im_priv_create(''view_absences_all'', ''Freelancers'');
+	PERFORM im_priv_create(''view_absences_all'', ''P/O Admins'');
+	PERFORM im_priv_create(''view_absences_all'', ''Project Managers'');
+	PERFORM im_priv_create(''view_absences_all'', ''Sales'');
+	PERFORM im_priv_create(''view_absences_all'', ''Senior Managers'');
 
         return 0;
 end;' language 'plpgsql';
