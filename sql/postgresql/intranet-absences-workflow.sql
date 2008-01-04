@@ -41,7 +41,7 @@ begin
 		and t.workflow_key = c.workflow_key
 		and t.transition_key = p_transition_key;
 
-	RAISE NOTICE ''im_user_absence__unassigned_passthrough_on_status: task_id=%, custom_arg=%, absence_id=%'', 
+	RAISE NOTICE ''im_user_absence__fire_on_status: task_id=%, custom_arg=%, absence_id=%'', 
 		v_task_id, p_custom_arg, v_absence_id;
 
 	-- Get the status of the absence
@@ -61,6 +61,48 @@ begin
 		-- Consume tokens from incoming places and put out tokens to outgoing places
 		PERFORM workflow_case__fire_transition_internal (v_task_id, v_journal_id);
 	END IF;
+	return 0;
+end;' language 'plpgsql';
+
+
+-- Enable callback that sets the status of the underlying object
+--
+create or replace function im_user_absence__set_object_status_id (integer,text,text)
+returns integer as '
+declare
+	p_case_id		alias for $1;
+	p_transition_key	alias for $2;
+	p_custom_arg		alias for $3;
+
+	v_task_id		integer;
+	v_case_id		integer;
+	v_absence_id		integer;
+	v_creation_user		integer;
+	v_creation_ip		varchar;
+	v_journal_id		integer;
+	v_transition_key	varchar;
+	v_workflow_key		varchar;
+
+	v_status		varchar;
+	v_str			text;
+	row			RECORD;
+begin
+	-- Select out some frequently used variables of the environment
+	select	c.object_id, c.workflow_key, task_id
+	into	v_absence_id, v_workflow_key, v_task_id
+	from	wf_tasks t, wf_cases c
+	where	c.case_id = p_case_id
+		and t.case_id = c.case_id
+		and t.workflow_key = c.workflow_key
+		and t.transition_key = p_transition_key;
+
+	RAISE NOTICE ''im_user_absence__set_object_status_id: task_id=%, custom_arg=%, absence_id=%'', 
+		v_task_id, p_custom_arg, v_absence_id;
+
+	update im_user_absences set
+	       absence_status_id = p_custom_arg::integer
+	where absence_id = v_absence_id;
+
 	return 0;
 end;' language 'plpgsql';
 
