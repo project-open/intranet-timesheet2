@@ -7,7 +7,7 @@
 
 
 
--- Unassigned callback that bypasses the transition if the absences has the specified status.
+-- Enable callback that bypasses the transition if the absences has the specified status.
 -- This callback is used with all absences workflows to bypass the very first "complete"
 -- step. This step is not necessary if the object has been correctly filled out.
 -- The transition is kept as the first transition in the WF only for estetic reasons.
