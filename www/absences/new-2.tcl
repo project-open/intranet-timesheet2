@@ -187,12 +187,10 @@ if {"" != $submit_save} {
 		                $absence_id
 		]
 
+		# Determine the first task in the case to be executed and start+finisch the task.
+		im_workflow_skip_first_transition -case_id $case_id
 	    }
-
 	}
-
-
-
     }
 
     if [catch {

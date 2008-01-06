@@ -81,6 +81,7 @@ if {[info exists absence_id]} {
 set button_pressed [template::form get_action absence]
 if {"delete" == $button_pressed} {
     db_dml del_tokens "delete from wf_tokens where case_id in (select case_id from wf_cases where object_id = :absence_id)"
+    db_dml del_case "delete from wf_cases where object_id = :absence_id"
     db_string absence_delete "select im_user_absence__delete(:absence_id)"
     ad_returnredirect $cancel_url
 }

@@ -245,7 +245,7 @@ set filter_html "
 set admin_html ""
 if {[im_permission $user_id "add_absences"]} { 
 	set admin_html "<ul>
-		<li><a href=$absences_url/new>[_ intranet-timesheet2.Add_a_new_Absence]</a></li>
+<!--		<li><a href=$absences_url/new>[_ intranet-timesheet2.Add_a_new_Absence]</a></li> -->
 		[im_menu_ul_list -no_uls 1 "timesheet2_absences" [ad_tcl_vars_to_ns_set]]
 	      </ul>
 	"
