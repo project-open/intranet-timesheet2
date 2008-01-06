@@ -1,8 +1,9 @@
+<if @enable_master_p@>
 <master src="../../../intranet-core/www/master">
 <property name="title">@page_title@</property>
 <property name="@context@">@context;noquote@</property>
 <property name="main_navbar_label">timesheet2_absences</property>
-
+</if>
 
 <if @message@ not nil>
   <div class="general-message">@message@</div>

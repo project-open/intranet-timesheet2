@@ -5,18 +5,23 @@
 # All rights reserved. Please check
 # http://www.project-open.com/license/ for details.
 
-ad_page_contract {
-    @param form_mode edit or display
-    @author frank.bergmann@project-open.com
-} {
-    absence_id:integer,optional
-    { return_url "" }
-    edit_p:optional
-    message:optional
-    { absence_type_id:integer 0 }
-    { form_mode "edit" }
+
+# Skip if this page is called as part of a Workflow panel
+if {![info exists panel_p]} {
+    ad_page_contract {
+	@param form_mode edit or display
+	@author frank.bergmann@project-open.com
+    } {
+	absence_id:integer,optional
+	{ return_url "" }
+	edit_p:optional
+	message:optional
+	{ absence_type_id:integer 0 }
+	{ form_mode "edit" }
+    }
 }
 
+if {![info exists enable_master_p]} { set enable_master_p 1}
 
 # ------------------------------------------------------------------
 # Default & Security
@@ -37,7 +42,7 @@ if {[info exists absence_id]} {
     set absence_type_id [db_string type "select absence_type_id from im_user_absences where absence_id = :absence_id" -default 0]
     set absence_type [im_category_from_id $absence_type_id]
 }
-set page_title [lang::message::lookup "" intranet-timesheet2.New_Absence_Type "New %absence_type%"]
+set page_title [lang::message::lookup "" intranet-timesheet2.New_Absence_Type "%absence_type%"]
 set context [list $page_title]
 
 set read [im_permission $user_id "read_absences_all"]
@@ -202,6 +207,9 @@ ad_form -extend -name absence -on_request {
 			     $context_key \
 			     $absence_id
 			]
+
+	    # Determine the first task in the case to be executed and start+finisch the task.
+            im_workflow_skip_first_transition -case_id $case_id
 	}
     }
 
