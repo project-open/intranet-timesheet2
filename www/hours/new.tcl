@@ -61,7 +61,7 @@ set different_date_url "index?[export_ns_set_vars url [list julian_date]]"
 
 
 # Append user-defined menus
-set bind_vars [ad_tcl_vars_to_ns_set user_id julian_date return_url]
+set bind_vars [ad_tcl_vars_to_ns_set user_id julian_date return_url show_week_p]
 set menu_links_html [im_menu_ul_list -no_uls 1 "timesheet_hours_new_admin" $bind_vars]
 
 

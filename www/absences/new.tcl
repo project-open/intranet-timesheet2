@@ -41,6 +41,12 @@ set absence_type "Absence"
 if {[info exists absence_id]} { 
     set absence_type_id [db_string type "select absence_type_id from im_user_absences where absence_id = :absence_id" -default 0]
     set absence_type [im_category_from_id $absence_type_id]
+
+    # Check that the absence is an absence...
+    set absence_exists_p [db_string count "select count(*) from im_user_absences where absence_id=:absence_id"]
+    if {!$absence_exists_p} {
+	ad_return_complaint 1 "<b>Error: The selected absence (#$absence_id) does not exist</b>:<br>The absence has probably been deleted by its owner recently."
+    }
 }
 set page_title [lang::message::lookup "" intranet-timesheet2.New_Absence_Type "%absence_type%"]
 set context [list $page_title]
@@ -152,11 +158,13 @@ ad_form -extend -name absence -on_request {
     if {![info exists absence_status_id]} { set absence_status_id [im_absence_status_requested] }
     
 } -select_query {
+
 	select	a.*,
 		to_char(start_date, 'YYYY MM DD HH24 MI') as start_date,
 		to_char(end_date, 'YYYY MM DD HH24 MI') as end_date
 	from	im_user_absences a
 	where	absence_id = :absence_id
+
 } -new_data {
 
     set start_date_sql [template::util::date get_property sql_timestamp $start_date]
