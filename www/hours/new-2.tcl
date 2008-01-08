@@ -211,6 +211,19 @@ foreach i $weekly_logging_days {
 			and day = to_date([expr $julian_date+$i], 'J')
 	    "
 
+	    if {[util_memoize "db_column_exists im_hours conf_object_id"]} {
+	        db_dml hours_update "
+		update im_hours
+		set 
+			conf_object_id = null
+		where
+			project_id = :project_id
+			and user_id = :user_id
+			and day = to_date([expr $julian_date+$i], 'J')
+                "
+	    }
+
+
 	    # Add a new im_hour record if there wasn't one before...
 	    if { [db_resultrows] == 0 } {
 		db_dml hours_insert "
