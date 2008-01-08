@@ -43,10 +43,10 @@ if {[info exists absence_id]} {
     set absence_type [im_category_from_id $absence_type_id]
 
     # Check that the absence is an absence...
-    set absence_exists_p [db_string count "select count(*) from im_user_absences where absence_id=:absence_id"]
-    if {!$absence_exists_p} {
-	ad_return_complaint 1 "<b>Error: The selected absence (#$absence_id) does not exist</b>:<br>The absence has probably been deleted by its owner recently."
-    }
+#    set absence_exists_p [db_string count "select count(*) from im_user_absences where absence_id=:absence_id"]
+#    if {!$absence_exists_p} {
+#	ad_return_complaint 1 "<b>Error: The selected absence (#$absence_id) does not exist</b>:<br>The absence has probably been deleted by its owner recently."
+#    }
 }
 set page_title [lang::message::lookup "" intranet-timesheet2.New_Absence_Type "%absence_type%"]
 set context [list $page_title]
