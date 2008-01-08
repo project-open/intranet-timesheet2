@@ -89,32 +89,62 @@ set calendar_details [ns_set create calendar_details]
 # This call defines a whole set of variables in our environment
 calendar_get_info_from_db $date
 
+# --------------------------------------------------------------
 # Grab all the hours from im_hours
 set sql "
-select 
-	to_char(day, 'J') as julian_date, 
-	sum(hours) as hours
-from
-	im_hours
-where
-	user_id = :user_id
-	and day between to_date(:first_julian_date, 'J') 
-	and to_date(:last_julian_date, 'J') 
-	$project_restriction
-group by 
-	to_char(day, 'J')
+	select 
+		to_char(day, 'J') as julian_date, 
+		sum(hours) as hours
+	from
+		im_hours
+	where
+		user_id = :user_id
+		and day between to_date(:first_julian_date, 'J') and to_date(:last_julian_date, 'J') 
+		$project_restriction
+	group by 
+		to_char(day, 'J')
 "
 
 db_foreach hours_logged $sql {
-    ns_log Notice "/intranet-timesheet2/index: $julian_date - $hours"
     set users_hours($julian_date) $hours
 }
 
+
+# --------------------------------------------------------------
+# Get the unconfirmed hours for the week
+if {[db_column_exists im_hours conf_object_id]} {
+    set sql "
+	select 
+		to_char(day, 'J') as julian_date, 
+		sum(hours) as hours
+	from
+		im_hours
+	where
+		user_id = :user_id
+		and day between to_date(:first_julian_date, 'J') and to_date(:last_julian_date, 'J') 
+		and conf_object_id is null
+		$project_restriction
+	group by 
+		to_char(day, 'J')
+    "
+    db_foreach hours_logged $sql {
+	set unconfirmed_hours($julian_date) $hours
+    }
+}
+
+
+
+# --------------------------------------------------------------
+# Render the calendar
+
 set hours_for_this_week 0.0
-set first_day 1
+set unconfirmed_hours_for_this_week 0.0
 set absence_list [absence_list_for_user_and_time_period $user_id $first_julian_date $last_julian_date]
 set absence_index 0
 set curr_absence ""
+
+# Day of week: 1=Sunday, 2=Mon, ..., 7=Sat.
+set day_of_week 1
 
 # And now fill in information for every day of the month
 for { set current_date $first_julian_date} { $current_date <= $last_julian_date } { incr current_date } {
@@ -128,48 +158,56 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
 	set hours "<font color=#666666><em>[_ intranet-timesheet2.log_hours]</em></font>"
     }
 
+
+    # Sum up unconfirmed_hours
+    if {![info exists unconfirmed_hours($current_date)]} { set unconfirmed_hours($current_date) "" }
+    if {"" == $unconfirmed_hours($current_date)} { set unconfirmed_hours($current_date) 0 }
+    set unconfirmed_hours_for_this_week [expr $unconfirmed_hours_for_this_week + $unconfirmed_hours($current_date)]
+
     # Render the "Sunday" link to log "hours for the week"
-    if {$first_day == 1 } {
+    if {$day_of_week == 1 } {
 	append hours "<br>
 		<a href=[export_vars -base "new" {user_id {julian_date $current_date} {show_week_p 1} return_url}]
 		><font color=#666666><em>log hours for the week</em></font></a>
 	"
     }
 
-
     # User's Absences for the day
     set curr_absence [lindex $absence_list $absence_index]
     if {"" != $curr_absence} { set curr_absence "<br>$curr_absence" }
 
     if {$write_p} {
-	set html "
-		<a href=[export_vars -base "new" {user_id {julian_date $current_date} {show_week_p 0} return_url}]>$hours</a>
-		$curr_absence 
-	"
+        set hours_url [export_vars -base "new" {user_id {julian_date $current_date} {show_week_p 0} return_url}]
+	set html "<a href=$hours_url>$hours</a>$curr_absence"
     } else {
-	set html "
-		$curr_absence 
-	"
+	set html "$curr_absence"
     }
 
-
     # Render the "Saturday" sum of the weekly hours
-    if {$first_day == 7 } {
-	append html "
-		<br>
+    if {$day_of_week == 7 } {
+	append html "<br>
 		<a href=[export_vars -base "week" {{julian_date $current_date} user_id}]
 		>[_ intranet-timesheet2.Week_total_1] $hours_for_this_week</a>
 	"
-    }
 
+	if {0 != $unconfirmed_hours_for_this_week} {
+	    set start_date_julian [expr $current_date - 6]
+	    set end_date_julian $current_date
+
+	    set unconf_url [export_vars -base "/intranet-timesheet2-workflow/new-timesheet-workflow" { user_id start_date_julian end_date_julian}]
+	    set button_txt [lang::message::lookup "" intranet-timesheet2.Confirm_weekly_hours "Confirm %unconfirmed_hours_for_this_week% Hours"]
+	    append html "<p>&nbsp;</p><a href='$unconf_url' class=button>$button_txt</a>"
+	}
+    }
 
     ns_set put $calendar_details $current_date "$html<br>&nbsp;"
     
     # we keep track of the day of the week we are on
-    incr first_day
-    if { $first_day > 7 } {
-	set first_day 1
+    incr day_of_week
+    if { $day_of_week > 7 } {
+	set day_of_week 1
 	set hours_for_this_week 0.0
+	set unconfirmed_hours_for_this_week 0.0
     }
     set curr_absence ""
     incr absence_index
