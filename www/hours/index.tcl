@@ -194,7 +194,7 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
 	    set start_date_julian [expr $current_date - 6]
 	    set end_date_julian $current_date
 
-	    set unconf_url [export_vars -base "/intranet-timesheet2-workflow/new-timesheet-workflow" { user_id start_date_julian end_date_julian return_url}]
+	    set unconf_url [export_vars -base "/intranet-timesheet2-workflow/conf-objects/new-timesheet-workflow" { user_id start_date_julian end_date_julian return_url}]
 	    set button_txt [lang::message::lookup "" intranet-timesheet2.Confirm_weekly_hours "Confirm %unconfirmed_hours_for_this_week% Hours"]
 	    append html "<p>&nbsp;</p><a href='$unconf_url' class=button>$button_txt</a>"
 	}
