@@ -631,12 +631,15 @@ template::multirow foreach hours_multirow {
     set log_on_parent_p 1
     if {[info exists has_children_hash($project_id)]} { set log_on_parent_p 0 }
 
+    # Write out the name of the project nicely indented
+    append results "<td><nobr>$indent <A href=\"$project_url\">$ptitle</A></nobr></td>\n"
+
     if {"t" == $edit_hours_p && $log_on_parent_p} {
 
-	append results "<td><nobr>$indent <A href=\"$project_url\">$ptitle</A></nobr></td>\n"
-
+	# Log hours on "Parent".
 	if {!$show_week_p} {
 
+	    # Daily View - 1 field for hours + 1 field for comment
 	    set hours ""
 	    set note ""
 	    if {[info exists hours_hours($project_id-$julian_date)]} { set hours $hours_hours($project_id-$julian_date) }
@@ -647,24 +650,45 @@ template::multirow foreach hours_multirow {
 
 	} else {
 
+	    # Weekly View - 7 fields with hours only
 	    foreach i $weekly_logging_days {
 		set julian_day_offset [expr $julian_date + $i]
 		set hours ""
 		set note ""
 		if {[info exists hours_hours($project_id-$julian_day_offset)]} { set hours $hours_hours($project_id-$julian_day_offset) }
 		if {[info exists hours_note($project_id-$julian_day_offset)]} { set note $hours_note($project_id-$julian_day_offset) }
-		append results "<td><INPUT NAME=hours${i}.$project_id size=5 MAXLENGTH=5 value=\"$hours\">$p_hours</td>\n"
+		append results "<td><INPUT NAME=hours${i}.$project_id size=5 MAXLENGTH=5 value=\"$hours\"></td>\n"
 	    }
 
 	}
 
     } else {
-	if {![info exists hours] || "" == $hours} { set hours "" }
-	append results "
-	  <td><nobr>$indent <A href=\"$project_url\">$ptitle</A></nobr></td>
-	  <td align=right>$hours</td>
-	  <td>[value_if_exists note] $p_notes</td>
-	"
+
+	# Just write plain text and no <input>, because the user shouldn't enter hours here.
+
+	if {!$show_week_p} {
+
+	    # Daily view with plain text, without <input>
+	    set hours ""
+	    set note ""
+	    if {[info exists hours_hours($project_id-$julian_date)]} { set hours $hours_hours($project_id-$julian_date) }
+	    if {[info exists hours_note($project_id-$julian_date)]} { set note $hours_note($project_id-$julian_date) }
+	    
+	    append results "<td>$hours</td>\n"
+	    append results "<td>$note</td>\n"
+	    
+	} else {
+	    
+	    # Weekly view with plain text only
+	    foreach i $weekly_logging_days {
+		set julian_day_offset [expr $julian_date + $i]
+		set hours ""
+		set note ""
+		if {[info exists hours_hours($project_id-$julian_day_offset)]} { set hours $hours_hours($project_id-$julian_day_offset) }
+		if {[info exists hours_note($project_id-$julian_day_offset)]} { set note $hours_note($project_id-$julian_day_offset) }
+		append results "<td>$hours</td>\n"
+	    }
+	}
     }
     append results "</tr>\n"
     incr ctr
