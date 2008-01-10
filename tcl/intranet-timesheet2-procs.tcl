@@ -445,7 +445,7 @@ where
     # Process vacation periods and modify array accordingly.
     db_foreach vacation_period $sql {
 	for {set i [max $start_date $first_julian_date]} {$i<=[min $end_date $last_julian_date]} {incr i } {
-	   set vacation($i) "<a href=\"/intranet-timesheet2/absences/view?absence_id=$absence_id\">[_ intranet-timesheet2.Absent_1]</a> $absence_type<br>"
+	   set vacation($i) "<a href=\"/intranet-timesheet2/absences/new?form_mode=display&absence_id=$absence_id\">[_ intranet-timesheet2.Absent_1]</a> $absence_type<br>"
 	}
     }
     # Return the relevant part of the array as a list.
