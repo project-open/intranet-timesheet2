@@ -74,20 +74,37 @@ if {[info exists absence_id]} {
 }
 
 
-
 # ------------------------------------------------------------------
-# Delete pressed?
+# Action permissions
 # ------------------------------------------------------------------
 
-set actions [list [list [lang::message::lookup {} intranet-timesheet2.Edit Edit] edit] ]
+set actions [list]
+
+if {[info exists absence_id]} {
+
+    set edit_perm_func [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter AbsenceNewPageWfEditButtonPerm -default "im_absence_new_page_wf_perm_edit_button"]
+    set delete_perm_func [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter AbsenceNewPageWfDeleteButtonPerm -default "im_absence_new_page_wf_perm_delete_button"]
+
+    if {[eval [list $edit_perm_func -absence_id $absence_id]]} {
+	lappend actions [list [lang::message::lookup {} intranet-timesheet2.Edit Edit] edit]
+    }
+    if {[eval [list $delete_perm_func -absence_id $absence_id]]} {
+	lappend actions [list [lang::message::lookup {} intranet-timesheet2.Delete Delete] Delete]
+    }
+}
+
 
 # You need to be the owner of the absence in order to delete it.
-if {[info exists absence_id]} {
+if {0 && [info exists absence_id]} {
     set owner_id [db_string owner "select creation_user from acs_objects where object_id = :absence_id" -default 0]
     if {$user_id == $owner_id} {
 	lappend actions {"Delete" delete}
     }
 }
+
+# ------------------------------------------------------------------
+# Delete pressed?
+# ------------------------------------------------------------------
 
 set button_pressed [template::form get_action absence]
 if {"delete" == $button_pressed} {
@@ -106,6 +123,7 @@ ad_form \
     -cancel_url $cancel_url \
     -action $action_url \
     -actions $actions \
+    -has_edit 1 \
     -mode $form_mode \
     -export {user_id return_url} \
     -form {
@@ -118,8 +136,8 @@ ad_form \
 if {[im_permission $user_id edit_absence_status]} {
     set form_list {{absence_status_id:text(im_category_tree) {label "[lang::message::lookup {} intranet-timesheet2.Status Status]"} {custom {category_type "Intranet Absence Status"}}}}
 } else {
+#    set form_list {{absence_status_id:text(im_category_tree) {mode display} {label "[lang::message::lookup {} intranet-timesheet2.Status Status]"} {custom {category_type "Intranet Absence Status"}}}}
     set form_list {{absence_status_id:text(hidden)}}
-
 }
 ad_form -extend -name absence -form $form_list
 

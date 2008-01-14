@@ -730,3 +730,49 @@ order by
     return $ret_val
 }
 
+
+# ---------------------------------------------------------------------
+# Absence Workflow Permissions
+#
+# You can replace these functions with custom functions by modifying parameters.
+# ---------------------------------------------------------------------
+
+
+ad_proc im_absence_new_page_wf_perm_edit_button {
+    -absence_id:required
+} {
+    Should we show the "Edit" button in the AbsenceNewPage?
+    The button is visible only for the Owner of the absence
+    and the Admin, but nobody else during the course of the WF.
+
+    Also, the Absence should not be changed anymore once it has
+    started.
+} {
+    set current_user_id [ad_get_user_id]
+    set current_user_is_admin_p [im_is_user_site_wide_or_intranet_admin $current_user_id]
+    set owner_id [util_memoize "db_string owner \"select creation_user from acs_objects where object_id = $absence_id\" -default 0"]
+
+    # The standard case: Only the owner should edit his own absences.
+    set perm_p 0
+    if {$owner_id == $current_user_id} { set perm_p 1 }
+
+    # The owner can't edit anymore after the absence has been approved.
+    set already_approved_p [db_string start "select [im_absence_status_active] = absence_status_id from im_user_absences where absence_id = :absence_id" -default "f"]
+    if {"t" == $already_approved_p} { set perm_p 0 }
+
+    # Admins & HR can do everything anytime.
+    if {[im_user_is_hr_p $current_user_id]} { set perm_p 1 }
+    if {$current_user_is_admin_p} { set perm_p 1 }
+
+    return $perm_p
+}
+
+ad_proc im_absence_new_page_wf_perm_delete_button {
+    -absence_id:required
+} {
+    Should we show the "Delete" button in the AbsenceNewPage?
+    The button is visible only for the Owner of the absence,
+    but nobody else in the WF.
+} {
+    return [im_absence_wf_perm_edit_button -absence_id $absence_id]
+}
