@@ -31,6 +31,7 @@ set user_id [ad_maybe_redirect_for_registration]
 
 set action_url "/intranet-timesheet2/absences/new"
 set cancel_url "/intranet-timesheet2/absences/index"
+set current_url [im_url_with_query]
 if {"" == $return_url} { set return_url "/intranet-timesheet2/absences/index" }
 
 set focus "absence.var_name"
@@ -63,6 +64,10 @@ if {![im_permission $user_id "add_absences"]} {
     <li>[_ intranet-timesheet2.lt_You_dont_have_suffici]"
 }
 
+
+if {0 == $absence_type_id && ![info exists absence_id]} { 
+    ad_returnredirect [export_vars -base "/intranet/biz-object-type-select" {{object_type "im_user_absence"} {return_url $current_url} {type_id_var "absence_type_id"}}]
+}
 
 
 # Set the old absence type. Used to detect changes in the absence type and 
