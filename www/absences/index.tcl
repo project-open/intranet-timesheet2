@@ -34,7 +34,7 @@ ad_page_contract {
     { order_by "User" }
     { how_many "" }
     { absence_type_id:integer "-1" }
-    { user_selection "everyones" }
+    { user_selection "mine" }
     { timescale "all" }
     { view_name "absence_list_home" }
 }

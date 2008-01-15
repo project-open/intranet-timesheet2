@@ -80,6 +80,7 @@ begin
 	                                constraint im_user_absences_start_const not null,
 	        end_date                timestamptz
 	                                constraint im_user_absences_end_const not null,
+		duration_days		numeric(12,1),			
 	        description             varchar(4000),
 	        contact_info            varchar(4000),
 

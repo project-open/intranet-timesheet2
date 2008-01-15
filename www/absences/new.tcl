@@ -35,8 +35,8 @@ set current_url [im_url_with_query]
 if {"" == $return_url} { set return_url "/intranet-timesheet2/absences/index" }
 
 set focus "absence.var_name"
-set date_format "YYYY-MM-DD-HH24"
-set date_time_format "YYYY MM DD HH24 MI SS"
+set date_format "YYYY-MM-DD"
+set date_time_format "YYYY MM DD"
 
 set absence_type "Absence"
 if {[info exists absence_id]} { 
@@ -65,8 +65,15 @@ if {![im_permission $user_id "add_absences"]} {
 }
 
 
-if {0 == $absence_type_id && ![info exists absence_id]} { 
-    ad_returnredirect [export_vars -base "/intranet/biz-object-type-select" {{object_type "im_user_absence"} {return_url $current_url} {type_id_var "absence_type_id"}}]
+# Redirect if the type of the object hasn't been defined and
+# if there are DynFields specific for subtypes.
+if {0 == $absence_type_id && ![info exists absence_id]} {
+
+    set all_same_p [im_dynfield::subtype_have_same_attributes_p -object_type "im_user_absence"]
+    set all_same_p 0
+    if {!$all_same_p} {
+	ad_returnredirect [export_vars -base "/intranet/biz-object-type-select" {{object_type "im_user_absence"} {return_url $current_url} {type_id_var "absence_type_id"}}]
+    }
 }
 
 
@@ -147,10 +154,11 @@ if {[im_permission $user_id edit_absence_status]} {
 ad_form -extend -name absence -form $form_list
 
 ad_form -extend -name absence -form {
-	{start_date:date(date),optional {label "[_ intranet-timesheet2.Start_Date]"} {format "DD Month YYYY HH24:MI"}}
-	{end_date:date(date),optional {label "[_ intranet-timesheet2.End_Date]"} {format "DD Month YYYY HH24:MI"}}
-	{description:text(textarea),optional {label "[_ intranet-timesheet2.Description]"} {html {cols 40}}}
-	{contact_info:text(textarea),optional {label "[_ intranet-timesheet2.Contact_Info]"} {html {cols 40}}}
+    {start_date:date(date) {label "[_ intranet-timesheet2.Start_Date]"}}
+    {end_date:date(date) {label "[_ intranet-timesheet2.End_Date]"}}
+    {duration_days:float(text) {label "[lang::message::lookup {} intranet-timesheet2.Duration_days {Duration (Days)}]"} {help_text "[lang::message::lookup {} intranet-timesheet2.Duration_days_help {Please specify the absence duration as a number or fraction of days. Example: '1'=one day, '0.5'=half a day)}]"}}
+    {description:text(textarea),optional {label "[_ intranet-timesheet2.Description]"} {html {cols 40}}}
+    {contact_info:text(textarea),optional {label "[_ intranet-timesheet2.Contact_Info]"} {html {cols 40}}}
 }
 
 
@@ -176,6 +184,7 @@ ad_form -extend -name absence -on_request {
     # Populate elements from local variables
     if {![info exists start_date]} { set start_date [db_string today "select to_char(now(), :date_time_format)"] }
     if {![info exists end_date]} { set end_date [db_string today "select to_char(now()+'24 hours'::interval, :date_time_format)"] }
+    if {![info exists duration_days]} { set duration_days "" }
     if {![info exists owner_id]} { set owner_id $user_id }
     if {![info exists absence_type_id]} { set absence_type_id [im_absence_type_vacation] }
     if {![info exists absence_status_id]} { set absence_status_id [im_absence_status_requested] }
@@ -202,7 +211,6 @@ ad_form -extend -name absence -on_request {
 	ad_return_complaint 1 [lang::message::lookup {} intranet-timesheet2.Absence_Duplicate_Start {There is already an absence with exactly the same start date.}]
     }
 
-
     db_transaction {
 	set absence_id [db_string new_absence "
 		SELECT im_user_absence__new(
@@ -223,6 +231,18 @@ ad_form -extend -name absence -on_request {
 			:contact_info
 		)
 	"]
+
+	db_dml update_absence "
+		update im_user_absences	set
+			duration_day = :duration_days
+		where absence_id = :absence_id
+	"
+
+	db_dml update_object "
+		update acs_objects set
+			last_modified = now()
+		where absence_id = :absence_id
+	"
 
 	im_dynfield::attribute_store \
 	    -object_type "im_user_absence" \
@@ -255,6 +275,7 @@ ad_form -extend -name absence -on_request {
 			owner_id = :owner_id,
 			start_date = $start_date_sql,
 			end_date = $end_date_sql,
+			duration_days = :duration_days,
 			absence_status_id = :absence_status_id,
 			absence_type_id = :absence_type_id,
 			description = :description,
