@@ -89,7 +89,7 @@ if {[info exists absence_id]} {
 	lappend actions [list [lang::message::lookup {} intranet-timesheet2.Edit Edit] edit]
     }
     if {[eval [list $delete_perm_func -absence_id $absence_id]]} {
-	lappend actions [list [lang::message::lookup {} intranet-timesheet2.Delete Delete] Delete]
+	lappend actions [list [lang::message::lookup {} intranet-timesheet2.Delete Delete] delete]
     }
 }
 
