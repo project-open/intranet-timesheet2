@@ -17,7 +17,9 @@ ad_page_contract {
     Writes hours to db. 
 
     @param hours	
-    @param julian_date
+    @param julian_date Julian date of the first day in the hours array
+                       With single-day logging, this is the day for logging.
+                       With weekly logging, this is the start of the week (Sunday!)
 
     @author dvr@arsdigita.com
     @author mbryzek@arsdigita.com
@@ -43,232 +45,154 @@ ad_page_contract {
 
 set user_id [ad_maybe_redirect_for_registration]
 set date_format "YYYY-MM-DD"
-
-# Please note "_" instead of "-". This is because we use
-# underscores in the invoices and other costs. So the
-# timesheet information gets sorted in the right order.
-set timesheet_log_date_format "YYYY_MM_DD"
-
-set today [db_string day "
-	select to_char(to_date(:julian_date, 'J'), :timesheet_log_date_format) 
-	from dual
-"]
+set default_currency [ad_parameter -package_id [im_package_cost_id] "DefaultCurrency" "" "EUR"]
 
 # ----------------------------------------------------------
-# Determine Billing Rate
+# Billing Rate & Currency
 # ----------------------------------------------------------
 
 set billing_rate 0
 set billing_currency ""
 
 db_0or1row get_billing_rate "
-	select
-		hourly_cost as billing_rate,
+	select	hourly_cost as billing_rate,
 		currency as billing_currency
-	from
-		im_employees
-	where
-		employee_id = :user_id
+	from	im_employees
+	where	employee_id = :user_id
 "
 
-if {"" == $billing_currency} {
-    set billing_currency [ad_parameter -package_id [im_package_cost_id] "DefaultCurrency" "" "EUR"]
-}
-
-
-# ----------------------------------------------------------
-# Get the list of the hours of the current user today
-# ----------------------------------------------------------
-
-set sql "
-	select
-		project_id as hour_project_id,
-		cost_id as hour_cost_id,
-		to_char(day, 'J') as hour_julian_date
-	from	im_hours
-	where	user_id = :user_id
-		and day = to_date(:julian_date, 'J')
-"
-db_foreach hours $sql {
-
-    ns_log Notice "new-2: pid=$hour_project_id => $hour_cost_id"
-    set hours_exists_p($hour_project_id-$hour_julian_date) 1
-
-    if {"" != $hour_cost_id} {
-        set hours_cost_id($hour_project_id-$hour_julian_date) $hour_cost_id
-    }
-}
+if {"" == $billing_currency} { set billing_currency $default_currency }
 
 
 # ----------------------------------------------------------
 # Update items
 # ----------------------------------------------------------
 
-# Add 0 to the days for logging, as this is used for single-day
-# entry
+# Add 0 to the days for logging, as this is used for single-day entry
 set weekly_logging_days [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter TimesheetWeeklyLoggingDays -default "0 1 2 3 4 5 6"]
+# Add a "0" to refer to the current day for single-day logging.
 set weekly_logging_days [set_union $weekly_logging_days [list 0]]
 
 
+# Go through all days of the week (or just a single one in case of single-day logging
 foreach i $weekly_logging_days {
 
-    # Check how many entries per column
-    set item_nrs [array names hours$i]
-    if {0 == [llength $item_nrs]} { continue }
+    set day_julian [expr $julian_date+$i]
 
-    foreach project_id $item_nrs {
-	
-	ns_log Notice "timesheet2-tasks/new-2: project_id=$project_id"
-	set hash_key "$project_id-[expr $julian_date+$i]"
+    array unset database_hours_hash
+    array unset database_note_hash
+    array unset hours_cost_id
 
-	# Extract the hours worked from the array
-	set hours_worked 0
-	switch $i {
-	    0 { if {[info exists hours0($project_id)]} { set hours_worked [string trim $hours0($project_id)] } }
-	    1 { if {[info exists hours1($project_id)]} { set hours_worked [string trim $hours1($project_id)] } }
-	    2 { if {[info exists hours2($project_id)]} { set hours_worked [string trim $hours2($project_id)] } }
-	    3 { if {[info exists hours3($project_id)]} { set hours_worked [string trim $hours3($project_id)] } }
-	    4 { if {[info exists hours4($project_id)]} { set hours_worked [string trim $hours4($project_id)] } }
-	    5 { if {[info exists hours5($project_id)]} { set hours_worked [string trim $hours5($project_id)] } }
-	    6 { if {[info exists hours6($project_id)]} { set hours_worked [string trim $hours6($project_id)] } }
-	    default { ad_return_complaint 1 "hours/new-2: invalid day_of_week. Please inform SysAdmin."}
-	}
-	if { [empty_string_p $hours_worked] } { set hours_worked 0 }
-
-	# A note is only available for single-day entry.
-	# ToDo: Only enable for single-day entry
-	set note ""
-	if {[info exists notes0($project_id)]} { set note [string trim $notes0($project_id)] }
-	set note [string trim $note]
-	
-	if {"" == $project_id || 0 == $project_id} {
-	    ad_return_complaint 1 "Internal Error:<br>There is an empty project_id for item \# $project_id"
-	    return
-	}
-
-	# ------------------------------------------------------------------------
-	# Always delete any previously existing entries plus their costs & ConfObjects
-
-	if {[info exists hours_cost_id($hash_key)]} {
-
-	    # ----------------------------------------------------
-	    ns_log Notice "new-2: Delete costs for ts: (pid=$project_id, uid=$user_id, day=$julian_date)"
-	    set del_cost_ids [db_list del_cost_ids "
-		select	h.cost_id
-		from	im_hours h
-		where	h.project_id = :project_id
-			and h.user_id = :user_id
-			and h.day = to_date([expr $julian_date+$i], 'J')
-	    "]
-
-	    foreach cost_id $del_cost_ids {
-	    	db_dml update_hours "
-		    	update im_hours
-			set cost_id = null
-			where cost_id = :cost_id
-	        "
-
-	    	db_string del_ts_costs "select im_cost__delete(:cost_id)"
-		# The project's timesheet cache is updated every X minutes by a sweeper..
-	    }
-
-
-	    # ----------------------------------------------------
-	    # Check for ConfirmationObjects affected by the hour
-	    set conf_ids [db_list main_pids "
-	    	select distinct
-			c.conf_id
+    # ----------------------------------------------------------
+    # Get the list of the hours of the current user today,
+    # together with the main project (needed for ConfirmationObject).
+    set database_hours_logged_sql "
+		select	
+			p.project_id as hour_project_id,
+			h.cost_id as hour_cost_id,
+			h.hours,
+			h.note
 		from
 			im_hours h,
-			im_projects p,
-			im_projects main_p,
-			im_timesheet_conf_objects c
+			im_projects p
 		where
-			h.day = to_date([expr $julian_date+$i], 'J') and
 			h.user_id = :user_id and
-			h.project_id = p.project_id and
-			tree_ancestor_key(p.tree_sortkey, 1) = main_p.tree_sortkey and
-			c.conf_project_id = main_p.project_id and
-			c.conf_user_id = :user_id and
-			to_date([expr $julian_date+$i], 'J') between c.start_date and c.end_date
-	    "]
+			h.day = to_date(:day_julian, 'J') and
+			h.project_id = p.project_id
+    "
+    db_foreach hours $database_hours_logged_sql {
 
-	    # Remove all hours from the conf_objects, so hours are always confirmed cummulatively.
+        set key "$hour_project_id"
+
+	# Store logged hours into Hash arrays.
+    	set database_hours_hash($key) $hours
+    	set database_note_hash($key) $note
+
+	# Setup (project x day) => cost_id relationship
+	if {"" != $hour_cost_id} {
+	    set hours_cost_id($key) $hour_cost_id
+	}
+    }
     
-	    foreach conf_id $conf_ids {
-		db_dml update_hours "
-			update im_hours
-			       set conf_object_id = null
-			where	conf_object_id = :conf_id
-	    	"
+    # ----------------------------------------------------------
+    # Extract the information from "screen" into hash array with
+    # same structure as the one from the database
 
-		db_string conf_delete "select im_timesheet_conf_object__delete(:conf_id)"
-	    }
+    set screen_hours_elements [array get hours$i]
+    array set screen_hours_hash $screen_hours_elements
+
+    set screen_notes_elements [array get hours$i]
+    array set screen_notes_hash $screen_notes_elements
+
+
+#    ad_return_complaint 1 "<pre>[array get database_hours_hash]\n[array get screen_hours_hash]</pre>"
+
+    # Get the list of the union of key in both array
+    set all_project_ids [set_union [array names screen_hours_hash] [array names database_hours_hash]]
+    
+    # Create the "action_hash" with a mapping (pid) => action for all lines where we
+    # have to take an action. We construct this hash by iterating through all entries 
+    # (both db and screen) and comparing their content.
+    foreach pid $all_project_ids {
+	# Extract the hours and notes from the database hashes
+	set db_hours ""
+	set db_notes ""
+	if {[info exists database_hours_hash($pid)]} { set db_hours $database_hours_hash($pid) }
+	if {[info exists database_notes_hash($pid)]} { set db_notes [string trim $database_notes_hash($pid)] }
+
+	# Extract the hours and notes from the screen hashes
+	set screen_hours ""
+	set screen_notes ""
+	if {[info exists screen_hours_hash($pid)]} { set screen_hours $screen_hours_hash($pid) }
+	if {[info exists screen_notes_hash($pid)]} { set screen_notes [string trim $screen_notes_hash($pid)] }
+
+
+	# Determine the action to take on the database items from comparing database vs. screen
+	set action error
+	if {$db_hours == "" && $screen_hours != ""} { set action insert }
+	if {$db_hours != "" && $screen_hours == ""} { set action delete }
+	if {$db_hours != "" && $screen_hours != ""} { set action update }
+	if {$db_hours == $screen_hours} { set action skip }
+
+	if {"skip" != $action} { set action_hash($pid) $action }
+    }
+
+#    ad_return_complaint 1 [array get action_hash]
+
+    # Execute the actions
+    foreach project_id [array names action_hash] {
+
+	# For all actions: We modify the hours that the person has logged that week, 
+	# so we need to reset/delete the TimesheetConfObject.
+	im_timesheet_conf_object_delete \
+	    -project_id $project_id \
+	    -user_id $user_id \
+	    -day_julian $day_julian
+
+	# Delete any cost elements related to the hour.
+	# This time project_id refers to the specific (sub-) project.
+	im_timesheet_costs_delete \
+	    -project_id $project_id \
+	    -user_id $user_id \
+	    -day_julian $day_julian
+
+
+	# Prepare hours_worked and hours_notes for insert & update actions
+	set hours_worked $screen_hours_hash($project_id)
+	set note $screen_notes_hash($project_id)
+
+	if { [regexp {([0-9]+)(\,([0-9]+))?} $hours_worked] } {
+	    regsub "," $hours_worked "." hours_worked
+	    regsub "'" $hours_worked "." hours_worked
+	} elseif { [regexp {([0-9]+)(\'([0-9]+))?} $hours_worked] } {
+	    regsub "'" $hours_worked "." hours_worked
+	    regsub "," $hours_worked "." hours_worked
 	}
 
-	# Delete Hour
-	if {$hours_worked == 0 || "" == $hours_worked} {
+	set action $action_hash($project_id)
+	switch $action {
 
-	    # Check the array before deleting - saves a lot of sql statements...
-	    if {[info exists hours_exists_p($hash_key)]} {
-		
-		ns_log Notice "new-2: Delete timesheet entry for project_id=$project_id"
-		db_dml hours_delete "
-			delete	from im_hours
-			where	project_id = :project_id
-				and user_id = :user_id
-				and day = to_date([expr $julian_date+$i], 'J')
-	        "
-
-		# Update the project's accummulated hours cache
-		if { [db_resultrows] != 0 } {
-		    db_dml update_timesheet_task {}
-		}
-
-	    }
-	    
-	} else {
-
-	    ns_log Notice "timesheet2-tasks/new-2: Create"
-
-	    # Replace "," by "."
-	    if { [regexp {([0-9]+)(\,([0-9]+))?} $hours_worked] } {
-		regsub "," $hours_worked "." hours_worked
-		regsub "'" $hours_worked "." hours_worked
-	    } elseif { [regexp {([0-9]+)(\'([0-9]+))?} $hours_worked] } {
-		regsub "'" $hours_worked "." hours_worked
-		regsub "," $hours_worked "." hours_worked
-	    }
-	    
-	    # Update the hours table
-	    #
-	    db_dml hours_update "
-		update im_hours
-		set 
-			hours = :hours_worked, 
-			note = :note,
-			cost_id = null
-		where
-			project_id = :project_id
-			and user_id = :user_id
-			and day = to_date([expr $julian_date+$i], 'J')
-	    "
-
-	    if {[util_memoize "db_column_exists im_hours conf_object_id"]} {
-	        db_dml hours_update "
-		update im_hours
-		set 
-			conf_object_id = null
-		where
-			project_id = :project_id
-			and user_id = :user_id
-			and day = to_date([expr $julian_date+$i], 'J')
-                "
-	    }
-
-
-	    # Add a new im_hour record if there wasn't one before...
-	    if { [db_resultrows] == 0 } {
+	    insert {
 		db_dml hours_insert "
 		    insert into im_hours (
 			user_id, project_id,
@@ -277,33 +201,54 @@ foreach i $weekly_logging_days {
 			note
 		     ) values (
 			:user_id, :project_id, 
-			to_date([expr $julian_date+$i],'J'), :hours_worked, 
+			to_date(:day_julian,'J'), :hours_worked, 
 			:billing_rate, :billing_currency, 
 			:note
 		     )"
+	    
+		# Update the reported hours on the timesheet task
+		db_dml update_timesheet_task ""
+		# ToDo: Propagate change through hierarchy?
+
 	    }
-	    
-	    # Update the reported hours on the timesheet task
-	    db_dml update_timesheet_task ""
-	    
+
+	    delete {
+		db_dml hours_delete "
+			delete	from im_hours
+			where	project_id = :project_id
+				and user_id = :user_id
+				and day = to_date(:day_julian, 'J')
+	        "
+
+		# Update the project's accummulated hours cache
+		if { [db_resultrows] != 0 } {
+		    db_dml update_timesheet_task {}
+		}
+	    }
+
+	    update {
+		db_dml hours_update "
+		update im_hours
+		set 
+			hours = :hours_worked, 
+			note = :note,
+			cost_id = null
+		where
+			project_id = :project_id
+			and user_id = :user_id
+			and day = to_date(:day_julian, 'J')
+	        "
+	    }
+
 	}
-    
-	# Create the necessary cost items for the timesheet hours
-	im_timesheet2_sync_timesheet_costs -project_id $project_id
-
-	# End of foreach project_id
     }
-  
-    # end of foreach i clause
-} 
-
-# ----------------------------------------------------------
-# Spawn a new workflow for this timesheet item?
-# ----------------------------------------------------------
-
-if {[llength [info procs im_amberjack_header_stuff]]} {
-
+    # end of looping through days
 }
+
+
+# Create the necessary cost items for the timesheet hours
+im_timesheet2_sync_timesheet_costs -project_id $project_id
+
 
 # ----------------------------------------------------------
 # Where to go from here?
