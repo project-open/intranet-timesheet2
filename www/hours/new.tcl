@@ -704,7 +704,7 @@ if { [empty_string_p results] } {
 </tr>\n"
 }
 
-set export_form_vars [export_form_vars julian_date return_url]
+set export_form_vars [export_form_vars julian_date show_week_p return_url]
 
 
 # ---------------------------------------------------------

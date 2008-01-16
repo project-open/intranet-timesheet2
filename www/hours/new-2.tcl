@@ -14,12 +14,18 @@
 # See the GNU General Public License for more details.
 
 ad_page_contract {
-    Writes hours to db. 
+    Writes hours to db. <br>
+    The page acutally works like a "synchronizer" that compares the 
+    hours already in the DB with the hours entered, determines the
+    necessary action (delete, update, insert) and executes that action.
 
-    @param hours	
+    @param hours0 Hash array (project_id -> hours) with the hours
+                  for the given day and user.
     @param julian_date Julian date of the first day in the hours array
                        With single-day logging, this is the day for logging.
                        With weekly logging, this is the start of the week (Sunday!)
+    @param show_week_p Set to "1" if we are storing hours for an entire week,
+                       "0" for logging hours on a single day.
 
     @author dvr@arsdigita.com
     @author mbryzek@arsdigita.com
@@ -38,7 +44,6 @@ ad_page_contract {
     { show_week_p 1}
 }
 
-
 # ----------------------------------------------------------
 # Default & Security
 # ----------------------------------------------------------
@@ -46,6 +51,7 @@ ad_page_contract {
 set user_id [ad_maybe_redirect_for_registration]
 set date_format "YYYY-MM-DD"
 set default_currency [ad_parameter -package_id [im_package_cost_id] "DefaultCurrency" "" "EUR"]
+
 
 # ----------------------------------------------------------
 # Billing Rate & Currency
@@ -65,14 +71,15 @@ if {"" == $billing_currency} { set billing_currency $default_currency }
 
 
 # ----------------------------------------------------------
-# Update items
+# Start with synchronization
 # ----------------------------------------------------------
 
 # Add 0 to the days for logging, as this is used for single-day entry
 set weekly_logging_days [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter TimesheetWeeklyLoggingDays -default "0 1 2 3 4 5 6"]
 # Add a "0" to refer to the current day for single-day logging.
 set weekly_logging_days [set_union $weekly_logging_days [list 0]]
-
+# Logging hours for a single day?
+if {!$show_week_p} { set weekly_logging_days [list 0]}
 
 # Go through all days of the week (or just a single one in case of single-day logging
 foreach i $weekly_logging_days {
@@ -80,7 +87,7 @@ foreach i $weekly_logging_days {
     set day_julian [expr $julian_date+$i]
 
     array unset database_hours_hash
-    array unset database_note_hash
+    array unset database_notes_hash
     array unset hours_cost_id
 
     # ----------------------------------------------------------
@@ -106,7 +113,7 @@ foreach i $weekly_logging_days {
 
 	# Store logged hours into Hash arrays.
     	set database_hours_hash($key) $hours
-    	set database_note_hash($key) $note
+    	set database_notes_hash($key) $note
 
 	# Setup (project x day) => cost_id relationship
 	if {"" != $hour_cost_id} {
@@ -121,7 +128,7 @@ foreach i $weekly_logging_days {
     set screen_hours_elements [array get hours$i]
     array set screen_hours_hash $screen_hours_elements
 
-    set screen_notes_elements [array get hours$i]
+    set screen_notes_elements [array get notes$i]
     array set screen_notes_hash $screen_notes_elements
 
 
@@ -179,7 +186,8 @@ foreach i $weekly_logging_days {
 
 	# Prepare hours_worked and hours_notes for insert & update actions
 	set hours_worked $screen_hours_hash($project_id)
-	set note $screen_notes_hash($project_id)
+	set note ""
+	if {[info exists screen_notes_hash($project_id)]} { set note $screen_notes_hash($project_id) }
 
 	if { [regexp {([0-9]+)(\,([0-9]+))?} $hours_worked] } {
 	    regsub "," $hours_worked "." hours_worked
@@ -247,7 +255,7 @@ foreach i $weekly_logging_days {
 
 
 # Create the necessary cost items for the timesheet hours
-im_timesheet2_sync_timesheet_costs -project_id $project_id
+# im_timesheet2_sync_timesheet_costs -project_id $project_id
 
 
 # ----------------------------------------------------------

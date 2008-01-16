@@ -234,14 +234,14 @@ ad_form -extend -name absence -on_request {
 
 	db_dml update_absence "
 		update im_user_absences	set
-			duration_day = :duration_days
+			duration_days = :duration_days
 		where absence_id = :absence_id
 	"
 
 	db_dml update_object "
 		update acs_objects set
 			last_modified = now()
-		where absence_id = :absence_id
+		where object_id = :absence_id
 	"
 
 	im_dynfield::attribute_store \
