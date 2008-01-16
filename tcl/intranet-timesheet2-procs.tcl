@@ -774,5 +774,5 @@ ad_proc im_absence_new_page_wf_perm_delete_button {
     The button is visible only for the Owner of the absence,
     but nobody else in the WF.
 } {
-    return [im_absence_wf_perm_edit_button -absence_id $absence_id]
+    return [im_absence_new_page_wf_perm_edit_button -absence_id $absence_id]
 }
