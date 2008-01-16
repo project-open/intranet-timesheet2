@@ -137,7 +137,7 @@ foreach i $weekly_logging_days {
 
 	# A note is only available for single-day entry.
 	# ToDo: Only enable for single-day entry
-	set note 0
+	set note ""
 	if {[info exists notes0($project_id)]} { set note [string trim $notes0($project_id)] }
 	set note [string trim $note]
 	
@@ -146,24 +146,67 @@ foreach i $weekly_logging_days {
 	    return
 	}
 
-	# Always delete the cost item (both delete, update and new)
-	if {[info exists hours_cost_id($hash_key)]} {
-	    ns_log Notice "new-2: Delete timesheet entry for project_id=$project_id"
-	    db_dml update_hours "
-		update im_hours
-		set cost_id = null
-		where	project_id = :project_id
-			and user_id = :user_id
-			and day = to_date([expr $julian_date+$i], 'J')
-	    "
+	# ------------------------------------------------------------------------
+	# Always delete any previously existing entries plus their costs & ConfObjects
 
-	    set cost_id $hours_cost_id($hash_key)
-	    ns_log Notice "new-2: Delete cost item=$cost_id for project_id=$project_id and i=$i"
-	    db_string del_ts_costs "select im_cost__delete(:cost_id)"
-	    
-	    # The project's timesheet cache is updated every X minutes by a sweeper..
+	if {[info exists hours_cost_id($hash_key)]} {
+
+	    # ----------------------------------------------------
+	    ns_log Notice "new-2: Delete costs for ts: (pid=$project_id, uid=$user_id, day=$julian_date)"
+	    set del_cost_ids [db_list del_cost_ids "
+		select	h.cost_id
+		from	im_hours h
+		where	h.project_id = :project_id
+			and h.user_id = :user_id
+			and h.day = to_date([expr $julian_date+$i], 'J')
+	    "]
+
+	    foreach cost_id $del_cost_ids {
+	    	db_dml update_hours "
+		    	update im_hours
+			set cost_id = null
+			where cost_id = :cost_id
+	        "
+
+	    	db_string del_ts_costs "select im_cost__delete(:cost_id)"
+		# The project's timesheet cache is updated every X minutes by a sweeper..
+	    }
+
+
+	    # ----------------------------------------------------
+	    # Check for ConfirmationObjects affected by the hour
+	    set conf_ids [db_list main_pids "
+	    	select distinct
+			c.conf_id
+		from
+			im_hours h,
+			im_projects p,
+			im_projects main_p,
+			im_timesheet_conf_objects c
+		where
+			h.day = to_date([expr $julian_date+$i], 'J') and
+			h.user_id = :user_id and
+			h.project_id = p.project_id and
+			tree_ancestor_key(p.tree_sortkey, 1) = main_p.tree_sortkey and
+			c.conf_project_id = main_p.project_id and
+			c.conf_user_id = :user_id and
+			to_date([expr $julian_date+$i], 'J') between c.start_date and c.end_date
+	    "]
+
+	    # Remove all hours from the conf_objects, so hours are always confirmed cummulatively.
+    
+	    foreach conf_id $conf_ids {
+		db_dml update_hours "
+			update im_hours
+			       set conf_object_id = null
+			where	conf_object_id = :conf_id
+	    	"
+
+		db_string conf_delete "select im_timesheet_conf_object__delete(:conf_id)"
+	    }
 	}
 
+	# Delete Hour
 	if {$hours_worked == 0 || "" == $hours_worked} {
 
 	    # Check the array before deleting - saves a lot of sql statements...
