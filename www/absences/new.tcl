@@ -193,8 +193,10 @@ ad_form -extend -name absence -on_request {
 
     if { [db_string exists "
 		select	count(*) 
-		from	im_user_absences
-		where	start_date = to_timestamp(:start_date, 'YYYY MM DD HH24 MI')
+		from	im_user_absences a
+		where	a.owner_id = :user_id and
+			a.absence_type_id = :absence_type_id and
+			a.start_date = to_timestamp(:start_date, 'YYYY MM DD HH24 MI')
 	   "]
      } {
 	ad_return_complaint 1 [lang::message::lookup {} intranet-timesheet2.Absence_Duplicate_Start {There is already an absence with exactly the same start date.}]
