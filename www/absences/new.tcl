@@ -38,9 +38,12 @@ set focus "absence.var_name"
 set date_format "YYYY-MM-DD"
 set date_time_format "YYYY MM DD"
 
+
+
 set absence_type "Absence"
 if {[info exists absence_id]} { 
-    set absence_type_id [db_string type "select absence_type_id from im_user_absences where absence_id = :absence_id" -default 0]
+    set old_absence_type_id [db_string type "select absence_type_id from im_user_absences where absence_id = :absence_id" -default 0]
+    if {0 != $old_absence_type_id} { set absence_type_id $old_absence_type_id }
     set absence_type [im_category_from_id $absence_type_id]
 
     # Check that the absence is an absence...
@@ -49,6 +52,7 @@ if {[info exists absence_id]} {
 #	ad_return_complaint 1 "<b>Error: The selected absence (#$absence_id) does not exist</b>:<br>The absence has probably been deleted by its owner recently."
 #    }
 }
+
 set page_title [lang::message::lookup "" intranet-timesheet2.New_Absence_Type "%absence_type%"]
 set context [list $page_title]
 
@@ -68,23 +72,12 @@ if {![im_permission $user_id "add_absences"]} {
 # Redirect if the type of the object hasn't been defined and
 # if there are DynFields specific for subtypes.
 if {0 == $absence_type_id && ![info exists absence_id]} {
-
     set all_same_p [im_dynfield::subtype_have_same_attributes_p -object_type "im_user_absence"]
     set all_same_p 0
     if {!$all_same_p} {
 	ad_returnredirect [export_vars -base "/intranet/biz-object-type-select" {{object_type "im_user_absence"} {return_url $current_url} {type_id_var "absence_type_id"}}]
     }
 }
-
-
-# Set the old absence type. Used to detect changes in the absence type and 
-# therefore the need to display new DynField fields in a second page.
-set previous_absence_type_id 0
-if {[info exists absence_type_id]} { set previous_absence_type_id $absence_type_id}
-if {[info exists absence_id]} {
-    set previous_absence_type_id [db_string prev_ptype "select absence_type_id from im_user_absences where absence_id = :absence_id" -default 0]
-}
-
 
 # ------------------------------------------------------------------
 # Action permissions
@@ -162,10 +155,6 @@ ad_form -extend -name absence -form {
 }
 
 
-# Add the right dynfields for the given type
-if {[info exists absence_id]} {
-    set absence_type_id [db_string ptype "select absence_type_id from im_user_absences where absence_id = :absence_id" -default 0]
-}
 set my_absence_id 0
 if {[info exists absence_id]} { set my_absence_id $absence_id }
 
@@ -290,26 +279,6 @@ ad_form -extend -name absence -on_request {
         -form_id absence
 
 } -after_submit {
-
-
-    # -----------------------------------------------------------------
-    # Where do we want to go now?
-    #
-    # "Wizard" type of operation: We need to display a second page
-    # with all the potentially new DynField fields if the type of the
-    # absence has changed.
-    
-    if {[info exists previous_absence_type_id]} {
-        if {$absence_type_id != $previous_absence_type_id} {
-	    
-            # Check that there is atleast one dynfield. Otherwise
-            # it's not necessary to show the same page again
-            if {$field_cnt > 0} {
-                set return_url [export_vars -base "/intranet-timesheet2/absences/new?" {absence_id return_url}]
-            }
-        }
-    }
-
 
     ad_returnredirect $return_url
     ad_script_abort
