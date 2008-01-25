@@ -85,7 +85,7 @@ begin
 					constraint im_hours_project_id_fk
 					references im_projects,
 		day			timestamptz,
-		hours			numeric(5,2),
+		hours			numeric(5,2) not null,
 					-- ArsDigita/ACS billing system - log prices with hours
 		billing_rate		numeric(5,2),
 		billing_currency	char(3)

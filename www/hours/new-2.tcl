@@ -89,6 +89,7 @@ foreach i $weekly_logging_days {
     array unset database_hours_hash
     array unset database_notes_hash
     array unset hours_cost_id
+    array unset action_hash
 
     # ----------------------------------------------------------
     # Get the list of the hours of the current user today,
@@ -110,10 +111,12 @@ foreach i $weekly_logging_days {
     db_foreach hours $database_hours_logged_sql {
 
         set key "$hour_project_id"
+	if {"" == $hours} { set hours 0 }
 
 	# Store logged hours into Hash arrays.
     	set database_hours_hash($key) $hours
     	set database_notes_hash($key) $note
+	ns_log Notice "hours/new2: database_hours_hash($key) = '$hours'"
 
 	# Setup (project x day) => cost_id relationship
 	if {"" != $hour_cost_id} {
@@ -132,7 +135,8 @@ foreach i $weekly_logging_days {
     array set screen_notes_hash $screen_notes_elements
 
 
-#    ad_return_complaint 1 "<pre>[array get database_hours_hash]\n[array get screen_hours_hash]</pre>"
+    ns_log Notice "hours/new2: hours:'[array get database_hours_hash]'"
+    ns_log Notice "hours/new2: screen:'[array get screen_hours_hash]'"
 
     # Get the list of the union of key in both array
     set all_project_ids [set_union [array names screen_hours_hash] [array names database_hours_hash]]
@@ -160,14 +164,17 @@ foreach i $weekly_logging_days {
 	if {$db_hours != "" && $screen_hours == ""} { set action delete }
 	if {$db_hours != "" && $screen_hours != ""} { set action update }
 	if {$db_hours == $screen_hours} { set action skip }
+	ns_log Notice "hours/new-2: pid=$pid, day=$day_julian, db:'$db_hours', screen:'$screen_hours' => action=$action"
 
 	if {"skip" != $action} { set action_hash($pid) $action }
     }
 
-#    ad_return_complaint 1 [array get action_hash]
+    ns_log Notice "hours/new-2: array='[array get action_hash]'"
 
     # Execute the actions
     foreach project_id [array names action_hash] {
+
+	ns_log Notice "hours/new-2: project_id=$project_id"
 
 	# For all actions: We modify the hours that the person has logged that week, 
 	# so we need to reset/delete the TimesheetConfObject.
@@ -198,6 +205,7 @@ foreach i $weekly_logging_days {
 	}
 
 	set action $action_hash($project_id)
+	ns_log Notice "hours/new-2: action=$action, project_id=$project_id"
 	switch $action {
 
 	    insert {
@@ -251,6 +259,7 @@ foreach i $weekly_logging_days {
 	}
     }
     # end of looping through days
+
 }
 
 
