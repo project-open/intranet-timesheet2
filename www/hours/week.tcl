@@ -68,6 +68,7 @@ set items {}
 set grand_total 0
 
 db_foreach hour_select $sql {
+    if {"" == $total} { set total 0 }
     set grand_total [expr $grand_total+$total]
     lappend items [list $project_id $project_name $total]
 }

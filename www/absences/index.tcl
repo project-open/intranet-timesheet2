@@ -159,9 +159,13 @@ switch $timescale {
 
 set order_by_clause ""
 switch $order_by {
+    "Name" { set order_by_clause "order by upper(absence_name), owner_name" }
     "User" { set order_by_clause "order by owner_name, upper(start_date)" }
     "Date" { set order_by_clause "order by upper(start_date), owner_name" }
-    "Type" { set order_by_clause "order by upper(absence_type_name), owner_name" }
+    "Start" { set order_by_clause "order by start_date" }
+    "End" { set order_by_clause "order by end_date" }
+    "Type" { set order_by_clause "order by absence_type, owner_name" }
+    "Status" { set order_by_clause "order by absence_status, owner_name" }
 }
 
 set where_clause [join $criteria " and\n	    "]

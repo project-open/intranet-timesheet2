@@ -72,29 +72,42 @@
 <form method=POST action=new-2>
 @export_form_vars;noquote@
 
-<table border=0 cellpadding=1 cellspacing=1>
- <tr class=rowtitle>
-  <th>#intranet-timesheet2.Project_name#</th>
 
-<if @show_week_p@ eq 0>
-  <th>#intranet-timesheet2.Hours#	</th>
-  <th>#intranet-timesheet2.Work_done#   </th>
+<if @ctr@>
+
+	<table border=0 cellpadding=1 cellspacing=1>
+	    <tr class=rowtitle>
+		<th>#intranet-timesheet2.Project_name#</th>
+	
+		<if @show_week_p@ eq 0>
+		<th>#intranet-timesheet2.Hours#	</th>
+		<th>#intranet-timesheet2.Work_done#   </th>
+		</if>
+		<else>
+		@week_header_html;noquote@
+		</else>
+	    </tr> 
+	    @results;noquote@
+	    <tr>
+		<td></td>
+		<td colspan=99>
+		<if @edit_hours_p@ eq "t">
+		    <INPUT TYPE=Submit VALUE="#intranet-timesheet2.Add_hours#">
+		</if>
+		</td>
+	    </tr>
+	</table>
+
 </if>
 <else>
-  @week_header_html;noquote@
+	<%= [lang::message::lookup "" intranet-timesheet2.Not_Member_of_Projects "
+	    You are not a member of any project where you could log your hours.<p>
+	    Please contact the project manager of your project(s) to include you in 
+	    the list of project members.
+	"] %>
 </else>
 
- </tr> 
-@results;noquote@
-  <tr>
-    <td></td>
-    <td colspan=99>
-<if @edit_hours_p@ eq "t">
-      <INPUT TYPE=Submit VALUE="#intranet-timesheet2.Add_hours#">
-</if>
-    </td>
-  </tr>
-</table>
+
 
 </form>
 
