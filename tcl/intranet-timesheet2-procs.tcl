@@ -738,32 +738,111 @@ order by
 # ---------------------------------------------------------------------
 
 
+ad_proc im_absence_new_page_wf_perm_hash { } {
+    Returns a hash array representing (role x status) -> (rw),
+    controlling the read and write permissions on absences,
+    depending on the users's role and the WF status.
+} {
+    set req [im_absence_status_requested]
+    set rej [im_absence_status_rejected]
+    set act [im_absence_status_active]
+    set del [im_absence_status_deleted]
+
+    set perm_hash(owner-$rej) {r w d}
+    set perm_hash(owner-$req) {r}
+    set perm_hash(owner-$act) {r}
+    set perm_hash(owner-$del) {r}
+
+    set perm_hash(assignee-$rej) {r}
+    set perm_hash(assignee-$req) {r w}
+    set perm_hash(assignee-$act) {r}
+    set perm_hash(assignee-$del) {r}
+
+    return [array get perm_hash]
+}
+
+
+ad_proc im_absence_new_page_wf_perm_logic {
+    -absence_id:required
+    -perm_letter:required
+    -perm_hash:required
+} {
+    Determines whether a user can execute the specified
+    "perm_letter" (i.e. r=read, w=write, d=delete) operation
+    on the absence.
+} {
+    # ------------------------------------------------------
+    # Pull out the relevant variables
+    set user_id [ad_get_user_id]
+    set owner_id [db_string owner "select creation_user from acs_objects where object_id = $absence_id" -default 0]
+    set status_id [db_string status "select absence_status_id from im_user_absences where absence_id = $absence_id" -default 0]
+    set user_is_admin_p [im_is_user_site_wide_or_intranet_admin $user_id]
+    set user_is_hr_p [im_user_is_hr_p $user_id]
+    set user_is_owner_p [expr $owner_id == $user_id]
+    set user_is_assignee_p [db_string assignee_p "
+	select	count(*)
+	from	(select	pamm.member_id
+		from	wf_cases wfc,
+			wf_tasks wft,
+			wf_task_assignments wfta,
+			party_approved_member_map pamm
+		where	wfc.object_id = :absence_id
+			and wft.case_id = wfc.case_id
+			and wft.state in ('enabled', 'started')
+			and wft.task_id = wfta.task_id
+			and wfta.party_id = pamm.party_id
+			and pamm.party_id = :user_id
+		) t
+    "]
+    
+    # ------------------------------------------------------
+    # Get the permission table
+    array set perm_hash [im_absence_new_page_wf_perm_hash]
+
+    ns_log Notice "im_absence_new_page_wf_perm_logic: status_id=$status_id, user_id=$user_id, owner_id=$owner_id"
+    ns_log Notice "im_absence_new_page_wf_perm_logic: user_is_owner_p=$user_is_owner_p, user_is_assignee_p=$user_is_assignee_p, user_is_hr_p=$user_is_hr_p, user_is_admin_p=$user_is_admin_p"
+    ns_log Notice "im_absence_new_page_wf_perm_logic: hash=[array get perm_hash]"
+
+    # ------------------------------------------------------
+    # Calculate permissions
+    set perm_p 0
+
+    if {$user_is_owner_p} { 
+	set perm_letters {}
+	if {[info exists perm_hash(owner-$status_id)]} { set perm_letters $perm_hash(owner-$status_id)}
+	ns_log Notice "im_absence_new_page_wf_perm_logic: owner_letters: $perm_letters"
+	if {[lsearch $perm_letters $perm_letter] > -1} { set perm_p 1 }
+    }
+ 
+    if {$user_is_assignee_p} { 
+	set perm_letters {}
+	if {[info exists perm_hash(assignee-$status_id)]} { set perm_letters $perm_hash(assignee-$status_id)}
+	ns_log Notice "im_absence_new_page_wf_perm_logic: assignee_letters: $perm_letters"
+	if {[lsearch $perm_letters $perm_letter] > -1} { set perm_p 1 }
+    }
+ 
+    # Admins & HR can do everything anytime.
+    if {[im_user_is_hr_p $user_id]} { set perm_p 1 }
+    if {$user_is_admin_p} { set perm_p 1 }
+
+    return $perm_p
+}
+
 ad_proc im_absence_new_page_wf_perm_edit_button {
     -absence_id:required
 } {
     Should we show the "Edit" button in the AbsenceNewPage?
     The button is visible only for the Owner of the absence
     and the Admin, but nobody else during the course of the WF.
-
     Also, the Absence should not be changed anymore once it has
     started.
 } {
-    set current_user_id [ad_get_user_id]
-    set current_user_is_admin_p [im_is_user_site_wide_or_intranet_admin $current_user_id]
-    set owner_id [util_memoize "db_string owner \"select creation_user from acs_objects where object_id = $absence_id\" -default 0"]
-
-    # The standard case: Only the owner should edit his own absences.
-    set perm_p 0
-    if {$owner_id == $current_user_id} { set perm_p 1 }
-
-    # The owner can't edit anymore after the absence has been approved.
-    set already_approved_p [db_string start "select [im_absence_status_active] = absence_status_id from im_user_absences where absence_id = :absence_id" -default "f"]
-    if {"t" == $already_approved_p} { set perm_p 0 }
-
-    # Admins & HR can do everything anytime.
-    if {[im_user_is_hr_p $current_user_id]} { set perm_p 1 }
-    if {$current_user_is_admin_p} { set perm_p 1 }
-
+    set perm_letter "w"
+    set perm_p [im_absence_new_page_wf_perm_logic \
+		    -absence_id $absence_id \
+		    -perm_letter $perm_letter \
+    ]
+    ns_log Notice "im_absence_new_page_wf_perm_edit_button absence_id=$absence_id => $perm_p"
     return $perm_p
 }
 
@@ -774,5 +853,11 @@ ad_proc im_absence_new_page_wf_perm_delete_button {
     The button is visible only for the Owner of the absence,
     but nobody else in the WF.
 } {
-    return [im_absence_new_page_wf_perm_edit_button -absence_id $absence_id]
+    set perm_letter "d"
+    set perm_p [im_absence_new_page_wf_perm_logic \
+		    -absence_id $absence_id \
+		    -perm_letter $perm_letter \
+    ]
+    ns_log Notice "im_absence_new_page_wf_perm_delete_button absence_id=$absence_id => $perm_p"
+    return $perm_p
 }
