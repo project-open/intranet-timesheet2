@@ -226,11 +226,11 @@ set filter_html "
 <table border=0 cellpadding=0 cellspacing=0>
 <tr>
   <td valign=top>[_ intranet-timesheet2.Absence_Type] </td>
-<td valign=top>[im_select absence_type_id $absences_types ""]</td>
+<td valign=top>[im_select absence_type_id $absences_types {}]</td>
 </tr>
 <tr>
-  <td valign=top>[lang::message::lookup "" intranet-timesheet2.Show_Users "Show Users"]</td>
-<td valign=top>[im_select user_selection $user_selection_types ""]</td>
+<td valign=top>[lang::message::lookup "" intranet-timesheet2.Show_Users {Show Users}]</td>
+<td valign=top>[im_select user_selection $user_selection_types {}]</td>
 </tr>
 <tr>
   <td valign=top>[_ intranet-timesheet2.Timescale] </td>
@@ -249,7 +249,7 @@ set filter_html "
 set admin_html ""
 if {[im_permission $user_id "add_absences"]} { 
 	set admin_html "<ul>
-<!--		<li><a href=$absences_url/new>[_ intranet-timesheet2.Add_a_new_Absence]</a></li> -->
+		<li><a href=$absences_url/new>[_ intranet-timesheet2.Add_a_new_Absence]</a></li>
 		[im_menu_ul_list -no_uls 1 "timesheet2_absences" [ad_tcl_vars_to_ns_set]]
 	      </ul>
 	"

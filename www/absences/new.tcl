@@ -38,19 +38,18 @@ set focus "absence.var_name"
 set date_format "YYYY-MM-DD"
 set date_time_format "YYYY MM DD"
 
-
-
 set absence_type "Absence"
 if {[info exists absence_id]} { 
     set old_absence_type_id [db_string type "select absence_type_id from im_user_absences where absence_id = :absence_id" -default 0]
     if {0 != $old_absence_type_id} { set absence_type_id $old_absence_type_id }
     set absence_type [im_category_from_id $absence_type_id]
 
-    # 080126 fraber: We need the existence-check apparently
-    set absence_exists_p [db_string count "select count(*) from im_user_absences where absence_id=:absence_id"]
-    if {!$absence_exists_p} {
-	ad_return_complaint 1 "<b>Error: The selected absence (#$absence_id) does not exist</b>:<br>The absence has probably been deleted by its owner recently."
-	ad_script_abort
+    if {![ad_form_new_p -key absence_id]} {
+	set absence_exists_p [db_string count "select count(*) from im_user_absences where absence_id=:absence_id"]
+	if {!$absence_exists_p} {
+	    ad_return_complaint 1 "<b>Error: The selected absence (#$absence_id) does not exist</b>:<br>The absence has probably been deleted by its owner recently."
+	    ad_script_abort
+	}
     }
 }
 
