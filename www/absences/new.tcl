@@ -186,6 +186,14 @@ ad_form -extend -name absence -on_request {
 	from	im_user_absences a
 	where	absence_id = :absence_id
 
+
+} -validate {
+
+    {duration_days
+	{$duration_days > 0}
+	"Positive number expected"
+    }
+    
 } -new_data {
 
     set start_date_sql [template::util::date get_property sql_timestamp $start_date]
