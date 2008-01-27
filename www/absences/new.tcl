@@ -191,6 +191,13 @@ ad_form -extend -name absence -on_request {
     set start_date_sql [template::util::date get_property sql_timestamp $start_date]
     set end_date_sql [template::util::date get_property sql_timestamp $end_date]
 
+    # Check the date range
+    set date_range_error_p [db_string date_range "select $end_date_sql >= $start_date_sql"]
+    if {"f" == $date_range_error_p} {
+	ad_return_complaint 1 "<b>Date Range Error</b>:<br>Please revise your start and end date."
+	ad_script_abort
+    }
+
     if { [db_string exists "
 		select	count(*) 
 		from	im_user_absences a
@@ -259,6 +266,13 @@ ad_form -extend -name absence -on_request {
 
     set start_date_sql [template::util::date get_property sql_timestamp $start_date]
     set end_date_sql [template::util::date get_property sql_timestamp $end_date]
+
+    # Check the date range
+    set date_range_error_p [db_string date_range "select $end_date_sql >= $start_date_sql"]
+    if {"f" == $date_range_error_p} {
+	ad_return_complaint 1 "<b>Date Range Error</b>:<br>Please revise your start and end date."
+	ad_script_abort
+    }
 
     db_dml update_absence "
 		UPDATE im_user_absences SET
