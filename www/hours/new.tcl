@@ -31,20 +31,14 @@ ad_page_contract {
     { show_week_p 1 }
 }
 
+# ad_return_complaint 1 "$project_id - $project_id_list"
+
+
 # ---------------------------------------------------------
 # Default & Security
 # ---------------------------------------------------------
 
 set debug 0
-
-if {0 != $project_id} {
-    set parent_id [db_string parent_id "select parent_id from im_projects where project_id = :project_id" -default ""]
-    while {"" != $parent_id} {
-	set project_id $parent_id
-	set parent_id [db_string parent_id "select parent_id from im_projects where project_id = :project_id" -default ""]
-    }
-}
-
 
 set user_id [ad_maybe_redirect_for_registration]
 if {"" == $return_url} { set return_url [im_url_with_query] }
@@ -206,35 +200,59 @@ if {$timesheet_popup_installed_p} {
 # Remove funny "{" or "}" characters in list
 regsub -all {[\{\}]} $project_id_list "" project_id_list
 
-# ad_return_complaint 1 $project_id
+set main_project_id_list [list 0]
+set main_project_id 0
 
 if {0 != $project_id} {
+
+    set main_project_id [db_string main_p "
+	select	main_p.project_id
+	from	im_projects p,
+		im_projects main_p
+	where	p.project_id = :project_id and
+		tree_ancestor_key(p.tree_sortkey, 1) = main_p.tree_sortkey
+    " -default 0]
+
+    set project_sql "
+			select	:main_project_id::integer
+    \t\t"
 
     # Project specified => only one project
     set one_project_only_p 1
 
-    set project_sql "
-	select	:project_id::integer
-    "
+    # Make sure the user can see everything below the single main project
+    set task_visibility_scope "specified"
+    lappend project_id_list 0
 
 } elseif {"" != $project_id_list} {
+
+    set main_project_id_list [db_list main_ps "
+	select distinct
+		main_p.project_id
+	from	im_projects p,
+		im_projects main_p
+	where	p.project_id in ([join $project_id_list ","]) and
+		tree_ancestor_key(p.tree_sortkey, 1) = main_p.tree_sortkey
+    "]
+
+    set project_sql "
+			select	p.project_id
+			from	im_projects p
+			where	p.project_id in ([join $main_project_id_list ","])
+    \t\t"
 
     # An entire list of project has been selected
     set one_project_only_p 0
 
-    set project_sql "
-	select	p.project_id
-	from	im_projects p 
-	where	p.project_id in ([join $project_id_list ","])
-		and p.parent_id is null
-    "
+    # Make sure the user can see everything below the single main project
+    set task_visibility_scope "specified"
 
 } else {
 
     # Project_id unknown => select all projects
     set one_project_only_p 0
 
-    set project_sql "   
+    set project_sql "
 	select	p.project_id
 	from	im_projects p
 	where 
@@ -267,6 +285,23 @@ switch $task_visibility_scope {
 					and main.tree_sortkey = tree_ancestor_key(sub.tree_sortkey, 1)
 					and main.project_status_id not in ($closed_stati_list)
 					and sub.project_status_id not in ($closed_stati_list)
+	"
+    }
+    "specified" {
+	# specified: We've got an explicit "project_id" or "project_id_list".
+	# Show everything that's below, even if the user isn't a member.
+	set task_visibility_sql "
+				select	sub.project_id
+				from	im_projects main,
+					im_projects sub
+				where	(	main.project_id = :main_project_id 
+						OR main.project_id in ([join $main_project_id_list ","])
+					)
+					and main.project_status_id not in ($closed_stati_list)
+					and sub.project_status_id not in ($closed_stati_list)
+					and sub.tree_sortkey between
+						main.tree_sortkey and
+						tree_right(main.tree_sortkey)
 	"
     }
     "sub_project" {
@@ -351,8 +386,8 @@ set children_sql "
 				-- Always show the list of selected projects to be shown
 				select	p.project_id
 				from	im_projects p
-				where	p.project_id in ([join [lappend project_id_list 0] ","])
-					and p.parent_id is null
+				where	(p.project_id in ([join [lappend project_id_list 0] ","])
+					OR p.project_id = :project_id)
 "
 
 # ---------------------------------------------------------
@@ -539,6 +574,13 @@ template::multirow foreach hours_multirow {
     # Check for closed_p - if the project is in one of the closed states
     switch $task_visibility_scope {
 	"main_project" {
+	    # Membership is not necessary - just check status
+	    set project_closed_p 0
+	    if {[lsearch -exact $closed_stati $project_status_id] > -1} {
+		set project_closed_p 1
+	    }
+	}
+	"specified" {
 	    # Membership is not necessary - just check status
 	    set project_closed_p 0
 	    if {[lsearch -exact $closed_stati $project_status_id] > -1} {
