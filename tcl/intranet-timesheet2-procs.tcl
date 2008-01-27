@@ -749,7 +749,7 @@ ad_proc im_absence_new_page_wf_perm_table { } {
     set del [im_absence_status_deleted]
 
     set perm_hash(owner-$rej) {v r d w a}
-    set perm_hash(owner-$req) {v r}
+    set perm_hash(owner-$req) {v r d w}
     set perm_hash(owner-$act) {v r}
     set perm_hash(owner-$del) {v r}
 
