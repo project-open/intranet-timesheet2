@@ -14,16 +14,15 @@
 # See the GNU General Public License for more details.
 
 ad_page_contract {
-    Lets a user choose a project on which to log hours
+    Display the list of available project for the current user
+    in order to allow logging hours on project where the current
+    user isn't a member of.
 
-    @param on_which_table table we're adding hours
-    @param julian_date day in julian format for which we're adding hours
-    @param user_id The user for which we're logging hours
+    @param julian_date Variable to pass through for the new page
  
-    @author Michael Bryzek (mbryzek@arsdigita.com)
-    @creation-date January, 2000
-    @cvs-id other-projects.tcl,v 3.9.2.7 2000/09/22 01:38:38 kevin Exp
-   
+    @author Frank Bergmann (frank.bergmann@project-open.com)
+    @creation-date January, 2008
+  
 } {
     { julian_date "" } 
 }
@@ -34,99 +33,99 @@ ad_page_contract {
 
 set user_id [ad_maybe_redirect_for_registration]
 set subsite_id [ad_conn subsite_id]
-
-# Choose between daily/weekly time entry screen
-if { [string compare [ad_parameter TimeEntryScreen "" "daily"] "weekly"] == 0 } {
-    set target "time-entry"
-} else {
-    set target "new"
-}
+set target "new"
 set page_title "[_ intranet-timesheet2.Choose_project]"
-set context_bar [im_context_bar [list index?[export_url_vars on_which_table] [_ intranet-timesheet2.Hours]] [list $target?[export_url_vars julian_date] "[_ intranet-timesheet2.Add_hours]"] "[_ intranet-timesheet2.Choose_project]"]
+set context_bar [im_context_bar [_ intranet-timesheet2.Choose_project]]
 
+set nbsp "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
 
 # ---------------------------------------------------------
 # 
 # ---------------------------------------------------------
 
-# Create a form to allow people to select multiple projects
-set page_body "
-<form method=post action=$target>
-[export_form_vars user_id on_which_table julian_date]
-<ul>
+set export_var_list [list]
+set bulk_actions_list [list [lang::message::lookup "" intranet-timesheet2.Log_Hours "Log Hours"] new Help]
+
+template::list::create \
+    -name "other_projects" \
+    -multirow multirow \
+    -key project_id \
+    -has_checkboxes \
+    -bulk_actions $bulk_actions_list \
+    -bulk_action_export_vars { } \
+    -elements {
+	project_chk {
+	    label "<input type=\"checkbox\" 
+                          name=\"_dummy\" 
+                          onclick=\"acs_ListCheckAll('project_list', this.checked)\" 
+                          title=\"Check/uncheck all rows\">"
+	    display_template {
+		@multirow.project_chk;noquote@
+	    }
+	}
+	project_name {
+	    label "[_ intranet-timesheet2.Project]"
+	    display_template {
+		@multirow.indent;noquote@<a href="/intranet/projects/view?project_id=@multirow.project_id@">@multirow.project_name;noquote@</a>
+	    }
+	}
+    }
+
+set perm_where "
+	and main_p.project_id in (
+		select	r.object_id_one
+		from	acs_rels r
+		where	r.object_id_two = :user_id
+	)       
 "
+if {[im_permission $user_id "view_projects_all"]} { set perm_where "" }
 
 
-# Give the user a list of all the projects from which to choose
-# Note that they have two ways to select a project:
-#  1. Click the link for the group name to select one project
-#  2. Checkoff a set of projects and hit the submit button at 
-#     the end of the page
-
-# ToDo: Decide and cleanup!!!
-
-set sql "
-
-select
-	p.*
-from
-	(select
-                p.project_id,
-                r.member_p as permission_member,
-                see_all.see_all as permission_all
-        from
-                im_projects p,
-                (       select  count(rel_id) as member_p,
-                                object_id_one as object_id
-                        from    acs_rels
-                        where   object_id_two = :user_id
-                        group by object_id_one
-                ) r,
-                (       select  count(*) as see_all
-                        from acs_object_party_privilege_map
-                        where   object_id=:subsite_id
-                                and party_id=:user_id
-                                and privilege='view_projects_all'
-                ) see_all
-        where
-                p.project_id = r.object_id
-	 	and p.project_status_id in ([im_project_status_open])
-	) perm,
-	im_projects p
-where
-	p.project_id = perm.project_id
-        and (
-                perm.permission_member > 0
-                or perm.permission_all > 0
-        )
-order by 
-	upper(project_name)
-"
-
-db_foreach projects_list $sql {
-    append page_body "
-  <input type=checkbox name=project_id_list value=$project_id> 
-  <a href=$target?on_what_id=$project_id&[export_url_vars on_which_table julian_date]>
-    $project_nr - $project_name
-  </a>
-  <br>
-"
-} if_no_rows {
-    # offer the user the option of adding a project. 
-    # We set return url to this page
-    set return_url [im_url_with_query]
-    append page_body "<li> [_ intranet-timesheet2.lt_There_are_no_projects]"
+set list_sort_order "name"
+set sort_integer 0
+set sort_legacy  0
+if { $list_sort_order=="name" } {
+    set sort_order "lower(p.project_name)"
+} elseif { $list_sort_order=="order" } {
+    set sort_order "p.sort_order"
+    set sort_integer 1
+} elseif { $list_sort_order=="legacy" } {
+    set sort_order "p.tree_sortkey"
+    set sort_legacy 1
+} else {
+    set sort_order "lower(p.project_nr)"
 }
 
-append page_body "
-</ul>
 
-<p>
-<center><input type=submit value=\" [_ intranet-timesheet2.lt_Log_hours_on_selected] \"></center>
-</form>
+db_multirow -extend {project_chk return_url indent} multirow multirow "
+	select
+		p.project_id,
+		p.project_name,
+		p.parent_id,
+		tree_level(p.tree_sortkey) -1 as tree_level,
+		$sort_order as sort_order
+	from
+		im_projects main_p,
+		im_projects p
+	where
+		main_p.project_status_id in ([im_sub_categories [im_project_status_open]])
+		and main_p.parent_id is null
+		and p.project_status_id in ([im_sub_categories [im_project_status_open]])
+		and p.project_type_id not in ([im_project_type_task])
+		and p.tree_sortkey between
+			main_p.tree_sortkey and
+			tree_right(main_p.tree_sortkey)
+		$perm_where
+	order by
+	      p.tree_sortkey
+" {
+    set indent ""
+    for {set i 0} {$i < $tree_level} {incr i} { append indent $nbsp; }
 
-"
+    set return_url [im_url_with_query]
+    set project_chk "<input type=\"checkbox\" name=\"project_id_list\" value=\"$project_id\" id=\"project_list,$project_id\">"
+}
 
 
-#doc_return  200 text/html [im_return_template]
+multirow_sort_tree multirow project_id parent_id sort_order
 

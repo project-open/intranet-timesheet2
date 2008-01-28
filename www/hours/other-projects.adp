@@ -4,10 +4,5 @@
 <property name="main_navbar_label">timesheet2_timesheet</property>
 
 <%= [im_box_header $page_title] %>
-@page_body;noquote@
+<listtemplate name="other_projects"></listtemplate>
 <%= [im_box_footer] %>
-
-
-
-
-
