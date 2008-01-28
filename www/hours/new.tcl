@@ -183,7 +183,6 @@ if {$timesheet_popup_installed_p} {
 	set popup_notes($task_id) $p_notes
     }
 }
-# ad_return_complaint 1 [array get popup_hours]
 
 
 # ---------------------------------------------------------
@@ -282,7 +281,7 @@ if {0 != $project_id} {
 				select	project_id
 				from	im_hours h
 				where	h.user_id = :user_id
-					and h.day = to_date(:julian_date, 'J')
+					and $h_day_in_dayweek
 		)
 		and p.project_status_id not in ($closed_stati_list)
     "
@@ -300,7 +299,7 @@ append parent_project_sql "
 		im_projects p,
 		im_projects main_p
 	where	h.user_id = :user_id
-		and h.day::date = to_date(:julian_date, 'J')
+		and $h_day_in_dayweek
 		and h.project_id = p.project_id
 		and p.tree_sortkey between
 			main_p.tree_sortkey and
@@ -409,7 +408,7 @@ set child_project_sql "
 				select	project_id
 				from	im_hours h
 				where	h.user_id = :user_id
-					and h.day = to_date(:julian_date, 'J')
+					and $h_day_in_dayweek
 			    UNION
 			        -- Project with hours on it plus any of its superiors
 				select	main_p.project_id
@@ -417,7 +416,7 @@ set child_project_sql "
 					im_projects p,
 					im_projects main_p
 				where	h.user_id = :user_id
-					and h.day::date = to_date(:julian_date, 'J')
+					and $h_day_in_dayweek
 					and h.project_id = p.project_id
 					and p.tree_sortkey between
 						main_p.tree_sortkey and
@@ -549,7 +548,7 @@ set open_projects_sql "
 		im_projects p,
 		im_projects main_p
 	where	h.user_id = :user_id
-		and h.day::date = to_date(:julian_date, 'J')
+		and $h_day_in_dayweek
 		and h.project_id = p.project_id
 		and p.tree_sortkey between
 			main_p.tree_sortkey and
@@ -590,11 +589,19 @@ if {!$log_hours_on_parent_with_children_p} {
 # Execute query and format results
 # ---------------------------------------------------------
 
+db_multirow hours_multirow hours_timesheet $sql
+
+multirow_sort_tree hours_multirow project_id parent_id sort_order
+
+
+# ---------------------------------------------------------
+# Format the output
+# ---------------------------------------------------------
+
 # Don't show closed and deleted projects:
 # The tree algorithm maintains a "closed_level"
 # that determines the sub_level of the last closed
 # intermediate project.
-
 
 set results ""
 set ctr 0
@@ -604,20 +611,6 @@ set closed_level 0
 set closed_status [im_project_status_open]
 set old_parent_project_nr ""
 
-db_multirow hours_multirow hours_timesheet $sql
-
-# ad_return_complaint 1 "$sort_legacy $sort_integer"
-
-
-multirow_sort_tree hours_multirow project_id parent_id sort_order
-
-#if ($sort_legacy==0) {
-#    if {$sort_integer} {
-#	multirow_sort_tree -integer hours_multirow project_id parent_id sort_order
-#    } else {
-#	multirow_sort_tree hours_multirow project_id parent_id sort_order
-#    }
-#}
 
 template::multirow foreach hours_multirow {
 
@@ -752,7 +745,7 @@ template::multirow foreach hours_multirow {
 
 	    # Weekly View - 7 fields with hours only
 	    foreach i $weekly_logging_days {
-		set julian_day_offset [expr $julian_date + $i]
+		set julian_day_offset [expr $julian_week_start + $i]
 		set hours ""
 		set note ""
 		if {[info exists hours_hours($project_id-$julian_day_offset)]} { set hours $hours_hours($project_id-$julian_day_offset) }
@@ -781,7 +774,7 @@ template::multirow foreach hours_multirow {
 	    
 	    # Weekly view with plain text only
 	    foreach i $weekly_logging_days {
-		set julian_day_offset [expr $julian_date + $i]
+		set julian_day_offset [expr $julian_week_start + $i]
 		set hours ""
 		set note ""
 		if {[info exists hours_hours($project_id-$julian_day_offset)]} { set hours $hours_hours($project_id-$julian_day_offset) }
@@ -817,11 +810,11 @@ set weekly_column_date_format "YYYY<br>MM-DD"
 set week_header_html ""
 foreach i $weekly_logging_days {
 
-    set julian_day_offset [expr $julian_date + $i]
+    set julian_day_offset [expr $julian_week_start + $i]
 
-    set header_day_of_week [db_string day_of_week "select to_char(to_date($julian_date, 'J')+:i::integer, 'Dy')"]
+    set header_day_of_week [db_string day_of_week "select to_char(to_date($julian_day_offset, 'J'), 'Dy')"]
     set header_day_of_week_l10n [lang::message::lookup "" intranet-timesheet2.Day_of_week_$header_day_of_week $header_day_of_week]
-    set header_date [db_string header "select to_char(to_date($julian_date, 'J')+:i::integer, :weekly_column_date_format)"]
+    set header_date [db_string header "select to_char(to_date($julian_day_offset, 'J'), :weekly_column_date_format)"]
 
     append week_header_html "<th>$header_day_of_week_l10n<br>$header_date</th>\n"
 }

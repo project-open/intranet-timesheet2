@@ -28,6 +28,10 @@ ad_page_contract {
     { julian_date "" } 
 }
 
+# ---------------------------------------------------------
+# 
+# ---------------------------------------------------------
+
 set user_id [ad_maybe_redirect_for_registration]
 set subsite_id [ad_conn subsite_id]
 
@@ -40,6 +44,10 @@ if { [string compare [ad_parameter TimeEntryScreen "" "daily"] "weekly"] == 0 } 
 set page_title "[_ intranet-timesheet2.Choose_project]"
 set context_bar [im_context_bar [list index?[export_url_vars on_which_table] [_ intranet-timesheet2.Hours]] [list $target?[export_url_vars julian_date] "[_ intranet-timesheet2.Add_hours]"] "[_ intranet-timesheet2.Choose_project]"]
 
+
+# ---------------------------------------------------------
+# 
+# ---------------------------------------------------------
 
 # Create a form to allow people to select multiple projects
 set page_body "
