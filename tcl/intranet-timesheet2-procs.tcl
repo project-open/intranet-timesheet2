@@ -212,7 +212,6 @@ ad_proc -public im_timesheet_home_component {user_id} {
         set message "[_ intranet-timesheet2.lt_You_logged_num_hours_]"
     }
 
-
     if { [expr $num_hours + $absences_hours] < $expected_hours && $add_hours } {
 
 	set absences_hours_message ""
@@ -221,15 +220,10 @@ ad_proc -public im_timesheet_home_component {user_id} {
 					intranet-timesheet2.and_absences_hours \
 					"and %absences_hours% hours of absences"]
 	}
-
-	set ttt "und %absences_hours% Stunden Absenzen"
-
-
 	set default_message "
 		You have only logged %num_hours% hours %absences_hours_message% 
 		in the last %num_days% days out of %expected_hours% expected hours.
 	"
-
 	set message "<b>[lang::message::lookup "" intranet-timesheet2.You_need_to_log_hours $default_message]</b>"
 
 	if {$redirect_p} {
@@ -490,16 +484,17 @@ ad_proc im_timesheet_hours_sum {
     }
 
     if {0 != $number_days} {
-	lappend criteria "day >= to_date(to_char(now(),'yyyymmdd'),'yyyymmdd') - $number_days"	
+	lappend criteria "day >= now()::date - $number_days"	
     }
-    set where_clause [join $criteria "\n    and "]
     set num_hours [db_string sum_hours "
-	select	sum(hours) 
-	from	im_hours
-	where	$where_clause
+	select	sum(h.hours) 
+	from	im_hours h
+	where	
+		h.day::date <= now()::date and
+		[join $criteria "\n    and "]
     " -default 0]
     if {"" == $num_hours} { set num_hours 0}
-    
+
     return $num_hours
 }
 
