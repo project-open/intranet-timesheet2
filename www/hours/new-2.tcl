@@ -194,7 +194,8 @@ foreach i $weekly_logging_days {
 
 
 	# Prepare hours_worked and hours_notes for insert & update actions
-	set hours_worked $screen_hours_hash($project_id)
+	set hours_worked 0
+	if {[info exists screen_hours_hash($project_id)]} { set hours_worked $screen_hours_hash($project_id) }
 	set note ""
 	if {[info exists screen_notes_hash($project_id)]} { set note $screen_notes_hash($project_id) }
 
