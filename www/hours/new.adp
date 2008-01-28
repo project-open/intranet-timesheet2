@@ -22,6 +22,9 @@
 	  <tr>
 	    <td>#intranet-core.Project_name#</td>
 	    <td><%= [im_project_select -exclude_subprojects_p 1 project_id $project_id_for_default "open"] %></td>
+	  </tr>
+	  <tr>
+	    <td></td>
 	    <td>
 	      <input type=submit value="Go">
 	    </td>

@@ -58,12 +58,6 @@ set different_date_url "index?[export_ns_set_vars url [list julian_date]]"
 set bind_vars [ad_tcl_vars_to_ns_set user_id julian_date return_url show_week_p]
 set menu_links_html [im_menu_ul_list -no_uls 1 "timesheet_hours_new_admin" $bind_vars]
 
-
-# "Log hours for a different project"
-#    ad_return_complaint 1 [array get has_children_hash]
-
-#    ad_return_complaint 1 [array get has_children_hash]
-
 set different_project_url "other-projects?[export_url_vars julian_date]"
 
 # Log Absences
@@ -193,6 +187,29 @@ if {$timesheet_popup_installed_p} {
 
 
 # ---------------------------------------------------------
+# Build a frequently used SQL fragment to check that the
+# "h.day" of im_hours is today or the current week 
+# depending on $show_week_p
+# ---------------------------------------------------------
+
+set julian_week_start $julian_date
+set julian_week_end $julian_date
+set h_day_in_dayweek "h.day::date = to_date(:julian_date, 'J')"
+if {$show_week_p} {
+
+    # Find Sunday (=American week start) and Saturday (=American week end)
+    # for the current week by adding or subtracting days depending on the weekday (to_char(.., 'D'))
+    set day_of_week [db_string dow "select to_char(to_date(:julian_date, 'J'), 'D')"]
+    set julian_week_start [expr $julian_date + 1 - $day_of_week]
+    set julian_week_end [expr $julian_date + (7-$day_of_week)]
+
+    # Condition to check for hours this week:
+    set h_day_in_dayweek "h.day between to_date(:julian_week_start, 'J') and to_date(:julian_week_end, 'J')"
+}
+
+
+
+# ---------------------------------------------------------
 # Build the SQL Subquery, determining the (parent)
 # projects to be displayed 
 # ---------------------------------------------------------
@@ -213,7 +230,7 @@ if {0 != $project_id} {
 		tree_ancestor_key(p.tree_sortkey, 1) = main_p.tree_sortkey
     " -default 0]
 
-    set project_sql "
+    set parent_project_sql "
 			select	:main_project_id::integer
     \t\t"
 
@@ -235,7 +252,7 @@ if {0 != $project_id} {
 		tree_ancestor_key(p.tree_sortkey, 1) = main_p.tree_sortkey
     "]
 
-    set project_sql "
+    set parent_project_sql "
 			select	p.project_id
 			from	im_projects p
 			where	p.project_id in ([join $main_project_id_list ","])
@@ -252,7 +269,7 @@ if {0 != $project_id} {
     # Project_id unknown => select all projects
     set one_project_only_p 0
 
-    set project_sql "
+    set parent_project_sql "
 	select	p.project_id
 	from	im_projects p
 	where 
@@ -271,11 +288,31 @@ if {0 != $project_id} {
     "
 }
 
+
+# We need to show the hours of already logged projects.
+# So we need to add the parents of these sub-projects to parent_project_sql.
+
+append parent_project_sql "
+    UNION
+	-- Always show the main-projects of projects with logged hours
+	select	main_p.project_id
+	from	im_hours h,
+		im_projects p,
+		im_projects main_p
+	where	h.user_id = :user_id
+		and h.day::date = to_date(:julian_date, 'J')
+		and h.project_id = p.project_id
+		and p.tree_sortkey between
+			main_p.tree_sortkey and
+			tree_right(main_p.tree_sortkey)
+"
+
+
 # Determine how to show the tasks of projects.
 switch $task_visibility_scope {
     "main_project" {
 	# main_project: The main project determines the subproject/task visibility space
-	set task_visibility_sql "
+	set children_sql "
 				select	sub.project_id
 				from	acs_rels r,
 					im_projects main,
@@ -290,7 +327,7 @@ switch $task_visibility_scope {
     "specified" {
 	# specified: We've got an explicit "project_id" or "project_id_list".
 	# Show everything that's below, even if the user isn't a member.
-	set task_visibility_sql "
+	set children_sql "
 				select	sub.project_id
 				from	im_projects main,
 					im_projects sub
@@ -333,7 +370,7 @@ switch $task_visibility_scope {
 			and r.object_id_two = :user_id
 	"
 
-	set task_visibility_sql "
+	set children_sql "
 				-- Select any subprojects of control projects
 				select	sub.project_id
 				from	im_projects main,
@@ -350,18 +387,12 @@ switch $task_visibility_scope {
 				select  r.object_id_one
 				from    acs_rels r
 				where   r.object_id_two = :user_id
-			UNION
-				-- Select projects or tasks where the user has logged hours today
-				select  project_id
-				from    im_hours h
-				where   h.user_id = :user_id
-					and h.day = to_date(:julian_date, 'J')
 	"
 
     }
     "task" {
 	# task: Each task has its own space - the user needs to be member of all tasks to log hours.
-	set task_visibility_sql "
+	set children_sql "
 				-- Show sub-project/tasks only with direct membership
 				select	r.object_id_one
 				from	acs_rels r
@@ -371,14 +402,26 @@ switch $task_visibility_scope {
 }
 
 
-set children_sql "
-				$task_visibility_sql
+set child_project_sql "
+				$children_sql
 			    UNION
 				-- Always show projects and tasks where user has logged hours
 				select	project_id
 				from	im_hours h
 				where	h.user_id = :user_id
 					and h.day = to_date(:julian_date, 'J')
+			    UNION
+			        -- Project with hours on it plus any of its superiors
+				select	main_p.project_id
+				from	im_hours h,
+					im_projects p,
+					im_projects main_p
+				where	h.user_id = :user_id
+					and h.day::date = to_date(:julian_date, 'J')
+					and h.project_id = p.project_id
+					and p.tree_sortkey between
+						main_p.tree_sortkey and
+						tree_right(main_p.tree_sortkey)				
 			    UNION
 				-- Always show the main project itself (it showing a single project, 0 otherwise)
 				select	project_id from im_projects where project_id = :project_id
@@ -443,12 +486,15 @@ set sql "
 		and children.tree_sortkey between 
 			parent.tree_sortkey and 
 			tree_right(parent.tree_sortkey)
-		and parent.project_id in ($project_sql)
-		and children.project_id in ($children_sql)
+		and parent.project_id in ($parent_project_sql)
+		and children.project_id in ($child_project_sql)
 	order by
 		lower(parent.project_name),
 		children.tree_sortkey
 "
+
+# db_foreach sql $sql { append result "$parent_project_name\t$project_name\n"}
+# ad_return_complaint 1 "<pre>$result</pre>"
 
 
 # ---------------------------------------------------------
@@ -462,11 +508,6 @@ set sql "
 # for them at that moment.
 # ---------------------------------------------------------
 
-set day_restriction "h.day = to_date(:julian_date, 'J')"
-if {$show_week_p} {
-    set day_restriction "h.day between to_date(:julian_date, 'J') and to_date(:julian_date, 'J')+7 "
-}
-
 set hours_sql "
 	select
 		h.hours,
@@ -479,7 +520,7 @@ set hours_sql "
 	where
 		h.project_id = p.project_id and
 		h.user_id = :user_id and
-		$day_restriction
+		$h_day_in_dayweek
 "
 db_foreach hours_hash $hours_sql {
 
@@ -494,17 +535,34 @@ db_foreach hours_hash $hours_sql {
 # ---------------------------------------------------------
 
 set open_projects_sql "
+	-- all open projects with direct membership
 	select	p.project_id as open_project_id
 	from	im_projects p,
 		acs_rels r
 	where	r.object_id_two = :user_id
 		and r.object_id_one = p.project_id
 		and p.project_status_id not in ($closed_stati_list)
+    UNION
+	-- all open projects and super-project where the user has logged hours.
+	select	main_p.project_id
+	from	im_hours h,
+		im_projects p,
+		im_projects main_p
+	where	h.user_id = :user_id
+		and h.day::date = to_date(:julian_date, 'J')
+		and h.project_id = p.project_id
+		and p.tree_sortkey between
+			main_p.tree_sortkey and
+			tree_right(main_p.tree_sortkey)
+		and main_p.project_status_id not in ($closed_stati_list)
 "
 array set open_projects_hash {}
 db_foreach open_projects $open_projects_sql {
 	set open_projects_hash($open_project_id) 1
 }
+
+#db_foreach sql $open_projects_sql { append result "$open_project_id\n"}
+#ad_return_complaint 1 "<pre>$result</pre>"
 
 
 # ---------------------------------------------------------
