@@ -51,7 +51,7 @@ set project_id_for_default $project_id
 if {0 == $project_id} { set project_id_for_default ""}
 
 # "Log hours for a different day"
-set different_date_url "index?[export_ns_set_vars url [list julian_date]]"
+set different_date_url [export_vars -base "index" {project_id project_id_list julian_date show_week_p}]
 
 
 # Append user-defined menus

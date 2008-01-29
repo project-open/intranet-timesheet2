@@ -33,9 +33,11 @@ ad_page_contract {
     { julian_date "" }
     { user_id:integer "" }
     { project_id:integer "" }
+    { project_id_list "" }
     { return_url "" }
     { header "" }
     { message:allhtml "" }
+    { show_week_p "" }
 }
 
 # ---------------------------------------------------------------
@@ -177,7 +179,8 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
     if {"" != $curr_absence} { set curr_absence "<br>$curr_absence" }
 
     if {$write_p} {
-        set hours_url [export_vars -base "new" {user_id {julian_date $current_date} {show_week_p 0} return_url}]
+        set hours_url [export_vars -base "new" {user_id {julian_date $current_date} show_week_p return_url project_id project_id_list}]
+
 	set html "<a href=$hours_url>$hours</a>$curr_absence"
     } else {
 	set html "$curr_absence"
