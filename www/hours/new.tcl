@@ -31,9 +31,6 @@ ad_page_contract {
     { show_week_p 1 }
 }
 
-# ad_return_complaint 1 "$project_id - $project_id_list"
-
-
 # ---------------------------------------------------------
 # Default & Security
 # ---------------------------------------------------------
@@ -44,6 +41,9 @@ set user_id [ad_maybe_redirect_for_registration]
 if {"" == $return_url} { set return_url [im_url_with_query] }
 set bgcolor(0) " class=roweven "
 set bgcolor(1) " class=rowodd "
+
+if {"" == $show_week_p} { set show_week_p 0 }
+
 if { [empty_string_p $julian_date] } {
     set julian_date [db_string sysdate_as_julian "select to_char(sysdate,'J') from dual"]
 }
