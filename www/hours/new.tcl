@@ -47,6 +47,33 @@ if {"" == $show_week_p} { set show_week_p 0 }
 if { [empty_string_p $julian_date] } {
     set julian_date [db_string sysdate_as_julian "select to_char(sysdate,'J') from dual"]
 }
+
+# ---------------------------------------------------------
+# Calculate the start and end of the week.
+# ---------------------------------------------------------
+
+set julian_week_start $julian_date
+set julian_week_end $julian_date
+set h_day_in_dayweek "h.day::date = to_date(:julian_date, 'J')"
+if {$show_week_p} {
+
+    # Find Sunday (=American week start) and Saturday (=American week end)
+    # for the current week by adding or subtracting days depending on the weekday (to_char(.., 'D'))
+    set day_of_week [db_string dow "select to_char(to_date(:julian_date, 'J'), 'D')"]
+    set julian_week_start [expr $julian_date + 1 - $day_of_week]
+    set julian_week_end [expr $julian_date + (7-$day_of_week)]
+
+    # Reset the day to the start of the week.
+    set julian_date $julian_week_start
+
+    # Condition to check for hours this week:
+    set h_day_in_dayweek "h.day between to_date(:julian_week_start, 'J') and to_date(:julian_week_end, 'J')"
+}
+
+
+
+
+
 set project_id_for_default $project_id
 if {0 == $project_id} { set project_id_for_default ""}
 
@@ -72,7 +99,56 @@ select
 from	users
 where	user_id = :user_id" 
 
-set page_title "[_ intranet-timesheet2.lt_Hours_for_pretty_date]"
+
+# ---------------------------------------------------------
+# Calculate the <- -> buttons at the top of the timesheet page.
+# ---------------------------------------------------------
+
+set left_gif [im_gif arrow_comp_left]
+set right_gif [im_gif arrow_comp_right]
+
+if {$show_week_p} {
+
+    set page_title [lang::message::lookup "" intranet-timesheet2.Hours_for_week "Hours for week"]
+
+    set prev_week_julian_date [expr $julian_date - 7]
+    set prev_week_url [export_vars -base "new" {{julian_date $prev_week_julian_date} project_id project_id_list show_week_p}]
+    set prev_week_link "<a href=$prev_week_url>$left_gif</a>"
+
+    set next_week_julian_date [expr $julian_date + 7]
+    set next_week_url [export_vars -base "new" {{julian_date $next_week_julian_date} project_id project_id_list show_week_p}]
+    set next_week_link "<a href=$next_week_url>$right_gif</a>"
+
+    set forward_backward_buttons "
+	<tr>
+	<td align=left>$prev_week_link</td>
+	<td colspan=6>&nbsp;</td>
+	<td align=right>$next_week_link</td>
+	</tr>
+    "
+
+} else {
+
+    set page_title "[_ intranet-timesheet2.lt_Hours_for_pretty_date]"
+
+    set prev_day_julian_date [expr $julian_date - 1]
+    set prev_day_url [export_vars -base "new" {{julian_date $prev_day_julian_date} project_id project_id_list show_week_p}]
+    set prev_day_link "<a href=$prev_day_url>$left_gif</a>"
+
+    set next_day_julian_date [expr $julian_date + 1]
+    set next_day_url [export_vars -base "new" {{julian_date $next_day_julian_date} project_id project_id_list show_week_p}]
+    set next_day_link "<a href=$next_day_url>$right_gif</a>"
+
+    set forward_backward_buttons "
+	<tr>
+	<td align=left>$prev_day_link</td>
+	<td colspan=1>&nbsp;</td>
+	<td align=right>$next_day_link</td>
+	</tr>
+    "
+
+}
+
 set context_bar [im_context_bar [list index "[_ intranet-timesheet2.Hours]"] "[_ intranet-timesheet2.Add_hours]"]
 
 set permissive_logging [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter PermissiveHourLogging -default "permissive"]
@@ -124,7 +200,7 @@ if {0 != $last_month_closing_day && "" != $last_month_closing_day} {
 
 }
 
-set edit_hours_closed_message [lang::message::lookup "" intranet-timesheet2.Logging_hours_has_been_closed "Logging hours for this date has already been closed. Please contact your supervisor or the HR department."]
+set edit_hours_closed_message [lang::message::lookup "" intranet-timesheet2.Logging_hours_has_been_closed "Logging hours for this date has already been closed. <br>Please contact your supervisor or the HR department."]
 
 
 # ---------------------------------------------------------
@@ -183,29 +259,6 @@ if {$timesheet_popup_installed_p} {
 	set popup_notes($task_id) $p_notes
     }
 }
-
-
-# ---------------------------------------------------------
-# Build a frequently used SQL fragment to check that the
-# "h.day" of im_hours is today or the current week 
-# depending on $show_week_p
-# ---------------------------------------------------------
-
-set julian_week_start $julian_date
-set julian_week_end $julian_date
-set h_day_in_dayweek "h.day::date = to_date(:julian_date, 'J')"
-if {$show_week_p} {
-
-    # Find Sunday (=American week start) and Saturday (=American week end)
-    # for the current week by adding or subtracting days depending on the weekday (to_char(.., 'D'))
-    set day_of_week [db_string dow "select to_char(to_date(:julian_date, 'J'), 'D')"]
-    set julian_week_start [expr $julian_date + 1 - $day_of_week]
-    set julian_week_end [expr $julian_date + (7-$day_of_week)]
-
-    # Condition to check for hours this week:
-    set h_day_in_dayweek "h.day between to_date(:julian_week_start, 'J') and to_date(:julian_week_end, 'J')"
-}
-
 
 
 # ---------------------------------------------------------
@@ -797,7 +850,7 @@ if { [empty_string_p results] } {
 </tr>\n"
 }
 
-set export_form_vars [export_form_vars julian_date show_week_p return_url]
+set export_form_vars [export_form_vars julian_date show_week_p]
 
 
 # ---------------------------------------------------------

@@ -1,13 +1,7 @@
 <master src="../../../intranet-core/www/master">
-<property name="title">#intranet-timesheet2.Timesheet#</property>
+<property name="title">@page_title@</property>
 <property name="context">#intranet-timesheet2.context#</property>
 <property name="main_navbar_label">timesheet2_timesheet</property>
-
-<if @edit_hours_p@ eq "f">
-<font color=red>
-<h3>@edit_hours_closed_message@</h3>
-</font>
-</if>
 
 <div class="filter-list">
    <div class="filter">
@@ -72,13 +66,26 @@
 
    <div class="fullwidth-list">
       <%= [im_box_header $page_title] %>
+
 <form method=POST action=new-2>
 @export_form_vars;noquote@
 
+<table border=0 cellpadding=1 cellspacing=1>
+
+	  <if @edit_hours_p@ eq "f">
+	  <tr>
+		<td colspan=7>
+		<font color=red>
+		<h3>@edit_hours_closed_message;noquote@</h3>
+		</font>
+		</td>
+	  </tr>
+	  </if>
+
+	  @forward_backward_buttons;noquote@
 
 <if @ctr@>
 
-	<table border=0 cellpadding=1 cellspacing=1>
 	    <tr class=rowtitle>
 		<th>#intranet-timesheet2.Project_name#</th>
 	
@@ -99,19 +106,22 @@
 		</if>
 		</td>
 	    </tr>
-	</table>
 
 </if>
 <else>
+	<tr>
+	<td>
 	<%= [lang::message::lookup "" intranet-timesheet2.Not_Member_of_Projects "
 	    You are not a member of any project where you could log your hours.<p>
 	    Please contact the project manager of your project(s) to include you in 
 	    the list of project members.
 	"] %>
+	</td>
+	</tr>
 </else>
 
 
-
+</table>
 </form>
 
      <%= [im_box_footer] %>
