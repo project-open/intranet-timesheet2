@@ -157,15 +157,16 @@ foreach i $weekly_logging_days {
 	if {[info exists screen_hours_hash($pid)]} { set screen_hours $screen_hours_hash($pid) }
 	if {[info exists screen_notes_hash($pid)]} { set screen_notes [string trim $screen_notes_hash($pid)] }
 
-	if {![string is double $screen_hours] || $screen_hours < 0} {
-	    ad_return_complaint 1 "<b>[lang::message::lookup "" intranet-timesheet2.Only_positive_numbers_allowed "Only positive numbers allowed"]</b>:<br>
-	   [lang::message::lookup "" intranet-timesheet2.Only_positive_numbers_allowed_help "
+	if {"" != $screen_hours} {
+	    if {![string is double $screen_hours] || $screen_hours < 0} {
+		ad_return_complaint 1 "<b>[lang::message::lookup "" intranet-timesheet2.Only_positive_numbers_allowed "Only positive numbers allowed"]</b>:<br>
+	         [lang::message::lookup "" intranet-timesheet2.Only_positive_numbers_allowed_help "
 	   		The number '$screen_hours' contains invalid characters for a numeric value.<br>
 			Please use the characters '0'-'9' and the '.' as a decimal separator. 
-	   "]"
-	    ad_script_abort
+	         "]"
+		ad_script_abort
+	    }
 	}
-
 
 	# Determine the action to take on the database items from comparing database vs. screen
 	set action error

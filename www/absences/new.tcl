@@ -172,7 +172,7 @@ ad_form -extend -name absence -on_request {
 
     # Populate elements from local variables
     if {![info exists start_date]} { set start_date [db_string today "select to_char(now(), :date_time_format)"] }
-    if {![info exists end_date]} { set end_date [db_string today "select to_char(now()+'24 hours'::interval, :date_time_format)"] }
+    if {![info exists end_date]} { set end_date [db_string today "select to_char(now(), :date_time_format)"] }
     if {![info exists duration_days]} { set duration_days "" }
     if {![info exists owner_id]} { set owner_id $user_id }
     if {![info exists absence_type_id]} { set absence_type_id [im_absence_type_vacation] }
