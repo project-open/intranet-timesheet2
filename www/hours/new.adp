@@ -15,7 +15,7 @@
 	<table border=0 cellpadding=1 cellspacing=1>
 	  <tr>
 	    <td>#intranet-core.Project_name#</td>
-	    <td><%= [im_project_select -exclude_subprojects_p 0 project_id $project_id_for_default "open"] %></td>
+	    <td><%= [im_project_select -exclude_subprojects_p 1 project_id $project_id_for_default "open"] %></td>
 	  </tr>
 	  <tr>
 	    <td></td>
