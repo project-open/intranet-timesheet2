@@ -272,7 +272,7 @@ regsub -all {[\{\}]} $project_id_list "" project_id_list
 set main_project_id_list [list 0]
 set main_project_id 0
 
-if {0 != $project_id} {
+if {0 != $project_id && "" != $project_id} {
 
     set main_project_id [db_string main_p "
 	select	main_p.project_id
