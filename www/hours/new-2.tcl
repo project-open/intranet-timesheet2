@@ -51,6 +51,7 @@ ad_page_contract {
 set user_id [ad_maybe_redirect_for_registration]
 set date_format "YYYY-MM-DD"
 set default_currency [ad_parameter -package_id [im_package_cost_id] "DefaultCurrency" "" "EUR"]
+set wf_installed_p [util_memoize "db_string timesheet_wf \"select count(*) from apm_packages where package_key = 'intranet-timesheet2-workflow'\""]
 
 
 # ----------------------------------------------------------
@@ -189,10 +190,13 @@ foreach i $weekly_logging_days {
 	# For all actions: We modify the hours that the person has logged that week, 
 	# so we need to reset/delete the TimesheetConfObject.
 	ns_log Notice "hours/new-2: im_timesheet_conf_object_delete -project_id $project_id -user_id $user_id -day_julian $day_julian"
-	im_timesheet_conf_object_delete \
-	    -project_id $project_id \
-	    -user_id $user_id \
-	    -day_julian $day_julian
+
+	if {$wf_installed_p} {
+	    im_timesheet_conf_object_delete \
+		-project_id $project_id \
+		-user_id $user_id \
+		-day_julian $day_julian
+	}
 
 	# Delete any cost elements related to the hour.
 	# This time project_id refers to the specific (sub-) project.

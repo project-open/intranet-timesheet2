@@ -174,6 +174,40 @@ ad_proc -public im_timesheet2_sync_timesheet_costs {
 }
 
 
+
+ad_proc -public im_timesheet_costs_delete {
+    -project_id
+    -user_id
+    -day_julian
+} {
+    Delete any cost items related to hours logged for the specified project
+    and day.
+} {
+    set del_cost_ids [db_list del_cost_ids "
+		select	h.cost_id
+		from	im_hours h
+		where	h.project_id = :project_id
+			and h.user_id = :user_id
+			and h.day = to_date(:day_julian, 'J')
+    "]
+
+    set ctr 0
+    foreach cost_id $del_cost_ids {
+	db_dml update_hours "
+		    	update im_hours
+			set cost_id = null
+			where cost_id = :cost_id
+	"
+	db_string del_ts_costs "select im_cost__delete(:cost_id)"
+	incr ctr
+    }
+    return $ctr
+}
+
+
+
+
+
 # ---------------------------------------------------------------------
 # Analyze logged hours
 # ---------------------------------------------------------------------
