@@ -33,14 +33,16 @@ SELECT acs_object_type__create_type (
 	'im_user_absence__name'		-- name_method
 );
 
+insert into acs_object_type_tables (object_type,table_name,id_column)
+values ('im_user_absence', 'im_user_absences', 'absence_id');
+
 
 -- Setup status and type columns for im_user_absences
 update acs_object_types set 
+	status_type_table = 'im_user_absences',
 	status_column = 'absence_status_id', 
-	type_column='absence_type_id', 
-	status_type_table='im_user_absences' 
+	type_column = 'absence_type_id' 
 where object_type = 'im_user_absence';
-
 
 insert into im_biz_object_urls (object_type, url_type, url) values (
 'im_user_absence','view','/intranet-timesheet2/absences/new?form_mode=display&absence_id=');
@@ -52,68 +54,49 @@ insert into im_biz_object_urls (object_type, url_type, url) values (
 -- Absences Table
 --
 
+create sequence im_user_absences_id_seq start 1;
+create table im_user_absences (
+        absence_id              integer
+                                constraint im_user_absences_pk
+                                primary key
+				constraint im_user_absences_id_fk
+				references acs_objects,
+	absence_name		varchar(1000),
+        owner_id                integer
+                                constraint im_user_absences_user_fk
+                                references users,
+        start_date              timestamptz
+                                constraint im_user_absences_start_const not null,
+        end_date                timestamptz
+                                constraint im_user_absences_end_const not null,
+	duration_days		numeric(12,1),			
+        description             text,
+        contact_info            text,
+	-- should this user receive email during the absence?
+        receive_email_p         char(1) default 't'
+                                constraint im_user_absences_email_const
+                                check (receive_email_p in ('t','f')),
+        last_modified           date,
+	-- Status and type for orderly objects...
+        absence_type_id		integer
+                                constraint im_user_absences_type_fk
+                                references im_categories
+                                constraint im_user_absences_type_nn
+				not null,
+        absence_status_id	integer
+                                constraint im_user_absences_status_fk
+                                references im_categories
+                                constraint im_user_absences_type_nn 
+				not null
+);
 
-create or replace function inline_0 ()
-returns integer as '
-declare
-        v_count                 integer;
-begin
-        select count(*) into v_count
-        from user_tab_columns where table_name = ''IM_USER_ABSENCES'';
-        if v_count > 0 then return 0; end if;
+alter table im_user_absences 
+add constraint owner_and_start_date_unique unique (owner_id,absence_type_id, start_date);
 
-
-	create sequence im_user_absences_id_seq start 1;
-	create table im_user_absences (
-	        absence_id              integer
-	                                constraint im_user_absences_pk
-	                                primary key
-					constraint im_user_absences_id_fk
-					references acs_objects,
-
-		absence_name		varchar(1000),
-
-	        owner_id                integer
-	                                constraint im_user_absences_user_fk
-	                                references users,
-	        start_date              timestamptz
-	                                constraint im_user_absences_start_const not null,
-	        end_date                timestamptz
-	                                constraint im_user_absences_end_const not null,
-		duration_days		numeric(12,1),			
-	        description             varchar(4000),
-	        contact_info            varchar(4000),
-
-	        -- should this user receive email during the absence?
-	        receive_email_p         char(1) default ''t''
-	                                constraint im_user_absences_email_const
-	                                check (receive_email_p in (''t'',''f'')),
-	        last_modified           date,
-
-		-- Status and type for orderly objects...
-	        absence_type_id		integer
-	                                constraint im_user_absences_type_fk
-	                                references im_categories
-	                                constraint im_user_absences_type_nn
-					not null,
-	        absence_status_id	integer
-	                                constraint im_user_absences_status_fk
-	                                references im_categories
-	                                constraint im_user_absences_type_nn 
-					not null
-	);
-	alter table im_user_absences add constraint owner_and_start_date_unique unique (owner_id,absence_type_id, start_date);
+create index im_user_absences_user_id_idx on im_user_absences(owner_id);
+create index im_user_absences_dates_idx on im_user_absences(start_date, end_date);
+create index im_user_absences_type_idx on im_user_absences(absence_type_id);
 	
-	create index im_user_absences_user_id_idx on im_user_absences(owner_id);
-	create index im_user_absences_dates_idx on im_user_absences(start_date, end_date);
-	create index im_user_absences_type_idx on im_user_absences(absence_type_id);
-	
-        return 0;
-end;' language 'plpgsql';
-select inline_0 ();
-drop function inline_0 ();
-
-
 
 
 -----------------------------------------------------------
@@ -218,49 +201,40 @@ end;' language 'plpgsql';
 -- Absences Permissions
 --
 
+-- add_absences makes it possible to restrict the absence registering to internal stuff
+SELECT acs_privilege__create_privilege('add_absences','Add Absences','Add Absences');
+SELECT acs_privilege__add_child('admin', 'add_absences');
 
-create or replace function inline_0 ()
-returns integer as '
-declare
-        v_count                 integer;
-begin
-        select count(*) into v_count
-        from acs_privileges where privilege = ''add_absences'';
-        if v_count > 0 then return 0; end if;
+-- view_absences_all restricts possibility to see absences of others
+SELECT acs_privilege__create_privilege('view_absences_all','View Absences All','View Absences All');
+SELECT acs_privilege__add_child('admin', 'view_absences_all');
 
 
-	-- add_absences makes it possible to restrict the absence registering to internal stuff
-	PERFORM acs_privilege__create_privilege(''add_absences'',''Add Absences'',''Add Absences'');
-	PERFORM acs_privilege__add_child(''admin'', ''add_absences'');
-	
-	-- view_absences_all restricts possibility to see absences of others
-	PERFORM acs_privilege__create_privilege(''view_absences_all'',''View Absences All'',''View Absences All'');
-	PERFORM acs_privilege__add_child(''admin'', ''view_absences_all'');
-	
-	
-	PERFORM im_priv_create(''add_absences'', ''Accounting'');
-	PERFORM im_priv_create(''add_absences'', ''Employees'');
-	PERFORM im_priv_create(''add_absences'', ''Freelancers'');
-	PERFORM im_priv_create(''add_absences'', ''P/O Admins'');
-	PERFORM im_priv_create(''add_absences'', ''Project Managers'');
-	PERFORM im_priv_create(''add_absences'', ''Sales'');
-	PERFORM im_priv_create(''add_absences'', ''Senior Managers'');
-	
-	
-	PERFORM im_priv_create(''view_absences_all'', ''Accounting'');
-	PERFORM im_priv_create(''view_absences_all'', ''Employees'');
-	PERFORM im_priv_create(''view_absences_all'', ''Freelancers'');
-	PERFORM im_priv_create(''view_absences_all'', ''P/O Admins'');
-	PERFORM im_priv_create(''view_absences_all'', ''Project Managers'');
-	PERFORM im_priv_create(''view_absences_all'', ''Sales'');
-	PERFORM im_priv_create(''view_absences_all'', ''Senior Managers'');
-
-        return 0;
-end;' language 'plpgsql';
-select inline_0 ();
-drop function inline_0 ();
+SELECT im_priv_create('add_absences', 'Accounting');
+SELECT im_priv_create('add_absences', 'Employees');
+SELECT im_priv_create('add_absences', 'Freelancers');
+SELECT im_priv_create('add_absences', 'P/O Admins');
+SELECT im_priv_create('add_absences', 'Project Managers');
+SELECT im_priv_create('add_absences', 'Sales');
+SELECT im_priv_create('add_absences', 'Senior Managers');
 
 
+SELECT im_priv_create('view_absences_all', 'Accounting');
+SELECT im_priv_create('view_absences_all', 'Employees');
+SELECT im_priv_create('view_absences_all', 'Freelancers');
+SELECT im_priv_create('view_absences_all', 'P/O Admins');
+SELECT im_priv_create('view_absences_all', 'Project Managers');
+SELECT im_priv_create('view_absences_all', 'Sales');
+SELECT im_priv_create('view_absences_all', 'Senior Managers');
+
+
+SELECT acs_privilege__create_privilege('edit_absence_status','Edit Absence Status','Edit Absence Status');
+SELECT acs_privilege__add_child('admin', 'edit_absence_status');
+
+SELECT im_priv_create('edit_absence_status', 'Accounting');
+SELECT im_priv_create('edit_absence_status', 'P/O Admins');
+SELECT im_priv_create('edit_absence_status', 'Project Managers');
+SELECT im_priv_create('edit_absence_status', 'Senior Managers');
 
 
 
@@ -277,36 +251,18 @@ SELECT im_category_new (16002, 'Deleted', 'Intranet Absence Status');
 SELECT im_category_new (16004, 'Requested', 'Intranet Absence Status');
 SELECT im_category_new (16006, 'Rejected', 'Intranet Absence Status');
 
-
 SELECT im_category_new (5000, 'Vacation', 'Intranet Absence Type');
 SELECT im_category_new (5001, 'Personal', 'Intranet Absence Type');
 SELECT im_category_new (5002, 'Sick', 'Intranet Absence Type');
 SELECT im_category_new (5003, 'Travel', 'Intranet Absence Type');
 SELECT im_category_new (5004, 'Bank Holiday', 'Intranet Absence Type');
 
-
-
 -- Set the default WF for each absence type
-update im_categories
-set aux_string1 = 'vacation_approval_wf'
-where category_id = 5000;
-
-update im_categories
-set aux_string1 = 'personal_approval_wf'
-where category_id = 5001;
-
-update im_categories
-set aux_string1 = 'sick_approval_wf'
-where category_id = 5002;
-
-update im_categories
-set aux_string1 = 'travel_approval_wf'
-where category_id = 5003;
-
-update im_categories
-set aux_string1 = 'bank_holiday_approval_wf'
-where category_id = 5004;
-
+update im_categories set aux_string1 = 'vacation_approval_wf' where category_id = 5000;
+update im_categories set aux_string1 = 'personal_approval_wf' where category_id = 5001;
+update im_categories set aux_string1 = 'sick_approval_wf' where category_id = 5002;
+update im_categories set aux_string1 = 'travel_approval_wf' where category_id = 5003;
+update im_categories set aux_string1 = 'bank_holiday_approval_wf' where category_id = 5004;
 
 
 
@@ -346,3 +302,164 @@ BEGIN
 END;' language 'plpgsql';
 
 
+
+-- ------------------------------------------------------
+-- Workflow graph on Absence View Page
+-- ------------------------------------------------------
+
+SELECT  im_component_plugin__new (
+	null,					-- plugin_id
+	'acs_object',				-- object_type
+	now(),					-- creation_date
+	null,					-- creation_user
+	null,					-- creation_ip
+	null,					-- context_id
+
+	'Absence Workflow',			-- component_name
+	'intranet-timesheet2',			-- package_name
+	'right',				-- location
+	'/intranet-timesheet2/absences/new',	-- page_url
+	null,					-- view_name
+	10,					-- sort_order
+	'im_workflow_graph_component -object_id $absence_id'
+);
+
+
+-- ------------------------------------------------------
+-- Journal on Absence View Page
+-- ------------------------------------------------------
+
+SELECT  im_component_plugin__new (
+	null,					-- plugin_id
+	'acs_object',				-- object_type
+	now(),					-- creation_date
+	null,					-- creation_user
+	null,					-- creation_ip
+	null,					-- context_id
+
+	'Absence Journal',			-- component_name
+	'intranet-timesheet2',			-- package_name
+	'bottom',				-- location
+	'/intranet-timesheet2/absences/new',	-- page_url
+	null,					-- view_name
+	100,					-- sort_order
+	'im_workflow_journal_component -object_id $absence_id'
+);
+
+
+-- ------------------------------------------------------
+-- Menus
+-- ------------------------------------------------------
+
+SELECT im_new_menu(
+	'intranet-timesheet2',
+	'timesheet2_absences_vacation',
+	'New Vacation Absence',
+	'/intranet-timesheet2/absences/new?absence_type_id=5000',
+	10,
+	'timesheet2_absences', 
+	null
+);
+SELECT im_new_menu_perms('timesheet2_absences_vacation', 'Employees');
+
+SELECT im_new_menu(
+	'intranet-timesheet2',
+	'timesheet2_absences_personal',
+	'New Personal Absence',
+	'/intranet-timesheet2/absences/new?absence_type_id=5001',
+	20,
+	'timesheet2_absences', 
+	null
+);
+SELECT im_new_menu_perms('timesheet2_absences_personal', 'Employees');
+
+SELECT im_new_menu(
+	'intranet-timesheet2',
+	'timesheet2_absences_sick',
+	'New Sick Leave',
+	'/intranet-timesheet2/absences/new?absence_type_id=5002',
+	30,
+	'timesheet2_absences', 
+	null
+);
+SELECT im_new_menu_perms('timesheet2_absences_sick', 'Employees');
+
+SELECT im_new_menu(
+	'intranet-timesheet2',
+	'timesheet2_absences_travel',
+	'New Travel Absence',
+	'/intranet-timesheet2/absences/new?absence_type_id=5003',
+	40,
+	'timesheet2_absences', 
+	null
+);
+SELECT im_new_menu_perms('timesheet2_absences_travel', 'Employees');
+
+SELECT im_new_menu(
+	'intranet-timesheet2',
+	'timesheet2_absences_bankholiday',
+	'New Bank Holiday',
+	'/intranet-timesheet2/absences/new?absence_type_id=5004',
+	50,
+	'timesheet2_absences', 
+	null
+);
+SELECT im_new_menu_perms('timesheet2_absences_bankholiday', 'Employees');
+
+
+
+
+-- ------------------------------------------------------
+-- Add DynFields
+-- ------------------------------------------------------
+--
+-- select im_dynfield_attribute__new (
+-- 	null,				-- widget_id
+-- 	'im_dynfield_attribute',	-- object_type
+-- 	now(),				-- creation_date
+-- 	null,				-- creation_user
+-- 	null,				-- creation_ip	
+-- 	null,				-- context_id
+-- 
+-- 	'im_user_absence',		-- attribute_object_type
+-- 	'description',			-- attribute name
+-- 	0,				-- min_n_values
+-- 	1,				-- max_n_values
+-- 	null,				-- default_value
+-- 	'date',				-- ad_form_datatype
+-- 	'#intranet-timesheet2.Description#',	-- pretty name
+-- 	'#intranet-timesheet2.Description#',	-- pretty plural
+-- 	'textarea_small',		-- widget_name
+-- 	'f',				-- deprecated_p
+-- 	't'				-- already_existed_p
+-- );
+-- 
+-- update acs_attributes set sort_order = 50
+-- where attribute_name = 'description' and object_type = 'im_user_absence';
+-- 
+-- 
+-- Add DynFields
+--
+-- select im_dynfield_attribute__new (
+-- 	null,				-- widget_id
+-- 	'im_dynfield_attribute',	-- object_type
+-- 	now(),				-- creation_date
+-- 	null,				-- creation_user
+-- 	null,				-- creation_ip	
+-- 	null,				-- context_id
+-- 
+-- 	'im_user_absence',		-- attribute_object_type
+-- 	'contact_info',			-- attribute name
+-- 	0,				-- min_n_values
+-- 	1,				-- max_n_values
+-- 	null,				-- default_value
+-- 	'date',				-- ad_form_datatype
+-- 	'#intranet-timesheet2.Contact#',	-- pretty name
+-- 	'#intranet-timesheet2.Contact#',	-- pretty plural
+-- 	'textarea_small',		-- widget_name
+-- 	'f',				-- deprecated_p
+-- 	't'				-- already_existed_p
+-- );
+-- 
+-- update acs_attributes set sort_order = 60
+-- where attribute_name = 'contact_info' and object_type = 'im_user_absence';

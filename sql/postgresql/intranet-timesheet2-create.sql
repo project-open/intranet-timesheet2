@@ -17,169 +17,79 @@
 -- @author      frank.bergmann@project-open.com
 
 ------------------------------------------------------------
--- delete timesheet1 instances
---
-create or replace function inline_0 (varchar)
-returns integer as '
-DECLARE
-	p_name alias for $1;
-	package apm_packages%ROWTYPE;
-	version apm_package_versions%ROWTYPE;
-	node site_nodes%ROWTYPE;
-BEGIN
-	FOR package IN 
-	  SELECT package_id FROM apm_packages WHERE package_key= p_name
-	LOOP
-	  PERFORM apm_package__delete(package.package_id);
-	END LOOP;
-
-	FOR node IN 
-	  SELECT site_nodes.node_id 
-	  FROM apm_packages, site_nodes  
-	  WHERE apm_packages.package_id = site_nodes.object_id
-	    AND apm_packages.package_key = p_name
-	LOOP
-	  update site_nodes set object_id = null where node_id = node;
-	END LOOP;
-
-	DELETE from lang_message_keys  where package_key = p_name;
-
-	PERFORM apm_package_type__drop_type( p_name, ''t'' );
-
-	RETURN 0;
-END;
-' language 'plpgsql';
-select inline_0 ('intranet-timesheet');
-drop function inline_0 (varchar);
-
-
-------------------------------------------------------------
 -- Hours
 --
 -- We record logged hours of both project and client related work
 --
 
-create or replace function inline_0 ()
-returns integer as '
-declare
-        v_count                 integer;
-begin
-        select count(*)
-        into v_count
-        from user_tab_columns
-        where   table_name = ''IM_HOURS'';
-
-        if v_count > 0 then
-            return 0;
-        end if;
-
-	create table im_hours (
-		user_id			integer 
-					constraint im_hours_user_id_nn
-					not null 
-					constraint im_hours_user_id_fk
-					references users,
-		project_id		integer 
-					constraint im_hours_project_id_nn
-					not null 
-					constraint im_hours_project_id_fk
-					references im_projects,
-		day			timestamptz,
-		hours			numeric(5,2) not null,
-					-- ArsDigita/ACS billing system - log prices with hours
-		billing_rate		numeric(5,2),
-		billing_currency	char(3)
-					constraint im_hours_billing_currency_fk
-					references currency_codes(iso),
-		note			varchar(4000)
-	);
+create table im_hours (
+	user_id			integer 
+				constraint im_hours_user_id_nn
+				not null 
+				constraint im_hours_user_id_fk
+				references users,
+	project_id		integer 
+				constraint im_hours_project_id_nn
+				not null 
+				constraint im_hours_project_id_fk
+				references im_projects,
+	day			timestamptz,
+	hours			numeric(5,2) not null,
+	cost_id			integer
+				constraint im_hours_cost_fk
+				references im_costs,
+	material_id		integer
+				constraint im_hours_material_fk
+				references im_materials,
+				-- ArsDigita/ACS billing system - log prices with hours
+	billing_rate		numeric(5,2),
+	billing_currency	char(3)
+				constraint im_hours_billing_currency_fk
+				references currency_codes(iso),
+	note			text
+);
 	
-	alter table im_hours add primary key (user_id, project_id, day);
-	create index im_hours_project_id_idx on im_hours(project_id);
-	create index im_hours_user_id_idx on im_hours(user_id);
-	create index im_hours_day_idx on im_hours(day);
-
-	return 0;
-end;' language 'plpgsql';
-select inline_0 ();
-drop function inline_0 ();
+alter table im_hours add primary key (user_id, project_id, day);
+create index im_hours_project_id_idx on im_hours(project_id);
+create index im_hours_user_id_idx on im_hours(user_id);
+create index im_hours_day_idx on im_hours(day);
 
 
--- Add the sum of timesheet hours cached here for reporting
--- to the im_projects table
---
-create or replace function inline_0 ()
-returns integer as '
-declare
-        v_count                 integer;
-begin
-        select count(*)
-        into v_count
-        from user_tab_columns
-        where   table_name = ''IM_PROJECTS''
-                and column_name = ''REPORTED_HOURS_CACHE'';
-
-        if v_count > 0 then
-            return 0;
-        end if;
-
-	alter table im_projects add reported_hours_cache float;
-
-	return 0;
-end;' language 'plpgsql';
-select inline_0 ();
-drop function inline_0 ();
 
 ------------------------------------------------------
 -- Permissions and Privileges
 --
+	
+-- add_hours actually is more of an obligation then a privilege...
+select acs_privilege__create_privilege('add_hours','Add Hours','Add Hours');
+select acs_privilege__add_child('admin', 'add_hours');
+	
+-- Everybody is able to see his own hours, so view_hours doesnt
+-- make much sense...
+select acs_privilege__create_privilege('view_hours_all','View Hours All','View Hours All');
+select acs_privilege__add_child('admin', 'view_hours_all');
+	
+select im_priv_create('add_hours', 'Accounting');
+select im_priv_create('add_hours', 'Employees');
+select im_priv_create('add_hours', 'P/O Admins');
+select im_priv_create('add_hours', 'Project Managers');
+select im_priv_create('add_hours', 'Sales');
+select im_priv_create('add_hours', 'Senior Managers');
+	
+select im_priv_create('view_hours_all', 'Accounting');
+select im_priv_create('view_hours_all', 'P/O Admins');
+select im_priv_create('view_hours_all', 'Project Managers');
+select im_priv_create('view_hours_all', 'Sales');
+select im_priv_create('view_hours_all', 'Senior Managers');
 
+-- New Privilege to allow accounting guys to change hours
+select acs_privilege__create_privilege('edit_hours_all','Edit Hours All','Edit Hours All');
+select acs_privilege__add_child('admin', 'edit_hours_all');
+	
+select im_priv_create('edit_hours_all', 'Accounting');
+select im_priv_create('edit_hours_all', 'P/O Admins');
+select im_priv_create('edit_hours_all', 'Senior Managers');
 
-create or replace function inline_0 ()
-returns integer as '
-declare
-        v_count                 integer;
-begin
-        select count(*) into v_count
-        from acs_privileges where privilege = ''add_hours'';
-        if v_count > 0 then return 0; end if;
-	
-	-- add_hours actually is more of an obligation then a privilege...
-	select acs_privilege__create_privilege(''add_hours'',''Add Hours'',''Add Hours'');
-	select acs_privilege__add_child(''admin'', ''add_hours'');
-	
-	
-	-- Everybody is able to see his own hours, so view_hours doesnt
-	-- make much sense...
-	select acs_privilege__create_privilege(''view_hours_all'',''View Hours All'',''View Hours All'');
-	select acs_privilege__add_child(''admin'', ''view_hours_all'');
-	
-	
-	select im_priv_create(''add_hours'', ''Accounting'');
-	select im_priv_create(''add_hours'', ''Employees'');
-	select im_priv_create(''add_hours'', ''P/O Admins'');
-	select im_priv_create(''add_hours'', ''Project Managers'');
-	select im_priv_create(''add_hours'', ''Sales'');
-	select im_priv_create(''add_hours'', ''Senior Managers'');
-	
-	select im_priv_create(''view_hours_all'', ''Accounting'');
-	select im_priv_create(''view_hours_all'', ''P/O Admins'');
-	select im_priv_create(''view_hours_all'', ''Project Managers'');
-	select im_priv_create(''view_hours_all'', ''Sales'');
-	select im_priv_create(''view_hours_all'', ''Senior Managers'');
-
-	-- New Privilege to allow accounting guys to change hours
-	select acs_privilege__create_privilege('edit_hours_all','Edit Hours All','Edit Hours All');
-	select acs_privilege__add_child('admin', 'edit_hours_all');
-	
-	select im_priv_create('edit_hours_all', 'Accounting');
-	select im_priv_create('edit_hours_all', 'P/O Admins');
-	select im_priv_create('edit_hours_all', 'Senior Managers');
-
-        return 0;
-end;' language 'plpgsql';
-select inline_0 ();
-drop function inline_0 ();
 
 
 
@@ -284,8 +194,12 @@ select im_component_plugin__new (
 	null,					-- view_name
 	50,					-- sort_order
 	'im_timesheet_project_component $user_id $project_id ',
-	'_ intranet-timesheet2.Timesheet'
+	'lang::message::lookup "" intranet-timesheet2.Timesheet "Timesheet"'
 );
+update im_component_plugins
+set title_tcl = 'lang::message::lookup "" intranet-timesheet2.Timesheet "Timesheet"'
+where plugin_name = 'Project Timesheet Component';
+
 
 select im_component_plugin__new (
 	null,					-- plugin_id
@@ -302,7 +216,7 @@ select im_component_plugin__new (
 	null,					-- view_name
 	80,					-- sort_order
 	'im_timesheet_home_component $user_id',
-	'intranet-timesheet2.Timesheet'
+	'_ intranet-timesheet2.Timesheet'
 );
 
 \i intranet-absences-create.sql
