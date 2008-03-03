@@ -67,6 +67,8 @@
   <msg key="Deviation">Deviation</msg>
   <msg key="Display">Display:</msg>
   <msg key="Display_Users">Display Users:</msg>
+  <msg key="Duration_days">Duration Days</msg>
+  <msg key="Duration_days_help">Duration Days</msg>
   <msg key="E">E</msg>
   <msg key="Edit">Edit</msg>
   <msg key="Edit_Absence">Edit Absence</msg>
@@ -228,12 +230,14 @@ of those units were billed hourly, for a total amount of</msg>
   <msg key="N">N</msg>
   <msg key="Name">Name</msg>
   <msg key="New_Absence">New Absence</msg>
+  <msg key="New_Absence_Type">New %absence_type%</msg>
   <msg key="Next_Month">Next Month</msg>
   <msg key="No_Data_found">No Data found</msg>
   <msg key="No_hours_logged">No hours logged!</msg>
   <msg key="No_Users_found">No Users found!</msg>
   <msg key="No_users_found">No users found</msg>
   <msg key="none">none</msg>
+  <msg key="Not_Member_of_Projects">You are not a member of any open project.</msg>
   <msg key="Notes">Notes:</msg>
   <msg key="Notice">Notice</msg>
   <msg key="Nov">Nov</msg>
@@ -276,8 +280,10 @@ of those units were billed hourly, for a total amount of</msg>
   <msg key="Sep">Sep</msg>
   <msg key="September">September</msg>
   <msg key="Show_one">Show one</msg>
+  <msg key="Show_Users">Show Users</msg>
   <msg key="Start_Date">Start Date</msg>
   <msg key="Starting">Starting:</msg>
+  <msg key="Status">Status</msg>
   <msg key="submit">submit</msg>
   <msg key="Summary">Summary</msg>
   <msg key="Summary_by_date">Summary by date</msg>

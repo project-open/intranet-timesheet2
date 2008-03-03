@@ -214,7 +214,7 @@ ad_form -extend -name absence -on_request {
 			a.start_date = to_timestamp(:start_date, 'YYYY MM DD HH24 MI')
 	   "]
      } {
-	ad_return_complaint 1 [lang::message::lookup {} intranet-timesheet2.Absence_Duplicate_Start {There is already an absence with exactly the same start date.}]
+	ad_return_complaint 1 [lang::message::lookup "" intranet-timesheet2.Absence_Duplicate_Start "There is already an absence with exactly the same start date."]
     }
 
     db_transaction {
