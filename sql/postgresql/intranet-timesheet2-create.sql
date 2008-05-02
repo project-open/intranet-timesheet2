@@ -28,21 +28,21 @@ DECLARE
 	node site_nodes%ROWTYPE;
 BEGIN
 	FOR package IN 
-	  SELECT package_id FROM apm_packages WHERE package_key= p_name
+		SELECT package_id FROM apm_packages WHERE package_key = p_name
 	LOOP
-	  PERFORM apm_package__delete(package.package_id);
+		PERFORM apm_package__delete(package.package_id);
 	END LOOP;
 
 	FOR node IN 
-	  SELECT site_nodes.node_id 
-	  FROM apm_packages, site_nodes  
-	  WHERE apm_packages.package_id = site_nodes.object_id
-	    AND apm_packages.package_key = p_name
+		SELECT site_nodes.node_id 
+		FROM apm_packages, site_nodes  
+		WHERE apm_packages.package_id = site_nodes.object_id
+		AND apm_packages.package_key = p_name
 	LOOP
-	  update site_nodes set object_id = null where node_id = node;
+		update site_nodes set object_id = null where node_id = node;
 	END LOOP;
 
-	DELETE from lang_message_keys  where package_key = p_name;
+	DELETE from lang_message_keys where package_key = p_name;
 
 	PERFORM apm_package_type__drop_type( p_name, ''t'' );
 
@@ -62,16 +62,11 @@ drop function inline_0 (varchar);
 create or replace function inline_0 ()
 returns integer as '
 declare
-        v_count                 integer;
+	v_count		integer;
 begin
-        select count(*)
-        into v_count
-        from user_tab_columns
-        where   table_name = ''IM_HOURS'';
-
-        if v_count > 0 then
-            return 0;
-        end if;
+	select	count(*) into v_count from user_tab_columns
+	where	table_name = ''IM_HOURS'';
+	if v_count > 0 then return 0; end if;
 
 	create table im_hours (
 		user_id			integer 
@@ -86,7 +81,6 @@ begin
 					references im_projects,
 		day			timestamptz,
 		hours			numeric(5,2),
-					-- ArsDigita/ACS billing system - log prices with hours
 		billing_rate		numeric(5,2),
 		billing_currency	char(3)
 					constraint im_hours_billing_currency_fk
@@ -94,9 +88,72 @@ begin
 		note			varchar(4000)
 	);
 	
+	return 0;
+end;' language 'plpgsql';
+select inline_0 ();
+drop function inline_0 ();
+
+
+create or replace function inline_0 ()
+returns integer as '
+declare
+	v_count		integer;
+begin
+	select	count(*) into v_count from pg_indexes
+	where	lower(indexname) = ''im_hours_pkey'';
+	if v_count > 0 then return 0; end if;
+
 	alter table im_hours add primary key (user_id, project_id, day);
+
+	return 0;
+end;' language 'plpgsql';
+select inline_0 ();
+drop function inline_0 ();
+
+
+create or replace function inline_0 ()
+returns integer as '
+declare
+	v_count		integer;
+begin
+	select	count(*) into v_count from pg_indexes
+	where	lower(indexname) = ''im_hours_project_id_idx'';
+	if v_count > 0 then return 0; end if;
+
 	create index im_hours_project_id_idx on im_hours(project_id);
+
+	return 0;
+end;' language 'plpgsql';
+select inline_0 ();
+drop function inline_0 ();
+
+
+create or replace function inline_0 ()
+returns integer as '
+declare
+	v_count		integer;
+begin
+	select	count(*) into v_count from pg_indexes
+	where	lower(indexname) = ''im_hours_user_id_idx'';
+	if v_count > 0 then return 0; end if;
+
 	create index im_hours_user_id_idx on im_hours(user_id);
+
+	return 0;
+end;' language 'plpgsql';
+select inline_0 ();
+drop function inline_0 ();
+
+
+create or replace function inline_0 ()
+returns integer as '
+declare
+	v_count		integer;
+begin
+	select	count(*) into v_count from pg_indexes
+	where	lower(indexname) = ''im_hours_day_idx'';
+	if v_count > 0 then return 0; end if;
+
 	create index im_hours_day_idx on im_hours(day);
 
 	return 0;
@@ -105,23 +162,23 @@ select inline_0 ();
 drop function inline_0 ();
 
 
+
+
+
+
+
+
 -- Add the sum of timesheet hours cached here for reporting
 -- to the im_projects table
 --
 create or replace function inline_0 ()
 returns integer as '
 declare
-        v_count                 integer;
+	v_count		integer;
 begin
-        select count(*)
-        into v_count
-        from user_tab_columns
-        where   table_name = ''IM_PROJECTS''
-                and column_name = ''REPORTED_HOURS_CACHE'';
-
-        if v_count > 0 then
-            return 0;
-        end if;
+	select count(*) into v_count from user_tab_columns
+	where	table_name = ''IM_PROJECTS'' and column_name = ''REPORTED_HOURS_CACHE'';
+	if v_count > 0 then return 0; end if;
 
 	alter table im_projects add reported_hours_cache float;
 
@@ -133,16 +190,13 @@ drop function inline_0 ();
 ------------------------------------------------------
 -- Permissions and Privileges
 --
-
-
 create or replace function inline_0 ()
 returns integer as '
 declare
-        v_count                 integer;
+	v_count		integer;
 begin
-        select count(*) into v_count
-        from acs_privileges where privilege = ''add_hours'';
-        if v_count > 0 then return 0; end if;
+	select count(*) into v_count from acs_privileges where privilege = ''add_hours'';
+	if v_count > 0 then return 0; end if;
 	
 	-- add_hours actually is more of an obligation then a privilege...
 	select acs_privilege__create_privilege(''add_hours'',''Add Hours'',''Add Hours'');
@@ -176,7 +230,7 @@ begin
 	select im_priv_create(''edit_hours_all'', ''P/O Admins'');
 	select im_priv_create(''edit_hours_all'', ''Senior Managers'');
 
-        return 0;
+	return 0;
 end;' language 'plpgsql';
 select inline_0 ();
 drop function inline_0 ();
@@ -186,80 +240,76 @@ drop function inline_0 ();
 create or replace function inline_0 ()
 returns integer as '
 declare
-	-- Menu IDs
-	v_menu		   integer;	v_parent_menu	   integer;
-	-- Groups
-	v_employees	   integer;	v_accounting	   integer;
-	v_senman	   integer;	v_customers	   integer;
-	v_freelancers      integer;	v_proman	   integer;
-	v_admins	   integer;
+	v_menu			integer;	v_parent_menu		integer;
+	v_employees		integer;	v_accounting		integer;
+	v_senman		integer;	v_customers		integer;
+	v_freelancers		integer;	v_proman		integer;
+	v_admins		integer;
 
 	v_count		integer;
 BEGIN
-    select group_id into v_admins from groups where group_name = ''P/O Admins'';
-    select group_id into v_senman from groups where group_name = ''Senior Managers'';
-    select group_id into v_proman from groups where group_name = ''Project Managers'';
-    select group_id into v_accounting from groups where group_name = ''Accounting'';
-    select group_id into v_employees from groups where group_name = ''Employees'';
-    select group_id into v_customers from groups where group_name = ''Customers'';
-    select group_id into v_freelancers from groups where group_name = ''Freelancers'';
+	select group_id into v_admins from groups where group_name = ''P/O Admins'';
+	select group_id into v_senman from groups where group_name = ''Senior Managers'';
+	select group_id into v_proman from groups where group_name = ''Project Managers'';
+	select group_id into v_accounting from groups where group_name = ''Accounting'';
+	select group_id into v_employees from groups where group_name = ''Employees'';
+	select group_id into v_customers from groups where group_name = ''Customers'';
+	select group_id into v_freelancers from groups where group_name = ''Freelancers'';
 
-    select count(*) into v_count 
-    from im_menus where label = ''timesheet2_timesheet'';
-    IF v_count > 0 THEN return 0; END IF;
+	select count(*) into v_count from im_menus where label = ''timesheet2_timesheet'';
+	IF v_count > 0 THEN return 0; END IF;
 
-    select menu_id into v_parent_menu
-    from im_menus where label=''main'';
+	select menu_id into v_parent_menu from im_menus where label=''main'';
 
-    v_menu := im_menu__new (
-	null,				-- p_menu_id
-	''acs_object'',			-- object_type
-	now(),				-- creation_date
-	null,				-- creation_user
-	null,				-- creation_ip
-	null,				-- context_id
-	''intranet-timesheet2'',	-- package_name
-	''timesheet2_timesheet'',	-- label
-	''Timesheet'',			-- name
-	''/intranet-timesheet2/hours/index'', -- url
-	73,				-- sort_order
-	v_parent_menu,			-- parent_menu_id
-	null				-- p_visible_tcl
-    );
+	v_menu := im_menu__new (
+		null,				-- p_menu_id
+		''acs_object'',			-- object_type
+		now(),				-- creation_date
+		null,				-- creation_user
+		null,				-- creation_ip
+		null,				-- context_id
+		''intranet-timesheet2'',	-- package_name
+		''timesheet2_timesheet'',	-- label
+		''Timesheet'',			-- name
+		''/intranet-timesheet2/hours/index'', -- url
+		73,				-- sort_order
+		v_parent_menu,			-- parent_menu_id
+		null				-- p_visible_tcl
+	);
 
-    PERFORM acs_permission__grant_permission(v_menu, v_admins, ''read'');
-    PERFORM acs_permission__grant_permission(v_menu, v_senman, ''read'');
-    PERFORM acs_permission__grant_permission(v_menu, v_proman, ''read'');
-    PERFORM acs_permission__grant_permission(v_menu, v_accounting, ''read'');
-    PERFORM acs_permission__grant_permission(v_menu, v_employees, ''read'');
-    PERFORM acs_permission__grant_permission(v_menu, v_customers, ''read'');
-    PERFORM acs_permission__grant_permission(v_menu, v_freelancers, ''read'');
+	PERFORM acs_permission__grant_permission(v_menu, v_admins, ''read'');
+	PERFORM acs_permission__grant_permission(v_menu, v_senman, ''read'');
+	PERFORM acs_permission__grant_permission(v_menu, v_proman, ''read'');
+	PERFORM acs_permission__grant_permission(v_menu, v_accounting, ''read'');
+	PERFORM acs_permission__grant_permission(v_menu, v_employees, ''read'');
+	PERFORM acs_permission__grant_permission(v_menu, v_customers, ''read'');
+	PERFORM acs_permission__grant_permission(v_menu, v_freelancers, ''read'');
 
-    v_menu := im_menu__new (
-	null,				-- p_menu_id
-	''acs_object'',			-- object_type
-	now(),				-- creation_date
-	null,				-- creation_user
-	null,				-- creation_ip
-	null,				-- context_id
-	''intranet-timesheet2'',	-- package_name
-	''timesheet2_absences'',	-- label
-	''Absences'',			-- name
-	''/intranet-timesheet2/hours/index'', -- url
-	74,				-- sort_order
-	v_parent_menu,			-- parent_menu_id
-	null				-- p_visible_tcl
-    );
+	v_menu := im_menu__new (
+		null,				-- p_menu_id
+		''acs_object'',			-- object_type
+		now(),				-- creation_date
+		null,				-- creation_user
+		null,				-- creation_ip
+		null,				-- context_id
+		''intranet-timesheet2'',	-- package_name
+		''timesheet2_absences'',	-- label
+		''Absences'',			-- name
+		''/intranet-timesheet2/hours/index'', -- url
+		74,				-- sort_order
+		v_parent_menu,			-- parent_menu_id
+		null				-- p_visible_tcl
+	);
 
-    PERFORM acs_permission__grant_permission(v_menu, v_admins, ''read'');
-    PERFORM acs_permission__grant_permission(v_menu, v_senman, ''read'');
-    PERFORM acs_permission__grant_permission(v_menu, v_proman, ''read'');
-    PERFORM acs_permission__grant_permission(v_menu, v_accounting, ''read'');
-    PERFORM acs_permission__grant_permission(v_menu, v_employees, ''read'');
-    PERFORM acs_permission__grant_permission(v_menu, v_customers, ''read'');
-    PERFORM acs_permission__grant_permission(v_menu, v_freelancers, ''read'');
+	PERFORM acs_permission__grant_permission(v_menu, v_admins, ''read'');
+	PERFORM acs_permission__grant_permission(v_menu, v_senman, ''read'');
+	PERFORM acs_permission__grant_permission(v_menu, v_proman, ''read'');
+	PERFORM acs_permission__grant_permission(v_menu, v_accounting, ''read'');
+	PERFORM acs_permission__grant_permission(v_menu, v_employees, ''read'');
+	PERFORM acs_permission__grant_permission(v_menu, v_customers, ''read'');
+	PERFORM acs_permission__grant_permission(v_menu, v_freelancers, ''read'');
 
-    return 0;
+	return 0;
 end;' language 'plpgsql';
 select inline_0 ();
 drop function inline_0 ();
@@ -270,11 +320,10 @@ drop function inline_0 ();
 create or replace function inline_0 ()
 returns integer as '
 declare
-        v_count                 integer;
+	v_count		integer;
 begin
-	select count(*) into v_count
-	from im_component_plugins
-	where plugin_name = ''Project Timesheet Component'';
+	select	count(*) into v_count from im_component_plugins
+	where	plugin_name = ''Project Timesheet Component'';
 	if v_count > 0 then return 0; end if;
 
 	select im_component_plugin__new (
@@ -285,7 +334,7 @@ begin
 		null,					-- creattion_ip
 		null,					-- context_id
 	
-		''Project Timesheet Component'',		-- plugin_name
+		''Project Timesheet Component'',	-- plugin_name
 		''intranet-timesheet'',			-- package_name
 		''right'',				-- location
 		''/intranet/projects/view'',		-- page_url
@@ -295,7 +344,7 @@ begin
 		''_ intranet-timesheet2.Timesheet''
 	);
 
-        return 0;
+	return 0;
 end;' language 'plpgsql';
 select inline_0 ();
 drop function inline_0 ();
@@ -305,10 +354,9 @@ drop function inline_0 ();
 create or replace function inline_0 ()
 returns integer as '
 declare
-        v_count                 integer;
+	v_count		integer;
 begin
-	select count(*) into v_count
-	from im_component_plugins
+	select	count(*) into v_count from im_component_plugins
 	where plugin_name = ''Home Timesheet Component'';
 	if v_count > 0 then return 0; end if;
 
@@ -330,7 +378,7 @@ begin
 		''_ intranet-timesheet2.Timesheet''
 	);
 
-        return 0;
+	return 0;
 end;' language 'plpgsql';
 select inline_0 ();
 drop function inline_0 ();
@@ -360,13 +408,11 @@ update im_component_plugins set title_tcl = '_ ' || title_tcl where title_tcl li
 create or replace function inline_0 ()
 returns integer as '
 declare
-        v_count                 integer;
+	v_count		integer;
 begin
-        select count(*) into v_count
-        from user_tab_columns where   table_name = ''IM_HOURS'' and column_name = ''COST_ID'';
-        if v_count > 0 then return 0; end if;
-
-
+	select count(*) into v_count
+	from user_tab_columns where   table_name = ''IM_HOURS'' and column_name = ''COST_ID'';
+	if v_count > 0 then return 0; end if;
 
 	alter table im_hours add cost_id integer;
 	alter table im_hours add constraint im_hours_cost_fk
@@ -397,7 +443,7 @@ begin
 			and c.project_id = im_hours.project_id
 	);
 
-        return 0;
+	return 0;
 end;' language 'plpgsql';
 select inline_0 ();
 drop function inline_0 ();
@@ -405,44 +451,33 @@ drop function inline_0 ();
 
 
 
-
-
-
---
--- upgrade-3.1.3-3.2.0.sql
-
-
-
 create or replace function inline_0 ()
 returns integer as '
 declare
-	-- Menu IDs
-	v_menu		   integer;	v_parent_menu	   integer;
-	-- Groups
-	v_employees	   integer;	v_accounting	   integer;
-	v_senman	   integer;	v_customers	   integer;
-	v_freelancers      integer;	v_proman	   integer;
-	v_admins	   integer;
-
+	v_menu			integer;	v_parent_menu		integer;
+	v_employees		integer;	v_accounting		integer;
+	v_senman		integer;	v_customers		integer;
+	v_freelancers		integer;	v_proman		integer;
+	v_admins		integer;
 	v_count			integer;
 BEGIN
-    select group_id into v_admins from groups where group_name = ''P/O Admins'';
-    select group_id into v_senman from groups where group_name = ''Senior Managers'';
-    select group_id into v_proman from groups where group_name = ''Project Managers'';
-    select group_id into v_accounting from groups where group_name = ''Accounting'';
-    select group_id into v_employees from groups where group_name = ''Employees'';
-    select group_id into v_customers from groups where group_name = ''Customers'';
-    select group_id into v_freelancers from groups where group_name = ''Freelancers'';
+	select group_id into v_admins from groups where group_name = ''P/O Admins'';
+	select group_id into v_senman from groups where group_name = ''Senior Managers'';
+	select group_id into v_proman from groups where group_name = ''Project Managers'';
+	select group_id into v_accounting from groups where group_name = ''Accounting'';
+	select group_id into v_employees from groups where group_name = ''Employees'';
+	select group_id into v_customers from groups where group_name = ''Customers'';
+	select group_id into v_freelancers from groups where group_name = ''Freelancers'';
 
-    select menu_id into v_parent_menu
-    from im_menus where label=''main'';
+	select menu_id into v_parent_menu from im_menus 
+	where label=''main'';
 
-    select count(*) into v_count from im_menus
-    where label = ''timesheet2_timesheet'';
+	select count(*) into v_count from im_menus 
+	where label = ''timesheet2_timesheet'';
 
-    IF v_count = 0 THEN
+	IF v_count = 0 THEN
 
-	    v_menu := im_menu__new (
+		v_menu := im_menu__new (
 		null,				-- p_menu_id
 		''acs_object'',			-- object_type
 		now(),				-- creation_date
@@ -456,25 +491,24 @@ BEGIN
 		73,				-- sort_order
 		v_parent_menu,			-- parent_menu_id
 		null				-- p_visible_tcl
-	    );
+		);
 
-	    PERFORM acs_permission__grant_permission(v_menu, v_admins, ''read'');
-	    PERFORM acs_permission__grant_permission(v_menu, v_senman, ''read'');
-	    PERFORM acs_permission__grant_permission(v_menu, v_proman, ''read'');
-	    PERFORM acs_permission__grant_permission(v_menu, v_accounting, ''read'');
-	    PERFORM acs_permission__grant_permission(v_menu, v_employees, ''read'');
-	    PERFORM acs_permission__grant_permission(v_menu, v_customers, ''read'');
-	    PERFORM acs_permission__grant_permission(v_menu, v_freelancers, ''read'');
+		PERFORM acs_permission__grant_permission(v_menu, v_admins, ''read'');
+		PERFORM acs_permission__grant_permission(v_menu, v_senman, ''read'');
+		PERFORM acs_permission__grant_permission(v_menu, v_proman, ''read'');
+		PERFORM acs_permission__grant_permission(v_menu, v_accounting, ''read'');
+		PERFORM acs_permission__grant_permission(v_menu, v_employees, ''read'');
+		PERFORM acs_permission__grant_permission(v_menu, v_customers, ''read'');
+		PERFORM acs_permission__grant_permission(v_menu, v_freelancers, ''read'');
 
-    END IF;
+	END IF;
 
+	select count(*) into v_count from im_menus
+	where label = ''timesheet2_timesheet'';
 
-    select count(*) into v_count from im_menus
-    where label = ''timesheet2_timesheet'';
+	IF v_count = 0 THEN
 
-    IF v_count = 0 THEN
-
-	    v_menu := im_menu__new (
+		v_menu := im_menu__new (
 		null,				-- p_menu_id
 		''acs_object'',			-- object_type
 		now(),				-- creation_date
@@ -488,26 +522,22 @@ BEGIN
 		74,				-- sort_order
 		v_parent_menu,			-- parent_menu_id
 		null				-- p_visible_tcl
-	    );
+		);
 	
-	    PERFORM acs_permission__grant_permission(v_menu, v_admins, ''read'');
-	    PERFORM acs_permission__grant_permission(v_menu, v_senman, ''read'');
-	    PERFORM acs_permission__grant_permission(v_menu, v_proman, ''read'');
-	    PERFORM acs_permission__grant_permission(v_menu, v_accounting, ''read'');
-	    PERFORM acs_permission__grant_permission(v_menu, v_employees, ''read'');
-	    PERFORM acs_permission__grant_permission(v_menu, v_customers, ''read'');
-	    PERFORM acs_permission__grant_permission(v_menu, v_freelancers, ''read'');
-    END IF;
+		PERFORM acs_permission__grant_permission(v_menu, v_admins, ''read'');
+		PERFORM acs_permission__grant_permission(v_menu, v_senman, ''read'');
+		PERFORM acs_permission__grant_permission(v_menu, v_proman, ''read'');
+		PERFORM acs_permission__grant_permission(v_menu, v_accounting, ''read'');
+		PERFORM acs_permission__grant_permission(v_menu, v_employees, ''read'');
+		PERFORM acs_permission__grant_permission(v_menu, v_customers, ''read'');
+		PERFORM acs_permission__grant_permission(v_menu, v_freelancers, ''read'');
+	END IF;
 
-    return 0;
+	return 0;
 end;' language 'plpgsql';
 select inline_0 ();
 drop function inline_0 ();
 
 
 update im_menus set url='/intranet-timesheet2/absences/index' where label = 'timesheet2_absences';
-
-
-
-
 
