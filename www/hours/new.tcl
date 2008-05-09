@@ -564,6 +564,7 @@ set hours_sql "
 	select
 		h.hours,
 		h.note,
+		h.invoice_id,
 		to_char(h.day, 'J') as julian_day,
 		p.project_id
 	from
@@ -578,6 +579,9 @@ db_foreach hours_hash $hours_sql {
 
     set hours_hours($project_id-$julian_day) $hours
     set hours_note($project_id-$julian_day) $note
+    if {"" != $invoice_id} {
+        set hours_invoice($project_id-$julian_day) $invoice_id
+    }
 
 }
 
@@ -780,7 +784,12 @@ template::multirow foreach hours_multirow {
     # Write out the name of the project nicely indented
     append results "<td><nobr>$indent <A href=\"$project_url\">$ptitle</A></nobr></td>\n"
 
-    if {"t" == $edit_hours_p && $log_on_parent_p} {
+
+    set invoice_id 0
+    set invoice_key "$project_id-$julian_day"
+    if {[info exists hours_invoice($invoice_key)]} { set invoice_id $hours_invoice($invoice_key) }
+
+    if {"t" == $edit_hours_p && $log_on_parent_p && !$invoice_id} {
 
 	# Log hours on "Parent".
 	if {!$show_week_p} {
