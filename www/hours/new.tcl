@@ -786,7 +786,7 @@ template::multirow foreach hours_multirow {
 
 
     set invoice_id 0
-    set invoice_key "$project_id-$julian_day"
+    set invoice_key "$project_id-$julian_date"
     if {[info exists hours_invoice($invoice_key)]} { set invoice_id $hours_invoice($invoice_key) }
 
     if {"t" == $edit_hours_p && $log_on_parent_p && !$invoice_id} {
