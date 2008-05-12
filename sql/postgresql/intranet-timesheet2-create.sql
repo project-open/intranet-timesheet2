@@ -38,6 +38,9 @@ create table im_hours (
 	cost_id			integer
 				constraint im_hours_cost_fk
 				references im_costs,
+	invoice_id		integer
+				constraint im_hours_invoice_fk
+				references im_costs,
 	material_id		integer
 				constraint im_hours_material_fk
 				references im_materials,
