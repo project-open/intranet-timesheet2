@@ -175,6 +175,10 @@ foreach i $weekly_logging_days {
 	if {$db_hours != "" && $screen_hours == ""} { set action delete }
 	if {$db_hours != "" && $screen_hours != ""} { set action update }
 	if {$db_hours == $screen_hours} { set action skip }
+
+	# Deal with the case that the user has only changed the comment.
+	if {"skip" == $action && $db_notes != $screen_notes} { set action update }
+
 	ns_log Notice "hours/new-2: pid=$pid, day=$day_julian, db:'$db_hours', screen:'$screen_hours' => action=$action"
 
 	if {"skip" != $action} { set action_hash($pid) $action }
