@@ -10,7 +10,7 @@
   <msg key="Absences">Absences</msg>
   <msg key="absences">absences</msg>
   <msg key="Absent">Absent</msg>
-  <msg key="Absent_1">Absent:</msg>
+  <msg key="Absent_1">Absent (%absent_status_3letter_l10n%):</msg>
   <msg key="Add_a_new_Absence">Add a new Absence</msg>
   <msg key="Add_hours">Add hours</msg>
   <msg key="Add_lines">Add lines</msg>
