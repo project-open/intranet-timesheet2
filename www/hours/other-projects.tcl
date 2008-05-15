@@ -52,7 +52,7 @@ template::list::create \
     -key project_id \
     -has_checkboxes \
     -bulk_actions $bulk_actions_list \
-    -bulk_action_export_vars { } \
+    -bulk_action_export_vars { julian_date } \
     -elements {
 	project_chk {
 	    label "<input type=\"checkbox\" 
