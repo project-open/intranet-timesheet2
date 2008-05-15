@@ -457,13 +457,16 @@ select
 	to_char(start_date,'J') as start_date,
 	to_char(end_date,'J') as end_date,
 	im_category_from_id(absence_type_id) as absence_type,
+	im_category_from_id(absence_status_id) as absence_status,
         absence_id
 from 
 	im_user_absences
 where 
 	owner_id = :user_id
 	and start_date <= to_date(:last_julian_date,'J')
-	and end_date   >= to_date(:first_julian_date,'J')"
+	and end_date   >= to_date(:first_julian_date,'J')
+    "
+
 
     # Initialize array with "" elements.
     for {set i $first_julian_date} {$i<=$last_julian_date} {incr i} {
@@ -472,8 +475,16 @@ where
 
     # Process vacation periods and modify array accordingly.
     db_foreach vacation_period $sql {
+    
+	set absence_status_3letter [string range $absence_status 0 2]
+        set absence_status_3letter_l10n [lang::message::lookup "" intranet-timesheet2.Absence_status_3letter_$absence_status_3letter $absence_status_3letter]
+
 	for {set i [max $start_date $first_julian_date]} {$i<=[min $end_date $last_julian_date]} {incr i } {
-	   set vacation($i) "<a href=\"/intranet-timesheet2/absences/new?form_mode=display&absence_id=$absence_id\">[_ intranet-timesheet2.Absent_1]</a> $absence_type<br>"
+	   set vacation($i) "
+<a href=\"/intranet-timesheet2/absences/new?form_mode=display&absence_id=$absence_id\"
+>[_ intranet-timesheet2.Absent_1]</a> 
+$absence_type<br>
+           "
 	}
     }
     # Return the relevant part of the array as a list.
