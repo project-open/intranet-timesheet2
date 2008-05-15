@@ -206,6 +206,13 @@ ad_form -extend -name absence -on_request {
 	ad_script_abort
     }
 
+    # Check the number of absence days per interval
+    set date_range_days [db_string date_range "select date($end_date_sql) - date($start_date_sql) + 1"]
+    if {$duration_days > $date_range_days} {
+	ad_return_complaint 1 "<b>Date Range Error</b>:<br>Duration is longer then date interval."
+	ad_script_abort
+    }
+
     if { [db_string exists "
 		select	count(*) 
 		from	im_user_absences a
@@ -279,6 +286,13 @@ ad_form -extend -name absence -on_request {
     set date_range_error_p [db_string date_range "select $end_date_sql >= $start_date_sql"]
     if {"f" == $date_range_error_p} {
 	ad_return_complaint 1 "<b>Date Range Error</b>:<br>Please revise your start and end date."
+	ad_script_abort
+    }
+
+    # Check the number of absence days per interval
+    set date_range_days [db_string date_range "select date($end_date_sql) - date($start_date_sql) + 1"]
+    if {$duration_days > $date_range_days} {
+	ad_return_complaint 1 "<b>Date Range Error</b>:<br>Duration is longer then date interval."
 	ad_script_abort
     }
 
