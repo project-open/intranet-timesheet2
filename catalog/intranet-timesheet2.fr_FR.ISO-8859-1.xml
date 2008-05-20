@@ -27,6 +27,7 @@
   <msg key="AMOUNTS">MONTANTS</msg>
   <msg key="Apply">Appliquer</msg>
   <msg key="April">Avril</msg>
+  <msg key="Associated_reports">Rapports associés</msg>
   <msg key="Aug">Août</msg>
   <msg key="August">Août</msg>
   <msg key="Based_on">Basé sur</msg>
@@ -203,6 +204,7 @@
   <msg key="Sep">Sep</msg>
   <msg key="September">Septembre</msg>
   <msg key="Show_one">Afficher un</msg>
+  <msg key="Show_Users">Afficher utilisateurs</msg>
   <msg key="Start_Date">Date de début</msg>
   <msg key="Starting">Début:</msg>
   <msg key="submit">soumettre</msg>
