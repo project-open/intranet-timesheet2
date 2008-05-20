@@ -157,7 +157,7 @@ if {"" != $submit_save} {
 	# Create a workflow
         if {$absence_objectified_p} {
 	    set wf_key [db_string wf_key "
-		select	trim(aux_string1)
+		select	trim(aux_string1) 
 		from	im_categories
 		where	category_id = :absence_type_id
 	    " -default ""]
