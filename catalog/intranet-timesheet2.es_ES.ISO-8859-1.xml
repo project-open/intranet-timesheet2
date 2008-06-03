@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
-<message_catalog package_key="intranet-timesheet2" package_version="3.2.7.0.0" locale="es_ES" charset="ISO-8859-1">
+<message_catalog package_key="intranet-timesheet2" package_version="3.2.5.0.0" locale="es_ES" charset="ISO-8859-1">
 
   <msg key="1_Euro_equals">1 euro equivale a:</msg>
   <msg key="A">A</msg>
@@ -72,6 +72,7 @@
   <msg key="Expense_Code">Código de gasto</msg>
   <msg key="Expense_Dedication">Propósito del gasto</msg>
   <msg key="F">F</msg>
+  <msg key="Feb">Feb</msg>
   <msg key="February">Febrero</msg>
   <msg key="Filter">Filtro</msg>
   <msg key="Filter_Absences">Filtrar ausencias</msg>
