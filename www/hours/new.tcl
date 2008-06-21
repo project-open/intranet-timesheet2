@@ -829,8 +829,18 @@ template::multirow foreach hours_multirow {
 	    if {[info exists hours_hours($project_id-$julian_date)]} { set hours $hours_hours($project_id-$julian_date) }
 	    if {[info exists hours_note($project_id-$julian_date)]} { set note $hours_note($project_id-$julian_date) }
 	    
-	    append results "<td>$hours</td>\n"
-	    append results "<td>$note</td>\n"
+	    append results "
+		<td>
+			$hours
+			<INPUT TYPE=HIDDEN NAME=hours0.$project_id value=\"$hours\">
+		</td>
+	    "
+	    append results "
+		<td>
+			$note
+			<INPUT TYPE=HIDDEN NAME=notes0.$project_id value=\"[ns_quotehtml [value_if_exists note]]\">
+		</td>
+	    "
 	    
 	} else {
 	    
