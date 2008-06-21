@@ -851,7 +851,12 @@ template::multirow foreach hours_multirow {
 		set note ""
 		if {[info exists hours_hours($project_id-$julian_day_offset)]} { set hours $hours_hours($project_id-$julian_day_offset) }
 		if {[info exists hours_note($project_id-$julian_day_offset)]} { set note $hours_note($project_id-$julian_day_offset) }
-		append results "<td>$hours</td>\n"
+		append results "
+			<td>
+				$hours
+				<INPUT TYPE=HIDDEN NAME=hours${i}.$project_id value=\"$hours\">
+			</td>
+		"
 	    }
 	}
     }
