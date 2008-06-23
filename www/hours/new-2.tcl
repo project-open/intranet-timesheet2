@@ -82,6 +82,7 @@ set weekly_logging_days [set_union $weekly_logging_days [list 0]]
 # Logging hours for a single day?
 if {!$show_week_p} { set weekly_logging_days [list 0]}
 
+
 # Go through all days of the week (or just a single one in case of single-day logging
 foreach i $weekly_logging_days {
 
@@ -167,6 +168,14 @@ foreach i $weekly_logging_days {
 	         "]"
 		ad_script_abort
 	    }
+	    if {$screen_hours > 999} {
+		ad_return_complaint 1 "<b>[lang::message::lookup "" intranet-timesheet2.Number_too_big "Number is too large"]</b>:<br>
+	         [lang::message::lookup "" intranet-timesheet2.Number_too_big_help "
+	   		The number '$screen_hours' is larger then the database field allows.<br>
+			Please enter a number between 0 and 999. 
+	         "]"
+		ad_script_abort
+	    }
 	}
 
 	# Determine the action to take on the database items from comparing database vs. screen
@@ -174,10 +183,11 @@ foreach i $weekly_logging_days {
 	if {$db_hours == "" && $screen_hours != ""} { set action insert }
 	if {$db_hours != "" && $screen_hours == ""} { set action delete }
 	if {$db_hours != "" && $screen_hours != ""} { set action update }
+
 	if {$db_hours == $screen_hours} { set action skip }
 
-	# Deal with the case that the user has only changed the comment.
-	if {"skip" == $action && $db_notes != $screen_notes} { set action update }
+	# Deal with the case that the user has only changed the comment (in the single-day view)
+	if {"skip" == $action && !$show_week_p && $db_notes != $screen_notes} { set action update }
 
 	ns_log Notice "hours/new-2: pid=$pid, day=$day_julian, db:'$db_hours', screen:'$screen_hours' => action=$action"
 
