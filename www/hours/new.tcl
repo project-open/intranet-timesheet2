@@ -22,6 +22,7 @@ ad_page_contract {
 
     @author mbryzek@arsdigita.com
     @author frank.bergmann@project-open.com
+    @author koen.vanwinckel@dotprojects.be
     @creation-date Jan 2006
 } {
     { project_id:integer 0 }
@@ -95,7 +96,11 @@ set log_hours_on_parent_with_children_p [parameter::get_from_package_key -packag
 #	- main_project: The main project determines the subproject/task visibility space
 #	- sub_project: Each (sub-) project determines the visibility of its tasks
 #	- task: Each task has its own space - the user needs to be member of all tasks to log hours.
-set task_visibility_scope [parameter::get_from_package_key -package_key "intranet-core" -parameter TimesheetTaskVisibilityScope -default "sub_project"]
+
+# Fix #1835325 from Koen van Winckel
+set task_visibility_scope [parameter::get_from_package_key -package_key "intranet-timesheet2" -parameter TimesheetTaskVisibilityScope -default "sub_project"]
+
+
 
 
 # What is a closed status?
