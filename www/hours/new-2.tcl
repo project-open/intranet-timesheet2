@@ -54,6 +54,9 @@ set date_format "YYYY-MM-DD"
 set default_currency [ad_parameter -package_id [im_package_cost_id] "DefaultCurrency" "" "EUR"]
 set wf_installed_p [util_memoize "db_string timesheet_wf \"select count(*) from apm_packages where package_key = 'intranet-timesheet2-workflow'\""]
 
+set materials_p [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter HourLoggingWithMaterialsP -default 1]
+set material_name ""
+set material_id ""
 
 # ----------------------------------------------------------
 # Billing Rate & Currency
@@ -95,6 +98,13 @@ foreach i $weekly_logging_days {
     array unset hours_cost_id
     array unset action_hash
 
+    set material_sql "
+			,h.material_id,
+			(select material_name from im_materials m where m.material_id = h.material_id) as material_name
+    "
+    if {!$materials_p} { set material_sql "" }
+
+
     # ----------------------------------------------------------
     # Get the list of the hours of the current user today,
     # together with the main project (needed for ConfirmationObject).
@@ -103,9 +113,7 @@ foreach i $weekly_logging_days {
 			p.project_id as hour_project_id,
 			h.cost_id as hour_cost_id,
 			h.hours,
-			h.note,
-			h.material_id,
-			(select material_name from im_materials m where m.material_id = h.material_id) as material_name
+			h.note
 		from
 			im_hours h,
 			im_projects p

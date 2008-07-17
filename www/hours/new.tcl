@@ -36,7 +36,6 @@ ad_page_contract {
 # ---------------------------------------------------------
 
 set debug 0
-set materials_p 1
 
 set user_id [ad_maybe_redirect_for_registration]
 if {"" == $return_url} { set return_url [im_url_with_query] }
@@ -71,7 +70,11 @@ if {$show_week_p} {
     set h_day_in_dayweek "h.day between to_date(:julian_week_start, 'J') and to_date(:julian_week_end, 'J')"
 }
 
+# Materials
+set materials_p [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter HourLoggingWithMaterialsP -default 1]
+set material_options [im_material_options -include_empty 1]
 set default_material_id [im_material_default_material_id]
+
 
 
 set project_id_for_default $project_id
@@ -557,15 +560,21 @@ set sql "
 # for them at that moment.
 # ---------------------------------------------------------
 
+set material_sql "
+		,coalesce(h.material_id, :default_material_id) as material_id,
+		(select material_name from im_materials m where m.material_id = h.material_id) as material
+"
+if {!$materials_p} { set material_sql "" }
+
+
 set hours_sql "
 	select
 		h.hours,
 		h.note,
 		h.invoice_id,
 		to_char(h.day, 'J') as julian_day,
-		coalesce(h.material_id, :default_material_id) as material_id,
-		(select material_name from im_materials m where m.material_id = h.material_id) as material,
 		p.project_id
+		$material_sql
 	from
 		im_hours h,
 		($sql) p
@@ -782,8 +791,6 @@ template::multirow foreach hours_multirow {
 
     # Write out the name of the project nicely indented
     append results "<td><nobr>$indent <A href=\"$project_url\">$ptitle</A></nobr></td>\n"
-
-    set material_options [im_material_options -include_empty 1]
 
     set invoice_id 0
     set invoice_key "$project_id-$julian_date"
