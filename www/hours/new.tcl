@@ -71,7 +71,7 @@ if {$show_week_p} {
 }
 
 # Materials
-set materials_p [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter HourLoggingWithMaterialsP -default 1]
+set materials_p [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter HourLoggingWithMaterialsP -default 0]
 set material_options [im_material_options -include_empty 1]
 set default_material_id [im_material_default_material_id]
 
