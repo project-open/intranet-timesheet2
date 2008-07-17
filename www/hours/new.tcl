@@ -36,6 +36,7 @@ ad_page_contract {
 # ---------------------------------------------------------
 
 set debug 0
+set materials_p 1
 
 set user_id [ad_maybe_redirect_for_registration]
 if {"" == $return_url} { set return_url [im_url_with_query] }
@@ -70,8 +71,7 @@ if {$show_week_p} {
     set h_day_in_dayweek "h.day between to_date(:julian_week_start, 'J') and to_date(:julian_week_end, 'J')"
 }
 
-
-
+set default_material_id [im_material_default_material_id]
 
 
 set project_id_for_default $project_id
@@ -545,9 +545,6 @@ set sql "
 		children.tree_sortkey
 "
 
-# db_foreach sql $sql { append result "$parent_project_name\t$project_name\n"}
-# ad_return_complaint 1 "<pre>$result</pre>"
-
 
 # ---------------------------------------------------------
 # Select out the hours for the different projects and dates
@@ -566,6 +563,8 @@ set hours_sql "
 		h.note,
 		h.invoice_id,
 		to_char(h.day, 'J') as julian_day,
+		coalesce(h.material_id, :default_material_id) as material_id,
+		(select material_name from im_materials m where m.material_id = h.material_id) as material,
 		p.project_id
 	from
 		im_hours h,
@@ -784,6 +783,7 @@ template::multirow foreach hours_multirow {
     # Write out the name of the project nicely indented
     append results "<td><nobr>$indent <A href=\"$project_url\">$ptitle</A></nobr></td>\n"
 
+    set material_options [im_material_options -include_empty 1]
 
     set invoice_id 0
     set invoice_key "$project_id-$julian_date"
@@ -801,7 +801,10 @@ template::multirow foreach hours_multirow {
 	    if {[info exists hours_note($project_id-$julian_date)]} { set note $hours_note($project_id-$julian_date) }
 
 	    append results "<td><INPUT NAME=hours0.$project_id size=5 MAXLENGTH=5 value=\"$hours\">$p_hours</td>\n"
-	    append results "<td><INPUT NAME=notes0.$project_id size=60 value=\"[ns_quotehtml [value_if_exists note]]\">$p_notes</td>\n"
+	    append results "<td><INPUT NAME=notes0.$project_id size=40 value=\"[ns_quotehtml [value_if_exists note]]\">$p_notes</td>\n"
+	    if {$materials_p} {
+		append results "<td>[im_select -ad_form_option_list_style_p 1 materials0.$project_id $material_options $material_id]</td>\n"
+	    }
 
 	} else {
 
@@ -841,6 +844,11 @@ template::multirow foreach hours_multirow {
 			<INPUT TYPE=HIDDEN NAME=notes0.$project_id value=\"[ns_quotehtml [value_if_exists note]]\">
 		</td>
 	    "
+	    if {$materials_p} {
+		append results "<td>$material <input type=hidden name=materials0.$project_id value=$material_id></td>\n"
+	    }
+
+
 	    
 	} else {
 	    

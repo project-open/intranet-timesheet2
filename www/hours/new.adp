@@ -14,7 +14,7 @@
 	<%= [export_form_vars return_url julian_date project_id_list show_week_p]  %>
 	<table border=0 cellpadding=1 cellspacing=1>
 	  <tr>
-	    <td>#intranet-core.Project_name#</td>
+	    <td><%= [lang::message::lookup "" intranet-core.Project_br_Name "Project<br>Name"] %></td>
 	    <td><%= [im_project_select -exclude_subprojects_p 1 project_id $project_id_for_default "open"] %></td>
 	  </tr>
 	  <tr>
@@ -92,6 +92,7 @@
 		<if @show_week_p@ eq 0>
 		<th>#intranet-timesheet2.Hours#	</th>
 		<th>#intranet-timesheet2.Work_done#   </th>
+		<th><%= [lang::message::lookup "" intranet-timesheet2.Service_Type "Service Type"] %></th>
 		</if>
 		<else>
 		@week_header_html;noquote@

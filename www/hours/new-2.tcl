@@ -39,6 +39,7 @@ ad_page_contract {
     hours5:array,optional
     hours6:array,optional
     notes0:array,optional
+    materials0:array,optional
     julian_date:integer
     { return_url "" }
     { show_week_p 1}
@@ -90,6 +91,7 @@ foreach i $weekly_logging_days {
 
     array unset database_hours_hash
     array unset database_notes_hash
+    array unset database_materials_hash
     array unset hours_cost_id
     array unset action_hash
 
@@ -101,7 +103,9 @@ foreach i $weekly_logging_days {
 			p.project_id as hour_project_id,
 			h.cost_id as hour_cost_id,
 			h.hours,
-			h.note
+			h.note,
+			h.material_id,
+			(select material_name from im_materials m where m.material_id = h.material_id) as material_name
 		from
 			im_hours h,
 			im_projects p
@@ -118,6 +122,7 @@ foreach i $weekly_logging_days {
 	# Store logged hours into Hash arrays.
     	set database_hours_hash($key) $hours
     	set database_notes_hash($key) $note
+    	set database_materials_hash($key) $material_name
 	ns_log Notice "hours/new2: database_hours_hash($key) = '$hours'"
 
 	# Setup (project x day) => cost_id relationship
@@ -136,6 +141,8 @@ foreach i $weekly_logging_days {
     set screen_notes_elements [array get notes$i]
     array set screen_notes_hash $screen_notes_elements
 
+    set screen_materials_elements [array get materials$i]
+    array set screen_materials_hash $screen_materials_elements
 
     ns_log Notice "hours/new2: hours:'[array get database_hours_hash]'"
     ns_log Notice "hours/new2: screen:'[array get screen_hours_hash]'"
@@ -150,14 +157,18 @@ foreach i $weekly_logging_days {
 	# Extract the hours and notes from the database hashes
 	set db_hours ""
 	set db_notes ""
+	set db_materials ""
 	if {[info exists database_hours_hash($pid)]} { set db_hours $database_hours_hash($pid) }
 	if {[info exists database_notes_hash($pid)]} { set db_notes [string trim $database_notes_hash($pid)] }
+	if {[info exists database_materials_hash($pid)]} { set db_materials [string trim $database_materials_hash($pid)] }
 
 	# Extract the hours and notes from the screen hashes
 	set screen_hours ""
 	set screen_notes ""
+	set screen_materials ""
 	if {[info exists screen_hours_hash($pid)]} { set screen_hours $screen_hours_hash($pid) }
 	if {[info exists screen_notes_hash($pid)]} { set screen_notes [string trim $screen_notes_hash($pid)] }
+	if {[info exists screen_materials_hash($pid)]} { set screen_materials [string trim $screen_materials_hash($pid)] }
 
 	if {"" != $screen_hours} {
 	    if {![string is double $screen_hours] || $screen_hours < 0} {
@@ -188,6 +199,7 @@ foreach i $weekly_logging_days {
 
 	# Deal with the case that the user has only changed the comment (in the single-day view)
 	if {"skip" == $action && !$show_week_p && $db_notes != $screen_notes} { set action update }
+	if {"skip" == $action && !$show_week_p && $db_materials != $screen_materials} { set action update }
 
 	ns_log Notice "hours/new-2: pid=$pid, day=$day_julian, db:'$db_hours', screen:'$screen_hours' => action=$action"
 
@@ -226,6 +238,8 @@ foreach i $weekly_logging_days {
 	if {[info exists screen_hours_hash($project_id)]} { set hours_worked $screen_hours_hash($project_id) }
 	set note ""
 	if {[info exists screen_notes_hash($project_id)]} { set note $screen_notes_hash($project_id) }
+	set material ""
+	if {[info exists screen_materials_hash($project_id)]} { set material $screen_materials_hash($project_id) }
 
 	if { [regexp {([0-9]+)(\,([0-9]+))?} $hours_worked] } {
 	    regsub "," $hours_worked "." hours_worked
@@ -244,12 +258,14 @@ foreach i $weekly_logging_days {
 		    insert into im_hours (
 			user_id, project_id,
 			day, hours, 
-			billing_rate, billing_currency, 
+			billing_rate, billing_currency,
+			material_id,
 			note
 		     ) values (
 			:user_id, :project_id, 
 			to_date(:day_julian,'J'), :hours_worked, 
 			:billing_rate, :billing_currency, 
+			:material,
 			:note
 		     )"
 	    
@@ -279,7 +295,8 @@ foreach i $weekly_logging_days {
 		set 
 			hours = :hours_worked, 
 			note = :note,
-			cost_id = null
+			cost_id = null,
+			material_id = :material
 		where
 			project_id = :project_id
 			and user_id = :user_id
