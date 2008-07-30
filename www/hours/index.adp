@@ -19,7 +19,7 @@
 <p></p>
 </if>
 
-<%= [im_table_with_title "Timesheet" $page_body] %>
+<%= [im_table_with_title $page_title $page_body] %>
 
 
 

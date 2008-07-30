@@ -43,6 +43,7 @@ ad_page_contract {
     julian_date:integer
     { return_url "" }
     { show_week_p 1}
+    { user_id_from_search "" }
 }
 
 # ----------------------------------------------------------
@@ -50,6 +51,7 @@ ad_page_contract {
 # ----------------------------------------------------------
 
 set user_id [ad_maybe_redirect_for_registration]
+if {"" == $user_id_from_search} { set user_id_from_search $user_id }
 set date_format "YYYY-MM-DD"
 set default_currency [ad_parameter -package_id [im_package_cost_id] "DefaultCurrency" "" "EUR"]
 set wf_installed_p [util_memoize "db_string timesheet_wf \"select count(*) from apm_packages where package_key = 'intranet-timesheet2-workflow'\""]
@@ -71,7 +73,7 @@ db_0or1row get_billing_rate "
 	select	hourly_cost as billing_rate,
 		currency as billing_currency
 	from	im_employees
-	where	employee_id = :user_id
+	where	employee_id = :user_id_from_search
 "
 
 if {"" == $billing_currency} { set billing_currency $default_currency }
@@ -120,7 +122,7 @@ foreach i $weekly_logging_days {
 			im_hours h,
 			im_projects p
 		where
-			h.user_id = :user_id and
+			h.user_id = :user_id_from_search and
 			h.day = to_date(:day_julian, 'J') and
 			h.project_id = p.project_id
     "
@@ -230,7 +232,7 @@ foreach i $weekly_logging_days {
 	if {$wf_installed_p} {
 	    im_timesheet_conf_object_delete \
 		-project_id $project_id \
-		-user_id $user_id \
+		-user_id $user_id_from_search \
 		-day_julian $day_julian
 	}
 
@@ -239,7 +241,7 @@ foreach i $weekly_logging_days {
 	ns_log Notice "hours/new-2: im_timesheet_costs_delete -project_id $project_id -user_id $user_id -day_julian $day_julian"
 	im_timesheet_costs_delete \
 	    -project_id $project_id \
-	    -user_id $user_id \
+	    -user_id $user_id_from_search \
 	    -day_julian $day_julian
 
 
@@ -272,7 +274,7 @@ foreach i $weekly_logging_days {
 			material_id,
 			note
 		     ) values (
-			:user_id, :project_id, 
+			:user_id_from_search, :project_id, 
 			to_date(:day_julian,'J'), :hours_worked, 
 			:billing_rate, :billing_currency, 
 			:material,
@@ -289,7 +291,7 @@ foreach i $weekly_logging_days {
 		db_dml hours_delete "
 			delete	from im_hours
 			where	project_id = :project_id
-				and user_id = :user_id
+				and user_id = :user_id_from_search
 				and day = to_date(:day_julian, 'J')
 	        "
 
@@ -309,7 +311,7 @@ foreach i $weekly_logging_days {
 			material_id = :material
 		where
 			project_id = :project_id
-			and user_id = :user_id
+			and user_id = :user_id_from_search
 			and day = to_date(:day_julian, 'J')
 	        "
 	    }

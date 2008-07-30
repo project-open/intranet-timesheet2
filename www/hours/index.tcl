@@ -38,6 +38,7 @@ ad_page_contract {
     { header "" }
     { message:allhtml "" }
     { show_week_p "" }
+    { user_id_from_search "" }
 }
 
 # ---------------------------------------------------------------
@@ -45,10 +46,10 @@ ad_page_contract {
 # ---------------------------------------------------------------
 
 set current_user_id [ad_maybe_redirect_for_registration]
-if {"" == $user_id} {
-    set user_id $current_user_id
-}
-set user_name [db_string user_name_sql "select im_name_from_user_id(:user_id) from dual"]
+if {"" == $user_id} { set user_id $current_user_id }
+if {"" == $user_id_from_search} { set user_id_from_search $user_id }
+
+set user_name [db_string user_name_sql "select im_name_from_user_id(:user_id_from_search) from dual"]
 
 if {"" == $return_url} {
     set return_url "[ad_conn url]?[ad_conn form]"
@@ -59,12 +60,12 @@ if {$user_id == $current_user_id} {
     # Can do anything to your own hours :)
     set write_p 1
 }
-set page_title "[_ intranet-timesheet2.Hours_by_user_name]"
+set page_title [lang::message::lookup "" intranet-timesheet2.Timesheet_for_user_name "Timesheet for %user_name%"]
 set context_bar [im_context_bar "[_ intranet-timesheet2.Hours]"]
 
 # Get the project name restriction in case project_id is set
 set project_restriction ""
-if {"" != $project_id} {
+if {"" != $project_id && 0 != $project_id} {
     set project_name [db_string project_name "select project_name from im_projects where project_id = :project_id"]
     append page_title " on $project_name"
     set project_restriction "and project_id = :project_id"
@@ -179,7 +180,7 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
     if {"" != $curr_absence} { set curr_absence "<br>$curr_absence" }
 
     if {$write_p} {
-        set hours_url [export_vars -base "new" {user_id {julian_date $current_date} show_week_p return_url project_id project_id_list}]
+        set hours_url [export_vars -base "new" {user_id {julian_date $current_date} show_week_p return_url user_id_from_search project_id project_id_list}]
 
 	set html "<a href=$hours_url>$hours</a>$curr_absence"
     } else {

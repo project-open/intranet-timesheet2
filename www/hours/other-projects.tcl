@@ -25,6 +25,7 @@ ad_page_contract {
   
 } {
     { julian_date "" } 
+    { user_id_from_search "" }
 }
 
 # ---------------------------------------------------------
@@ -32,12 +33,15 @@ ad_page_contract {
 # ---------------------------------------------------------
 
 set user_id [ad_maybe_redirect_for_registration]
+if {"" == $user_id_from_search} { set user_id_from_search $user_id }
+set user_name_from_search [db_string uname "select im_name_from_user_id(:user_id_from_search)"]
 set subsite_id [ad_conn subsite_id]
 set target "new"
-set page_title "[_ intranet-timesheet2.Choose_project]"
+set page_title [lang::message::lookup "" intranet-timesheet2.Choose_projects_for_user "Choose projects for %user_name_from_search%"]
 set context_bar [im_context_bar [_ intranet-timesheet2.Choose_project]]
 
 set nbsp "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+
 
 # ---------------------------------------------------------
 # 
@@ -52,7 +56,7 @@ template::list::create \
     -key project_id \
     -has_checkboxes \
     -bulk_actions $bulk_actions_list \
-    -bulk_action_export_vars { julian_date } \
+    -bulk_action_export_vars { julian_date user_id_from_search} \
     -elements {
 	project_chk {
 	    label "<input type=\"checkbox\" 

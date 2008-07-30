@@ -13,16 +13,19 @@
 	<form action=new method=post>
 	<%= [export_form_vars return_url julian_date project_id_list show_week_p]  %>
 	<table border=0 cellpadding=1 cellspacing=1>
-	  <tr>
+	<tr>
 	    <td><%= [lang::message::lookup "" intranet-core.Project_br_Name "Project<br>Name"] %></td>
-	    <td><%= [im_project_select -exclude_subprojects_p 1 project_id $project_id_for_default "open"] %></td>
-	  </tr>
-	  <tr>
-	    <td></td>
-	    <td>
-	      <input type=submit value="Go">
-	    </td>
-	  </tr>
+	    <td><%= [im_project_select -include_empty_p 1 -include_empty_name "" -exclude_subprojects_p 1 project_id $project_id_for_default "open"] %></td>
+	</tr>
+
+<if @log_hours_for_others_p@>
+	<tr>
+	    <td><%= [lang::message::lookup "" intranet-core.Log_hours_for_user "Log Hours<br>for User"] %></td>
+	    <td><%= [im_user_select -include_empty_p 1 -include_empty_name "" user_id_from_search $user_id_from_search] %></td>
+	</tr>
+</if>
+
+	<tr><td></td><td><input type=submit value="Go"></td></tr>
 	</table>
 	</form>
       </div>
@@ -44,7 +47,7 @@
 	      </a>
             </li>
 
-<% if {[im_permission $user_id view_projects_all]} { %>
+<% if {[im_permission $user_id_from_search view_projects_all]} { %>
 	    <li>
 	      <a href=@different_project_url;noquote@>
 		#intranet-timesheet2.lt_Add_hours_on_other_pr#

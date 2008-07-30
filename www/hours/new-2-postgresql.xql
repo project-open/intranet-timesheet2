@@ -25,7 +25,7 @@ $ -->
 		from	im_costs
 		where	cost_type_id = [im_cost_type_timesheet]
 			and project_id = :project_id
-			and cause_object_id = :user_id
+			and cause_object_id = :user_id_from_search
 			and effective_date = to_date(:julian_date, 'J')
          loop
                 PERFORM im_cost__delete(row.cost_id);

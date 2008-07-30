@@ -29,6 +29,7 @@ ad_page_contract {
     { julian_date "" }
     { return_url "" }
     { show_week_p 1 }
+    { user_id_from_search "" }
 }
 
 # ---------------------------------------------------------
@@ -38,6 +39,9 @@ ad_page_contract {
 set debug 0
 
 set user_id [ad_maybe_redirect_for_registration]
+if {"" == $user_id_from_search} { set user_id_from_search $user_id }
+set user_name_from_search [db_string uname "select im_name_from_user_id(:user_id_from_search)"]
+
 if {"" == $return_url} { set return_url [im_url_with_query] }
 set bgcolor(0) " class=roweven "
 set bgcolor(1) " class=rowodd "
@@ -76,22 +80,26 @@ set material_options [im_material_options -include_empty 1]
 set default_material_id [im_material_default_material_id]
 
 
-
+# Project_ID and list of project IDs
+if {"" == $project_id} { set project_id 0 }
 set project_id_for_default $project_id
 if {0 == $project_id} { set project_id_for_default ""}
+if {0 == $project_id_list} { set project_id_list {} }
+# ad_return_complaint 1 "project_id='$project_id', project_id_list='$project_id_list'"
+
 
 # "Log hours for a different day"
-set different_date_url [export_vars -base "index" {project_id project_id_list julian_date show_week_p}]
+set different_date_url [export_vars -base "index" {project_id user_id_from_search project_id_list julian_date show_week_p}]
 
 
 # Append user-defined menus
-set bind_vars [ad_tcl_vars_to_ns_set user_id julian_date return_url show_week_p]
+set bind_vars [ad_tcl_vars_to_ns_set user_id user_id_from_search julian_date return_url show_week_p]
 set menu_links_html [im_menu_ul_list -no_uls 1 "timesheet_hours_new_admin" $bind_vars]
 
-set different_project_url "other-projects?[export_url_vars julian_date]"
+set different_project_url "other-projects?[export_url_vars julian_date user_id_from_search]"
 
 # Log Absences
-set absences_url [export_vars -base "/intranet-timesheet2/absences/new" {return_url}]
+set absences_url [export_vars -base "/intranet-timesheet2/absences/new" {return_url user_id_from_search}]
 set absences_link_text [lang::message::lookup "" intranet-timesheet2.Log_Absences "Log Absences"]
 
 
@@ -100,7 +108,7 @@ select
 	im_name_from_user_id(user_id) as user_name,
 	to_char(to_date(:julian_date, 'J'), 'fmDay fmMonth fmDD, YYYY') as pretty_date
 from	users
-where	user_id = :user_id" 
+where	user_id = :user_id_from_search" 
 
 
 # ---------------------------------------------------------
@@ -112,7 +120,7 @@ set right_gif [im_gif arrow_comp_right]
 
 if {$show_week_p} {
 
-    set page_title [lang::message::lookup "" intranet-timesheet2.Hours_for_week "Hours for week"]
+    set page_title [lang::message::lookup "" intranet-timesheet2.The_week_for_user "The week for %user_name_from_search%"]
 
     set prev_week_julian_date [expr $julian_date - 7]
     set prev_week_url [export_vars -base "new" {{julian_date $prev_week_julian_date} project_id project_id_list show_week_p}]
@@ -132,7 +140,7 @@ if {$show_week_p} {
 
 } else {
 
-    set page_title "[_ intranet-timesheet2.lt_Hours_for_pretty_date]"
+    set page_title "[lang::message::lookup "" intranet-timesheet2.Date_for_user "%pretty_date% for %user_name_from_search%"]"
 
     set prev_day_julian_date [expr $julian_date - 1]
     set prev_day_url [export_vars -base "new" {{julian_date $prev_day_julian_date} project_id project_id_list show_week_p}]
@@ -171,6 +179,9 @@ set log_hours_on_parent_with_children_p [parameter::get_from_package_key -packag
 #	- task: Each task has its own space - the user needs to be member of all tasks to log hours.
 set task_visibility_scope [parameter::get_from_package_key -package_key "intranet-timesheet2" -parameter TimesheetTaskVisibilityScope -default "sub_project"]
 
+# Can the current user log hours for other users?
+set log_hours_for_others_p [im_permission $user_id "log_hours_for_others"]
+set log_hours_for_others_p 1
 
 # What is a closed status?
 set closed_stati_select "select * from im_sub_categories([im_project_status_closed])"
@@ -237,8 +248,8 @@ if {$timesheet_popup_installed_p} {
 		and p.log_time::date = now()::date
 	        and q.log_time::date = now()::date
 	        and q.log_time > p.log_time
-		and p.user_id = :user_id
-		and q.user_id = :user_id
+		and p.user_id = :user_id_from_search
+		and q.user_id = :user_id_from_search
 	group by
 	        p.log_time,
 	        p.task_id,
@@ -275,7 +286,7 @@ regsub -all {[\{\}]} $project_id_list "" project_id_list
 set main_project_id_list [list 0]
 set main_project_id 0
 
-if {0 != $project_id && "" != $project_id} {
+if {0 != $project_id} {
 
     set main_project_id [db_string main_p "
 	select	main_p.project_id
@@ -332,11 +343,11 @@ if {0 != $project_id && "" != $project_id} {
 		and p.project_id in (
 				select	r.object_id_one
 				from	acs_rels r
-				where	r.object_id_two = :user_id
+				where	r.object_id_two = :user_id_from_search
 			    UNION
 				select	project_id
 				from	im_hours h
-				where	h.user_id = :user_id
+				where	h.user_id = :user_id_from_search
 					and $h_day_in_dayweek
 		)
 		and p.project_status_id not in ($closed_stati_list)
@@ -354,7 +365,7 @@ append parent_project_sql "
 	from	im_hours h,
 		im_projects p,
 		im_projects main_p
-	where	h.user_id = :user_id
+	where	h.user_id = :user_id_from_search
 		and $h_day_in_dayweek
 		and h.project_id = p.project_id
 		and p.tree_sortkey between
@@ -372,7 +383,7 @@ switch $task_visibility_scope {
 				from	acs_rels r,
 					im_projects main,
 					im_projects sub
-				where	r.object_id_two = :user_id
+				where	r.object_id_two = :user_id_from_search
 					and r.object_id_one = main.project_id
 					and main.tree_sortkey = tree_ancestor_key(sub.tree_sortkey, 1)
 					and main.project_status_id not in ($closed_stati_list)
@@ -422,7 +433,7 @@ switch $task_visibility_scope {
 			and ctrl.project_status_id not in ($closed_stati_list)
 			and task.project_status_id not in ($closed_stati_list)
 			and r.object_id_one = ctrl.project_id
-			and r.object_id_two = :user_id
+			and r.object_id_two = :user_id_from_search
 	"
 
 	set children_sql "
@@ -441,7 +452,7 @@ switch $task_visibility_scope {
 				-- Select any project or task with explicit membership
 				select  r.object_id_one
 				from    acs_rels r
-				where   r.object_id_two = :user_id
+				where   r.object_id_two = :user_id_from_search
 	"
 
     }
@@ -451,7 +462,7 @@ switch $task_visibility_scope {
 				-- Show sub-project/tasks only with direct membership
 				select	r.object_id_one
 				from	acs_rels r
-				where	r.object_id_two = :user_id
+				where	r.object_id_two = :user_id_from_search
 	"
     }
 }
@@ -463,7 +474,7 @@ set child_project_sql "
 				-- Always show projects and tasks where user has logged hours
 				select	project_id
 				from	im_hours h
-				where	h.user_id = :user_id
+				where	h.user_id = :user_id_from_search
 					and $h_day_in_dayweek
 			    UNION
 			        -- Project with hours on it plus any of its superiors
@@ -471,7 +482,7 @@ set child_project_sql "
 				from	im_hours h,
 					im_projects p,
 					im_projects main_p
-				where	h.user_id = :user_id
+				where	h.user_id = :user_id_from_search
 					and $h_day_in_dayweek
 					and h.project_id = p.project_id
 					and p.tree_sortkey between
@@ -580,7 +591,7 @@ set hours_sql "
 		($sql) p
 	where
 		h.project_id = p.project_id and
-		h.user_id = :user_id and
+		h.user_id = :user_id_from_search and
 		$h_day_in_dayweek
 "
 db_foreach hours_hash $hours_sql {
@@ -606,7 +617,7 @@ set open_projects_sql "
 	select	p.project_id as open_project_id
 	from	im_projects p,
 		acs_rels r
-	where	r.object_id_two = :user_id
+	where	r.object_id_two = :user_id_from_search
 		and r.object_id_one = p.project_id
 		and p.project_status_id not in ($closed_stati_list)
     UNION
@@ -615,7 +626,7 @@ set open_projects_sql "
 	from	im_hours h,
 		im_projects p,
 		im_projects main_p
-	where	h.user_id = :user_id
+	where	h.user_id = :user_id_from_search
 		and $h_day_in_dayweek
 		and h.project_id = p.project_id
 		and p.tree_sortkey between
@@ -898,7 +909,7 @@ if { [empty_string_p results] } {
 </tr>\n"
 }
 
-set export_form_vars [export_form_vars julian_date show_week_p]
+set export_form_vars [export_form_vars julian_date user_id_from_search show_week_p]
 
 
 # ---------------------------------------------------------
