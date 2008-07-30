@@ -37,9 +37,14 @@ if {"" == $return_url} { set return_url "/intranet-timesheet2/absences/index" }
 set focus "absence.var_name"
 set date_format "YYYY-MM-DD"
 set date_time_format "YYYY MM DD"
-
 set absence_type "Absence"
+
 if {[info exists absence_id]} { 
+
+    # absence_owner_id determines the list of projects per absence and other DynField widgets
+    # it defaults to user_id when creating a new absence
+    set absence_owner_id [db_string absence_owner "select owner_id from im_user_absences where absence_id = :absence_id" -default ""]
+
     set old_absence_type_id [db_string type "select absence_type_id from im_user_absences where absence_id = :absence_id" -default 0]
     if {0 != $old_absence_type_id} { set absence_type_id $old_absence_type_id }
     set absence_type [im_category_from_id $absence_type_id]
@@ -52,6 +57,13 @@ if {[info exists absence_id]} {
 	}
     }
 }
+
+if {![exists_and_not_null absence_owner_id]} {
+
+    ad_return_complaint 1 $absence_owner_id
+    set absence_owner_id $user_id
+}
+
 
 set page_title [lang::message::lookup "" intranet-timesheet2.New_Absence_Type "%absence_type%"]
 set context [list $page_title]

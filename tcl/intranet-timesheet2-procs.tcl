@@ -478,6 +478,7 @@ where
     
 	set absence_status_3letter [string range $absence_status 0 2]
         set absence_status_3letter_l10n [lang::message::lookup "" intranet-timesheet2.Absence_status_3letter_$absence_status_3letter $absence_status_3letter]
+	set absent_status_3letter_l10n $absence_status_3letter_l10n
 
 	for {set i [max $start_date $first_julian_date]} {$i<=[min $end_date $last_julian_date]} {incr i } {
 	   set vacation($i) "

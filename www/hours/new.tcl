@@ -593,6 +593,9 @@ db_foreach hours_hash $hours_sql {
 
 }
 
+# ad_return_complaint 1 [join [db_list_of_lists hours_sql $hours_sql] "<br>"]
+# ad_script_abort
+
 # ---------------------------------------------------------
 # Get the list of open projects with direct membership
 # Task are all considered open
@@ -733,11 +736,14 @@ template::multirow foreach hours_multirow {
 	set closed_level $subproject_level
     }
 
-    if {$closed_status == [im_project_status_closed] } {
-	# We're below a closed project - skip this.
-	ns_log Notice "new: action: continue"
-	continue
-    }
+#    We have moved the open/closed check to the display
+#    routine below in order to show closed projects with
+#    hours. 
+#    if {$closed_status == [im_project_status_closed] } {
+#	# We're below a closed project - skip this.
+#	ns_log Notice "new: action: continue"
+#	continue
+#    }
 
     # ---------------------------------------------
     # Indent the project line
@@ -796,7 +802,10 @@ template::multirow foreach hours_multirow {
     set invoice_key "$project_id-$julian_date"
     if {[info exists hours_invoice($invoice_key)]} { set invoice_id $hours_invoice($invoice_key) }
 
-    if {"t" == $edit_hours_p && $log_on_parent_p && !$invoice_id} {
+    # Check if the current tree-branch-status is "closed"
+    set closed_p [expr $closed_status == [im_project_status_closed]]
+
+    if {"t" == $edit_hours_p && $log_on_parent_p && !$invoice_id && !$closed_p} {
 
 	# Log hours on "Parent".
 	if {!$show_week_p} {
