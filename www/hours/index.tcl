@@ -31,7 +31,6 @@ ad_page_contract {
 } {
     { date "" }
     { julian_date "" }
-    { user_id:integer "" }
     { project_id:integer "" }
     { project_id_list "" }
     { return_url "" }
@@ -46,9 +45,8 @@ ad_page_contract {
 # ---------------------------------------------------------------
 
 set current_user_id [ad_maybe_redirect_for_registration]
-if {"" == $user_id} { set user_id $current_user_id }
-if {"" == $user_id_from_search || ![im_permission $user_id "add_hours_all"]} { set user_id_from_search $user_id }
-
+set add_hours_all_p [im_permission $current_user_id "add_hours_all"]
+if {"" == $user_id_from_search || !$add_hours_all_p} { set user_id_from_search $current_user_id }
 set user_name [db_string user_name_sql "select im_name_from_user_id(:user_id_from_search) from dual"]
 
 if {"" == $return_url} {
@@ -56,10 +54,11 @@ if {"" == $return_url} {
 }
 
 set write_p [im_is_user_site_wide_or_intranet_admin $current_user_id]
-if {$user_id == $current_user_id} {
+if {$current_user_id == $user_id_from_search} {
     # Can do anything to your own hours :)
     set write_p 1
 }
+
 set page_title [lang::message::lookup "" intranet-timesheet2.Timesheet_for_user_name "Timesheet for %user_name%"]
 set context_bar [im_context_bar "[_ intranet-timesheet2.Hours]"]
 
@@ -101,7 +100,7 @@ set sql "
 	from
 		im_hours
 	where
-		user_id = :user_id
+		user_id = :user_id_from_search
 		and day between to_date(:first_julian_date, 'J') and to_date(:last_julian_date, 'J') 
 		$project_restriction
 	group by 
@@ -123,7 +122,7 @@ if {[db_column_exists im_hours conf_object_id]} {
 	from
 		im_hours
 	where
-		user_id = :user_id
+		user_id = :user_id_from_search
 		and day between to_date(:first_julian_date, 'J') and to_date(:last_julian_date, 'J') 
 		and conf_object_id is null
 		$project_restriction
@@ -142,7 +141,7 @@ if {[db_column_exists im_hours conf_object_id]} {
 
 set hours_for_this_week 0.0
 set unconfirmed_hours_for_this_week 0.0
-set absence_list [absence_list_for_user_and_time_period $user_id $first_julian_date $last_julian_date]
+set absence_list [absence_list_for_user_and_time_period $user_id_from_search $first_julian_date $last_julian_date]
 set absence_index 0
 set curr_absence ""
 
@@ -170,7 +169,7 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
     # Render the "Sunday" link to log "hours for the week"
     if {$day_of_week == 1 } {
 	append hours "<br>
-		<a href=[export_vars -base "new" {user_id {julian_date $current_date} {show_week_p 1} return_url}]
+		<a href=[export_vars -base "new" {user_id_from_search {julian_date $current_date} {show_week_p 1} return_url}]
 		><font color=#666666><em>log hours for the week</em></font></a>
 	"
     }
@@ -180,7 +179,7 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
     if {"" != $curr_absence} { set curr_absence "<br>$curr_absence" }
 
     if {$write_p} {
-        set hours_url [export_vars -base "new" {user_id {julian_date $current_date} show_week_p return_url user_id_from_search project_id project_id_list}]
+        set hours_url [export_vars -base "new" {user_id_from_search {julian_date $current_date} show_week_p return_url project_id project_id_list}]
 
 	set html "<a href=$hours_url>$hours</a>$curr_absence"
     } else {
@@ -190,7 +189,7 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
     # Render the "Saturday" sum of the weekly hours
     if {$day_of_week == 7 } {
 	append html "<br>
-		<a href=[export_vars -base "week" {{julian_date $current_date} user_id}]
+		<a href=[export_vars -base "week" {{julian_date $current_date} user_id_from_search}]
 		>[_ intranet-timesheet2.Week_total_1] $hours_for_this_week</a>
 	"
 
@@ -198,7 +197,7 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
 	    set start_date_julian [expr $current_date - 6]
 	    set end_date_julian $current_date
 
-	    set unconf_url [export_vars -base "/intranet-timesheet2-workflow/conf-objects/new-timesheet-workflow" { user_id start_date_julian end_date_julian return_url}]
+	    set unconf_url [export_vars -base "/intranet-timesheet2-workflow/conf-objects/new-timesheet-workflow" { {user_id $user_id_from_search} start_date_julian end_date_julian return_url}]
 	    set button_txt [lang::message::lookup "" intranet-timesheet2.Confirm_weekly_hours "Confirm %unconfirmed_hours_for_this_week% Hours"]
 	    append html "<p>&nbsp;</p><a href='$unconf_url' class=button>$button_txt</a>"
 	}
@@ -219,11 +218,11 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
 
 set prev_month_template "
 <font color=white>&lt;</font> 
-<a href=\"index?[export_url_vars user_id]&date=\$ansi_date\">
+<a href=\"index?[export_url_vars user_id_from_search]&date=\$ansi_date\">
   <font color=white>\[_ intranet-timesheet2.$prev_month_name] </font>
 </a>"
 set next_month_template "
-<a href=\"index?[export_url_vars user_id]&date=\$ansi_date\">
+<a href=\"index?[export_url_vars user_id_from_search]&date=\$ansi_date\">
   <font color=white>\[_ intranet-timesheet2.$next_month_name]</font>
 </a> 
 <font color=white>&gt;</font>"

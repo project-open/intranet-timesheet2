@@ -17,7 +17,7 @@ ad_page_contract {
     Shows the hour a specified user spend working over the course of a week
 
     @param julian_date day in julian format in the week we're currently viewing. Defaults to sysdate
-    @user_id the user for whom we're viewing hours. Defaults to currently logged in user.
+    @user_id_from_search the user for whom we're viewing hours. Defaults to currently logged in user.
  
     @author Michael Bryzek (mbryzek@arsdigita.com)
     @creation-date January 2000
@@ -25,11 +25,11 @@ ad_page_contract {
    
 } {
     { julian_date "" }
-    { user_id:integer "" }
+    { user_id_from_search:integer "" }
 }
 
-if { [empty_string_p $user_id] } {
-    set user_id [ad_maybe_redirect_for_registration]
+if { [empty_string_p $user_id_from_search] } {
+    set user_id_from_search [ad_maybe_redirect_for_registration]
 }
 
 
@@ -37,15 +37,12 @@ if { [empty_string_p $julian_date] } {
     set julian_date [db_string sysdate_as_julian "select to_char(sysdate,'J') from dual"]
 }
 
-set user_name [db_string user_name "select im_name_from_user_id(:user_id) from dual"]
+set user_name [db_string user_name "select im_name_from_user_id(:user_id_from_search) from dual"]
 
 db_1row week_select_start_and_end "
-select to_char( next_day(
-    	    	   to_date( :julian_date, 'J' )-1, 'sat' ),
-    	    	  'MM/DD/YYYY' ) AS end_date,
-	        to_char( next_day(
-    	    	    to_date( :julian_date, 'J' )-1, 'sat' )-6,
-    	    	  'MM/DD/YYYY' ) AS start_date
+select 
+	to_char(next_day(to_date( :julian_date, 'J' )-1, 'sat' ),'MM/DD/YYYY' ) AS end_date,
+	to_char( next_day(to_date( :julian_date, 'J' )-1, 'sat' )-6,'MM/DD/YYYY' ) AS start_date
 from dual"
 
 set sql "
@@ -60,7 +57,7 @@ WHERE
 	p.project_id = h.project_id
 	AND h.day >= trunc( to_date( :start_date, 'MM/DD/YYYY' ),'Day' )
     	AND h.day < trunc( to_date( :end_date, 'MM/DD/YYYY' ),'Day' ) + 1
-    	AND h.user_id=:user_id
+    	AND h.user_id = :user_id_from_search
 GROUP BY p.project_id, p.project_name
 "
 
@@ -86,7 +83,7 @@ WHERE
 	h.project_id = p.project_id
 	AND h.day >= trunc( to_date( :start_date, 'MM/DD/YYYY' ),'Day' )
     	AND h.day < trunc( to_date( :end_date, 'MM/DD/YYYY' ),'Day' ) + 1
-    	AND h.user_id=:user_id
+    	AND h.user_id = :user_id_from_search
 ORDER BY lower(p.project_name), day
 "
 
