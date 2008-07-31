@@ -72,18 +72,27 @@ select acs_privilege__add_child('admin', 'add_hours');
 select acs_privilege__create_privilege('view_hours_all','View Hours All','View Hours All');
 select acs_privilege__add_child('admin', 'view_hours_all');
 	
+-- Who should be able to modify other users hours?
+select acs_privilege__create_privilege('log_hours_for_others','Log hours for others','Log hours for others');
+select acs_privilege__add_child('admin', 'log_hours_for_others');
+	
 select im_priv_create('add_hours', 'Accounting');
 select im_priv_create('add_hours', 'Employees');
 select im_priv_create('add_hours', 'P/O Admins');
 select im_priv_create('add_hours', 'Project Managers');
 select im_priv_create('add_hours', 'Sales');
 select im_priv_create('add_hours', 'Senior Managers');
-	
+
 select im_priv_create('view_hours_all', 'Accounting');
 select im_priv_create('view_hours_all', 'P/O Admins');
 select im_priv_create('view_hours_all', 'Project Managers');
 select im_priv_create('view_hours_all', 'Sales');
 select im_priv_create('view_hours_all', 'Senior Managers');
+
+select im_priv_create('log_hours_for_others', 'Accounting');
+select im_priv_create('log_hours_for_others', 'P/O Admins');
+select im_priv_create('log_hours_for_others', 'Senior Managers');
+
 
 -- New Privilege to allow accounting guys to change hours
 select acs_privilege__create_privilege('edit_hours_all','Edit Hours All','Edit Hours All');
