@@ -27,7 +27,7 @@ ad_page_contract {
 # ------------------------------------------------------------------
 
 set current_user_id [ad_maybe_redirect_for_registration]
-if {![im_permission $current_user_id "edit_hours_all"]} {
+if {![im_permission $current_user_id "add_hours_all"]} {
     ad_return_complaint 1 "You have insufficient privileges to use this page"
     return
 }

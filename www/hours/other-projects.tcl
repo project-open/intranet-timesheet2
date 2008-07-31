@@ -33,7 +33,7 @@ ad_page_contract {
 # ---------------------------------------------------------
 
 set user_id [ad_maybe_redirect_for_registration]
-if {"" == $user_id_from_search} { set user_id_from_search $user_id }
+if {"" == $user_id_from_search || ![im_permission $user_id "add_hours_all"]} { set user_id_from_search $user_id }
 set user_name_from_search [db_string uname "select im_name_from_user_id(:user_id_from_search)"]
 set subsite_id [ad_conn subsite_id]
 set target "new"

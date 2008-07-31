@@ -33,7 +33,7 @@ ad_page_contract {
 set current_user_id [ad_maybe_redirect_for_registration]
 
 # Has the current user the right to edit all timesheet information?
-set edit_timesheet_p [im_permission $current_user_id "edit_hours_all"]
+set edit_timesheet_p [im_permission $current_user_id "add_hours_all"]
 set view_ours_all_p [im_permission $current_user_id "view_hours_all"]
 set view_finance_p [im_permission $current_user_id "view_finance"]
 

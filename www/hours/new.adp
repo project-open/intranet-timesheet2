@@ -18,7 +18,7 @@
 	    <td><%= [im_project_select -include_empty_p 1 -include_empty_name "" -exclude_subprojects_p 1 project_id $project_id_for_default "open"] %></td>
 	</tr>
 
-<if @log_hours_for_others_p@>
+<if @add_hours_all_p@>
 	<tr>
 	    <td><%= [lang::message::lookup "" intranet-core.Log_hours_for_user "Log Hours<br>for User"] %></td>
 	    <td><%= [im_user_select -include_empty_p 1 -include_empty_name "" user_id_from_search $user_id_from_search] %></td>

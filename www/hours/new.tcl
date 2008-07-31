@@ -39,7 +39,7 @@ ad_page_contract {
 set debug 0
 
 set user_id [ad_maybe_redirect_for_registration]
-if {"" == $user_id_from_search} { set user_id_from_search $user_id }
+if {"" == $user_id_from_search || ![im_permission $user_id "add_hours_all"]} { set user_id_from_search $user_id }
 set user_name_from_search [db_string uname "select im_name_from_user_id(:user_id_from_search)"]
 
 if {"" == $return_url} { set return_url [im_url_with_query] }
@@ -180,8 +180,7 @@ set log_hours_on_parent_with_children_p [parameter::get_from_package_key -packag
 set task_visibility_scope [parameter::get_from_package_key -package_key "intranet-timesheet2" -parameter TimesheetTaskVisibilityScope -default "sub_project"]
 
 # Can the current user log hours for other users?
-set log_hours_for_others_p [im_permission $user_id "log_hours_for_others"]
-set log_hours_for_others_p 1
+set add_hours_all_p [im_permission $user_id "add_hours_all"]
 
 # What is a closed status?
 set closed_stati_select "select * from im_sub_categories([im_project_status_closed])"

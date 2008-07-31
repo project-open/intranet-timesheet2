@@ -47,7 +47,7 @@ ad_page_contract {
 
 set current_user_id [ad_maybe_redirect_for_registration]
 if {"" == $user_id} { set user_id $current_user_id }
-if {"" == $user_id_from_search} { set user_id_from_search $user_id }
+if {"" == $user_id_from_search || ![im_permission $user_id "add_hours_all"]} { set user_id_from_search $user_id }
 
 set user_name [db_string user_name_sql "select im_name_from_user_id(:user_id_from_search) from dual"]
 
