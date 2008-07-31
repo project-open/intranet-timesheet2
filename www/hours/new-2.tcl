@@ -60,7 +60,7 @@ set materials_p [parameter::get_from_package_key -package_key intranet-timesheet
 set material_name ""
 set material_id ""
 
-set max_hours_per_day [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter MaxHoursPerDay -default 999]
+set max_hours_per_day [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter TimesheetMaxHoursPerDay -default 999]
 
 # ----------------------------------------------------------
 # Billing Rate & Currency
@@ -192,10 +192,10 @@ foreach i $weekly_logging_days {
 		ad_script_abort
 	    }
 	    if {$screen_hours > $max_hours_per_day} {
-		ad_return_complaint 1 "<b>[lang::message::lookup "" intranet-timesheet2.Number_too_big "Number is too large"]</b>:<br>
+		ad_return_complaint 1 "<b>[lang::message::lookup "" intranet-timesheet2.Number_too_big_for_param "Number is larger then allowed"]</b>:<br>
 	         [lang::message::lookup "" intranet-timesheet2.Number_too_big_help "
-	   		The number '$screen_hours' is larger then the database field allows.<br>
-			Please enter a number between 0 and 999. 
+	   		The number '%screen_hours%' is larger then allowed.<br>
+			Please enter a number between '0' and '%max_hours_per_day%'. 
 	         "]"
 		ad_script_abort
 	    }

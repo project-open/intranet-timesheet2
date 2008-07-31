@@ -202,7 +202,7 @@ set edit_hours_p "t"
 set last_month_closing_day [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter TimesheetLastMonthClosingDay -default 0]
 set weekly_logging_days [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter TimesheetWeeklyLoggingDays -default "0 1 2 3 4 5 6"]
 
-if {0 != $last_month_closing_day && "" != $last_month_closing_day} {
+if {0 != $last_month_closing_day && "" != $last_month_closing_day && !$add_hours_all_p} {
 
     # Check that $julian_date is before the Nth of the next month:
     # Select the 1st day of the last month:
@@ -908,7 +908,7 @@ if { [empty_string_p results] } {
 </tr>\n"
 }
 
-set export_form_vars [export_form_vars julian_date user_id_from_search show_week_p]
+set export_form_vars [export_form_vars return_url julian_date user_id_from_search show_week_p]
 
 
 # ---------------------------------------------------------
