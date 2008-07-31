@@ -41,11 +41,15 @@
 	        #intranet-timesheet2.lt_Log_hours_for_a_diffe#
 	      </a>
             </li>
+
+<if @user_id@ eq @user_id_from_search@>
+<!-- don't show the "New Absence" link when logging hours for another person -->
 	    <li>
 	      <a href=@absences_url;noquote@>
 	        @absences_link_text@
 	      </a>
             </li>
+</if>
 
 <% if {[im_permission $user_id_from_search view_projects_all]} { %>
 	    <li>
