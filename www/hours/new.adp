@@ -10,8 +10,9 @@
 	    Timesheet Filters
         </div>
 
-	<form action=new method=post>
-	<%= [export_form_vars return_url julian_date project_id_list show_week_p]  %>
+	<form action=new method=GET>
+	<!-- don't include return_url in the export_form_vars, as it includes the old user -->
+	<%= [export_form_vars julian_date project_id_list show_week_p]  %>
 	<table border=0 cellpadding=1 cellspacing=1>
 	<tr>
 	    <td><%= [lang::message::lookup "" intranet-core.Project_br_Name "Project<br>Name"] %></td>
