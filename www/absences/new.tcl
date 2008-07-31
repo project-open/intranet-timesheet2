@@ -18,6 +18,7 @@ if {![info exists panel_p]} {
 	message:optional
 	{ absence_type_id:integer 0 }
 	{ form_mode "edit" }
+	user_id_from_search:optional
     }
 }
 
@@ -58,11 +59,7 @@ if {[info exists absence_id]} {
     }
 }
 
-if {![exists_and_not_null absence_owner_id]} {
-
-    ad_return_complaint 1 $absence_owner_id
-    set absence_owner_id $user_id
-}
+if {![exists_and_not_null absence_owner_id]} { set absence_owner_id $user_id }
 
 
 set page_title [lang::message::lookup "" intranet-timesheet2.New_Absence_Type "%absence_type%"]
@@ -87,7 +84,7 @@ if {0 == $absence_type_id && ![info exists absence_id]} {
     set all_same_p [im_dynfield::subtype_have_same_attributes_p -object_type "im_user_absence"]
     set all_same_p 0
     if {!$all_same_p} {
-	ad_returnredirect [export_vars -base "/intranet/biz-object-type-select" {{object_type "im_user_absence"} {return_url $current_url} {type_id_var "absence_type_id"}}]
+	ad_returnredirect [export_vars -base "/intranet/biz-object-type-select" { user_id_from_search {object_type "im_user_absence"} {return_url $current_url} {type_id_var "absence_type_id"}}]
     }
 }
 
