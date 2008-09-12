@@ -57,7 +57,6 @@ if {![im_permission $user_id "view_absences"] && ![im_permission $user_id "view_
     ad_script_abort
 }
 
-
 set user_view_page "/intranet/users/view"
 set absence_view_page "$absences_url/new"
 
@@ -353,8 +352,3 @@ if { $start_idx > 0 } {
 # nothing to do here ... (?)
 set table_continuation_html ""
 
-# ---------------------------------------------------------------
-# 10. Join all parts together
-# ---------------------------------------------------------------
-
-db_release_unused_handles

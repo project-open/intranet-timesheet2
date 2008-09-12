@@ -70,8 +70,6 @@ set write [im_permission $user_id "add_absences"]
 if {[info exists absence_id]} {
     im_absence_permissions $user_id $absence_id view read write admin
 }
-
-# ToDo !!! Check permission
 if {![im_permission $user_id "add_absences"]} {
     ad_return_complaint "[_ intranet-timesheet2.lt_Insufficient_Privileg]" "
     <li>[_ intranet-timesheet2.lt_You_dont_have_suffici]"
@@ -164,6 +162,10 @@ ad_form -extend -name absence -form {
 }
 
 
+# ------------------------------------------------------------------
+# Add DynFields
+# ------------------------------------------------------------------
+
 set my_absence_id 0
 if {[info exists absence_id]} { set my_absence_id $absence_id }
 
@@ -176,6 +178,9 @@ set field_cnt [im_dynfield::append_attributes_to_form \
 ]
 
 
+# ------------------------------------------------------------------
+# Form Actions
+# ------------------------------------------------------------------
 
 ad_form -extend -name absence -on_request {
 

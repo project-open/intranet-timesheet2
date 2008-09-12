@@ -1,4 +1,4 @@
--- /packages/intranet-timesheet2/sql/oracle/intranet-absences-create.sql
+-- /packages/intranet-timesheet2/sql/postgresql/intranet-absences-create.sql
 --
 -- Copyright (C) 1999-2004 various parties
 -- The code is based on ArsDigita ACS 3.4
@@ -44,6 +44,8 @@ update acs_object_types set
 	type_column = 'absence_type_id' 
 where object_type = 'im_user_absence';
 
+-- Define how to link to Absence pages from the Forum or the
+-- Search Engine
 insert into im_biz_object_urls (object_type, url_type, url) values (
 'im_user_absence','view','/intranet-timesheet2/absences/new?form_mode=display&absence_id=');
 insert into im_biz_object_urls (object_type, url_type, url) values (
@@ -53,8 +55,6 @@ insert into im_biz_object_urls (object_type, url_type, url) values (
 ------------------------------------------------------
 -- Absences Table
 --
-
-create sequence im_user_absences_id_seq start 1;
 create table im_user_absences (
         absence_id              integer
                                 constraint im_user_absences_pk
@@ -90,13 +90,15 @@ create table im_user_absences (
 				not null
 );
 
+-- Unique constraint to avoid that you can add two identical absences
 alter table im_user_absences 
-add constraint owner_and_start_date_unique unique (owner_id,absence_type_id, start_date);
+add constraint owner_and_start_date_unique unique (owner_id, absence_type_id, start_date);
 
+-- Incices to speed up frequent queries
 create index im_user_absences_user_id_idx on im_user_absences(owner_id);
 create index im_user_absences_dates_idx on im_user_absences(start_date, end_date);
 create index im_user_absences_type_idx on im_user_absences(absence_type_id);
-	
+
 
 
 -----------------------------------------------------------
@@ -104,7 +106,6 @@ create index im_user_absences_type_idx on im_user_absences(absence_type_id);
 --
 -- These functions represent creator/destructor
 -- functions for the OpenACS object system.
-
 
 create or replace function im_user_absence__name(integer)
 returns varchar as '
@@ -209,15 +210,9 @@ SELECT acs_privilege__add_child('admin', 'add_absences');
 SELECT acs_privilege__create_privilege('view_absences_all','View Absences All','View Absences All');
 SELECT acs_privilege__add_child('admin', 'view_absences_all');
 
-
-SELECT im_priv_create('add_absences', 'Accounting');
+-- Set default permissions per group
 SELECT im_priv_create('add_absences', 'Employees');
 SELECT im_priv_create('add_absences', 'Freelancers');
-SELECT im_priv_create('add_absences', 'P/O Admins');
-SELECT im_priv_create('add_absences', 'Project Managers');
-SELECT im_priv_create('add_absences', 'Sales');
-SELECT im_priv_create('add_absences', 'Senior Managers');
-
 
 SELECT im_priv_create('view_absences_all', 'Accounting');
 SELECT im_priv_create('view_absences_all', 'Employees');
@@ -228,6 +223,8 @@ SELECT im_priv_create('view_absences_all', 'Sales');
 SELECT im_priv_create('view_absences_all', 'Senior Managers');
 
 
+-- Privilege that determines if a user can override the Workflow
+-- Can a user confirm his own vacation requests?
 SELECT acs_privilege__create_privilege('edit_absence_status','Edit Absence Status','Edit Absence Status');
 SELECT acs_privilege__add_child('admin', 'edit_absence_status');
 
