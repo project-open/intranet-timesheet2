@@ -112,9 +112,9 @@ db_multirow -extend {project_chk return_url indent} multirow multirow "
 		im_projects main_p,
 		im_projects p
 	where
-		main_p.project_status_id in ([im_sub_categories [im_project_status_open]])
+		main_p.project_status_id in ([join [im_sub_categories [im_project_status_open]] ","])
 		and main_p.parent_id is null
-		and p.project_status_id in ([im_sub_categories [im_project_status_open]])
+		and p.project_status_id in ([join [im_sub_categories [im_project_status_open]] ","])
 		and p.project_type_id not in ([im_project_type_task])
 		and p.tree_sortkey between
 			main_p.tree_sortkey and
