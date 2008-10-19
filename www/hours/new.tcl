@@ -143,11 +143,11 @@ if {$show_week_p} {
     set page_title "[lang::message::lookup "" intranet-timesheet2.Date_for_user "%pretty_date% for %user_name_from_search%"]"
 
     set prev_day_julian_date [expr $julian_date - 1]
-    set prev_day_url [export_vars -base "new" {{julian_date $prev_day_julian_date} project_id project_id_list show_week_p}]
+    set prev_day_url [export_vars -base "new" {{julian_date $prev_day_julian_date} user_id_from_search project_id project_id_list show_week_p}]
     set prev_day_link "<a href=$prev_day_url>$left_gif</a>"
 
     set next_day_julian_date [expr $julian_date + 1]
-    set next_day_url [export_vars -base "new" {{julian_date $next_day_julian_date} project_id project_id_list show_week_p}]
+    set next_day_url [export_vars -base "new" {{julian_date $next_day_julian_date} user_id_from_search project_id project_id_list show_week_p}]
     set next_day_link "<a href=$next_day_url>$right_gif</a>"
 
     set forward_backward_buttons "
