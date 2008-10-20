@@ -41,13 +41,14 @@ if {"" == $old_project_id} { set old_project_id $project_id }
 # Build the form
 # ------------------------------------------------------------------
 
-set project_options [im_project_options -exclude_status_id [im_project_status_closed]]
+set project_options [im_project_options -exclude_status_id [im_project_status_closed] -project_id $project_id]
+
 set user_options [db_list_of_lists user_options "
-        select  im_name_from_user_id(user_id) as name,
-                user_id
-        from    users_active
-        order by name
-    "]
+	select	im_name_from_user_id(user_id) as name,
+		user_id
+	from	users_active
+	order by name
+"]
 
 
 ad_form \
@@ -59,7 +60,7 @@ ad_form \
 	{day_date:text(text) {mode display} {label #intranet-core.Date#} }
 	{project_id:integer(select) {label #intranet-core.Project#} {options $project_options} }
 	{hours:float(text) {label #intranet-timesheet2.Hours#} }
-        {note:text(textarea),optional,nospell {label #intranet-core.Description#} {html {rows 5 cols 60}}}
+	{note:text(textarea),optional,nospell {label #intranet-core.Description#} {html {rows 5 cols 60}}}
     }
 
 ad_form -extend -name hours -on_request {
