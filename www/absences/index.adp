@@ -17,6 +17,8 @@
 	       #intranet-timesheet2.Admin_Absences#
 	    </div>
             <%= $admin_html %>
+	    <br>
+            <%= [im_navbar_tree -label "main"] %>
          </div>
       </if>
    </div>
