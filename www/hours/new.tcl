@@ -531,16 +531,21 @@ set child_project_sql "
 
 set sort_integer 0
 set sort_legacy  0
-if { $list_sort_order=="name" } {
-    set sort_order "lower(children.project_name)"
-} elseif { $list_sort_order=="order" } {
-    set sort_order "children.sort_order"
-    set sort_integer 1
-} elseif { $list_sort_order=="legacy" } {
-    set sort_order "children.tree_sortkey" 
-    set sort_legacy 1
-} else {
-    set sort_order "lower(children.project_nr)"
+switch $list_sort_order {
+    name { 
+	set sort_order "lower(children.project_name)"
+    }
+    order { 
+	set sort_order "children.sort_order"
+	set sort_integer 1
+    }
+    legacy {
+	set sort_order "children.tree_sortkey"
+	set sort_legacy 1
+    }
+    default { 
+	set sort_order "lower(children.project_nr)"
+    }
 }
 
 set sql "
@@ -686,6 +691,7 @@ if {!$log_hours_on_parent_with_children_p} {
 
 db_multirow hours_multirow hours_timesheet $sql
 
+# Sort the tree according to the specified sort order
 multirow_sort_tree hours_multirow project_id parent_id sort_order
 
 
