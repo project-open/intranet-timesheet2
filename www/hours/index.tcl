@@ -60,6 +60,8 @@ if {$current_user_id == $user_id_from_search} {
 set page_title [lang::message::lookup "" intranet-timesheet2.Timesheet_for_user_name "Timesheet for %user_name%"]
 set context_bar [im_context_bar "[_ intranet-timesheet2.Hours]"]
 
+set show_left_functional_menu_p [parameter::get_from_package_key -package_key "intranet-core" -parameter "ShowLeftFunctionalMenupP" -default 0]
+
 # Get the project name restriction in case project_id is set
 set project_restriction ""
 if {"" != $project_id && 0 != $project_id} {

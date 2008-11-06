@@ -3,6 +3,9 @@
 <property name="context">#intranet-timesheet2.context#</property>
 <property name="main_navbar_label">timesheet2_timesheet</property>
 
+
+<if @show_left_functional_menu_p@>
+
 <div class="filter-list">
   <a id="sideBarTab" href="#"><img id="sideBarTabImage" border="0" title="sideBar" alt="sideBar" src="/intranet/images/navbar_saltnpepper/slide-button-active.gif"/></a>
   <div class="filter" id="sidebar">
@@ -16,9 +19,9 @@
   </div>
 </div>
 
-
-
 <div class="fullwidth-list" id="fullwidth-list">
+</if>
+
 
 <if "" ne @message@>
 <h1>@header@</h1>
@@ -38,8 +41,7 @@
 
 <%= [im_table_with_title $page_title $page_body] %>
 
+
+<if @show_left_functional_menu_p@>
 </div>
-
-
-
-
+</if>
