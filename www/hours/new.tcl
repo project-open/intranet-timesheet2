@@ -91,6 +91,24 @@ if {0 == $project_id_list} { set project_id_list {} }
 # "Log hours for a different day"
 set different_date_url [export_vars -base "index" {project_id user_id_from_search project_id_list julian_date show_week_p}]
 
+# Should we show an "internal" text comment
+# in addition to the normal "external" comment?
+set internal_note_exists_p [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter HourLoggingInternalCommentP -default 0]
+if {![db_column_exists im_hours internal_note]} {
+    ad_return_complaint 1 "Internal error in intranet-timesheet2:<br>
+	The field im_hours.internal_note is missing.<br>
+	Please notify your system administrator to upgrade
+	your system to the latest version.<br>
+    "
+    ad_script_abort
+}
+set external_comment_size 40
+set internal_comment_size 0
+if {$internal_note_exists_p} { 
+    set external_comment_size 20
+    set internal_comment_size 20
+}
+
 
 # Append user-defined menus
 set bind_vars [ad_tcl_vars_to_ns_set user_id user_id_from_search julian_date return_url show_week_p]
@@ -153,7 +171,7 @@ if {$show_week_p} {
     set forward_backward_buttons "
 	<tr>
 	<td align=left>$prev_day_link</td>
-	<td colspan=1>&nbsp;</td>
+	<td colspan=[expr 1+$internal_note_exists_p]>&nbsp;</td>
 	<td align=right>$next_day_link</td>
 	</tr>
     "
@@ -579,9 +597,7 @@ if {!$materials_p} { set material_sql "" }
 
 set hours_sql "
 	select
-		h.hours,
-		h.note,
-		h.invoice_id,
+		h.*,
 		to_char(h.day, 'J') as julian_day,
 		p.project_id
 		$material_sql
@@ -597,6 +613,7 @@ db_foreach hours_hash $hours_sql {
 
     set hours_hours($project_id-$julian_day) $hours
     set hours_note($project_id-$julian_day) $note
+    set hours_internal_note($project_id-$julian_day) $internal_note
     if {"" != $invoice_id} {
         set hours_invoice($project_id-$julian_day) $invoice_id
     }
@@ -823,11 +840,16 @@ template::multirow foreach hours_multirow {
 	    # Daily View - 1 field for hours + 1 field for comment
 	    set hours ""
 	    set note ""
+	    set internal_note ""
 	    if {[info exists hours_hours($project_id-$julian_date)]} { set hours $hours_hours($project_id-$julian_date) }
 	    if {[info exists hours_note($project_id-$julian_date)]} { set note $hours_note($project_id-$julian_date) }
+	    if {[info exists hours_internal_note($project_id-$julian_date)]} { set internal_note $hours_internal_note($project_id-$julian_date) }
 
 	    append results "<td><INPUT NAME=hours0.$project_id size=5 MAXLENGTH=5 value=\"$hours\">$p_hours</td>\n"
-	    append results "<td><INPUT NAME=notes0.$project_id size=40 value=\"[ns_quotehtml [value_if_exists note]]\">$p_notes</td>\n"
+	    append results "<td><INPUT NAME=notes0.$project_id size=$external_comment_size value=\"[ns_quotehtml [value_if_exists note]]\">$p_notes</td>\n"
+	    if {$internal_note_exists_p} {
+		append results "<td><INPUT NAME=internal_notes0.$project_id size=$internal_comment_size value=\"[ns_quotehtml [value_if_exists internal_note]]\"></td>\n"
+	    }
 	    if {$materials_p} {
 		append results "<td>[im_select -ad_form_option_list_style_p 1 materials0.$project_id $material_options $material_id]</td>\n"
 	    }
@@ -839,8 +861,10 @@ template::multirow foreach hours_multirow {
 		set julian_day_offset [expr $julian_week_start + $i]
 		set hours ""
 		set note ""
+		set internal_note ""
 		if {[info exists hours_hours($project_id-$julian_day_offset)]} { set hours $hours_hours($project_id-$julian_day_offset) }
 		if {[info exists hours_note($project_id-$julian_day_offset)]} { set note $hours_note($project_id-$julian_day_offset) }
+		if {[info exists hours_internal_note($project_id-$julian_day_offset)]} { set internal_note $hours_internal_note($project_id-$julian_day_offset) }
 		append results "<td><INPUT NAME=hours${i}.$project_id size=5 MAXLENGTH=5 value=\"$hours\"></td>\n"
 	    }
 
@@ -855,8 +879,10 @@ template::multirow foreach hours_multirow {
 	    # Daily view with plain text, without <input>
 	    set hours ""
 	    set note ""
+	    set internal_note ""
 	    if {[info exists hours_hours($project_id-$julian_date)]} { set hours $hours_hours($project_id-$julian_date) }
 	    if {[info exists hours_note($project_id-$julian_date)]} { set note $hours_note($project_id-$julian_date) }
+	    if {[info exists hours_internal_note($project_id-$julian_date)]} { set internal_note $hours_note($project_id-$julian_date) }
 	    
 	    append results "
 		<td>
@@ -869,6 +895,15 @@ template::multirow foreach hours_multirow {
 			$note
 			<INPUT TYPE=HIDDEN NAME=notes0.$project_id value=\"[ns_quotehtml [value_if_exists note]]\">
 		</td>
+	    "
+	    if {$internal_note_exists_p} {
+		append results "
+		<td>
+			<INPUT TYPE=HIDDEN NAME=internal_notes0.$project_id value=\"[ns_quotehtml [value_if_exists internal_note]]\">
+		</td>
+		"
+	    }
+	    append results "
 	    "
 	    if {$materials_p} {
 		append results "<td>$material <input type=hidden name=materials0.$project_id value=$material_id></td>\n"
@@ -883,8 +918,10 @@ template::multirow foreach hours_multirow {
 		set julian_day_offset [expr $julian_week_start + $i]
 		set hours ""
 		set note ""
+		set internal_note ""
 		if {[info exists hours_hours($project_id-$julian_day_offset)]} { set hours $hours_hours($project_id-$julian_day_offset) }
 		if {[info exists hours_note($project_id-$julian_day_offset)]} { set note $hours_note($project_id-$julian_day_offset) }
+		if {[info exists hours_internal_note($project_id-$julian_day_offset)]} { set internal_note $hours_internal_note($project_id-$julian_day_offset) }
 		append results "
 			<td>
 				$hours

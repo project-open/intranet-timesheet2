@@ -103,6 +103,9 @@
 		<if @show_week_p@ eq 0>
 		<th>#intranet-timesheet2.Hours#	</th>
 		<th>#intranet-timesheet2.Work_done#</th>
+<if @internal_note_exists_p@>
+		<th><%= [lang::message::lookup "" intranet-timesheet2.Internal_Comment "Internal Comment"] %></th>
+</if>
 <if @materials_p@>
 		<th><%= [lang::message::lookup "" intranet-timesheet2.Service_Type "Service Type"] %></th>
 </if>

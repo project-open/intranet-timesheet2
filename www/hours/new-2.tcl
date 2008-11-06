@@ -39,6 +39,7 @@ ad_page_contract {
     hours5:array,optional
     hours6:array,optional
     notes0:array,optional
+    internal_notes0:array,optional
     materials0:array,optional
     julian_date:integer
     { return_url "" }
@@ -61,6 +62,15 @@ set material_name ""
 set material_id ""
 
 set max_hours_per_day [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter TimesheetMaxHoursPerDay -default 999]
+
+if {![db_column_exists im_hours internal_note]} {
+    ad_return_complaint 1 "Internal error in intranet-timesheet2:<br>
+	The field im_hours.internal_note is missing.<br>
+	Please notify your system administrator to upgrade
+	your system to the latest version.<br>
+    "
+    ad_script_abort
+}
 
 # ----------------------------------------------------------
 # Billing Rate & Currency
@@ -98,6 +108,7 @@ foreach i $weekly_logging_days {
 
     array unset database_hours_hash
     array unset database_notes_hash
+    array unset database_internal_notes_hash
     array unset database_materials_hash
     array unset hours_cost_id
     array unset action_hash
@@ -114,10 +125,9 @@ foreach i $weekly_logging_days {
     # together with the main project (needed for ConfirmationObject).
     set database_hours_logged_sql "
 		select	
+			h.*,
 			p.project_id as hour_project_id,
-			h.cost_id as hour_cost_id,
-			h.hours,
-			h.note
+			h.cost_id as hour_cost_id
 		from
 			im_hours h,
 			im_projects p
@@ -134,6 +144,7 @@ foreach i $weekly_logging_days {
 	# Store logged hours into Hash arrays.
     	set database_hours_hash($key) $hours
     	set database_notes_hash($key) $note
+    	set database_internal_notes_hash($key) [value_if_exists internal_note]
     	set database_materials_hash($key) $material_name
 	ns_log Notice "hours/new2: database_hours_hash($key) = '$hours'"
 
@@ -153,6 +164,9 @@ foreach i $weekly_logging_days {
     set screen_notes_elements [array get notes$i]
     array set screen_notes_hash $screen_notes_elements
 
+    set screen_internal_notes_elements [array get internal_notes$i]
+    array set screen_internal_notes_hash $screen_internal_notes_elements
+
     set screen_materials_elements [array get materials$i]
     array set screen_materials_hash $screen_materials_elements
 
@@ -169,17 +183,21 @@ foreach i $weekly_logging_days {
 	# Extract the hours and notes from the database hashes
 	set db_hours ""
 	set db_notes ""
+	set db_internal_notes ""
 	set db_materials ""
 	if {[info exists database_hours_hash($pid)]} { set db_hours $database_hours_hash($pid) }
 	if {[info exists database_notes_hash($pid)]} { set db_notes [string trim $database_notes_hash($pid)] }
+	if {[info exists database_internal_notes_hash($pid)]} { set db_int_notes [string trim $database_internal_notes_hash($pid)] }
 	if {[info exists database_materials_hash($pid)]} { set db_materials [string trim $database_materials_hash($pid)] }
 
 	# Extract the hours and notes from the screen hashes
 	set screen_hours ""
 	set screen_notes ""
+	set screen_internal_notes ""
 	set screen_materials ""
 	if {[info exists screen_hours_hash($pid)]} { set screen_hours $screen_hours_hash($pid) }
 	if {[info exists screen_notes_hash($pid)]} { set screen_notes [string trim $screen_notes_hash($pid)] }
+	if {[info exists screen_internal_notes_hash($pid)]} { set screen_internal_notes [string trim $screen_internal_notes_hash($pid)] }
 	if {[info exists screen_materials_hash($pid)]} { set screen_materials [string trim $screen_materials_hash($pid)] }
 
 	if {"" != $screen_hours} {
@@ -211,6 +229,7 @@ foreach i $weekly_logging_days {
 
 	# Deal with the case that the user has only changed the comment (in the single-day view)
 	if {"skip" == $action && !$show_week_p && $db_notes != $screen_notes} { set action update }
+	if {"skip" == $action && !$show_week_p && $db_internal_notes != $screen_internal_notes} { set action update }
 	if {"skip" == $action && !$show_week_p && $db_materials != $screen_materials} { set action update }
 
 	ns_log Notice "hours/new-2: pid=$pid, day=$day_julian, db:'$db_hours', screen:'$screen_hours' => action=$action"
@@ -250,6 +269,8 @@ foreach i $weekly_logging_days {
 	if {[info exists screen_hours_hash($project_id)]} { set hours_worked $screen_hours_hash($project_id) }
 	set note ""
 	if {[info exists screen_notes_hash($project_id)]} { set note $screen_notes_hash($project_id) }
+	set internal_note ""
+	if {[info exists screen_internal_notes_hash($project_id)]} { set internal_note $screen_internal_notes_hash($project_id) }
 	set material ""
 	if {[info exists screen_materials_hash($project_id)]} { set material $screen_materials_hash($project_id) }
 
@@ -272,13 +293,15 @@ foreach i $weekly_logging_days {
 			day, hours, 
 			billing_rate, billing_currency,
 			material_id,
-			note
+			note,
+			internal_note
 		     ) values (
 			:user_id_from_search, :project_id, 
 			to_date(:day_julian,'J'), :hours_worked, 
 			:billing_rate, :billing_currency, 
 			:material,
-			:note
+			:note,
+			:internal_note
 		     )"
 	    
 		# Update the reported hours on the timesheet task
@@ -307,6 +330,7 @@ foreach i $weekly_logging_days {
 		set 
 			hours = :hours_worked, 
 			note = :note,
+			internal_note = :internal_note,
 			cost_id = null,
 			material_id = :material
 		where
