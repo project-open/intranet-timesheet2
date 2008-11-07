@@ -80,6 +80,13 @@ if {"" ==  $date } {
 } 
 ns_log Notice "/intranet-timesheet2/index: date=$date"
 
+# Enable the functionality to confirm timesheet hours?
+set confirm_timesheet_hours_p [db_string ts_wf_exists {
+        select count(*) from apm_packages
+        where package_key = 'intranet-timesheet2-workflow'
+} -default 0]
+if {![db_column_exists im_hours conf_object_id]} { set confirm_timesheet_hours_p 0 }
+
 
 # ---------------------------------------------------------------
 # Render the Calendar widget
@@ -114,7 +121,7 @@ db_foreach hours_logged $sql {
 
 # --------------------------------------------------------------
 # Get the unconfirmed hours for the week
-if {[db_column_exists im_hours conf_object_id]} {
+if {$confirm_timesheet_hours_p} {
     set sql "
 	select 
 		to_char(day, 'J') as julian_date, 
@@ -193,7 +200,7 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
 		>[_ intranet-timesheet2.Week_total_1] $hours_for_this_week</a>
 	"
 
-	if {0 != $unconfirmed_hours_for_this_week} {
+	if {$confirm_timesheet_hours_p && 0 != $unconfirmed_hours_for_this_week} {
 	    set start_date_julian [expr $current_date - 6]
 	    set end_date_julian $current_date
 
