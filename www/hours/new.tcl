@@ -42,6 +42,8 @@ set user_id [ad_maybe_redirect_for_registration]
 if {"" == $user_id_from_search || ![im_permission $user_id "add_hours_all"]} { set user_id_from_search $user_id }
 set user_name_from_search [db_string uname "select im_name_from_user_id(:user_id_from_search)"]
 
+# ToDo: What if the user_id_from_search is already set???
+
 if {"" == $return_url} { set return_url [export_vars -base "/intranet-timesheet2/hours/index" {julian_date user_id_from_search project_id project_id_list}] }
 set bgcolor(0) " class=roweven "
 set bgcolor(1) " class=rowodd "
