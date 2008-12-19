@@ -41,7 +41,7 @@ if {"" == $old_project_id} { set old_project_id $project_id }
 # Build the form
 # ------------------------------------------------------------------
 
-set project_options [im_project_options -exclude_status_id [im_project_status_closed] -project_id $project_id]
+set project_options [im_project_options -exclude_subprojects_p 0 -exclude_status_id [im_project_status_closed] -project_id $project_id]
 
 set user_options [db_list_of_lists user_options "
 	select	im_name_from_user_id(user_id) as name,
