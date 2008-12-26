@@ -105,7 +105,7 @@ proc_doc calendar_convert_julian_to_ansi { julian_date } "Return an ANSI date fo
     return $output
 }
 
-ad_proc calendar_basic_month { {-calendar_details "" -date "" -days_of_week "Sunday Monday Tuesday Wednesday Thursday Friday Saturday" -large_calendar_p 1 -master_bgcolor "black" -header_bgcolor "black" -header_text_color "white" -header_text_size "+2" -day_number_template {<!--$julian_date--><font size=1>$day_number</font>} -day_header_size 2 -day_header_bgcolor "#666666" -calendar_width "100%" -day_bgcolor "#DDDDDD" -today_bgcolor "#DDDDDD" -day_text_color "white" -empty_bgcolor "white"  -next_month_template ""   -prev_month_template "" -prev_next_links_in_title 0 -fill_all_days 0 } } "Returns a calendar for a specific month, with details supplied by Julian date. Defaults to this month.
+ad_proc calendar_basic_month { {-calendar_details "" -date "" -days_of_week "Sunday Monday Tuesday Wednesday Thursday Friday Saturday" -large_calendar_p 1 -master_bgcolor "black" -header_bgcolor "black" -header_text_color "white" -header_text_size "+2" -day_number_template {<!--$julian_date--><span class='day_number'>$day_number</span>} -day_header_size 2 -day_header_bgcolor "#666666" -calendar_width "100%" -day_bgcolor "#DDDDDD" -today_bgcolor "#DDDDDD" -day_text_color "white" -empty_bgcolor "white"  -next_month_template ""   -prev_month_template "" -prev_next_links_in_title 0 -fill_all_days 0 } } "Returns a calendar for a specific month, with details supplied by Julian date. Defaults to this month.
 
 To specify details for the individual days (if large_calendar_p is set) put data in an ns_set calendar_details.  The key is the Julian date of the day, and the value is a string (possibly with HTML formatting) that represents the details.
 " {
@@ -139,7 +139,7 @@ To specify details for the individual days (if large_calendar_p is set) put data
     } else {
 	set title "
 <td colspan=7>
-  <table id='calendar_table' class='calendar_table' width=100% cellpadding=0 cellspacing=0 border=0>
+  <table id='month_header' width=100% cellpadding=0 cellspacing=0 border=0>
   <tr>
     <td align=left>$prev_month_url</td>
     <td align=center><font size=$header_text_size color=$header_text_color><b>$month_heading</b></font></td>
@@ -151,11 +151,11 @@ To specify details for the individual days (if large_calendar_p is set) put data
     }
 
     # Write out the header and the days of the week
-    append output "<table bgcolor=$master_bgcolor cellpadding=3 cellspacing=1  border=0 width=$calendar_width>
-    <tr bgcolor=$header_bgcolor>
+    append output "<table id='calendar_table' class='calendar_table' bgcolor=$master_bgcolor cellpadding=3 cellspacing=1  border=0 width=$calendar_width>
+    <tr class='month_heading' bgcolor=$header_bgcolor>
     $title
     </tr>
-    <tr bgcolor=$day_header_bgcolor>"
+    <tr class='day_header' bgcolor=$day_header_bgcolor>"
 
     foreach day_of_week $days_of_week {
 	append output "<td width=14% align=center><font face=\"Verdana,Arial,Helvetica\" size=$day_header_size color=$day_text_color><b>$day_of_week</b></font></td>"
@@ -166,7 +166,7 @@ To specify details for the individual days (if large_calendar_p is set) put data
 
     if { $fill_all_days == 0 } {
 	for { set n 1} { $n < $first_day_of_month } { incr n } {
-	    append output "<td bgcolor=$empty_bgcolor align=right valign=top></td>"
+	    append output "<td id='empty_bg' bgcolor=$empty_bgcolor align=right valign=top></td>"
 	}
     }
 
@@ -201,7 +201,7 @@ To specify details for the individual days (if large_calendar_p is set) put data
 
 	set skip_day 0
 	if {$before_month_p || $after_month_p} {
-	    append output "<td bgcolor=$empty_bgcolor align=right valign=top>&nbsp;"
+	    append output "<td class='before_after_month' bgcolor=$empty_bgcolor align=right valign=top>&nbsp;"
 	    if { $fill_all_days == 0 } {
 		set skip_day 1
 	    } else {
@@ -216,18 +216,18 @@ To specify details for the individual days (if large_calendar_p is set) put data
 
             if {[string equal $todays_date $day_ansi]} {
                
-	        append output "<td bgcolor=#6699CC align=right valign=top>[subst $day_number_template]&nbsp;"
+	        append output "<td class='todays_date' bgcolor=#6699CC align=right valign=top>[subst $day_number_template]&nbsp;"
 
             } else {
 
-	        append output "<td bgcolor=$day_bgcolor align=right valign=top>[subst $day_number_template]&nbsp;"
+	        append output "<td class='not_todays_date' bgcolor=$day_bgcolor align=right valign=top>[subst $day_number_template]&nbsp;"
 
             }
 
 	}
 
 	if { (! $skip_day) && $large_calendar_p == 1 } {
-	    append output "<div align=left>"
+	    append output "<div class='link_log_hours' align=left>"
 
 	    set calendar_day_index [ns_set find $calendar_details $julian_date]
 	    
@@ -260,7 +260,7 @@ To specify details for the individual days (if large_calendar_p is set) put data
     # There are two ways to display previous and next month link - this is the default
     if { $prev_next_links_in_title == 0 } {
 	append output "
-    <tr bgcolor=white>
+    <tr class='prev_next_month' bgcolor=white>
     <td align=center colspan=7>$prev_month_url$next_month_url</td>
     </tr>"
     }
@@ -271,13 +271,13 @@ To specify details for the individual days (if large_calendar_p is set) put data
 
 }
 
-ad_proc calendar_small_month { {-calendar_details "" -date "" -days_of_week "S M T W T F S" -large_calendar_p 0 -master_bgcolor "black" -header_bgcolor "black" -header_text_color "white" -header_text_size "+1" -day_number_template {<!--$julian_date--><font size=1>$day_number</font>} -day_header_size 1 -day_header_bgcolor "#666666" -calendar_width 0 -day_bgcolor "#DDDDDD" -day_text_color "white" -empty_bgcolor "white"  -next_month_template ""   -prev_month_template ""  } } "Returns a small calendar for a specific month. Defaults to this month." {
+ad_proc calendar_small_month { {-calendar_details "" -date "" -days_of_week "S M T W T F S" -large_calendar_p 0 -master_bgcolor "black" -header_bgcolor "black" -header_text_color "white" -header_text_size "+1" -day_number_template {<!--$julian_date--><span class='day_number'>$day_number</span>} -day_header_size 1 -day_header_bgcolor "#666666" -calendar_width 0 -day_bgcolor "#DDDDDD" -day_text_color "white" -empty_bgcolor "white"  -next_month_template ""   -prev_month_template ""  } } "Returns a small calendar for a specific month. Defaults to this month." {
 
     return [calendar_basic_month -calendar_details $calendar_details -date $date -days_of_week $days_of_week -large_calendar_p $large_calendar_p -master_bgcolor $master_bgcolor -header_bgcolor $header_bgcolor -header_text_color $header_text_color -header_text_size $header_text_size -day_number_template $day_number_template -day_header_size $day_header_size -day_header_bgcolor $day_header_bgcolor -calendar_width $calendar_width -day_bgcolor $day_bgcolor -day_text_color $day_text_color -empty_bgcolor $empty_bgcolor  -next_month_template $next_month_template   -prev_month_template $prev_month_template ]
 
 }
 
-ad_proc calendar_prev_current_next { {-calendar_details "" -date "" -days_of_week "S M T W T F S" -large_calendar_p 0 -master_bgcolor "black" -header_bgcolor "black" -header_text_color "white" -header_text_size "+1" -day_number_template {<!--$julian_date--><font size=1>$day_number</font>} -day_header_size 1 -day_header_bgcolor "#666666" -calendar_width 0 -day_bgcolor "#DDDDDD" -day_text_color "white" -empty_bgcolor "white"  -next_month_template ""   -prev_month_template ""  } } "Returns a calendar for a specific month, with details supplied by Julian date. Defaults to this month." {
+ad_proc calendar_prev_current_next { {-calendar_details "" -date "" -days_of_week "S M T W T F S" -large_calendar_p 0 -master_bgcolor "black" -header_bgcolor "black" -header_text_color "white" -header_text_size "+1" -day_number_template {<!--$julian_date--><span class='day_number'>$day_number</span>} -day_header_size 1 -day_header_bgcolor "#666666" -calendar_width 0 -day_bgcolor "#DDDDDD" -day_text_color "white" -empty_bgcolor "white"  -next_month_template ""   -prev_month_template ""  } } "Returns a calendar for a specific month, with details supplied by Julian date. Defaults to this month." {
 
     set output ""
 
@@ -297,7 +297,7 @@ ad_proc calendar_prev_current_next { {-calendar_details "" -date "" -days_of_wee
     return $output
 }
 
-ad_proc calendar_small_year { {-calendar_details "" -date "" -days_of_week "S M T W T F S" -large_calendar_p 0 -master_bgcolor "black" -header_bgcolor "black" -header_text_color "white" -header_text_size "+1" -day_number_template {<!--$julian_date--><font size=1>$day_number</font>} -day_header_size 1 -day_header_bgcolor "#666666" -calendar_width 0 -day_bgcolor "#DDDDDD" -day_text_color "white" -empty_bgcolor "white"  -next_month_template ""   -prev_month_template ""  -width 2} } "Returns a year of small calendars given the starting month as a date.  Defaults to this month.  Data in calendar_details will be ignored." {
+ad_proc calendar_small_year { {-calendar_details "" -date "" -days_of_week "S M T W T F S" -large_calendar_p 0 -master_bgcolor "black" -header_bgcolor "black" -header_text_color "white" -header_text_size "+1" -day_number_template {<!--$julian_date--><span class='day_number'>$day_number</span>} -day_header_size 1 -day_header_bgcolor "#666666" -calendar_width 0 -day_bgcolor "#DDDDDD" -day_text_color "white" -empty_bgcolor "white"  -next_month_template ""   -prev_month_template ""  -width 2} } "Returns a year of small calendars given the starting month as a date.  Defaults to this month.  Data in calendar_details will be ignored." {
 
     if { $width < 1 || $width > 12 } {
 	return "Width must be between 1 and 12"
@@ -330,7 +330,7 @@ ad_proc calendar_small_year { {-calendar_details "" -date "" -days_of_week "S M 
     return $output
 }
 
-ad_proc calendar_small_calendar_year { {-calendar_details "" -date "" -days_of_week "S M T W T F S" -large_calendar_p 0 -master_bgcolor "black" -header_bgcolor "black" -header_text_color "white" -header_text_size "+1" -day_number_template {<!--$julian_date--><font size=1>$day_number</font>} -day_header_size 1 -day_header_bgcolor "#666666" -calendar_width 0 -day_bgcolor "#DDDDDD" -day_text_color "white" -empty_bgcolor "white" -next_month_template "" -prev_month_template "" -width 2} } "Returns a calendar year of small calendars for the year of the passed in date.  Defaults to this year." {
+ad_proc calendar_small_calendar_year { {-calendar_details "" -date "" -days_of_week "S M T W T F S" -large_calendar_p 0 -master_bgcolor "black" -header_bgcolor "black" -header_text_color "white" -header_text_size "+1" -day_number_template {<!--$julian_date--><span class=day_number>$day_number</span>} -day_header_size 1 -day_header_bgcolor "#666666" -calendar_width 0 -day_bgcolor "#DDDDDD" -day_text_color "white" -empty_bgcolor "white" -next_month_template "" -prev_month_template "" -width 2} } "Returns a calendar year of small calendars for the year of the passed in date.  Defaults to this year." {
 
     calendar_get_info_from_db $date
 
