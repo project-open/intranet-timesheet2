@@ -139,7 +139,7 @@ To specify details for the individual days (if large_calendar_p is set) put data
     } else {
 	set title "
 <td colspan=7>
-  <table width=100% cellpadding=0 cellspacing=0 border=0>
+  <table id='calendar_table' class='calendar_table' width=100% cellpadding=0 cellspacing=0 border=0>
   <tr>
     <td align=left>$prev_month_url</td>
     <td align=center><font size=$header_text_size color=$header_text_color><b>$month_heading</b></font></td>
