@@ -164,7 +164,7 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
  	set hours "$users_hours($current_date) hours"
 	set hours_for_this_week [expr $hours_for_this_week + $users_hours($current_date)]
     } else {
-	set hours "<font color=#666666><em>[_ intranet-timesheet2.log_hours]</em></font>"
+	set hours "<span class='log_hours'>[_ intranet-timesheet2.log_hours]</span>"
     }
 
 
@@ -177,7 +177,7 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
     if {$day_of_week == 1 } {
 	append hours "<br>
 		<a href=[export_vars -base "new" {user_id_from_search {julian_date $current_date} {show_week_p 1} return_url}]
-		><font color=#666666><em>log hours for the week</em></font></a>
+		><span class='log_hours'>log hours for the week</span></a>
 	"
     }
 
@@ -235,7 +235,7 @@ set next_month_template "
 <font color=white>&gt;</font>"
 
 set day_bgcolor "#efefef"
-set day_number_template "<!--\$julian_date--><font size=-1>\$day_number</font>"
+set day_number_template "<!--\$julian_date--><span class='day_number'>\$day_number</span>"
 
 ns_log Notice "/intranet-timesheet2/index: calendar_details=$calendar_details"
 
