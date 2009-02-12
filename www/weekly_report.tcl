@@ -355,7 +355,7 @@ where
 	and u.user_id = active_users.party_id
 	$sql_where
 order by
-	curr_owner_id, curr_day
+	owner_name, curr_day
 "
 
 set old_owner [list]
