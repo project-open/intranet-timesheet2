@@ -276,7 +276,7 @@ ad_form -extend -name absence -on_request {
 	    -object_id $absence_id \
 	    -form_id absence
 
-	set wf_key [db_string wf "select aux_string1 from im_categories where category_id = :absence_type_id" -default ""]
+	set wf_key [db_string wf "select trim(aux_string1) from im_categories where category_id = :absence_type_id" -default ""]
 	set wf_exists_p [db_string wf_exists "select count(*) from wf_workflows where workflow_key = :wf_key"]
 	if {$wf_exists_p} {
 	    set context_key ""

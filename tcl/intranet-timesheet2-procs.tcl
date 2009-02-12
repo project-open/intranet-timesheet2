@@ -377,6 +377,7 @@ You have logged %num_hours% hours in the last %num_days% days.
 However, you are expected to log atleast %expected_hours% hours
 or an equivalent amount of absences.
 Please log your hours now or consult with your supervisor."
+	    set absences_hours_message ""
 	    set header [lang::message::lookup "" intranet-timesheet2.Please_Log_Your_Hours "Please Log Your Hours"]
 	    set message [lang::message::lookup "" intranet-timesheet2.You_need_to_log_hours $default_message]
 	    ad_returnredirect [export_vars -base "/intranet-timesheet2/hours/index" {header message}]
