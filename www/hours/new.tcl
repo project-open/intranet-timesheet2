@@ -119,6 +119,7 @@ set menu_links_html [im_menu_ul_list -no_uls 1 "timesheet_hours_new_admin" $bind
 set different_project_url "other-projects?[export_url_vars julian_date user_id_from_search]"
 
 # Log Absences
+set add_absences_p [im_permission $user_id add_absences]
 set absences_url [export_vars -base "/intranet-timesheet2/absences/new" {return_url user_id_from_search}]
 set absences_link_text [lang::message::lookup "" intranet-timesheet2.Log_Absences "Log Absences"]
 
