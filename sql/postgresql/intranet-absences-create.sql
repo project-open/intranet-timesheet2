@@ -111,7 +111,7 @@ create or replace function im_user_absence__name(integer)
 returns varchar as '
 DECLARE
 	p_absence_id		alias for $1;
-	v_name			varchar(2000);
+	v_name			varchar;
 BEGIN
 	select	absence_name into v_name
 	from	im_user_absences
