@@ -246,9 +246,9 @@ ad_proc -public im_timesheet_home_component {user_id} {
         set message "[_ intranet-timesheet2.lt_You_logged_num_hours_]"
     }
 
+    set absences_hours_message ""
     if { [expr $num_hours + $absences_hours] < $expected_hours && $add_hours } {
 
-	set absences_hours_message ""
 	if {$absences_hours > 0} { 
 	    set absences_hours_message [lang::message::lookup "" \
 					intranet-timesheet2.and_absences_hours \
