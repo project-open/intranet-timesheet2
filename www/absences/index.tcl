@@ -352,3 +352,25 @@ if { $start_idx > 0 } {
 # nothing to do here ... (?)
 set table_continuation_html ""
 
+
+# ---------------------------------------------------------------
+# Left Navbar
+# ---------------------------------------------------------------
+
+set left_navbar_html "
+            <div class=\"filter-block\">
+                <div class=\"filter-title\">
+                [lang::message::lookup "" intranet-timesheet2.Filter_Absences "Filter Absences"]
+                </div>
+                $filter_html
+            </div>
+            <hr/>
+
+            <div class=\"filter-block\">
+                <div class=\"filter-title\">
+                [lang::message::lookup "" intranet-timesheet2.Admin_Absences "Admin Absences"]
+                </div>
+                $admin_html
+            </div>
+            <hr/>
+"

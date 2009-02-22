@@ -442,8 +442,18 @@ if { $project_id != 0 && [info exists project_name] } {
     append page_title " by project \"$project_name\""
 }
 
+
 # ---------------------------------------------------------------
-# Join all parts together
+# 
 # ---------------------------------------------------------------
 
-db_release_unused_handles
+set left_navbar "
+            <div class=\"filter-block\">
+                <div class=\"filter-title\">
+                [lang::message::lookup "" intranet-timesheet2.Admin "Admin Links"]
+                </div>
+		$admin_html
+            </div>
+            <hr/>
+"
+
