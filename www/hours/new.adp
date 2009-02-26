@@ -1,84 +1,10 @@
-<master src="../../../intranet-core/www/master">
+<master>
 <property name="title">@page_title@</property>
 <property name="context">#intranet-timesheet2.context#</property>
 <property name="main_navbar_label">timesheet2_timesheet</property>
+<property name="left_navbar">@left_navbar_html;noquote@</property>
 
-<div class="filter-list">
-<a id="sideBarTab" href="#"><img id="sideBarTabImage" border="0" title="sideBar" alt="sideBar" src="/intranet/images/navbar_saltnpepper/slide-button-active.gif"/></a>
-   <div class="filter" id="sidebar">
-<div id="sideBarContentsInner">
-      <div class="filter-block">
-        <div class="filter-title">
-	    Timesheet Filters
-        </div>
-
-	<form action=new method=GET>
-	<!-- don't include return_url in the export_form_vars, as it includes the old user -->
-	<%= [export_form_vars julian_date project_id_list show_week_p]  %>
-	<table border=0 cellpadding=1 cellspacing=1>
-	<tr>
-	    <td><%= [lang::message::lookup "" intranet-core.Project_br_Name "Project<br>Name"] %></td>
-	    <td><%= [im_project_select -include_empty_p 1 -include_empty_name "" -exclude_subprojects_p 1 project_id $project_id_for_default "open"] %></td>
-	</tr>
-
-<if @add_hours_all_p@>
-	<tr>
-	    <td><%= [lang::message::lookup "" intranet-core.Log_hours_for_user "Log Hours<br>for User"] %></td>
-	    <td><%= [im_user_select -include_empty_p 1 -include_empty_name "" user_id_from_search $user_id_from_search] %></td>
-	</tr>
-</if>
-
-	<tr><td></td><td><input type=submit value="Go"></td></tr>
-	</table>
-	</form>
-      </div>
-
-      <div class="filter-block">
-         <div class="filter-title">
-            #intranet-timesheet2.Other_Options#
-         </div>
-
-	 <ul>
-	    <li>
-	      <a href=@different_date_url;noquote@>
-	        #intranet-timesheet2.lt_Log_hours_for_a_diffe#
-	      </a>
-            </li>
-
-<if @user_id@ eq @user_id_from_search@>
-<!-- don't show the "New Absence" link when logging hours for another person -->
-<if @add_absences_p@>
-	    <li>
-	      <a href=@absences_url;noquote@>
-	        @absences_link_text@
-	      </a>
-            </li>
-</if>
-</if>
-
-<% if {[im_permission $user_id_from_search view_projects_all]} { %>
-	    <li>
-	      <a href=@different_project_url;noquote@>
-		#intranet-timesheet2.lt_Add_hours_on_other_pr#
-	      </A>
-            </li>
-<% } %>
-<% if { ![empty_string_p $return_url] } { %>
-	    <li>
-	      <a href="@return_url@">#intranet-timesheet2.lt_Return_to_previous_pa#</a>
-<% } %>
-            </li>
-
-	    <!-- Dynamically added menu links -->
-	    @menu_links_html;noquote@
-
-         </ul>
-      </div>
-   </div> <!-- filter -->
-</div>
-
-   <div class="fullwidth-list" id="fullwidth-list">
-      <%= [im_box_header $page_title] %>
+<%= [im_box_header $page_title] %>
 
 <form method=POST action=new-2>
 @export_form_vars;noquote@
@@ -143,11 +69,4 @@
 </table>
 </form>
 
-     <%= [im_box_footer] %>
-   </div>
-   <div class="filter-list-footer"></div>
-
-</div>
-
-
-
+<%= [im_box_footer] %>
