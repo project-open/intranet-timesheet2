@@ -309,7 +309,7 @@ ad_proc -public im_timesheet_home_component {user_id} {
 
 
     # Add the <ul>-List of associated menus
-    set bind_vars [ad_tcl_vars_to_ns_set user_id]
+    set bind_vars [list user_id $user_id]
     set menu_html [im_menu_ul_list "reporting-timesheet" $bind_vars]
     if {"" != $menu_html} {
 	append hours_html "
