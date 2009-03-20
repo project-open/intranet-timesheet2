@@ -96,7 +96,7 @@ set different_date_url [export_vars -base "index" {project_id user_id_from_searc
 # Should we show an "internal" text comment
 # in addition to the normal "external" comment?
 set internal_note_exists_p [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter HourLoggingInternalCommentP -default 0]
-if {![db_column_exists im_hours internal_note]} {
+if {![im_column_exists im_hours internal_note]} {
     ad_return_complaint 1 "Internal error in intranet-timesheet2:<br>
 	The field im_hours.internal_note is missing.<br>
 	Please notify your system administrator to upgrade
@@ -249,7 +249,7 @@ set edit_hours_closed_message [lang::message::lookup "" intranet-timesheet2.Logg
 array set popup_hours [list]
 array set popup_notes [list]
 
-set timesheet_popup_installed_p [db_table_exists im_timesheet_popups]
+set timesheet_popup_installed_p [im_table_exists im_timesheet_popups]
 if {$timesheet_popup_installed_p} {
 
     set timesheet_popup_sql "

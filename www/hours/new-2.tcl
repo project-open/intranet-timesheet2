@@ -63,7 +63,7 @@ set material_id ""
 
 set max_hours_per_day [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter TimesheetMaxHoursPerDay -default 999]
 
-if {![db_column_exists im_hours internal_note]} {
+if {![im_column_exists im_hours internal_note]} {
     ad_return_complaint 1 "Internal error in intranet-timesheet2:<br>
 	The field im_hours.internal_note is missing.<br>
 	Please notify your system administrator to upgrade

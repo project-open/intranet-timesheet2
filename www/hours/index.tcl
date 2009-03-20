@@ -85,7 +85,7 @@ set confirm_timesheet_hours_p [db_string ts_wf_exists {
         select count(*) from apm_packages
         where package_key = 'intranet-timesheet2-workflow'
 } -default 0]
-if {![db_column_exists im_hours conf_object_id]} { set confirm_timesheet_hours_p 0 }
+if {![im_column_exists im_hours conf_object_id]} { set confirm_timesheet_hours_p 0 }
 
 
 # ---------------------------------------------------------------
