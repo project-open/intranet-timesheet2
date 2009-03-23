@@ -98,10 +98,12 @@ ad_proc calendar_get_info_from_db {
 }
 
 
-proc_doc calendar_convert_julian_to_ansi { julian_date } "Return an ANSI date for a Julian date" {
-
-    set output [db_string julian_date_trunc "select to_char(to_date(:julian_date, 'J'), 'YYYY-MM-DD') from dual"]
-
+proc_doc calendar_convert_julian_to_ansi { 
+    julian_date 
+} {
+    Return an ANSI date for a Julian date
+} {
+    set output [util_memoize [list db_string julian_date_trunc "select to_char(to_date($julian_date, 'J'), 'YYYY-MM-DD')"]]
     return $output
 }
 

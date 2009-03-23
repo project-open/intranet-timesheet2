@@ -47,7 +47,7 @@ ad_page_contract {
 set current_user_id [ad_maybe_redirect_for_registration]
 set add_hours_all_p [im_permission $current_user_id "add_hours_all"]
 if {"" == $user_id_from_search || !$add_hours_all_p} { set user_id_from_search $current_user_id }
-set user_name [db_string user_name_sql "select im_name_from_user_id(:user_id_from_search) from dual"]
+set user_name [im_name_from_user_id $user_id_from_search]
 
 if {"" == $return_url} { set return_url [im_url_with_query] }
 
@@ -81,10 +81,10 @@ if {"" ==  $date } {
 ns_log Notice "/intranet-timesheet2/index: date=$date"
 
 # Enable the functionality to confirm timesheet hours?
-set confirm_timesheet_hours_p [db_string ts_wf_exists {
+set confirm_timesheet_hours_p [util_memoize [list db_string ts_wf_exists {
         select count(*) from apm_packages
         where package_key = 'intranet-timesheet2-workflow'
-} -default 0]
+} -default 0]]
 if {![im_column_exists im_hours conf_object_id]} { set confirm_timesheet_hours_p 0 }
 
 
