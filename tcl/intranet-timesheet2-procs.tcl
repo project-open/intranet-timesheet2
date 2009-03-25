@@ -110,7 +110,19 @@ ad_proc -public im_timesheet2_sync_timesheet_costs {
     set project_sql ""
     set julian_date_sql ""
     if {0 != $user_id} { set user_sql "and h.user_id = :user_id" }
-    if {0 != $project_id} { set project_sql "and h.project_id = :project_id" }
+    if {0 != $project_id} { 
+	set project_sql "and h.project_id in (
+		select	children.project_id
+		from	im_projects children,
+			im_projects parent
+		where	
+			children.tree_sortkey
+				between parent.tree_sortkey
+				and tree_right(parent.tree_sortkey)
+                        and parent.project_id = :project_id
+		)
+	"
+    }
 
     set sql "
 	select
