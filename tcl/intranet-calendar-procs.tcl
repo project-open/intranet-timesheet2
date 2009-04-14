@@ -137,14 +137,14 @@ To specify details for the individual days (if large_calendar_p is set) put data
 
     # We offer an option to put the links to next and previous months in the title bar
     if { $prev_next_links_in_title == 0 } {
-	set title "<td colspan=7 align=center><font size=$header_text_size color=$header_text_color><b>$month_heading</b></font></td>"
+	set title "<td colspan=7 align=center>$month_heading></td>"
     } else {
 	set title "
 <td colspan=7>
-  <table id='month_header' width=100% cellpadding=0 cellspacing=0 border=0>
+  <table id='month_header'class='month_header'>
   <tr>
     <td align=left>$prev_month_url</td>
-    <td align=center><font size=$header_text_size color=$header_text_color><b>$month_heading</b></font></td>
+    <td align=center>$month_heading</td>
     <td align=right>$next_month_url</td>
   </tr>
   </table>
@@ -157,11 +157,10 @@ To specify details for the individual days (if large_calendar_p is set) put data
     <tr class='month_heading' bgcolor=$header_bgcolor>
     $title
     </tr>
-    <tr class='day_header' bgcolor=$day_header_bgcolor>"
+    <tr class='day_header'"
 
     foreach day_of_week $days_of_week {
-	append output "<td width=14% align=center><font face=\"Verdana,Arial,Helvetica\" size=$day_header_size color=$day_text_color><b>$day_of_week</b></font></td>"
-
+	append output "<td width=14% align=center>$day_of_week</td>"
     }
 
     append output "</tr><tr>"
@@ -262,7 +261,7 @@ To specify details for the individual days (if large_calendar_p is set) put data
     # There are two ways to display previous and next month link - this is the default
     if { $prev_next_links_in_title == 0 } {
 	append output "
-    <tr class='prev_next_month' bgcolor=white>
+    <tr class='prev_next_month'>
     <td align=center colspan=7>$prev_month_url$next_month_url</td>
     </tr>"
     }
