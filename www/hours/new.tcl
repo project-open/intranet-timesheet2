@@ -194,6 +194,10 @@ set show_project_nr_p [parameter::get_from_package_key -package_key "intranet-co
 # Should we allow users to log hours on a parent project, even though it has children?
 set log_hours_on_parent_with_children_p [parameter::get_from_package_key -package_key "intranet-timesheet2" -parameter LogHoursOnParentWithChildrenP -default 1]
 
+# "Solitary" projects are main projects without children.
+# Some companies want to avoid logging on such projects.
+set log_hours_on_solitary_projects_p [parameter::get_from_package_key -package_key "intranet-timesheet2" -parameter LogHoursOnSolitaryProjectsP -default 1]
+
 # Determine how to show the tasks of projects. There are several options:
 #	- main_project: The main project determines the subproject/task visibility space
 #	- sub_project: Each (sub-) project determines the visibility of its tasks
@@ -604,6 +608,12 @@ set material_sql "
 if {!$materials_p} { set material_sql "" }
 
 
+# ---------------------------------------------------------
+# Check if the specified hours are already included in a
+# timesheet invoices. In such a case we can't modify them
+# anymore.
+# ---------------------------------------------------------
+
 set hours_sql "
 	select
 		h.*,
@@ -619,18 +629,13 @@ set hours_sql "
 		$h_day_in_dayweek
 "
 db_foreach hours_hash $hours_sql {
-
     set hours_hours($project_id-$julian_day) $hours
     set hours_note($project_id-$julian_day) $note
     set hours_internal_note($project_id-$julian_day) $internal_note
     if {"" != $invoice_id} {
         set hours_invoice($project_id-$julian_day) $invoice_id
     }
-
 }
-
-# ad_return_complaint 1 [join [db_list_of_lists hours_sql $hours_sql] "<br>"]
-# ad_script_abort
 
 # ---------------------------------------------------------
 # Get the list of open projects with direct membership
@@ -685,6 +690,7 @@ if {!$log_hours_on_parent_with_children_p} {
     array set has_children_hash {}
     db_foreach has_children $has_children_sql {
         set has_children_hash($parent_id) 1
+        set has_parent_hash($child_id) 1
     }
 }
 
@@ -842,7 +848,15 @@ template::multirow foreach hours_multirow {
     # Check if the current tree-branch-status is "closed"
     set closed_p [expr $closed_status == [im_project_status_closed]]
 
-    if {"t" == $edit_hours_p && $log_on_parent_p && !$invoice_id && !$closed_p} {
+    # Check if this project is a "solitary" main-project
+    # There are some companies that want to avoid logging hours
+    # on such solitary projects.
+    set solitary_main_project_p 1
+    if {[info exists has_children_hash($project_id)]} { set solitary_main_project_p 0 }
+    if {[info exists has_parent_hash($project_id)]} { set solitary_main_project_p 0 }
+    if {$log_hours_on_solitary_projects_p} { set solitary_main_project_p 0 }
+
+    if {"t" == $edit_hours_p && $log_on_parent_p && !$invoice_id && !$solitary_main_project_p && !$closed_p} {
 
 	# Log hours on "Parent".
 	if {!$show_week_p} {
