@@ -37,6 +37,8 @@ ad_page_contract {
     { user_selection "mine" }
     { timescale "all" }
     { view_name "absence_list_home" }
+    { start_date "" }
+    { end_date "" }
 }
 
 # ---------------------------------------------------------------
@@ -71,6 +73,12 @@ if { ![exists_and_not_null absence_type_id] } {
     # Default type is "all" == -1 - select the id once and memoize it
     set absence_type_id -1;
 }
+
+
+if {"" == $start_date} { set start_date [parameter::get_from_package_key -package_key "intranet-cost" -parameter DefaultStartDate -default "2000-01-01"] }
+if {"" == $end_date} { set end_date [parameter::get_from_package_key -package_key "intranet-cost" -parameter DefaultEndDate -default "2100-01-01"] }
+
+
 
 set end_idx [expr $start_idx + $how_many - 1]
 set date_format "YYYY-MM-DD"
@@ -145,6 +153,14 @@ if { ![empty_string_p $absence_type_id] &&  $absence_type_id != -1 } {
      #ns_set put $bind_vars absence_type_id $absence_type_id
      lappend criteria "a.absence_type_id = :absence_type_id"
 }
+
+if {"" != $start_date} {
+    lappend criteria "a.start_date >= :start_date::timestamptz"
+}
+if {"" != $end_date} {
+    lappend criteria "a.start_date <= :end_date::timestamptz"
+}
+
 
 switch $timescale {
     "all" { }
@@ -232,11 +248,25 @@ set filter_html "
 </tr>
 <tr>
   <td valign=top>[_ intranet-timesheet2.Timescale] </td>
-  <td valign=top>
-[im_select timescale $timescale_types ""]
-    <input type=submit value='[_ intranet-timesheet2.Go]' name=submit>
-  </td>
+  <td valign=top>[im_select timescale $timescale_types ""]</td>
 </tr>
+<tr>
+	    <td class=form-label>[_ intranet-core.Start_Date]</td>
+	    <td class=form-widget>
+	      <input type=textfield size=10 maxsize=10 name=start_date value=$start_date>
+	    </td>
+</tr>
+<tr>
+	    <td class=form-label>[lang::message::lookup "" intranet-core.End_Date "End Date"]</td>
+	    <td class=form-widget>
+	      <input type=textfield size=10 maxsize=10 name=end_date value=$end_date>
+	    </td>
+</tr>
+<tr>
+  <td valign=top>&nbsp;</td>
+  <td valign=top><input type=submit value='[_ intranet-timesheet2.Go]' name=submit></td>
+</tr>
+
 </table>
 </form>"
 
