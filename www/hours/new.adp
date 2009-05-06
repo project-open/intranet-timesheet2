@@ -27,7 +27,8 @@
 
 	    <tr class=rowtitle>
 		<th>#intranet-timesheet2.Project_name#</th>
-	
+		<th></th>
+
 		<if @show_week_p@ eq 0>
 		<th>#intranet-timesheet2.Hours#	</th>
 		<th>#intranet-timesheet2.Work_done#</th>

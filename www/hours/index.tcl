@@ -250,3 +250,10 @@ set page_body [calendar_basic_month \
 	-prev_next_links_in_title 1 \
 	-fill_all_days 1 \
 	-empty_bgcolor "#cccccc"]
+
+
+# Should we show the left navbar?
+# If not, then we're going to skip the menu entirely
+# because we've got nothing else to show at the moment.
+set show_left_functional_menu_p [parameter::get_from_package_key -package_key "intranet-core" -parameter "ShowLeftFunctionalMenupP" -default 0]
+

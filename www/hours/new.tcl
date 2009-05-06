@@ -622,20 +622,23 @@ set hours_sql "
 		$material_sql
 	from
 		im_hours h,
-		($sql) p
+		im_projects p
 	where
 		h.project_id = p.project_id and
 		h.user_id = :user_id_from_search and
 		$h_day_in_dayweek
 "
 db_foreach hours_hash $hours_sql {
-    set hours_hours($project_id-$julian_day) $hours
-    set hours_note($project_id-$julian_day) $note
-    set hours_internal_note($project_id-$julian_day) $internal_note
+    set key "$project_id-$julian_day"
+    set hours_hours($key) $hours
+    set hours_note($key) $note
+    set hours_internal_note($key) $internal_note
     if {"" != $invoice_id} {
-        set hours_invoice($project_id-$julian_day) $invoice_id
+        set hours_invoice($key) $invoice_id
     }
 }
+
+# ad_return_complaint 1 [array get hours_invoice]
 
 # ---------------------------------------------------------
 # Get the list of open projects with direct membership
@@ -856,6 +859,21 @@ template::multirow foreach hours_multirow {
     if {[info exists has_parent_hash($project_id)]} { set solitary_main_project_p 0 }
     if {$log_hours_on_solitary_projects_p} { set solitary_main_project_p 0 }
 
+
+    # -----------------------------------------------
+    # Write out an explanation why projects aren't allowed to log hours on.
+    set help_text ""
+    if {$closed_p} { append help_text [lang::message::lookup "" intranet-timesheet2.Nolog_closed_p "The project (or one of its parents) has been closed."] }
+    if {![string eq "t" $edit_hours_p]} { append help_text [lang::message::lookup "" intranet-timesheet2.Nolog_edit_hours_p "The time period has been closed for editing."] }
+    if {!$log_on_parent_p} { append help_text [lang::message::lookup "" intranet-timesheet2.Nolog_log_on_parent_p "This project has sub-projects or tasks."] }
+    if {$invoice_id} { append help_text [lang::message::lookup "" intranet-timesheet2.Nolog_invoice_id "The hours for this project have already been invoiced."] }
+    if {$solitary_main_project_p} { append help_text [lang::message::lookup "" intranet-timesheet2.Nolog_solitary_main_project_p "This is a 'solitary' main project, so you shouldn't log hours on it."] }
+
+    set help_gif ""
+    if {"" != $help_text} { set help_gif [im_gif help $help_text] }
+    append results "<td>$help_gif</td>\n"
+
+
     if {"t" == $edit_hours_p && $log_on_parent_p && !$invoice_id && !$solitary_main_project_p && !$closed_p} {
 
 	# Log hours on "Parent".
@@ -865,9 +883,10 @@ template::multirow foreach hours_multirow {
 	    set hours ""
 	    set note ""
 	    set internal_note ""
-	    if {[info exists hours_hours($project_id-$julian_date)]} { set hours $hours_hours($project_id-$julian_date) }
-	    if {[info exists hours_note($project_id-$julian_date)]} { set note $hours_note($project_id-$julian_date) }
-	    if {[info exists hours_internal_note($project_id-$julian_date)]} { set internal_note $hours_internal_note($project_id-$julian_date) }
+	    set key "$project_id-$julian_date"
+	    if {[info exists hours_hours($key)]} { set hours $hours_hours($key) }
+	    if {[info exists hours_note($key)]} { set note $hours_note($key) }
+	    if {[info exists hours_internal_note($key)]} { set internal_note $hours_internal_note($key) }
 
 	    append results "<td><INPUT NAME=hours0.$project_id size=5 MAXLENGTH=5 value=\"$hours\">$p_hours</td>\n"
 	    append results "<td><INPUT NAME=notes0.$project_id size=$external_comment_size value=\"[ns_quotehtml [value_if_exists note]]\">$p_notes</td>\n"
@@ -904,10 +923,11 @@ template::multirow foreach hours_multirow {
 	    set hours ""
 	    set note ""
 	    set internal_note ""
-	    if {[info exists hours_hours($project_id-$julian_date)]} { set hours $hours_hours($project_id-$julian_date) }
-	    if {[info exists hours_note($project_id-$julian_date)]} { set note $hours_note($project_id-$julian_date) }
-	    if {[info exists hours_internal_note($project_id-$julian_date)]} { set internal_note $hours_note($project_id-$julian_date) }
-	    
+	    set key "$project_id-$julian_date"
+	    if {[info exists hours_hours($key)]} { set hours $hours_hours($key) }
+	    if {[info exists hours_note($key)]} { set note $hours_note($key) }
+	    if {[info exists hours_internal_note($key)]} { set internal_note $hours_note($key) }
+
 	    append results "
 		<td>
 			$hours
@@ -943,9 +963,11 @@ template::multirow foreach hours_multirow {
 		set hours ""
 		set note ""
 		set internal_note ""
-		if {[info exists hours_hours($project_id-$julian_day_offset)]} { set hours $hours_hours($project_id-$julian_day_offset) }
-		if {[info exists hours_note($project_id-$julian_day_offset)]} { set note $hours_note($project_id-$julian_day_offset) }
-		if {[info exists hours_internal_note($project_id-$julian_day_offset)]} { set internal_note $hours_internal_note($project_id-$julian_day_offset) }
+
+		set key "$project_id-$julian_day_offset"
+		if {[info exists hours_hours($key)]} { set hours $hours_hours($key) }
+		if {[info exists hours_note($key)]} { set note $hours_note($key) }
+		if {[info exists hours_internal_note($key)]} { set internal_note $hours_internal_note($key) }
 		append results "
 			<td>
 				$hours

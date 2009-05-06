@@ -402,5 +402,4 @@ set left_navbar_html "
                 </div>
                 $admin_html
             </div>
-            <hr/>
 "
