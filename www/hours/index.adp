@@ -2,7 +2,7 @@
 <property name="title">@page_title;noquote@</property>
 <property name="context">#intranet-timesheet2.context#</property>
 <property name="main_navbar_label">timesheet2_timesheet</property>
-<property name="show_left_navbar_p">@show_left_functional_menu_p@</property>
+<property name="left_navbar">@left_navbar_html;noquote@</property>
 
 <if "" ne @message@>
 <h1>@header@</h1>

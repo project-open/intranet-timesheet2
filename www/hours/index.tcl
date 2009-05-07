@@ -252,8 +252,30 @@ set page_body [calendar_basic_month \
 	-empty_bgcolor "#cccccc"]
 
 
-# Should we show the left navbar?
-# If not, then we're going to skip the menu entirely
-# because we've got nothing else to show at the moment.
-set show_left_functional_menu_p [parameter::get_from_package_key -package_key "intranet-core" -parameter "ShowLeftFunctionalMenupP" -default 0]
+# ---------------------------------------------------------------
+# Render the Calendar widget
+# ---------------------------------------------------------------
 
+set start_date [db_string start_date "select to_char(min(day), 'YYYY-MM-01') from im_hours"]
+set end_date [db_string start_date "select to_char(now()::date+31, 'YYYY-MM-01')"]
+set default_date [db_string default_date "select to_char(now()::date, 'YYYY-MM-01')"]
+
+set month_options_sql "
+	select
+		to_char(im_day_enumerator, 'Mon YYYY') as date_pretty,
+		to_char(im_day_enumerator, 'J') as julian_date
+	from
+		im_day_enumerator(:start_date::date, :end_date::date)
+	where
+		to_char(im_day_enumerator, 'DD') = '01'
+	order by
+	      julian_date DESC
+"
+set month_options [db_list_of_lists month_options $month_options_sql]
+
+
+set left_navbar_html "
+
+[im_select -ad_form_option_list_style_p 1 -translate_p 0 julian_date $month_options $default_date]
+
+"

@@ -108,7 +108,27 @@ proc_doc calendar_convert_julian_to_ansi {
 }
 
 ad_proc calendar_basic_month { 
-    { -calendar_details "" -date "" -days_of_week "Sunday Monday Tuesday Wednesday Thursday Friday Saturday" -large_calendar_p 1 -master_bgcolor "black" -header_bgcolor "black" -header_text_color "white" -header_text_size "+2" -day_number_template {<!--$julian_date--><span class='day_number'>$day_number</span>} -day_header_size 2 -day_header_bgcolor "#666666" -calendar_width "100%" -day_bgcolor "#DDDDDD" -today_bgcolor "#DDDDDD" -day_text_color "white" -empty_bgcolor "white"  -next_month_template ""   -prev_month_template "" -prev_next_links_in_title 0 -fill_all_days 0 } } "Returns a calendar for a specific month, with details supplied by Julian date. Defaults to this month.
+    { 
+	-calendar_details "" 
+	-date "" 
+	-days_of_week "Sunday Monday Tuesday Wednesday Thursday Friday Saturday" 
+	-large_calendar_p 1 
+	-master_bgcolor "black" 
+	-header_bgcolor "black"
+	-header_text_color "white"
+	-header_text_size "+2"
+	-day_number_template {<!--$julian_date--><span class='day_number'>$day_number</span>}
+	-day_header_size 2
+	-day_header_bgcolor "#666666"
+	-calendar_width "100%"
+	-day_bgcolor "#DDDDDD"
+	-today_bgcolor "#DDDDDD"
+	-day_text_color "white"
+	-empty_bgcolor "white" 
+	-next_month_template ""  
+	-prev_month_template ""
+	-prev_next_links_in_title 0
+	-fill_all_days 0 } } "Returns a calendar for a specific month, with details supplied by Julian date. Defaults to this month.
 
 To specify details for the individual days (if large_calendar_p is set) put data in an ns_set calendar_details.  The key is the Julian date of the day, and the value is a string (possibly with HTML formatting) that represents the details.
 " {
@@ -273,13 +293,47 @@ To specify details for the individual days (if large_calendar_p is set) put data
 
 }
 
-ad_proc calendar_small_month { {-calendar_details "" -date "" -days_of_week "S M T W T F S" -large_calendar_p 0 -master_bgcolor "black" -header_bgcolor "black" -header_text_color "white" -header_text_size "+1" -day_number_template {<!--$julian_date--><span class='day_number'>$day_number</span>} -day_header_size 1 -day_header_bgcolor "#666666" -calendar_width 0 -day_bgcolor "#DDDDDD" -day_text_color "white" -empty_bgcolor "white"  -next_month_template ""   -prev_month_template ""  } } "Returns a small calendar for a specific month. Defaults to this month." {
+ad_proc calendar_small_month { {
+    -calendar_details ""
+    -date ""
+    -days_of_week "S M T W T F S"
+    -large_calendar_p 0
+    -master_bgcolor "black"
+    -header_bgcolor "black"
+    -header_text_color "white"
+    -header_text_size "+1"
+    -day_number_template {<!--$julian_date--><span class='day_number'>$day_number</span>}
+    -day_header_size 1
+    -day_header_bgcolor "#666666"
+    -calendar_width 0
+    -day_bgcolor "#DDDDDD"
+    -day_text_color "white"
+    -empty_bgcolor "white" 
+    -next_month_template ""  
+    -prev_month_template ""  } } "Returns a small calendar for a specific month. Defaults to this month." {
 
     return [calendar_basic_month -calendar_details $calendar_details -date $date -days_of_week $days_of_week -large_calendar_p $large_calendar_p -master_bgcolor $master_bgcolor -header_bgcolor $header_bgcolor -header_text_color $header_text_color -header_text_size $header_text_size -day_number_template $day_number_template -day_header_size $day_header_size -day_header_bgcolor $day_header_bgcolor -calendar_width $calendar_width -day_bgcolor $day_bgcolor -day_text_color $day_text_color -empty_bgcolor $empty_bgcolor  -next_month_template $next_month_template   -prev_month_template $prev_month_template ]
 
 }
 
-ad_proc calendar_prev_current_next { {-calendar_details "" -date "" -days_of_week "S M T W T F S" -large_calendar_p 0 -master_bgcolor "black" -header_bgcolor "black" -header_text_color "white" -header_text_size "+1" -day_number_template {<!--$julian_date--><span class='day_number'>$day_number</span>} -day_header_size 1 -day_header_bgcolor "#666666" -calendar_width 0 -day_bgcolor "#DDDDDD" -day_text_color "white" -empty_bgcolor "white"  -next_month_template ""   -prev_month_template ""  } } "Returns a calendar for a specific month, with details supplied by Julian date. Defaults to this month." {
+ad_proc calendar_prev_current_next { {
+    -calendar_details ""
+    -date ""
+    -days_of_week "S M T W T F S"
+    -large_calendar_p 0
+    -master_bgcolor "black"
+    -header_bgcolor "black"
+    -header_text_color "white"
+    -header_text_size "+1"
+    -day_number_template {<!--$julian_date--><span class='day_number'>$day_number</span>}
+    -day_header_size 1
+    -day_header_bgcolor "#666666"
+    -calendar_width 0
+    -day_bgcolor "#DDDDDD"
+    -day_text_color "white"
+    -empty_bgcolor "white" 
+    -next_month_template ""  
+    -prev_month_template ""  } } "Returns a calendar for a specific month, with details supplied by Julian date. Defaults to this month." {
 
     set output ""
 
