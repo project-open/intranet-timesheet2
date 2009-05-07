@@ -48,7 +48,6 @@ set current_user_id [ad_maybe_redirect_for_registration]
 set add_hours_all_p [im_permission $current_user_id "add_hours_all"]
 if {"" == $user_id_from_search || !$add_hours_all_p} { set user_id_from_search $current_user_id }
 set user_name [im_name_from_user_id $user_id_from_search]
-
 if {"" == $return_url} { set return_url [im_url_with_query] }
 
 set write_p [im_is_user_site_wide_or_intranet_admin $current_user_id]
@@ -60,6 +59,24 @@ if {$current_user_id == $user_id_from_search} {
 set page_title [lang::message::lookup "" intranet-timesheet2.Timesheet_for_user_name "Timesheet for %user_name%"]
 set context_bar [im_context_bar "[_ intranet-timesheet2.Hours]"]
 
+
+# ---------------------------------
+# Date Logic: We are working with "YYYY-MM-DD" dates in this page.
+if {"" ==  $date } {
+    if {"" != $julian_date} {
+	set date [db_string julian_date_select "select to_char( to_date(:julian_date,'J'), 'YYYY-MM-DD') from dual"]
+    } else {
+	set date [db_string ansi_date_select "select to_char( sysdate, 'YYYY-MM-DD') from dual"]
+    }
+}
+
+set julian_date [db_string conv "select to_char(:date::date, 'J')"]
+ns_log Notice "/intranet-timesheet2/index: date=$date, julian_date=$julian_date"
+
+
+set project_id_for_default $project_id
+
+
 set show_left_functional_menu_p [parameter::get_from_package_key -package_key "intranet-core" -parameter "ShowLeftFunctionalMenupP" -default 0]
 
 # Get the project name restriction in case project_id is set
@@ -70,15 +87,11 @@ if {"" != $project_id && 0 != $project_id} {
     set project_restriction "and project_id = :project_id"
 }
 
-# Default the date to today if there is no date specified
-if {"" ==  $date } {
-    if {"" != $julian_date} {
-	set date [db_string julian_date_select "select to_char( to_date(:julian_date,'J'), 'YYYY-MM-DD') from dual"]
-    } else {
-	set date [db_string ansi_date_select "select to_char( sysdate, 'YYYY-MM-DD') from dual"]
-    }
-} 
-ns_log Notice "/intranet-timesheet2/index: date=$date"
+# Append user-defined menus
+set bind_vars [list user_id $current_user_id user_id_from_search $user_id_from_search julian_date $julian_date return_url $return_url show_week_p $show_week_p]
+set menu_links_html [im_menu_ul_list -no_uls 1 "timesheet_hours_new_admin" $bind_vars]
+
+
 
 # Enable the functionality to confirm timesheet hours?
 set confirm_timesheet_hours_p [util_memoize [list db_string ts_wf_exists {
@@ -258,24 +271,79 @@ set page_body [calendar_basic_month \
 
 set start_date [db_string start_date "select to_char(min(day), 'YYYY-MM-01') from im_hours"]
 set end_date [db_string start_date "select to_char(now()::date+31, 'YYYY-MM-01')"]
-set default_date [db_string default_date "select to_char(now()::date, 'YYYY-MM-01')"]
+set default_date [db_list date_default "select to_char(:date::date, 'YYYY-MM-01')"]
 
 set month_options_sql "
 	select
 		to_char(im_day_enumerator, 'Mon YYYY') as date_pretty,
-		to_char(im_day_enumerator, 'J') as julian_date
+		to_char(im_day_enumerator, 'YYYY-MM-DD') as date
 	from
 		im_day_enumerator(:start_date::date, :end_date::date)
 	where
 		to_char(im_day_enumerator, 'DD') = '01'
 	order by
-	      julian_date DESC
+		im_day_enumerator DESC
 "
 set month_options [db_list_of_lists month_options $month_options_sql]
 
 
 set left_navbar_html "
+      <div class='filter-block'>
+        <div class='filter-title'>
+	    Timesheet Filters
+        </div>
 
-[im_select -ad_form_option_list_style_p 1 -translate_p 0 julian_date $month_options $default_date]
+	<form action=index method=GET>
+	[export_form_vars project_id_list show_week_p] 
+	<table border=0 cellpadding=1 cellspacing=1>
+	<tr>
+	    <td>[lang::message::lookup "" intranet-core.Date "Date"]</td>
+	    <td>[im_select -ad_form_option_list_style_p 1 -translate_p 0 date $month_options $default_date]</td>
+	</tr>
+"
 
+if {$add_hours_all_p} {
+    append left_navbar_html "
+	<tr>
+	    <td>[lang::message::lookup "" intranet-core.Log_hours_for_user "Log Hours<br>for User"]</td>
+	    <td>[im_user_select -include_empty_p 1 -include_empty_name "" user_id_from_search $user_id_from_search]</td>
+	</tr>
+    "
+}
+
+append left_navbar_html "
+	<tr><td></td><td><input type=submit value='Go'></td></tr>
+	</table>
+	</form>
+      </div>
+"
+
+append left_navbar_html "
+      <div class='filter-block'>
+         <div class='filter-title'>
+            #intranet-timesheet2.Other_Options#
+         </div>
+	 <ul>
+"
+
+# Add Absences link
+set add_absences_p [im_permission $current_user_id add_absences]
+if {$add_absences_p} {
+    set absences_url [export_vars -base "/intranet-timesheet2/absences/new" {return_url user_id_from_search}]
+    set absences_link_text [lang::message::lookup "" intranet-timesheet2.Log_Absences "Log Absences"]
+    append left_navbar_html "
+	    <li><a href='$absences_url'>$absences_link_text</a></li>
+    "
+}
+
+if {![empty_string_p $return_url]} {
+    append left_navbar_html "
+	    <li><a href='$return_url'>#intranet-timesheet2.lt_Return_to_previous_pa#</a></li>
+    "
+}
+
+append left_navbar_html "
+	    $menu_links_html
+         </ul>
+      </div>
 "

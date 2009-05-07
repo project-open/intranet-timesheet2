@@ -18,7 +18,7 @@ if {![info exists panel_p]} {
 	message:optional
 	{ absence_type_id:integer 0 }
 	{ form_mode "edit" }
-	user_id_from_search:optional
+	{ user_id_from_search "" }
     }
 }
 
@@ -29,7 +29,6 @@ if {![info exists enable_master_p]} { set enable_master_p 1}
 # ------------------------------------------------------------------
 
 set user_id [ad_maybe_redirect_for_registration]
-
 set action_url "/intranet-timesheet2/absences/new"
 set cancel_url "/intranet-timesheet2/absences/index"
 set current_url [im_url_with_query]
@@ -63,6 +62,12 @@ if {![exists_and_not_null absence_owner_id]} { set absence_owner_id $user_id }
 
 
 set page_title [lang::message::lookup "" intranet-timesheet2.New_Absence_Type "%absence_type%"]
+
+if {[exists_and_not_null user_id_from_search]} {
+    set user_from_search_name [db_string name "select im_name_from_user_id(:user_id_from_search)" -default ""]
+    append page_title "for $user_from_search_name"
+}
+
 set context [list $page_title]
 
 set read [im_permission $user_id "read_absences_all"]
@@ -82,7 +87,7 @@ if {0 == $absence_type_id && ![info exists absence_id]} {
     set all_same_p [im_dynfield::subtype_have_same_attributes_p -object_type "im_user_absence"]
     set all_same_p 0
     if {!$all_same_p} {
-	ad_returnredirect [export_vars -base "/intranet/biz-object-type-select" { user_id_from_search {object_type "im_user_absence"} {return_url $current_url} {type_id_var "absence_type_id"}}]
+	ad_returnredirect [export_vars -base "/intranet/biz-object-type-select" { user_id_from_search {object_type "im_user_absence"} {return_url $current_url} {type_id_var "absence_type_id"} }]
     }
 }
 
