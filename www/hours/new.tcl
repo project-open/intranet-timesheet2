@@ -887,7 +887,7 @@ foreach i $weekly_logging_days {
     set header_day_of_week_l10n [lang::message::lookup "" intranet-timesheet2.Day_of_week_$header_day_of_week $header_day_of_week]
     set header_date [util_memoize [list db_string header "select to_char(to_date($julian_day_offset, 'J'), '$weekly_column_date_format')"]]
 
-    append week_header_html "<th>$header_day_of_week_l10n<br>$header_date<br>$julian_day_offset</th>\n"
+    append week_header_html "<th>$header_day_of_week_l10n<br>$header_date</th>\n"
 }
 
 # ---------------------------------------------------------
