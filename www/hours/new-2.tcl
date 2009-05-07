@@ -105,6 +105,7 @@ if {!$show_week_p} { set weekly_logging_days [list 0]}
 foreach i $weekly_logging_days {
 
     set day_julian [expr $julian_date+$i]
+    ns_log Notice "hours/new2: day=$i: ----------- day_julian=$day_julian -----------"
 
     array unset database_hours_hash
     array unset database_notes_hash
@@ -146,7 +147,7 @@ foreach i $weekly_logging_days {
     	set database_notes_hash($key) $note
     	set database_internal_notes_hash($key) [value_if_exists internal_note]
     	set database_materials_hash($key) $material_name
-	ns_log Notice "hours/new2: database_hours_hash($key) = '$hours'"
+#	ns_log Notice "hours/new2: day=$i, database_hours_hash($key) = '$hours'"
 
 	# Setup (project x day) => cost_id relationship
 	if {"" != $hour_cost_id} {
@@ -157,21 +158,22 @@ foreach i $weekly_logging_days {
     # ----------------------------------------------------------
     # Extract the information from "screen" into hash array with
     # same structure as the one from the database
-
+   
+    array unset screen_hours_hash
     set screen_hours_elements [array get hours$i]
     array set screen_hours_hash $screen_hours_elements
 
+    array unset screen_notes_hash
     set screen_notes_elements [array get notes$i]
     array set screen_notes_hash $screen_notes_elements
 
+    array unset screen_internal_notes_hash
     set screen_internal_notes_elements [array get internal_notes$i]
     array set screen_internal_notes_hash $screen_internal_notes_elements
 
+    array unset screen_materials_hash
     set screen_materials_elements [array get materials$i]
     array set screen_materials_hash $screen_materials_elements
-
-    ns_log Notice "hours/new2: hours:'[array get database_hours_hash]'"
-    ns_log Notice "hours/new2: screen:'[array get screen_hours_hash]'"
 
     # Get the list of the union of key in both array
     set all_project_ids [set_union [array names screen_hours_hash] [array names database_hours_hash]]
@@ -237,7 +239,9 @@ foreach i $weekly_logging_days {
 	if {"skip" != $action} { set action_hash($pid) $action }
     }
 
-    ns_log Notice "hours/new-2: array='[array get action_hash]'"
+    ns_log Notice "hours/new2: day=$i, database_hours_hash=[array get database_hours_hash]"
+    ns_log Notice "hours/new2: day=$i, screen_hours_hash=[array get screen_hours_hash]"
+    ns_log Notice "hours/new2: day=$i, action_hash=[array get action_hash]"
 
     # Execute the actions
     foreach project_id [array names action_hash] {

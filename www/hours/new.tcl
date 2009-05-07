@@ -197,6 +197,8 @@ set log_hours_on_parent_with_children_p [parameter::get_from_package_key -packag
 # "Solitary" projects are main projects without children.
 # Some companies want to avoid logging on such projects.
 set log_hours_on_solitary_projects_p [parameter::get_from_package_key -package_key "intranet-timesheet2" -parameter LogHoursOnSolitaryProjectsP -default 1]
+set log_hours_on_solitary_projects_p 0
+
 
 # Determine how to show the tasks of projects. There are several options:
 #	- main_project: The main project determines the subproject/task visibility space
@@ -645,6 +647,7 @@ if {!$log_hours_on_parent_with_children_p} {
     }
 }
 
+# ad_return_complaint 1 [array get has_parent_hash]
 
 # ---------------------------------------------------------
 # Execute query and format results
@@ -793,6 +796,10 @@ template::multirow foreach hours_multirow {
     if {[info exists has_parent_hash($project_id)]} { set solitary_main_project_p 0 }
     if {$log_hours_on_solitary_projects_p} { set solitary_main_project_p 0 }
 
+    # Closed projects are not listed as children or parents,
+    # so we don't need the "solitary" characteristic and avoid a double message below.
+    if {$closed_p} { set solitary_main_project_p 0 }
+
 
     # -----------------------------------------------
     # Write out an explanation why projects aren't allowed to log hours on.
@@ -827,6 +834,7 @@ template::multirow foreach hours_multirow {
 
 	    # Write editable entries.
 	    append results "<td><INPUT NAME=hours${i}.$project_id size=5 MAXLENGTH=5 value=\"$hours\"></td>\n"
+
 	    if {!$show_week_p} {
 		append results "<td><INPUT NAME=notes0.$project_id size=$external_comment_size value=\"[ns_quotehtml [value_if_exists note]]\"></td>\n"
 		if {$internal_note_exists_p} { append results "<td><INPUT NAME=internal_notes0.$project_id size=$internal_comment_size value=\"[ns_quotehtml [value_if_exists internal_note]]\"></td>\n" }
@@ -836,10 +844,11 @@ template::multirow foreach hours_multirow {
 	} else {
 
 	    # Write Disabled because we can't log hours on this one
-	    append results "<td><INPUT NAME=hours${i}.$project_id size=5 MAXLENGTH=5 value=\"$hours\" disabled></td>"
+	    append results "<td>$hours <INPUT type=hidden NAME=hours${i}.$project_id value=\"$hours\"></td>\n"
+
 	    if {!$show_week_p} {
-		append results "<td><INPUT NAME=notes0.$project_id size=$external_comment_size value=\"[ns_quotehtml [value_if_exists note]]\" disabled></td>"
-		if {$internal_note_exists_p} { append results "<td><INPUT TYPE=HIDDEN NAME=internal_notes0.$project_id value=\"[ns_quotehtml [value_if_exists internal_note]]\"></td>" }
+		append results "<td>[ns_quotehtml [value_if_exists note]] <INPUT type=hidden NAME=notes0.$project_id value=\"[ns_quotehtml [value_if_exists note]]\"></td>\n"
+		if {$internal_note_exists_p} { append results "<td>[ns_quotehtml [value_if_exists internal_note]] <INPUT TYPE=HIDDEN NAME=internal_notes0.$project_id value=\"[ns_quotehtml [value_if_exists internal_note]]\"></td>\n" }
 		if {$materials_p} { append results "<td>$material <input type=hidden name=materials0.$project_id value=$material_id></td>\n" }
 	    }
 	    
@@ -878,7 +887,7 @@ foreach i $weekly_logging_days {
     set header_day_of_week_l10n [lang::message::lookup "" intranet-timesheet2.Day_of_week_$header_day_of_week $header_day_of_week]
     set header_date [util_memoize [list db_string header "select to_char(to_date($julian_day_offset, 'J'), '$weekly_column_date_format')"]]
 
-    append week_header_html "<th>$header_day_of_week_l10n<br>$header_date</th>\n"
+    append week_header_html "<th>$header_day_of_week_l10n<br>$header_date<br>$julian_day_offset</th>\n"
 }
 
 # ---------------------------------------------------------
