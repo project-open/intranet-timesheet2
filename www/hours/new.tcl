@@ -228,6 +228,11 @@ set edit_hours_p "t"
 set last_month_closing_day [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter TimesheetLastMonthClosingDay -default 0]
 set weekly_logging_days [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter TimesheetWeeklyLoggingDays -default "0 1 2 3 4 5 6"]
 
+# Only show day '0' if we are doing daily logging
+if {!$show_week_p} { set weekly_logging_days [list 0] }
+
+
+
 if {0 != $last_month_closing_day && "" != $last_month_closing_day && !$add_hours_all_p} {
 
     # Check that $julian_date is before the Nth of the next month:
@@ -241,63 +246,6 @@ if {0 != $last_month_closing_day && "" != $last_month_closing_day && !$add_hours
 
 set edit_hours_closed_message [lang::message::lookup "" intranet-timesheet2.Logging_hours_has_been_closed "Logging hours for this date has already been closed. <br>Please contact your supervisor or the HR department."]
 
-
-# ---------------------------------------------------------
-# Check for registered hours
-# ---------------------------------------------------------
-
-# These are the hours and notes captured from the intranet-timesheet2-task-popup
-# modules, if it's there. The module allows the user to capture notes during the
-# day on what task she is working.
-
-array set popup_hours [list]
-array set popup_notes [list]
-
-set timesheet_popup_installed_p [im_table_exists im_timesheet_popups]
-if {$timesheet_popup_installed_p} {
-
-    set timesheet_popup_sql "
-	select
-	        p.log_time,
-	        round(to_char(min(q.log_time) - p.log_time, 'HH24')::integer
-	          + to_char(min(q.log_time) - p.log_time, 'MI')::integer / 60.0
-	          + to_char(min(q.log_time) - p.log_time, 'SS')::integer / 3600.0
-		  , 3)  as log_hours,
-	        p.task_id,
-	        p.note
-	from
-	        im_timesheet_popups p,
-	        im_timesheet_popups q
-	where
-		1=1
-		and p.log_time::date = now()::date
-	        and q.log_time::date = now()::date
-	        and q.log_time > p.log_time
-		and p.user_id = :user_id_from_search
-		and q.user_id = :user_id_from_search
-	group by
-	        p.log_time,
-	        p.task_id,
-	        p.note
-	order by
-	        p.log_time
-    "
-
-    db_foreach timesheet_popup $timesheet_popup_sql {
-	set p_hours ""
-	if {[info exists popup_hours($task_id)]} { set p_hours $popup_hours($task_id) } 
-	set p_notes ""
-	if {[info exists popup_notes($task_id)]} { set p_notes $popup_notes($task_id) } 
-
-	append p_hours "[expr $log_hours+0]<br>"
-	if {"" != [string trim $note] && ![string equal "Timesheet" [string tolower $note]]} {
-	    append p_notes "$note<br>"
-	}
-
-	set popup_hours($task_id) $p_hours
-	set popup_notes($task_id) $p_notes
-    }
-}
 
 
 # ---------------------------------------------------------
@@ -802,16 +750,6 @@ template::multirow foreach hours_multirow {
     }
 
     # ---------------------------------------------
-    # These are the hours and notes captured from the intranet-timesheet2-task-popup 
-    # modules, if it's there. The module allows the user to capture notes during the
-    # day on what task she is working.
-    set p_hours ""
-    set p_notes ""
-    if {[info exists popup_hours($project_id)]} { set p_hours $popup_hours($project_id) }
-    if {[info exists popup_notes($project_id)]} { set p_notes $popup_notes($project_id) }
-
-
-    # ---------------------------------------------
     # Insert intermediate header for every top-project
     if {$parent_project_nr != $old_parent_project_nr} { 
 	set project_name "<b>$project_name</b>"
@@ -844,10 +782,6 @@ template::multirow foreach hours_multirow {
     # Write out the name of the project nicely indented
     append results "<td><nobr>$indent <A href=\"$project_url\">$ptitle</A></nobr></td>\n"
 
-    set invoice_id 0
-    set invoice_key "$project_id-$julian_date"
-    if {[info exists hours_invoice($invoice_key)]} { set invoice_id $hours_invoice($invoice_key) }
-
     # Check if the current tree-branch-status is "closed"
     set closed_p [expr $closed_status == [im_project_status_closed]]
 
@@ -866,7 +800,6 @@ template::multirow foreach hours_multirow {
     if {$closed_p} { append help_text [lang::message::lookup "" intranet-timesheet2.Nolog_closed_p "The project (or one of its parents) has been closed."] }
     if {![string eq "t" $edit_hours_p]} { append help_text [lang::message::lookup "" intranet-timesheet2.Nolog_edit_hours_p "The time period has been closed for editing."] }
     if {!$log_on_parent_p} { append help_text [lang::message::lookup "" intranet-timesheet2.Nolog_log_on_parent_p "This project has sub-projects or tasks."] }
-    if {$invoice_id} { append help_text [lang::message::lookup "" intranet-timesheet2.Nolog_invoice_id "The hours for this project have already been invoiced."] }
     if {$solitary_main_project_p} { append help_text [lang::message::lookup "" intranet-timesheet2.Nolog_solitary_main_project_p "This is a 'solitary' main project, so you shouldn't log hours on it."] }
 
     set help_gif ""
@@ -874,107 +807,42 @@ template::multirow foreach hours_multirow {
     append results "<td>$help_gif</td>\n"
 
 
-    if {"t" == $edit_hours_p && $log_on_parent_p && !$invoice_id && !$solitary_main_project_p && !$closed_p} {
+    # Weekly View - 7 fields with hours only
+    foreach i $weekly_logging_days {
+	set julian_day_offset [expr $julian_date + $i]
+	set hours ""
+	set note ""
+	set internal_note ""
+	set key "$project_id-$julian_day_offset"
+	if {[info exists hours_hours($key)]} { set hours $hours_hours($key) }
+	if {[info exists hours_note($key)]} { set note $hours_note($key) }
+	if {[info exists hours_internal_note($key)]} { set internal_note $hours_internal_note($key) }
 
-	# Log hours on "Parent".
-	if {!$show_week_p} {
+	# Determine whether the hours have already been included in a timesheet invoice
+	set invoice_id 0
+	set invoice_key "$project_id-$julian_day_offset"
+	if {[info exists hours_invoice($invoice_key)]} { set invoice_id $hours_invoice($invoice_key) }
 
-	    # Daily View - 1 field for hours + 1 field for comment
-	    set hours ""
-	    set note ""
-	    set internal_note ""
-	    set key "$project_id-$julian_date"
-	    if {[info exists hours_hours($key)]} { set hours $hours_hours($key) }
-	    if {[info exists hours_note($key)]} { set note $hours_note($key) }
-	    if {[info exists hours_internal_note($key)]} { set internal_note $hours_internal_note($key) }
+	if {"t" == $edit_hours_p && $log_on_parent_p && !$invoice_id && !$solitary_main_project_p && !$closed_p} {
 
-	    append results "<td><INPUT NAME=hours0.$project_id size=5 MAXLENGTH=5 value=\"$hours\">$p_hours</td>\n"
-	    append results "<td><INPUT NAME=notes0.$project_id size=$external_comment_size value=\"[ns_quotehtml [value_if_exists note]]\">$p_notes</td>\n"
-	    if {$internal_note_exists_p} {
-		append results "<td><INPUT NAME=internal_notes0.$project_id size=$internal_comment_size value=\"[ns_quotehtml [value_if_exists internal_note]]\"></td>\n"
-	    }
-	    if {$materials_p} {
-		append results "<td>[im_select -ad_form_option_list_style_p 1 materials0.$project_id $material_options $material_id]</td>\n"
+	    # Write editable entries.
+	    append results "<td><INPUT NAME=hours${i}.$project_id size=5 MAXLENGTH=5 value=\"$hours\"></td>\n"
+	    if {!$show_week_p} {
+		append results "<td><INPUT NAME=notes0.$project_id size=$external_comment_size value=\"[ns_quotehtml [value_if_exists note]]\"></td>\n"
+		if {$internal_note_exists_p} { append results "<td><INPUT NAME=internal_notes0.$project_id size=$internal_comment_size value=\"[ns_quotehtml [value_if_exists internal_note]]\"></td>\n" }
+		if {$materials_p} { append results "<td>[im_select -ad_form_option_list_style_p 1 materials0.$project_id $material_options $material_id]</td>\n" }
 	    }
 
 	} else {
 
-	    # Weekly View - 7 fields with hours only
-	    foreach i $weekly_logging_days {
-		set julian_day_offset [expr $julian_week_start + $i]
-		set hours ""
-		set note ""
-		set internal_note ""
-		if {[info exists hours_hours($project_id-$julian_day_offset)]} { set hours $hours_hours($project_id-$julian_day_offset) }
-		if {[info exists hours_note($project_id-$julian_day_offset)]} { set note $hours_note($project_id-$julian_day_offset) }
-		if {[info exists hours_internal_note($project_id-$julian_day_offset)]} { set internal_note $hours_internal_note($project_id-$julian_day_offset) }
-		append results "<td><INPUT NAME=hours${i}.$project_id size=5 MAXLENGTH=5 value=\"$hours\"></td>\n"
+	    # Write Disabled because we can't log hours on this one
+	    append results "<td><INPUT NAME=hours${i}.$project_id size=5 MAXLENGTH=5 value=\"$hours\" disabled></td>"
+	    if {!$show_week_p} {
+		append results "<td><INPUT NAME=notes0.$project_id size=$external_comment_size value=\"[ns_quotehtml [value_if_exists note]]\" disabled></td>"
+		if {$internal_note_exists_p} { append results "<td><INPUT TYPE=HIDDEN NAME=internal_notes0.$project_id value=\"[ns_quotehtml [value_if_exists internal_note]]\"></td>" }
+		if {$materials_p} { append results "<td>$material <input type=hidden name=materials0.$project_id value=$material_id></td>\n" }
 	    }
-
-	}
-
-    } else {
-
-	# Just write plain text and no <input>, because the user shouldn't enter hours here.
-
-	if {!$show_week_p} {
-
-	    # Daily view with plain text, without <input>
-	    set hours ""
-	    set note ""
-	    set internal_note ""
-	    set key "$project_id-$julian_date"
-	    if {[info exists hours_hours($key)]} { set hours $hours_hours($key) }
-	    if {[info exists hours_note($key)]} { set note $hours_note($key) }
-	    if {[info exists hours_internal_note($key)]} { set internal_note $hours_note($key) }
-
-	    append results "
-		<td>
-			$hours
-			<INPUT TYPE=HIDDEN NAME=hours0.$project_id value=\"$hours\">
-		</td>
-	    "
-	    append results "
-		<td>
-			$note
-			<INPUT TYPE=HIDDEN NAME=notes0.$project_id value=\"[ns_quotehtml [value_if_exists note]]\">
-		</td>
-	    "
-	    if {$internal_note_exists_p} {
-		append results "
-		<td>
-			<INPUT TYPE=HIDDEN NAME=internal_notes0.$project_id value=\"[ns_quotehtml [value_if_exists internal_note]]\">
-		</td>
-		"
-	    }
-	    append results "
-	    "
-	    if {$materials_p} {
-		append results "<td>$material <input type=hidden name=materials0.$project_id value=$material_id></td>\n"
-	    }
-
-
 	    
-	} else {
-	    
-	    # Weekly view with plain text only
-	    foreach i $weekly_logging_days {
-		set julian_day_offset [expr $julian_week_start + $i]
-		set hours ""
-		set note ""
-		set internal_note ""
-
-		set key "$project_id-$julian_day_offset"
-		if {[info exists hours_hours($key)]} { set hours $hours_hours($key) }
-		if {[info exists hours_note($key)]} { set note $hours_note($key) }
-		if {[info exists hours_internal_note($key)]} { set internal_note $hours_internal_note($key) }
-		append results "
-			<td>
-				$hours
-				<INPUT TYPE=HIDDEN NAME=hours${i}.$project_id value=\"$hours\">
-			</td>
-		"
-	    }
 	}
     }
     append results "</tr>\n"
