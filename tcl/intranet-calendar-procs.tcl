@@ -128,11 +128,15 @@ ad_proc calendar_basic_month {
 	-next_month_template ""  
 	-prev_month_template ""
 	-prev_next_links_in_title 0
-	-fill_all_days 0 } } "Returns a calendar for a specific month, with details supplied by Julian date. Defaults to this month.
-
-To specify details for the individual days (if large_calendar_p is set) put data in an ns_set calendar_details.  The key is the Julian date of the day, and the value is a string (possibly with HTML formatting) that represents the details.
+	-fill_all_days 0 } 
+} "
+Returns a calendar for a specific month, with details supplied 
+by Julian date. Defaults to this month.
+To specify details for the individual days (if large_calendar_p is set) 
+put data in an ns_set calendar_details.  The key is the Julian date of 
+the day, and the value is a string (possibly with HTML formatting) that 
+represents the details.
 " {
-
     calendar_get_info_from_db $date
     set todays_date [lindex [split [ns_localsqltimestamp] " "] 0]
 
@@ -162,10 +166,10 @@ To specify details for the individual days (if large_calendar_p is set) put data
     } else {
 	set title "
 <td colspan=7>
-  <table id='month_header'class='month_header'>
+  <table id='month_header' class='month_header' width='100%'>
   <tr>
     <td align=left>$prev_month_url</td>
-    <td align=center>$month_heading</td>
+    <td align=center><a href=\"\">$month_heading</a></td>
     <td align=right>$next_month_url</td>
   </tr>
   </table>
