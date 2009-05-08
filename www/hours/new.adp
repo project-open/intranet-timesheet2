@@ -9,7 +9,7 @@
 <form method=POST action=new-2>
 @export_form_vars;noquote@
 
-<table border=0 cellpadding=1 cellspacing=1>
+<table>
 
 	  <if @edit_hours_p@ eq "f">
 	  <tr>
