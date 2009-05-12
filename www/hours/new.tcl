@@ -906,7 +906,7 @@ set left_navbar_html "
 	<table border=0 cellpadding=1 cellspacing=1>
 	<tr>
 	    <td>[lang::message::lookup "" intranet-core.Project_br_Name "Project<br>Name"]</td>
-	    <td>[im_project_select -include_empty_p 1 -include_empty_name "" -exclude_subprojects_p 1 project_id $project_id_for_default "open"]</td>
+	    <td>[im_project_select -include_empty_p 1 -include_empty_name "" -project_status_id [im_project_status_closed] -exclude_subprojects_p 1 project_id $project_id_for_default "open"]</td>
 	</tr>
 "
 if {$add_hours_all_p} {
