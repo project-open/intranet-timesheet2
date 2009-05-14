@@ -36,6 +36,7 @@ ad_page_contract {
 # Default & Security
 # ---------------------------------------------------------
 
+# Should we show debugging information for each project?
 set debug 0
 
 set user_id [ad_maybe_redirect_for_registration]
@@ -220,6 +221,38 @@ if {!$log_hours_on_potential_project_p} {
 set closed_stati [db_list closed_stati $closed_stati_select]
 set closed_stati_list [join $closed_stati ","]
 
+
+# ---------------------------------------------------------
+# Select the list of days for the weekly view
+# ---------------------------------------------------------
+
+set weekly_logging_days [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter TimesheetWeeklyLoggingDays -default "0 1 2 3 4 5 6"]
+
+# Only show day '0' if we log for a single day
+if {!$show_week_p} { set weekly_logging_days [list 0] }
+
+
+# Bug from Genedata: Hours logged on Sa or Su could get deleted by the weekly
+# view if the parameter is set to "1 2 3 4 5". So we need to make sure all
+# days with logged hours are included in the list
+if {$show_week_p} {
+
+    # Take the list of days in this week where the user has already logged hours...
+    set day_sql "
+	select  distinct to_char(h.day,'J')::integer - :julian_week_start::integer
+	from    im_hours h
+	where   h.user_id = :user_id_from_search and
+		h.day between to_date(:julian_week_start,'J') and to_date(:julian_week_end,'J')
+    "
+    # ... and append the days specified in the parameter
+    foreach d $weekly_logging_days {
+	append day_sql "\tUNION select $d\n"
+    }
+
+    # Retreive the list and make sure it's sorted
+    set weekly_logging_days [lsort [db_list extended_weeky_days $day_sql]]
+}
+
 # ---------------------------------------------------------
 # Logic to check if the user is allowed to log hours
 # ---------------------------------------------------------
@@ -228,12 +261,6 @@ set edit_hours_p "t"
 
 # When should we consider the last month to be closed?
 set last_month_closing_day [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter TimesheetLastMonthClosingDay -default 0]
-set weekly_logging_days [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter TimesheetWeeklyLoggingDays -default "0 1 2 3 4 5 6"]
-
-# Only show day '0' if we are doing daily logging
-if {!$show_week_p} { set weekly_logging_days [list 0] }
-
-
 
 if {0 != $last_month_closing_day && "" != $last_month_closing_day && !$add_hours_all_p} {
 
@@ -326,13 +353,13 @@ if {0 != $project_id} {
 					and $h_day_in_dayweek
 		)
 		and p.project_status_id not in ($closed_stati_list)
+		and p.project_type_id not in ([im_project_type_task], [im_project_type_ticket])
     "
 }
 
 
 # We need to show the hours of already logged projects.
 # So we need to add the parents of these sub-projects to parent_project_sql.
-
 append parent_project_sql "
     UNION
 	-- Always show the main-projects of projects with logged hours
@@ -376,7 +403,6 @@ switch $task_visibility_scope {
 						OR main.project_id in ([join $main_project_id_list ","])
 					)
 					and main.project_status_id not in ($closed_stati_list)
-					and sub.project_status_id not in ($closed_stati_list)
 					and sub.tree_sortkey between
 						main.tree_sortkey and
 						tree_right(main.tree_sortkey)
@@ -403,8 +429,8 @@ switch $task_visibility_scope {
 			acs_rels r
 		where	
 			task.parent_id = ctrl.project_id
-			and ctrl.project_type_id != 100
-			and task.project_type_id = 100
+			and ctrl.project_type_id != [im_project_type_task]
+			and task.project_type_id = [im_project_type_task]
 			and ctrl.project_status_id not in ($closed_stati_list)
 			and task.project_status_id not in ($closed_stati_list)
 			and r.object_id_one = ctrl.project_id
@@ -584,16 +610,18 @@ db_foreach hours_hash $hours_sql {
     set hours_note($key) $note
     set hours_internal_note($key) $internal_note
     if {"" != $invoice_id} {
-        set hours_invoice($key) $invoice_id
+        set hours_invoice_hash($key) $invoice_id
     }
 }
 
-# ad_return_complaint 1 [array get hours_invoice]
+# ad_return_complaint 1 [array get hours_invoice_hash]
 
 # ---------------------------------------------------------
 # Get the list of open projects with direct membership
 # Task are all considered open
 # ---------------------------------------------------------
+
+array set member_projects_hash {}
 
 set open_projects_sql "
 	-- all open projects with direct membership
@@ -602,10 +630,9 @@ set open_projects_sql "
 		acs_rels r
 	where	r.object_id_two = :user_id_from_search
 		and r.object_id_one = p.project_id
-		and p.project_status_id not in ($closed_stati_list)
     UNION
 	-- all open projects and super-project where the user has logged hours.
-	select	main_p.project_id
+	select	main_p.project_id as open_project_id
 	from	im_hours h,
 		im_projects p,
 		im_projects main_p
@@ -615,39 +642,36 @@ set open_projects_sql "
 		and p.tree_sortkey between
 			main_p.tree_sortkey and
 			tree_right(main_p.tree_sortkey)
-		and main_p.project_status_id not in ($closed_stati_list)
 "
-array set open_projects_hash {}
+array set member_projects_hash {}
 db_foreach open_projects $open_projects_sql {
-	set open_projects_hash($open_project_id) 1
+    set member_projects_hash($open_project_id) 1
 }
-
-#db_foreach sql $open_projects_sql { append result "$open_project_id\n"}
-#ad_return_complaint 1 "<pre>$result</pre>"
 
 
 # ---------------------------------------------------------
 # Has-Children? This is used to disable super-projects with children
 # ---------------------------------------------------------
 
-if {!$log_hours_on_parent_with_children_p} {
-    set has_children_sql "
-        select  parent.project_id as parent_id,
-		child.project_id as child_id
-        from    im_projects parent,
-		im_projects child
-        where	child.parent_id = parent.project_id
-		and parent.project_status_id not in ($closed_stati_list)
-		and child.project_status_id not in ($closed_stati_list)
-    "
-    array set has_children_hash {}
-    db_foreach has_children $has_children_sql {
-        set has_children_hash($parent_id) 1
-        set has_parent_hash($child_id) 1
-    }
-}
+set has_children_sql "
+        select  parent_p.project_id as parent_id,
+		child_p.project_id as child_id
+        from
+		im_projects main_p,
+		im_projects parent_p,
+		im_projects child_p
+        where
+		main_p.project_id in ($parent_project_sql) and
+		tree_ancestor_key(parent_p.tree_sortkey, 1) = main_p.tree_sortkey and
+		child_p.parent_id = parent_p.project_id
+"
 
-# ad_return_complaint 1 [array get has_parent_hash]
+array set has_children_hash {}
+array set has_parent_hash {}
+db_foreach has_children $has_children_sql {
+    set has_children_hash($parent_id) 1
+    set has_parent_hash($child_id) 1
+}
 
 # ---------------------------------------------------------
 # Execute query and format results
@@ -681,66 +705,100 @@ template::multirow foreach hours_multirow {
 
     # --------------------------------------------- 
     # Deal with the open and closed subprojects
-    # A closed project will prevent all sub-projects from
-    # being displayed. So it "leaves a trace" by setting
-    # the "closed_level" to its's current level.
-    # The "closed_status" will be reset to "open", as soon
-    # as the next project reaches the same "closed_level".
+    # A closed project will prevent all sub-projects from being displayed. 
+    # So it "leaves a trace" by setting the "closed_level" to its's current level.
+    # The "closed_status" will be reset to "open", as soon as the next project 
+    # reaches the same "closed_level".
 
-    # Check for closed_p - if the project is in one of the closed states
+    # Check for log_p - if the project is in one of the closed states
     switch $task_visibility_scope {
-	"main_project" {
-	    # Membership is not necessary - just check status
-	    set project_closed_p 0
-	    if {[lsearch -exact $closed_stati $project_status_id] > -1} {
-		set project_closed_p 1
-	    }
-	}
-	"specified" {
-	    # Membership is not necessary - just check status
-	    set project_closed_p 0
-	    if {[lsearch -exact $closed_stati $project_status_id] > -1} {
-		set project_closed_p 1
-	    }
+	"main_project" - "specified" {
+	    # Membership is this specific project not necessary - just check status
+	    set log_p 1
+	    if {[lsearch -exact $closed_stati $project_status_id] > -1} { set log_p 0 }
 	}
 	"sub_project" {
 	    # Control is with subprojects, tasks are always considered open.
-	    set project_closed_p [expr 1-[info exists open_projects_hash($project_id)]]
-	    if {$project_type_id == [im_project_type_task]} { set project_closed_p 0 }
+	    set log_p [info exists member_projects_hash($project_id)]
+	    if {$project_type_id == [im_project_type_task]} { set log_p 1 }
 	}
 	"task" {
 	    # Control is with each task individually
-	    set project_closed_p [expr 1-[info exists open_projects_hash($project_id)]]
+	    set log_p [info exists member_projects_hash($project_id)]
 	}
     }
 
+
+    # --------------------------------------------- 
+    # Pull out information about the project. Variables:
+    #
+    #	closed_status		Controls the tree open/close logic (see below)
+    #	closed_level		Controls the tree open/close logic (see below)
+    #
+    #	log_on_parent_p		Can we log hours on a parent project? We might just log on the children...
+    #	user_is_project_member_p The user is a direct member of the project.	
+    #	project_is_task_p	Project is a task. Tasks are considered "open".
+    #	solitary_main_project_p	Marks single main projects without children. Some costomers don't allow logging on them.
+    #	project_has_children_p	Does the project have children?
+    #	project_has_parents_p	Does the project have a parent?
+    #	
+    #	
+    #	log_p			Variable that controls closed_status
+    #	closed_p		Final conclusion: Can we log hour or not?
+
+    # Can we log hours on a parent?
+    set log_on_parent_p 1
+    if {!$log_hours_on_parent_with_children_p && [info exists has_children_hash($project_id)]} { set log_on_parent_p 0 }
+
+    # Check if the user is a member of the project
+    set user_is_project_member_p [info exists member_projects_hash($project_id)]
+
+    # Are we dealing with a task?
+    set project_is_task_p [expr $project_type_id == [im_project_type_task]]
+
+    # Check if this project is a "solitary" main-project
+    # There are some companies that want to avoid logging hours
+    # on such solitary projects.
+    set solitary_main_project_p 1
+    if {[info exists has_children_hash($project_id)]} { set solitary_main_project_p 0 }
+    if {[info exists has_parent_hash($project_id)]} { set solitary_main_project_p 0 }
+    if {$log_hours_on_solitary_projects_p} { set solitary_main_project_p 0 }
+    if {$closed_status == [im_project_status_closed]} { set solitary_main_project_p 0 }
+
+    # "family" relationships
+    set project_has_children_p [info exists has_children_hash($project_id)]
+    set project_has_parents_p [info exists has_parent_hash($project_id)]
+
+
+    # ---------------------------------------------
+    # Tree open/close logic
+
     # Change back from a closed branch to an open branch
+    set pnam [string range $project_name 0 10]
     if {$subproject_level <= $closed_level} {
-	ns_log Notice "new: action: reset to open"
+	ns_log Notice "new: $pnam: action: reset to open"
 	set closed_status [im_project_status_open]
 	set closed_level 0
     }
 
-    ns_log Notice "new: p=$project_id, depth=$subproject_level, closed_level=$closed_level, status=$project_status"
+    ns_log Notice "new: $pnam: p=$project_id, depth=$subproject_level, closed_level=$closed_level, status=$project_status"
 
 
     # We've just discovered a status change from open to closed:
     # Remember at what level this has happened to undo the change
     # once we're at the same level again:
-    if {$project_closed_p && $closed_status == [im_project_status_open]} {
-	ns_log Notice "new: action: set to closed"
+    if {!$log_p && $closed_status == [im_project_status_open]} {
+	ns_log Notice "new: $pnam: action: set to closed: log_p=$log_p, vis=$task_visibility_scope"
 	set closed_status [im_project_status_closed]
 	set closed_level $subproject_level
     }
 
-#    We have moved the open/closed check to the display
-#    routine below in order to show closed projects with
-#    hours. 
-#    if {$closed_status == [im_project_status_closed] } {
-#	# We're below a closed project - skip this.
-#	ns_log Notice "new: action: continue"
-#	continue
-#    }
+
+    # ---------------------------------------------
+    # Final decision: Should we log or not?
+    # Check if the current tree-branch-status is "closed"
+    set closed_p [expr $closed_status == [im_project_status_closed]]
+
 
     # ---------------------------------------------
     # Indent the project line
@@ -762,59 +820,81 @@ template::multirow foreach hours_multirow {
 	if {"" != $old_parent_project_nr} {
 	    append results "<tr class=rowplain><td colspan=99>&nbsp;</td></tr>\n"
 	}
-	
-	if {$debug} { append results "<tr class=rowplain><td>$parent_tree_sortkey</td><td>$parent_project_nr</td><td colspan=99>$parent_project_name</td></tr>\n" }
 	set old_parent_project_nr $parent_project_nr
     }
 
     # ---------------------------------------------
-    # Write out the HTML for logging hours
+    # Start the HTML column
     set project_url [export_vars -base "/intranet/projects/view?" {project_id return_url}]
-    append results "
-	<tr $bgcolor([expr $ctr % 2])>"
-    if {$debug} { append results "
-	  <td>$child_tree_sortkey</td>
-	  <td>$parent_project_nr</td>\n"
-    }
+    append results "<tr $bgcolor([expr $ctr % 2])>\n"
+
+    # ---------------------------------------------
+    # Write out the project title
     
     if {$show_project_nr_p} { set ptitle "$project_nr - $project_name" } else { set ptitle $project_name }
-
-    set log_on_parent_p 1
-    if {[info exists has_children_hash($project_id)]} { set log_on_parent_p 0 }
 
     # Write out the name of the project nicely indented
     append results "<td><nobr>$indent <A href=\"$project_url\">$ptitle</A></nobr></td>\n"
 
-    # Check if the current tree-branch-status is "closed"
-    set closed_p [expr $closed_status == [im_project_status_closed]]
 
-    # Check if this project is a "solitary" main-project
-    # There are some companies that want to avoid logging hours
-    # on such solitary projects.
-    set solitary_main_project_p 1
-    if {[info exists has_children_hash($project_id)]} { set solitary_main_project_p 0 }
-    if {[info exists has_parent_hash($project_id)]} { set solitary_main_project_p 0 }
-    if {$log_hours_on_solitary_projects_p} { set solitary_main_project_p 0 }
+    # -----------------------------------------------
+    # Create help texts to explain the user why certain projects aren't shown
 
-    # Closed projects are not listed as children or parents,
-    # so we don't need the "solitary" characteristic and avoid a double message below.
-    if {$closed_p} { set solitary_main_project_p 0 }
+    set help_text ""
+    if {$closed_p && (!$user_is_project_member_p && $project_is_task_p)} { append help_text [lang::message::lookup "" intranet-timesheet2.Nolog_closed_p "The project or one of its parents has been closed or requires membership. "] }
+    if {![string eq "t" $edit_hours_p]} { append help_text [lang::message::lookup "" intranet-timesheet2.Nolog_edit_hours_p "The time period has been closed for editing. "] }
+    if {!$log_on_parent_p} { append help_text [lang::message::lookup "" intranet-timesheet2.Nolog_log_on_parent_p "This project has sub-projects or tasks. "] }
+    if {$solitary_main_project_p} { append help_text [lang::message::lookup "" intranet-timesheet2.Nolog_solitary_main_project_p "This is a 'solitary' main project. Your system is configured in such a way, that you can't log hours on it. "] }
+
+    # Not a member: This isn't relevant in all modes:
+    switch $task_visibility_scope {
+        "main_project" - "specified" {
+	    # user_is_project_member_p not relevant at all.
+	    set show_member_p 0
+        }
+        "sub_project" {
+	    # user_is_project_member_p only relevant for projects, not for tasks,
+	    # because it is the "controlling" (sub-) project that determines.
+	    set show_member_p [expr !$project_is_task_p]
+        }
+        "task" {
+	    # user_is_project_member_p relevant everywhere
+	    set show_member_p 1
+        }
+	default { 
+	    set show_member_p 0
+	}
+    }
+
+    if {$show_member_p && !$user_is_project_member_p} { append help_text [lang::message::lookup "" intranet-timesheet2.Not_member_of_project "You are not a member of this project. "] }
 
 
     # -----------------------------------------------
-    # Write out an explanation why projects aren't allowed to log hours on.
-    set help_text ""
-    if {$closed_p} { append help_text [lang::message::lookup "" intranet-timesheet2.Nolog_closed_p "The project (or one of its parents) has been closed."] }
-    if {![string eq "t" $edit_hours_p]} { append help_text [lang::message::lookup "" intranet-timesheet2.Nolog_edit_hours_p "The time period has been closed for editing."] }
-    if {!$log_on_parent_p} { append help_text [lang::message::lookup "" intranet-timesheet2.Nolog_log_on_parent_p "This project has sub-projects or tasks."] }
-    if {$solitary_main_project_p} { append help_text [lang::message::lookup "" intranet-timesheet2.Nolog_solitary_main_project_p "This is a 'solitary' main project, so you shouldn't log hours on it."] }
-
+    # Write out help and debug information
     set help_gif ""
     if {"" != $help_text} { set help_gif [im_gif help $help_text] }
-    append results "<td>$help_gif</td>\n"
 
+    set debug_html ""
+    if {$debug} {
+	set debug_html "
+	<nobr>
+	sol=$solitary_main_project_p,
+	mem=$user_is_project_member_p,
+	log=$log_p,
+	clo=$closed_p,
+	</nobr>
+	"
+    }
+    append results "<td>$help_gif $debug_html</td>\n"
 
-    # Weekly View - 7 fields with hours only
+    set ttt {
+	chi=$project_has_children_p,
+	par=$project_has_parents_p,
+    }
+
+    # -----------------------------------------------
+    # Write out logging INPUT fields - either for Daily View (1 field) or Weekly View (7 fields)
+
     foreach i $weekly_logging_days {
 	set julian_day_offset [expr $julian_date + $i]
 	set hours ""
@@ -828,7 +908,7 @@ template::multirow foreach hours_multirow {
 	# Determine whether the hours have already been included in a timesheet invoice
 	set invoice_id 0
 	set invoice_key "$project_id-$julian_day_offset"
-	if {[info exists hours_invoice($invoice_key)]} { set invoice_id $hours_invoice($invoice_key) }
+	if {[info exists hours_invoice_hash($invoice_key)]} { set invoice_id $hours_invoice_hash($invoice_key) }
 
 	if {"t" == $edit_hours_p && $log_on_parent_p && !$invoice_id && !$solitary_main_project_p && !$closed_p} {
 
