@@ -198,7 +198,7 @@ set log_hours_on_parent_with_children_p [parameter::get_from_package_key -packag
 # "Solitary" projects are main projects without children.
 # Some companies want to avoid logging on such projects.
 set log_hours_on_solitary_projects_p [parameter::get_from_package_key -package_key "intranet-timesheet2" -parameter LogHoursOnSolitaryProjectsP -default 1]
-set log_hours_on_solitary_projects_p 0
+# set log_hours_on_solitary_projects_p 0
 
 
 # Determine how to show the tasks of projects. There are several options:
