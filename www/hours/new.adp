@@ -6,7 +6,7 @@
 
 <%= [im_box_header $page_title] %>
 
-<form method=POST action=new-2>
+<form name=timesheet method=POST action=new-2>
 @export_form_vars;noquote@
 
 <table>
