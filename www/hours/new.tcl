@@ -663,7 +663,8 @@ set has_children_sql "
         where
 		main_p.project_id in ($parent_project_sql) and
 		tree_ancestor_key(parent_p.tree_sortkey, 1) = main_p.tree_sortkey and
-		child_p.parent_id = parent_p.project_id
+		child_p.parent_id = parent_p.project_id and
+		child_p.project_status_id not in ($closed_stati_list)
 "
 
 array set has_children_hash {}
