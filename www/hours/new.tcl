@@ -370,10 +370,9 @@ append parent_project_sql "
 	where	h.user_id = :user_id_from_search
 		and $h_day_in_dayweek
 		and h.project_id = p.project_id
-		and p.tree_sortkey between
-			main_p.tree_sortkey and
-			tree_right(main_p.tree_sortkey)
+		and tree_ancestor_key(p.tree_sortkey, 1) = main_p.tree_sortkey
 "
+
 
 
 # Determine how to show the tasks of projects.
@@ -987,7 +986,7 @@ set left_navbar_html "
 	<table border=0 cellpadding=1 cellspacing=1>
 	<tr>
 	    <td>[lang::message::lookup "" intranet-core.Project_br_Name "Project<br>Name"]</td>
-	    <td>[im_project_select -include_empty_p 1 -include_empty_name "" -project_status_id [im_project_status_closed] -exclude_subprojects_p 1 project_id $project_id_for_default "open"]</td>
+	    <td>[im_project_select -include_empty_p 1 -include_empty_name "" -project_status_id [im_project_status_open] -exclude_subprojects_p 1 project_id $project_id_for_default "open"]</td>
 	</tr>
 "
 if {$add_hours_all_p} {
