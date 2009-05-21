@@ -487,7 +487,7 @@ set child_project_sql "
 					and h.project_id = p.project_id
 					and p.tree_sortkey between
 						main_p.tree_sortkey and
-						tree_right(main_p.tree_sortkey)				
+						tree_right(main_p.tree_sortkey)
 			    UNION
 				-- Always show the main project itself (it showing a single project, 0 otherwise)
 				select	project_id from im_projects where project_id = :project_id
@@ -638,9 +638,7 @@ set open_projects_sql "
 	where	h.user_id = :user_id_from_search
 		and $h_day_in_dayweek
 		and h.project_id = p.project_id
-		and p.tree_sortkey between
-			main_p.tree_sortkey and
-			tree_right(main_p.tree_sortkey)
+		and tree_ancestor_key(p.tree_sortkey, 1) = main_p.tree_sortkey
 "
 array set member_projects_hash {}
 db_foreach open_projects $open_projects_sql {
