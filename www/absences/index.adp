@@ -4,8 +4,8 @@
 <property name="main_navbar_label">timesheet2_absences</property>
 <property name="left_navbar">@left_navbar_html;noquote@</property>
 
-<table>
-    <%= $table_header_html %>
-    <%= $table_body_html %>
-    <%= $table_continuation_html %>
-</table>
+	<table>
+	    <%= $table_header_html %>
+	    <%= $table_body_html %>
+	    <%= $table_continuation_html %>
+	</table>
