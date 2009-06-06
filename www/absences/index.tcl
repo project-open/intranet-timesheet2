@@ -1,4 +1,4 @@
-# /packages/intranet-core/www/intranet/companies/index.tcl
+# /packages/intranet-timesheet2/www/absences/index.tcl
 #
 # Copyright (C) 1998-2004 various parties
 # The code is based on ArsDigita ACS 3.4
@@ -278,7 +278,7 @@ set admin_html ""
 if {[im_permission $user_id "add_absences"]} { 
 	set admin_html "<ul>
 		<li><a href=$absences_url/new>[_ intranet-timesheet2.Add_a_new_Absence]</a></li>
-		[im_menu_ul_list -no_uls 1 "timesheet2_absences" {}]
+		[im_menu_ul_list -no_uls 1 -package_key "intranet-timesheet2" "timesheet2_absences" {}]
 	      </ul>
 	"
 }

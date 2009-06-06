@@ -983,14 +983,14 @@ set left_navbar_html "
 	[export_form_vars julian_date project_id_list show_week_p] 
 	<table border=0 cellpadding=1 cellspacing=1>
 	<tr>
-	    <td>[lang::message::lookup "" intranet-core.Project_br_Name "Project<br>Name"]</td>
+	    <td>[lang::message::lookup "" intranet-timesheet2.Project_br_Name "Project<br>Name"]</td>
 	    <td>[im_project_select -include_empty_p 1 -include_empty_name "" -project_status_id [im_project_status_open] -exclude_subprojects_p 1 project_id $project_id_for_default "open"]</td>
 	</tr>
 "
 if {$add_hours_all_p} {
     append left_navbar_html "
 	<tr>
-	    <td>[lang::message::lookup "" intranet-core.Log_hours_for_user "Log Hours<br>for User"]</td>
+	    <td>[lang::message::lookup "" intranet-timesheet2.Log_hours_for_user "Log Hours<br>for User"]</td>
 	    <td>[im_user_select -include_empty_p 1 -include_empty_name "" user_id_from_search $user_id_from_search]</td>
 	</tr>
     "
