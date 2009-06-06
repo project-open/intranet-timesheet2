@@ -440,7 +440,7 @@ Please log your hours now or consult with your supervisor."
     set menu_html "<ul>\n"
     set ctr 0
     db_foreach menu_select $menu_select_sql {
-        regsub -all " " $name "_" name_key
+	regsub -all {[^0-9a-zA-Z]} $name "_" name_key
 	append url "project_id=$project_id&level_of_detail=3&start_date=$start_date&end_date=$end_date"
         append menu_html "<li><a href=\"$url\">[lang::message::lookup "" intranet-invoices.$name_key $name]</a></li>\n"
         incr ctr
