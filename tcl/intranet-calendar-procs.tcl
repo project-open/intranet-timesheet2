@@ -182,7 +182,7 @@ represents the details.
     <tr class='month_heading' bgcolor=$header_bgcolor>
     $title
     </tr>
-    <tr class='day_header'"
+    <tr class='day_header'>"
 
     foreach day_of_week $days_of_week {
 	append output "<td width=14% align=center>$day_of_week</td>"
