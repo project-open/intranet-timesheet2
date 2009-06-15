@@ -57,7 +57,7 @@ set sql "
 	select 
 		u.user_id, 
 		im_name_from_user_id(u.user_id) as  user_name,
-		to_char(sum(h.hours),'999G999G999') as total_hours,
+		to_char(sum(h.hours),'999G999G999D99') as total_hours,
 		min(day) as first_day,
 		max(day) as last_day
 	from 
