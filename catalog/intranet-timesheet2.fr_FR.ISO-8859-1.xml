@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
-<message_catalog package_key="intranet-timesheet2" package_version="3.2.10.1.0" locale="fr_FR" charset="ISO-8859-1">
+<message_catalog package_key="intranet-timesheet2" package_version="3.4.0.6.0" locale="fr_FR" charset="ISO-8859-1">
 
   <msg key="1_Euro_equals">1 Euro équivaut à:</msg>
   <msg key="_user_id">et un project_id peut être fourni. Mais il y a eu un souci avec eux...</msg>
@@ -25,6 +25,7 @@
   <msg key="Amount_EUR">Montant (EUR)</msg>
   <msg key="Amount_in_Euros">Montant en Euros</msg>
   <msg key="AMOUNTS">MONTANTS</msg>
+  <msg key="and_absences_hours">ainsi que %absences_hours% heures d'absences</msg>
   <msg key="Apply">Appliquer</msg>
   <msg key="April">Avril</msg>
   <msg key="Associated_reports">Rapports associés</msg>
@@ -61,7 +62,6 @@
   <msg key="Ending">Fin</msg>
   <msg key="equals">égale</msg>
   <msg key="Excel_hour_report">Rapport Excel (heures)</msg>
-  <msg key="Feb">Février</msg>
   <msg key="February">Février</msg>
   <msg key="Filter">Filtrer</msg>
   <msg key="Filter_Absences">Filtrer les Absences</msg>
@@ -81,13 +81,12 @@
   <msg key="hours_spend_overall">total des heures consommées</msg>
   <msg key="Hours_Summary">Aperçu des heures consommées</msg>
   <msg key="hours_units">%hours% unités</msg>
-  <msg key="Jan">Janvier</msg>
   <msg key="January">Janvier</msg>
-  <msg key="Jul">Juillet</msg>
   <msg key="July">Juillet</msg>
   <msg key="Jun">Juin</msg>
   <msg key="June">Juin</msg>
   <msg key="Last_3_months">3 derniers mois</msg>
+  <msg key="Log_Absences">Ajouter une absence</msg>
   <msg key="log_hours">Saisir ses heures</msg>
   <msg key="Log_your_hours">Saisir vos heures</msg>
   <msg key="lt_A_total_of_total_hour">%total_hours_str% unités ont été consommées au total sur ce projet.</msg>
@@ -245,6 +244,9 @@
   <msg key="Weekly_hours">Heures hebdomadaires</msg>
   <msg key="Work_done">Travail effectué</msg>
   <msg key="Worked_Day">Jour travaillé</msg>
+  <msg key="You_need_to_log_hours">Vous avez enregistré pour l'instant %num_hours% jours/heures
+ %absences_hours_message% (la limite pour ce message est %expected_hours% jours/heures sur les %num_days% derniers jours). 
+Merci de vérifier que les temps passés sont effectivement déclarés.</msg>
   <msg key="Your_hours">Vos heures</msg>
   <msg key="Your_workspace">Votre espace de travail</msg>
 </message_catalog>

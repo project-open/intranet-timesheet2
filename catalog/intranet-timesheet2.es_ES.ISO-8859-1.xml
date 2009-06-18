@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
-<message_catalog package_key="intranet-timesheet2" package_version="3.4.0.0.0" locale="es_ES" charset="ISO-8859-1">
+<message_catalog package_key="intranet-timesheet2" package_version="3.4.0.6.0" locale="es_ES" charset="ISO-8859-1">
 
   <msg key="1_Euro_equals">1 euro equivale a:</msg>
+  <msg key="_user_id">and project_id can be provided. But there was some problem with them..</msg>
   <msg key="A">A</msg>
   <msg key="Absence">Ausencia</msg>
   <msg key="Absence_Type">Tipo de ausencia:</msg>
@@ -24,19 +25,27 @@
   <msg key="Amount_EUR">Importe (EUR)</msg>
   <msg key="Amount_in_Euros">Importe en Euros</msg>
   <msg key="AMOUNTS">IMPORTES</msg>
+  <msg key="and_absences_hours">y %absences_hours% horas ausentes</msg>
   <msg key="Apply">Applicar</msg>
   <msg key="April">Abril</msg>
+  <msg key="Associated_reports">Informes Asociados</msg>
   <msg key="Aug">Ago</msg>
   <msg key="August">Agosto</msg>
   <msg key="B">B</msg>
+  <msg key="Bad_Absence">Ausencia Incorrecta</msg>
   <msg key="Based_on">Basado en</msg>
   <msg key="Billing_rate">Ratio de facturación</msg>
   <msg key="Budget">Presupuesto</msg>
   <msg key="C">C</msg>
   <msg key="Calendar">Calendario</msg>
+  <msg key="Case">Caso</msg>
+  <msg key="Casex">Casox</msg>
+  <msg key="Casex_for">Casox para</msg>
+  <msg key="Casex_Summary">Resumen casox</msg>
   <msg key="Category_Summaries">Resumen de categoría</msg>
   <msg key="Choose_project">Elija proyecto</msg>
   <msg key="comma_separated">separado por comas</msg>
+  <msg key="Comp_VISA">Comp. VISA?</msg>
   <msg key="Companies">Empresas</msg>
   <msg key="Company">Empresa</msg>
   <msg key="Contact">Contacto</msg>
@@ -104,6 +113,8 @@
   <msg key="K">K</msg>
   <msg key="L">L</msg>
   <msg key="Last_3_months">Últimos 3 meses</msg>
+  <msg key="Local">Local</msg>
+  <msg key="Log_Absences">Registrar ausencias</msg>
   <msg key="log_dedication">registrar dedicación</msg>
   <msg key="log_hours">registrar horas</msg>
   <msg key="Log_your_hours">Registrar sus horas</msg>
@@ -117,6 +128,8 @@
   <msg key="lt_Click_on_a_persons_na">Haga clic en ek nombre de una persona para ver el registro detallado de sus unidades.</msg>
   <msg key="lt_Click_on_a_project_na">Haga clic en un proyecto para ver el desglose de unidades por persona.</msg>
   <msg key="lt_Dedication_days_repor">Informe de días de dedicación</msg>
+  <msg key="lt_Dedication_Logging__C">Dedication Logging &amp; Casex by %user_name%</msg>
+  <msg key="lt_Dedication_Logging__C_1"> Dedication Logging &amp; Casex  </msg>
   <msg key="lt_Dedication_logging_fo">Registro de dedicación para</msg>
   <msg key="lt_Description_field_is_">El campo descripción es obligatorio.</msg>
   <msg key="lt_Description_is_mandat">La descripción es obligatoria. Por favor describa el gasto. En caso de &quot;Km con vehículo propio&quot;, escriba también el número de kilómetros. El importe puede ser introducido con &lt;B&gt;&quot;.&quot;&lt;/B&gt; (formato mericano) o &lt;B&gt;&quot;,&quot;&lt;/B&gt; (europeo) como separador decimal</msg>
@@ -133,6 +146,7 @@
   <msg key="lt_hours_varof_those_uni">%hours_var% de estas unidades fueron facturadas por hora, por un importe total de</msg>
   <msg key="lt_Insufficient_Privileg">Permisos insuficientes</msg>
   <msg key="lt_interval_select_per_c">%interval_select% por columna</msg>
+  <msg key="lt_Intranet_Absence_Type">Intranet Absence Type</msg>
   <msg key="lt_is_required_Describe_">es requerido. Describa el propósito del gasto y, en caso de uso de vehículo propio, el número de kilómetros.</msg>
   <msg key="lt_It_looks_like_youre_t">Parece que está intentando registrar horas de otra persona. Desgraciadamente, usted no está autorizado a hacer esto. Puede editar sus %own_hours_link% si lo desea</msg>
   <msg key="lt_Log_hours_for_a_diffe">Registrar horas de otro día</msg>
@@ -166,11 +180,14 @@
   <msg key="lt_To_send_proyect_infor">Clic para enviar información del proyecto por correo-e</msg>
   <msg key="lt_To_send_this_informat">Para enviar esta información por correo-e, por favor seleccione en su navegador &quot;Archivo-&gt;Enviar...&quot; (Mozilla Firefox) o &quot;Archivo-&gt;Enviar-&gt;Página por correo electrónico...&quot; (Internet Explorer) (este comando ignora los valores que haya seleccionado en los filtros)</msg>
   <msg key="lt_Today_you_didnt_log_y">¡No ha registrado sus horas aun hoy!</msg>
+  <msg key="lt_Total_Company_visa_Eu">Total (Company visa) Euros:</msg>
   <msg key="lt_total_hours_hours_bet">%total_hours% horas entre %first_day_str% y %last_day_str%</msg>
   <msg key="lt_total_hours_units_bet">%total_hours% unidades entre %first_day_str% y %last_day_str%</msg>
   <msg key="lt_total_hours_units_bet_1">%total_hours% unidades entre %first_day_str% y %last_day_str%</msg>
+  <msg key="lt_Total_not_company_vis">Total (not company visa) Euros:</msg>
   <msg key="lt_Unexpected_Database_E">Error de base de datos inesperado</msg>
   <msg key="lt_Units_on_all_projects">Unidades en todos los proyectos</msg>
+  <msg key="lt_Units_on_item_by_user">Units on &quot;%item%&quot; by %user_name%</msg>
   <msg key="lt_User_user_id_does_not">El usuario %user_id% no existe</msg>
   <msg key="lt_User_user_id_does_not_1">El usuario #%user_id% no existe. Por favor, realice una copia de seguridad e inténtelo de nuevo</msg>
   <msg key="lt_View_hours_logged_by_">Ver horas registradas por los miembros del equipo</msg>
@@ -209,6 +226,7 @@
   <msg key="No_users_found">No se han encontrado usuarios</msg>
   <msg key="none">ninguno</msg>
   <msg key="Notes">Notas:</msg>
+  <msg key="Notice">Notice</msg>
   <msg key="Nov">Nov</msg>
   <msg key="November">Noviembre</msg>
   <msg key="O">O</msg>
@@ -232,6 +250,7 @@
   <msg key="Rate_Per_Km">Tarifa por Km.</msg>
   <msg key="Rates">Tarifas</msg>
   <msg key="Real">Real</msg>
+  <msg key="Restrict_date">Restrict date</msg>
   <msg key="S">S</msg>
   <msg key="Saturday">Sábado</msg>
   <msg key="Save">Guardar</msg>
@@ -285,6 +304,7 @@
   <msg key="View_employees_hours">Ver horas de empleados</msg>
   <msg key="View_employees_units">Ver unidades de empleados</msg>
   <msg key="View_History">Ver historial</msg>
+  <msg key="Visa_Amount">Visa Amount</msg>
   <msg key="W">W</msg>
   <msg key="Wednesday">Miércoles</msg>
   <msg key="Week">Semana</msg>
@@ -295,6 +315,10 @@
   <msg key="Worked_Day">Día trabajado</msg>
   <msg key="X">X</msg>
   <msg key="Y">Y</msg>
+  <msg key="You_need_to_log_hours">  Sólo has imputado %num_hours% horas trabajadas 
+  %absences_hours_message% de las  %expected_hours% horas necesarias en los últimos
+  %num_days% dias. Por favor, introduce tus horas o contacta con tu superior.
+  </msg>
   <msg key="Your_hours">Sus horas</msg>
   <msg key="Your_workspace">Su área de trabajo</msg>
 </message_catalog>
