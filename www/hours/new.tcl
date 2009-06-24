@@ -32,6 +32,7 @@ ad_page_contract {
     { user_id_from_search "" }
 }
 
+
 # ---------------------------------------------------------
 # Default & Security
 # ---------------------------------------------------------
@@ -81,7 +82,6 @@ if {$show_week_p} {
 set materials_p [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter HourLoggingWithMaterialsP -default 0]
 set material_options [im_material_options -include_empty 1]
 set default_material_id [im_material_default_material_id]
-
 
 # Project_ID and list of project IDs
 if {"" == $project_id} { set project_id 0 }
@@ -285,6 +285,8 @@ set edit_hours_closed_message [lang::message::lookup "" intranet-timesheet2.Logg
 # Remove funny "{" or "}" characters in list
 regsub -all {[\{\}]} $project_id_list "" project_id_list
 
+
+
 set main_project_id_list [list 0]
 set main_project_id 0
 
@@ -307,6 +309,8 @@ if {0 != $project_id} {
 
     # Make sure the user can see everything below the single main project
     set task_visibility_scope "specified"
+
+    # Clarify: Whydo we add a '0'
     lappend project_id_list 0
 
 } elseif {"" != $project_id_list} {
@@ -356,6 +360,8 @@ if {0 != $project_id} {
 		and p.project_type_id not in ([im_project_type_task], [im_project_type_ticket])
     "
 }
+
+
 
 
 # We need to show the hours of already logged projects.
