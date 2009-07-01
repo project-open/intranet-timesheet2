@@ -45,7 +45,7 @@ create table im_hours (
 				constraint im_hours_material_fk
 				references im_materials,
 				-- ArsDigita/ACS billing system - log prices with hours
-	billing_rate		numeric(5,2),
+	billing_rate		numeric(7,2),
 	billing_currency	char(3)
 				constraint im_hours_billing_currency_fk
 				references currency_codes(iso),
