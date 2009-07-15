@@ -92,6 +92,7 @@ ad_proc calendar_get_info_from_db {
     ns_set put $calendar_info_set last_julian_date \
 	    [expr $first_julian_date_of_month + $num_days_in_month - 1 + $days_in_next_month]
 
+
     # Now, set the variables in the caller's environment
     ad_ns_set_to_tcl_vars -level 2 $calendar_info_set
     ns_set free $calendar_info_set
@@ -145,6 +146,8 @@ represents the details.
     }
 
     set day_of_week $first_day_of_month
+
+
     set julian_date $first_julian_date
 
     set month_heading [format "%s %s" [_ intranet-timesheet2.$month] $year]

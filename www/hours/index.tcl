@@ -62,6 +62,9 @@ set context_bar [im_context_bar "[_ intranet-timesheet2.Hours]"]
 
 # ---------------------------------
 # Date Logic: We are working with "YYYY-MM-DD" dates in this page.
+
+# ad_return_complaint 1 $date
+
 if {"" ==  $date } {
     if {"" != $julian_date} {
 	set date [db_string julian_date_select "select to_char( to_date(:julian_date,'J'), 'YYYY-MM-DD') from dual"]
@@ -109,7 +112,10 @@ set calendar_details [ns_set create calendar_details]
 
 # figure out the first and last julian days in the month
 # This call defines a whole set of variables in our environment
+
 calendar_get_info_from_db $date
+# ad_return_complaint 1 $first_julian_date
+
 
 # --------------------------------------------------------------
 # Grab all the hours from im_hours
@@ -130,6 +136,9 @@ set sql "
 db_foreach hours_logged $sql {
     set users_hours($julian_date) $hours
 }
+
+# ad_return_complaint 1 $julian_date
+# ad_return_complaint 1 $users_hours(2455024)
 
 
 # --------------------------------------------------------------
@@ -167,6 +176,8 @@ set curr_absence ""
 
 # Day of week: 1=Sunday, 2=Mon, ..., 7=Sat.
 set day_of_week 1
+
+
 
 # And now fill in information for every day of the month
 for { set current_date $first_julian_date} { $current_date <= $last_julian_date } { incr current_date } {
