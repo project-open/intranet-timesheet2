@@ -25,6 +25,7 @@
   <msg key="Amount_EUR">Importo (EUR)</msg>
   <msg key="Amount_in_Euros">Importo in Euro</msg>
   <msg key="AMOUNTS">IMPORTI</msg>
+  <msg key="and_absences_hours">e %absences_hours% ore di assenza</msg>
   <msg key="Apply">Applica</msg>
   <msg key="April">Aprile</msg>
   <msg key="Associated_reports">Report collegati</msg>
@@ -55,6 +56,7 @@
   <msg key="D">D</msg>
   <msg key="Daily_project_notes">Note al progetto giornaliere</msg>
   <msg key="Date">Data</msg>
+  <msg key="Date_for_user">%pretty_date% per %user_name_from_search%</msg>
   <msg key="Day">Giorno</msg>
   <msg key="Day_of_Expense">Giorno di spesa</msg>
   <msg key="DAYS">GIORNI</msg>
@@ -66,6 +68,8 @@
   <msg key="Deviation">Deviazione</msg>
   <msg key="Display">Mostra:</msg>
   <msg key="Display_Users">Mostra utenti:</msg>
+  <msg key="Duration_days">Durata in giorni</msg>
+  <msg key="Duration_days_help">Durata in giorni</msg>
   <msg key="E">E</msg>
   <msg key="Edit">Modifica</msg>
   <msg key="Edit_Absence">Modifica assenza</msg>
@@ -83,6 +87,7 @@
   <msg key="February">Febbraio</msg>
   <msg key="Filter">Filtro</msg>
   <msg key="Filter_Absences">Filtra assenze</msg>
+  <msg key="Filter_Tasks">Filtra attività</msg>
   <msg key="For_which_project">Per quale progetto:</msg>
   <msg key="Friday">Venerdì</msg>
   <msg key="From">Da:</msg>
@@ -104,6 +109,7 @@
   <msg key="Hours_Summary">Riepilogo ore</msg>
   <msg key="hours_units">%hours% unità</msg>
   <msg key="I">I</msg>
+  <msg key="Internal_Comment">Commento interno</msg>
   <msg key="J">J</msg>
   <msg key="January">Gennaio</msg>
   <msg key="July">Luglio</msg>
@@ -116,6 +122,7 @@
   <msg key="Log_Absences">Registra assenze</msg>
   <msg key="log_dedication">registra dedizione</msg>
   <msg key="log_hours">inserisci ore</msg>
+  <msg key="Log_hours_for_user">Inserisci per:</msg>
   <msg key="Log_your_hours">Registra le ore</msg>
   <msg key="lt_A_total_of_total_hour">È stato impiegato un totale di %total_hours_str% unità in questo progetto.</msg>
   <msg key="lt_Add_hours_on_other_pr">Aggiungi ore ad altri progetti</msg>
@@ -218,12 +225,20 @@
   <msg key="N">N</msg>
   <msg key="Name">Nome</msg>
   <msg key="New_Absence">Nuova assenza</msg>
+  <msg key="New_Absence_Type">Aggiungi %absence_type%</msg>
+  <msg key="New_Bank_Holiday">Nuova festività</msg>
+  <msg key="New_Personal_Absence">Nuova assenza personale</msg>
+  <msg key="New_Sick_Leave">Nuova assenza per malattia</msg>
+  <msg key="New_Travel_Absence">Nuova assenza per viaggio</msg>
+  <msg key="New_Vacation_Absence">Nuova assenza per ferie</msg>
   <msg key="Next_Month">Mese successivo</msg>
   <msg key="No_Data_found">Nessun dato trovato</msg>
   <msg key="No_hours_logged">Nessuna ora registrata.</msg>
   <msg key="No_Users_found">Nessun utente trovato.</msg>
   <msg key="No_users_found">Nessun utente trovato</msg>
   <msg key="none">nessuno</msg>
+  <msg key="Not_member_of_project">Non si è membri di questo progetto.</msg>
+  <msg key="Not_Member_of_Projects">Non si è membri di alcun progetto in corso.</msg>
   <msg key="Notes">Note:</msg>
   <msg key="Notice">Avviso</msg>
   <msg key="Nov">Nov</msg>
@@ -240,6 +255,7 @@
   <msg key="Past">Passato</msg>
   <msg key="Percentage">Percentuale</msg>
   <msg key="Project">Progetto</msg>
+  <msg key="Project_br_Name">Nome&lt;br /&gt;progetto</msg>
   <msg key="Project_History">Cronologia progetto</msg>
   <msg key="Project_name">Nome del progetto</msg>
   <msg key="Project_Summaries">Riepilogo dei progetti</msg>
@@ -269,6 +285,7 @@
   <msg key="Show_Users">Visualizza utenti</msg>
   <msg key="Start_Date">Inizio</msg>
   <msg key="Starting">Inizio:</msg>
+  <msg key="Status">Stato</msg>
   <msg key="submit">invia</msg>
   <msg key="Summary">Riepilogo</msg>
   <msg key="Summary_by_date">Riepilogo per data</msg>
@@ -279,6 +296,7 @@
   <msg key="Thursday">Giovedì</msg>
   <msg key="Timescale">Periodo:</msg>
   <msg key="Timesheet">Presenze</msg>
+  <msg key="Timesheet_for_user_name">Presenze di %user_name%</msg>
   <msg key="Timesheet_Summary">Riepilogo presenze</msg>
   <msg key="to">a:</msg>
   <msg key="Today">Oggi</msg>
