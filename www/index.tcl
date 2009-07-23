@@ -1,4 +1,4 @@
-# /packages/intranet-translation/www/index.tcl
+# /packages/intranet-timesheet2/www/index.tcl
 #
 # Copyright (C) 2003 - 2009 ]project-open[
 #
@@ -6,9 +6,6 @@
 # http://www.project-open.com/ for licensing details.
 
 ad_page_contract {
-    Show the list of current task and allow the project
-    manager to create new tasks.
-
     @author frank.bergmann@project-open.com
 } {
 
