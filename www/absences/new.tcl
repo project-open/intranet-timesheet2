@@ -60,8 +60,11 @@ if {[info exists absence_id]} {
 
 if {![exists_and_not_null absence_owner_id]} { set absence_owner_id $user_id }
 
-
-set page_title [lang::message::lookup "" intranet-timesheet2.New_Absence_Type "%absence_type%"]
+if {![info exists absence_id]} {
+    set page_title [lang::message::lookup "" intranet-timesheet2.New_Absence_Type "%absence_type%"]
+} else {
+    set page_title [lang::message::lookup "" intranet-timesheet2.Absence_absence_type "%absence_type%"]
+}
 
 if {[exists_and_not_null user_id_from_search]} {
     set user_from_search_name [db_string name "select im_name_from_user_id(:user_id_from_search)" -default ""]
