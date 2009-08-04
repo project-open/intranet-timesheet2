@@ -31,8 +31,7 @@ ad_page_contract {
 } {
     { date "" }
     { julian_date "" }
-    { project_id:integer "" }
-    { project_id_list "" }
+    { project_id:integer,multiple "" }
     { return_url "" }
     { header "" }
     { message:allhtml "" }
@@ -77,14 +76,14 @@ set julian_date [db_string conv "select to_char(:date::date, 'J')"]
 ns_log Notice "/intranet-timesheet2/index: date=$date, julian_date=$julian_date"
 
 
-set project_id_for_default $project_id
+set project_id_for_default [lindex $project_id 0]
 
 
 set show_left_functional_menu_p [parameter::get_from_package_key -package_key "intranet-core" -parameter "ShowLeftFunctionalMenupP" -default 0]
 
 # Get the project name restriction in case project_id is set
 set project_restriction ""
-if {"" != $project_id && 0 != $project_id} {
+if {[string is integer $project_id] && "" != $project_id && 0 != $project_id} {
     set project_name [db_string project_name "select project_name from im_projects where project_id = :project_id"]
     append page_title " on $project_name"
     set project_restriction "and project_id = :project_id"
@@ -210,7 +209,7 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
     if {"" != $curr_absence} { set curr_absence "<br>$curr_absence" }
 
     if {$write_p} {
-        set hours_url [export_vars -base "new" {user_id_from_search {julian_date $current_date} show_week_p return_url project_id project_id_list}]
+        set hours_url [export_vars -base "new" {user_id_from_search {julian_date $current_date} show_week_p return_url project_id project_id}]
 
 	set html "<a href=$hours_url>$hours</a>$curr_absence"
     } else {
@@ -305,7 +304,7 @@ set left_navbar_html "
         </div>
 
 	<form action=index method=GET>
-	[export_form_vars project_id_list show_week_p] 
+	[export_form_vars show_week_p] 
 	<table border=0 cellpadding=1 cellspacing=1>
 	<tr>
 	    <td>[lang::message::lookup "" intranet-core.Date "Date"]</td>

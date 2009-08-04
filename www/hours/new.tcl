@@ -24,8 +24,7 @@ ad_page_contract {
     @author frank.bergmann@project-open.com
     @creation-date Jan 2006
 } {
-    { project_id:integer 0 }
-    { project_id_list:multiple "" }
+    { project_id 0 }
     { julian_date "" }
     { return_url "" }
     { show_week_p 1 }
@@ -46,15 +45,21 @@ set user_name_from_search [db_string uname "select im_name_from_user_id(:user_id
 
 # ToDo: What if the user_id_from_search is already set???
 
-if {"" == $return_url} { set return_url [export_vars -base "/intranet-timesheet2/hours/index" {julian_date user_id_from_search project_id project_id_list}] }
 set bgcolor(0) " class=roweven "
 set bgcolor(1) " class=rowodd "
 
 if {"" == $show_week_p} { set show_week_p 0 }
+if {"" == $project_id} { set project_id 0 }
+im_security_alert_check_integer -location "/intranet-timesheet2/www/hours/new" -value $project_id
 
 if { [empty_string_p $julian_date] } {
     set julian_date [db_string sysdate_as_julian "select to_char(sysdate,'J') from dual"]
 }
+
+if {"" == $return_url} { set return_url [export_vars -base "/intranet-timesheet2/hours/index" {julian_date user_id_from_search}] }
+
+
+
 
 # ---------------------------------------------------------
 # Calculate the start and end of the week.
@@ -84,15 +89,11 @@ set material_options [im_material_options -include_empty 1]
 set default_material_id [im_material_default_material_id]
 
 # Project_ID and list of project IDs
-if {"" == $project_id} { set project_id 0 }
-set project_id_for_default $project_id
+set project_id_for_default [lindex $project_id 0]
 if {0 == $project_id} { set project_id_for_default ""}
-if {0 == $project_id_list} { set project_id_list {} }
-# ad_return_complaint 1 "project_id='$project_id', project_id_list='$project_id_list'"
-
 
 # "Log hours for a different day"
-set different_date_url [export_vars -base "index" {project_id user_id_from_search project_id_list julian_date show_week_p}]
+set different_date_url [export_vars -base "index" {user_id_from_search julian_date show_week_p project_id}]
 
 # Should we show an "internal" text comment
 # in addition to the normal "external" comment?
@@ -145,11 +146,11 @@ if {$show_week_p} {
     set page_title [lang::message::lookup "" intranet-timesheet2.The_week_for_user "The week for %user_name_from_search%"]
 
     set prev_week_julian_date [expr $julian_date - 7]
-    set prev_week_url [export_vars -base "new" {{julian_date $prev_week_julian_date} user_id_from_search return_url project_id project_id_list show_week_p}]
+    set prev_week_url [export_vars -base "new" {{julian_date $prev_week_julian_date} user_id_from_search return_url project_id show_week_p}]
     set prev_week_link "<a href=$prev_week_url>$left_gif</a>"
 
     set next_week_julian_date [expr $julian_date + 7]
-    set next_week_url [export_vars -base "new" {{julian_date $next_week_julian_date} user_id_from_search return_url project_id project_id_list show_week_p}]
+    set next_week_url [export_vars -base "new" {{julian_date $next_week_julian_date} user_id_from_search return_url project_id show_week_p}]
     set next_week_link "<a href=$next_week_url>$right_gif</a>"
 
     set forward_backward_buttons "
@@ -165,11 +166,11 @@ if {$show_week_p} {
     set page_title "[lang::message::lookup "" intranet-timesheet2.Date_for_user "%pretty_date% for %user_name_from_search%"]"
 
     set prev_day_julian_date [expr $julian_date - 1]
-    set prev_day_url [export_vars -base "new" {{julian_date $prev_day_julian_date} user_id_from_search project_id project_id_list show_week_p}]
+    set prev_day_url [export_vars -base "new" {{julian_date $prev_day_julian_date} user_id_from_search project_id show_week_p}]
     set prev_day_link "<a href=$prev_day_url>$left_gif</a>"
 
     set next_day_julian_date [expr $julian_date + 1]
-    set next_day_url [export_vars -base "new" {{julian_date $next_day_julian_date} user_id_from_search project_id project_id_list show_week_p}]
+    set next_day_url [export_vars -base "new" {{julian_date $next_day_julian_date} user_id_from_search project_id show_week_p}]
     set next_day_link "<a href=$next_day_url>$right_gif</a>"
 
     set forward_backward_buttons "
@@ -282,15 +283,10 @@ set edit_hours_closed_message [lang::message::lookup "" intranet-timesheet2.Logg
 # projects to be displayed 
 # ---------------------------------------------------------
 
-# Remove funny "{" or "}" characters in list
-regsub -all {[\{\}]} $project_id_list "" project_id_list
-
-
-
 set main_project_id_list [list 0]
 set main_project_id 0
 
-if {0 != $project_id} {
+if {[string is integer $project_id] && 0 != $project_id} {
 
     set main_project_id [db_string main_p "
 	select	main_p.project_id
@@ -310,17 +306,14 @@ if {0 != $project_id} {
     # Make sure the user can see everything below the single main project
     set task_visibility_scope "specified"
 
-    # Clarify: Whydo we add a '0'
-    lappend project_id_list 0
-
-} elseif {"" != $project_id_list} {
+} elseif {[llength $project_id] > 1} {
 
     set main_project_id_list [db_list main_ps "
 	select distinct
 		main_p.project_id
 	from	im_projects p,
 		im_projects main_p
-	where	p.project_id in ([join $project_id_list ","]) and
+	where	p.project_id in ([join $project_id ","]) and
 		tree_ancestor_key(p.tree_sortkey, 1) = main_p.tree_sortkey
     "]
 
@@ -398,7 +391,7 @@ switch $task_visibility_scope {
 	"
     }
     "specified" {
-	# specified: We've got an explicit "project_id" or "project_id_list".
+	# specified: We've got an explicit "project_id"
 	# Show everything that's below, even if the user isn't a member.
 	set children_sql "
 				select	sub.project_id
@@ -496,13 +489,7 @@ set child_project_sql "
 						tree_right(main_p.tree_sortkey)
 			    UNION
 				-- Always show the main project itself (it showing a single project, 0 otherwise)
-				select	project_id from im_projects where project_id = :project_id
-			    UNION
-				-- Always show the list of selected projects to be shown
-				select	p.project_id
-				from	im_projects p
-				where	(p.project_id in ([join [lappend project_id_list 0] ","])
-					OR p.project_id = :project_id)
+				select	project_id from im_projects where project_id in ([join $project_id ","])
 "
 
 # ---------------------------------------------------------
@@ -986,7 +973,7 @@ set left_navbar_html "
 
 	<form action=new method=GET>
 	<!-- don't include return_url in the export_form_vars, as it includes the old user -->
-	[export_form_vars julian_date project_id_list show_week_p] 
+	[export_form_vars julian_date show_week_p] 
 	<table border=0 cellpadding=1 cellspacing=1>
 	<tr>
 	    <td>[lang::message::lookup "" intranet-timesheet2.Project_br_Name "Project<br>Name"]</td>
