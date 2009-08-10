@@ -165,7 +165,8 @@ if { $start_at == "" } {
 }
 
 if { $project_id != 0 } {
-    set project_name [db_string get_project_name "select project_name from im_projects where project_id = :project_id" -default "No Name for $project_id"]
+    set error_msg [lang::message::lookup "" intranet-core.No_name_for_project_id "No Name for project %project_id%"]
+    set project_name [db_string get_project_name "select project_name from im_projects where project_id = :project_id" -default $error_msg]
 }
 
 # ---------------------------------------------------------------
