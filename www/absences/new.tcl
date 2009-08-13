@@ -297,6 +297,10 @@ ad_form -extend -name absence -on_request {
 	    # Determine the first task in the case to be executed and start+finisch the task.
             im_workflow_skip_first_transition -case_id $case_id
 	}
+
+	# Audit the action
+	im_audit -object_id $absence_id -action create
+
     }
 
 } -edit_data {
@@ -337,6 +341,11 @@ ad_form -extend -name absence -on_request {
         -object_type "im_user_absence" \
         -object_id $absence_id \
         -form_id absence
+
+
+    # Audit the action
+    im_audit -object_id $absence_id -action update
+
 
 } -after_submit {
 

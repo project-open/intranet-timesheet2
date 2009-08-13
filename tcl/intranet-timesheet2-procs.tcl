@@ -156,8 +156,7 @@ ad_proc -public im_timesheet2_sync_timesheet_costs {
 		update	im_hours
 		set	billing_rate = :billing_rate,
 			cost_id = :cost_id
-		where
-			user_id = :hour_user_id
+		where	user_id = :hour_user_id
 			and project_id = :project_id
 			and day = :day
 	"
@@ -181,6 +180,10 @@ ad_proc -public im_timesheet2_sync_timesheet_costs {
 	        where
 	                cost_id = :cost_id
         "
+
+	# Audit the action
+	im_audit -object_id $cost_id -action create -comment "Cost to represent timesheet hours."
+
     }
     return $cost_ids
 }
@@ -210,6 +213,10 @@ ad_proc -public im_timesheet_costs_delete {
 			set cost_id = null
 			where cost_id = :cost_id
 	"
+
+	# Audit the action
+	im_audit -object_id $cost_id -action nuke -comment "im_timesheet_costs_delete -project_id $project_id -user_id $user_id -day_julian $day_julian"
+
 	db_string del_ts_costs "select im_cost__delete(:cost_id)"
 	incr ctr
     }
@@ -548,8 +555,7 @@ ad_proc im_timesheet_hours_sum {
     set num_hours [db_string sum_hours "
 	select	sum(h.hours) 
 	from	im_hours h
-	where	
-		h.day::date <= now()::date and
+	where	h.day::date <= now()::date and
 		[join $criteria "\n    and "]
     " -default 0]
     if {"" == $num_hours} { set num_hours 0}
@@ -599,6 +605,10 @@ ad_proc im_timesheet_update_timesheet_cache {
 		set reported_hours_cache = :num_hours
 		where project_id = :project_id
 	"
+
+	# Audit the action
+	im_project_audit -project_id $project_id -action update
+
     }
     return $num_hours
 }
@@ -676,23 +686,23 @@ ad_proc im_hours_for_user { user_id { html_p t } { number_days 7 } } {
     those hours.  
 } {
     set sql "
-select 
-	g.project_id, 
-	g.project_name, 
-	nvl(h.note,'no notes') as note, 
-	to_char( day, 'Dy, MM/DD/YYYY' ) as nice_day, 
-	h.hours
-from 
-	im_hours h, 
-	user_groups g
-where
-	g.project_id = h.project_id
-	and h.day >= sysdate - :number_days
-	and user_id=:user_id
-order by 
-	lower(g.project_name), 
-	day
-"
+	select 
+		g.project_id, 
+		g.project_name, 
+		nvl(h.note,'no notes') as note, 
+		to_char( day, 'Dy, MM/DD/YYYY' ) as nice_day, 
+		h.hours
+	from 
+		im_hours h, 
+		user_groups g
+	where
+		g.project_id = h.project_id
+		and h.day >= sysdate - :number_days
+		and user_id=:user_id
+	order by 
+		lower(g.project_name), 
+		day
+    "
     
     set last_id -1
     set pcount 0
@@ -738,6 +748,7 @@ $text_string"
     return $ret
 }
 
+
 ad_proc -public im_hours_verify_user_id { { user_id "" } } {
     Returns either the specified user_id or the currently logged in
     user's user_id. If user_id is null, throws an error unless the
@@ -764,17 +775,18 @@ ad_proc -public im_get_next_absence_link { { user_id } } {
     Returns a html link with the next absence of the given user_id
 } {
     set sql "
-select
-     absence_id,
-     to_char(start_date,'yyyy-mm-dd') as start_date,
-     to_char(end_date, 'yyyy-mm-dd') as end_date
-from
-     im_user_absences, dual
-where
-     owner_id = :user_id and
-     start_date >= to_date(sysdate,'yyyy-mm-dd')
-order by
-     start_date, end_date"
+	select
+	     absence_id,
+	     to_char(start_date,'yyyy-mm-dd') as start_date,
+	     to_char(end_date, 'yyyy-mm-dd') as end_date
+	from
+	     im_user_absences, dual
+	where
+	     owner_id = :user_id and
+	     start_date >= to_date(sysdate,'yyyy-mm-dd')
+	order by
+	     start_date, end_date
+    "
 
     set ret_val ""
     db_foreach select_next_absence $sql {
