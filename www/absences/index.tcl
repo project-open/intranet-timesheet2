@@ -62,7 +62,9 @@ if {![im_permission $user_id "view_absences"] && ![im_permission $user_id "view_
 set user_view_page "/intranet/users/view"
 set absence_view_page "$absences_url/new"
 
-set user_selection_types [list "all" "All" "mine" "Mine"]
+set user_selection_types [list "all" "All" "mine" "Mine" "employees" "Employees" "providers" "Providers" "customers" "Customers"]
+
+
 if {![im_permission $user_id "view_absences_all"]} {
     set user_selection_types [list "mine" "Mine"]
 }
@@ -138,6 +140,49 @@ set criteria [list]
 
 set bind_vars [ns_set create]
 if { ![empty_string_p $user_selection] } {
+
+    if { "mine"==$user_selection } {
+            lappend criteria "a.owner_id=:user_id"
+    } else {
+	if {[im_permission $user_id "view_absences_all"]} {
+	    switch $user_selection {
+		"employees" {
+                        lappend criteria "a.owner_id IN (select
+                                                                m.member_id
+                                                        from
+                                                                group_approved_member_map m
+                                                        where
+                                                                m.group_id = [im_employee_group_id]
+                                                        )"
+
+        	}
+		"providers" {
+                        lappend criteria "a.owner_id IN (select 
+								m.member_id 
+							from
+								group_approved_member_map m 
+							where
+								m.group_id = [im_freelance_group_id]
+							)"
+		}
+                "customers" {
+                        lappend criteria "a.owner_id IN (select
+                                                                m.member_id
+                                                        from
+                                                                group_approved_member_map m
+                                                        where
+                                                                m.group_id = [im_customer_group_id]
+                                                        )"
+                }  default  {
+			ad_return_complaint 1 "Please select a user group."			
+		}
+	    }
+ 	    ns_set put $bind_vars user_selection $user_selection
+ 	} else {
+	    lappend criteria "a.owner_id=:user_id"
+	}
+
+    }
     switch $user_selection {
 	"mine" {
 	    #ns_set put $bind_vars user_selection $user_selection
