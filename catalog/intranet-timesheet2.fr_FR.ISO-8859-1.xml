@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
-<message_catalog package_key="intranet-timesheet2" package_version="3.4.0.6.0" locale="fr_FR" charset="ISO-8859-1">
+<message_catalog package_key="intranet-timesheet2" package_version="3.4.0.7.0" locale="fr_FR" charset="ISO-8859-1">
 
   <msg key="1_Euro_equals">1 Euro équivaut à:</msg>
   <msg key="_user_id">et un project_id peut être fourni. Mais il y a eu un souci avec eux...</msg>
@@ -41,13 +41,14 @@
   <msg key="Companies">Sociétés</msg>
   <msg key="Company">Société</msg>
   <msg key="Contact">Contact</msg>
-  <msg key="Contact_Info">Contacter durant absence</msg>
+  <msg key="Contact_Info">Info contact</msg>
   <msg key="context">contexte</msg>
   <msg key="Country">Pays:</msg>
   <msg key="Currency">Devise:</msg>
   <msg key="D">D</msg>
   <msg key="Daily_project_notes">Notes quotidiennes du projet</msg>
   <msg key="Date">Date</msg>
+  <msg key="Date_for_user">%pretty_date% pour %user_name_from_search%</msg>
   <msg key="Day">Jour</msg>
   <msg key="Day_of_Expense">Jour de dépense</msg>
   <msg key="DAYS">JOURS</msg>
@@ -123,7 +124,7 @@
   <msg key="lt_Description_field_is_">Le champ Description est obligatoire</msg>
   <msg key="lt_Description_is_mandat">Le champ Description est obligatoire. Veuillez décrire le but de la dépense. Dans le cas où il s'agir de &amp;quot;km parcourus avec sa voiture personnelle&amp;quot;, indiquez également le nombre de kilomètres. Le montant peut être écrit soit &amp;lt;B&amp;gt;&amp;quot;.&amp;quot;&amp;lt;/B&amp;gt;
 
-(American) ou &amp;lt;B&amp;gt;&amp;quot;,&amp;quot;&amp;lt;/B&amp;gt; (European) pour la décimale</msg>
+(format américain) ou &amp;lt;B&amp;gt;&amp;quot;,&amp;quot;&amp;lt;/B&amp;gt; (format européen) pour la décimale</msg>
   <msg key="lt_Display_all_hours_on_">Afficher toutes les heures sur tous les projets</msg>
   <msg key="lt_Error_in_project_entr">Erreur dans l'entrée de projet</msg>
   <msg key="lt_For_Vacation_Sickness">Pour les absences, maladies et formations, sélectionnez la tâche ressources humaines.</msg>
@@ -169,10 +170,12 @@
   <msg key="lt_To_send_proyect_infor">Pour envoyer les informations de paiement par email, cliquez</msg>
   <msg key="lt_To_send_this_informat">Pour envoyer ces informations par email, veuillez vous rendre dans la barre de menus internet explorer et cliquer sur 'Fichier-&gt; Envoyer-&gt;Page par email...' (cette option ignore les valeurs que vous avez sélectionnées dans les filtres)</msg>
   <msg key="lt_Today_you_didnt_log_y">Aujourd'hui, vous n'avez pas encore saisi vos heures!</msg>
+  <msg key="lt_Total_Company_visa_Eu">Total (visa de la société) en euros:</msg>
   <msg key="lt_total_hours_hours_bet">%total_hours% heures entre %first_day_str% et %last_day_str%</msg>
   <msg key="lt_total_hours_units_bet">%total_hours% unités entre %first_day_str% et %last_day_str%</msg>
   <msg key="lt_total_hours_units_bet_1">%total_hours% unités entre %first_day_str% et %last_day_str%</msg>
-  <msg key="lt_Unexpected_Database_E">Erreur inattendue</msg>
+  <msg key="lt_Total_not_company_vis">Total (pas de visa de la société) en euros:</msg>
+  <msg key="lt_Unexpected_Database_E">Erreur base de données inattendue</msg>
   <msg key="lt_Units_on_all_projects">Unités sur tous les projets</msg>
   <msg key="lt_Units_on_item_by_user">Unités sur &quot;%item%&quot; par %user_name%</msg>
   <msg key="lt_User_user_id_does_not">L'utilisateur %user_id% n'existe pas</msg>
@@ -221,7 +224,7 @@
   <msg key="Not_member_of_project">Vous n'êtes pas membre de ce projet.</msg>
   <msg key="Not_Member_of_Projects">Vous n'êtes membre d'aucun projet en cours.</msg>
   <msg key="Notes">Notes :</msg>
-  <msg key="Notice">Congé</msg>
+  <msg key="Notice">Avertissement</msg>
   <msg key="Nov">Nov</msg>
   <msg key="November">Novembre</msg>
   <msg key="O">O</msg>
@@ -235,6 +238,7 @@
   <msg key="Paid_by_Co">Payé par la société?</msg>
   <msg key="Past">Passé</msg>
   <msg key="Percentage">Pourcentage</msg>
+  <msg key="Printer_Friendly">Version imprimable</msg>
   <msg key="Project">Projet</msg>
   <msg key="Project_br_Name">Nom du&amp;lt;br&amp;gt;projet</msg>
   <msg key="Project_History">Historique du projet</msg>
@@ -246,6 +250,7 @@
   <msg key="Rate_Per_Km">Prix par Km.</msg>
   <msg key="Rates">Tarif</msg>
   <msg key="Real">Réel</msg>
+  <msg key="Restrict_date">Date limite</msg>
   <msg key="S">S</msg>
   <msg key="Saturday">Samedi</msg>
   <msg key="Save">Enregistrer</msg>

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
-<message_catalog package_key="intranet-timesheet2" package_version="3.4.0.6.0" locale="de_DE" charset="ISO-8859-1">
+<message_catalog package_key="intranet-timesheet2" package_version="3.4.0.7.0" locale="de_DE" charset="ISO-8859-1">
 
   <msg key="1_Euro_equals">1 Euro entspricht</msg>
   <msg key="_user_id">und die Projekt ID kann bereit gestellt werden. Aber es gab einige Probleme mit ihnen...</msg>
@@ -44,6 +44,7 @@
   <msg key="Casex_Summary">CASEX Zusammenfassung</msg>
   <msg key="Category_Summaries">Zusammenfassungen Kategorien</msg>
   <msg key="Choose_project">Projekt wählen</msg>
+  <msg key="Choose_projects_for_user">Projekte auswählen für  %user_name_from_search%</msg>
   <msg key="comma_separated">Komma separiert</msg>
   <msg key="Comp_VISA">Mit Kreditkarte bezahlt?</msg>
   <msg key="Companies">Firmen</msg>
@@ -56,8 +57,14 @@
   <msg key="D">D</msg>
   <msg key="Daily_project_notes">Tägliche Projektnotizen</msg>
   <msg key="Date">Datum</msg>
+  <msg key="Date_for_user">%pretty_date% für %user_name_from_search%</msg>
   <msg key="Day">Tag</msg>
   <msg key="Day_of_Expense">Kostendatum</msg>
+  <msg key="Day_of_week_Fri">Fr</msg>
+  <msg key="Day_of_week_Mon">Mo</msg>
+  <msg key="Day_of_week_Thu">Do</msg>
+  <msg key="Day_of_week_Tue">Di</msg>
+  <msg key="Day_of_week_Wed">Mi</msg>
   <msg key="DAYS">Tage</msg>
   <msg key="days">Tage</msg>
   <msg key="Dec">Dez</msg>
@@ -107,6 +114,7 @@
   <msg key="Hours_Summary">Zusammenfassung Stunden</msg>
   <msg key="hours_units">%hours% Stunden</msg>
   <msg key="I">I</msg>
+  <msg key="Internal_Comment">Interner Kommentar</msg>
   <msg key="J">J</msg>
   <msg key="January">Januar</msg>
   <msg key="July">July</msg>
@@ -118,7 +126,9 @@
   <msg key="Local">Lokal</msg>
   <msg key="Log_Absences">Abwesenheiten melden</msg>
   <msg key="log_dedication">Stunden erfassen</msg>
+  <msg key="Log_Hours">Stunden kontieren</msg>
   <msg key="log_hours">Stunden erfassen</msg>
+  <msg key="Log_hours_for_user">Stunden für:</msg>
   <msg key="Log_your_hours">Erfassen sie ihre Stunden</msg>
   <msg key="lt_A_total_of_total_hour">Es wurden insgesamt %total_hours_str% Stunden auf diesem Projekt erfaßt.</msg>
   <msg key="lt_Add_hours_on_other_pr">Stunden erfassen auf anderen Projekten</msg>
@@ -222,13 +232,19 @@
   <msg key="Name">Name</msg>
   <msg key="New_Absence">Neue Abwesenheit</msg>
   <msg key="New_Absence_Type">Neue %absence_type% </msg>
+  <msg key="New_Bank_Holiday">Neuer Feiertag</msg>
+  <msg key="New_Personal_Absence">Neue Abwesenheit (privat)</msg>
+  <msg key="New_Sick_Leave">Neue Abwesenheit (Krankheit)</msg>
+  <msg key="New_Travel_Absence">Neue Abwesenheit (Reise)</msg>
+  <msg key="New_Vacation_Absence">Neu Abwesenheit (Urlaub)</msg>
   <msg key="Next_Month">Nächster Monat</msg>
   <msg key="No_Data_found">Keine Daten gefunden</msg>
   <msg key="No_hours_logged">Keine Stunden erfaßt</msg>
   <msg key="No_Users_found">Kein Benutzer gefunden.</msg>
   <msg key="No_users_found">Keine Benutzer gefunden.</msg>
   <msg key="none">kein</msg>
-  <msg key="Not_Member_of_Projects">Sie sind von keinem offenem Projekt Mitglied.</msg>
+  <msg key="Not_member_of_project">Sie sind nicht Mitglied dieses Projekts.</msg>
+  <msg key="Not_Member_of_Projects">Sie sind in keinem derzeit offenen Projekt Mitglied.</msg>
   <msg key="Notes">Notizen</msg>
   <msg key="Notice">Notiz</msg>
   <msg key="Nov">Nov</msg>
@@ -244,7 +260,10 @@
   <msg key="Paid_by_Co">Von der Firma bereits bezahlt?</msg>
   <msg key="Past">Vergangen</msg>
   <msg key="Percentage">Prozent</msg>
+  <msg key="Printer_Friendly">Druckerfreundliche Version</msg>
   <msg key="Project">Projekt</msg>
+  <msg key="Project_br_Name">Projekt
+name</msg>
   <msg key="Project_History">Projekthistorie</msg>
   <msg key="Project_name">Projektname</msg>
   <msg key="Project_Summaries">Projektzusammenfassung</msg>
@@ -258,12 +277,12 @@
   <msg key="S">S</msg>
   <msg key="Saturday">Samstag</msg>
   <msg key="Save">Speichern</msg>
-  <msg key="Select_a_company">Wählen sie eine Firma</msg>
-  <msg key="select_a_company">Wählen sie eine Firma</msg>
-  <msg key="Select_a_task">Wählen sie eine Aufgabe</msg>
-  <msg key="select_a_task">Wählen sie eine Aufgabe</msg>
-  <msg key="Select_an_expense">Wählen sie Kosten</msg>
-  <msg key="select_an_expense">Wählen sie Kosten</msg>
+  <msg key="Select_a_company">Wählen Sie eine Firma</msg>
+  <msg key="select_a_company">Wählen Sie eine Firma</msg>
+  <msg key="Select_a_task">Wählen Sie eine Aufgabe</msg>
+  <msg key="select_a_task">Wählen Sie eine Aufgabe</msg>
+  <msg key="Select_an_expense">Wählen Sie Kosten</msg>
+  <msg key="select_an_expense">Wählen Sie Kosten</msg>
   <msg key="Send">Senden</msg>
   <msg key="Send_From">Senden von</msg>
   <msg key="Send_project_report">Projektreport senden</msg>
@@ -281,10 +300,12 @@
   <msg key="Sunday">Sonntag</msg>
   <msg key="T">T</msg>
   <msg key="Tasks">Aufgaben</msg>
+  <msg key="The_week_for_user">Die Woche für %user_name_from_search%</msg>
   <msg key="this_day_entry">Einträge von heute</msg>
   <msg key="Thursday">Donnerstag</msg>
   <msg key="Timescale">Zeitskala</msg>
   <msg key="Timesheet">Zeiterfassung</msg>
+  <msg key="Timesheet_for_user_name">Zeiterfassung für %user_name%</msg>
   <msg key="Timesheet_Summary">Zusammenfassung Stunden</msg>
   <msg key="to">an</msg>
   <msg key="Today">Heute</msg>
@@ -316,7 +337,7 @@
   <msg key="Wednesday">Mittwoch</msg>
   <msg key="Week">Woche</msg>
   <msg key="Week_total">Woche total</msg>
-  <msg key="Week_total_1">Woche total</msg>
+  <msg key="Week_total_1">Woche gesamt</msg>
   <msg key="Weekly_hours">Wöchentliche Stunden</msg>
   <msg key="Work_done">Geleistete Arbeit</msg>
   <msg key="Worked_Day">Arbeitstag</msg>

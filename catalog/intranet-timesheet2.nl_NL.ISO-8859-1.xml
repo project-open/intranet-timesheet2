@@ -1,22 +1,22 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
-<message_catalog package_key="intranet-timesheet2" package_version="3.4.0.6.0" locale="nl_NL" charset="ISO-8859-1">
+<message_catalog package_key="intranet-timesheet2" package_version="3.4.0.7.0" locale="nl_NL" charset="ISO-8859-1">
 
   <msg key="1_Euro_equals">1 Euro is gelijk aan</msg>
   <msg key="_user_id">en project_id kunnen worden geleverd. Maar er is een probleem geconstateerd....</msg>
   <msg key="A">een</msg>
   <msg key="Absence">Afwezigheid</msg>
-  <msg key="Absence_Type">Afwezigheid type</msg>
+  <msg key="Absence_Type">Reden afwezig</msg>
   <msg key="Absence_Type_1">Afwezigheid type</msg>
   <msg key="Absences">Afwezigheid</msg>
   <msg key="absences">Afwezigheid</msg>
   <msg key="Absent">Afwezig</msg>
   <msg key="Absent_1">Afwezig</msg>
-  <msg key="Add_a_new_Absence">Voeg een nieuwe afwezigheid toe</msg>
+  <msg key="Add_a_new_Absence">Toevoegen nieuwe afwezigheid</msg>
   <msg key="Add_hours">Voeg uren toe</msg>
   <msg key="Add_lines">Voeg een regel toe</msg>
   <msg key="Add_more_lines">Voeg meer regels toe</msg>
   <msg key="Admin">Admin</msg>
-  <msg key="Admin_Absences">Beheer afwezigheid</msg>
+  <msg key="Admin_Absences">Afwezigheidsbeheer</msg>
   <msg key="Administration">Administratie</msg>
   <msg key="All">alles</msg>
   <msg key="All_dates">alle data</msg>
@@ -38,9 +38,14 @@
   <msg key="Budget">Budget</msg>
   <msg key="C">C</msg>
   <msg key="Calendar">Kalender</msg>
+  <msg key="Case">Casus</msg>
+  <msg key="Casex">Casex</msg>
+  <msg key="Casex_for">Casex for</msg>
+  <msg key="Casex_Summary">Casex Summary</msg>
   <msg key="Category_Summaries">Samenvatting categorieen</msg>
   <msg key="Choose_project">Kies project</msg>
   <msg key="comma_separated">komma gescheiden</msg>
+  <msg key="Comp_VISA">Bedrijfscreditcard?</msg>
   <msg key="Companies">Berdrijven </msg>
   <msg key="Company">Bedrijf</msg>
   <msg key="Contact">Contact</msg>
@@ -77,10 +82,11 @@
   <msg key="Eurocalculator">Eurocalculator</msg>
   <msg key="Excel_hour_report">Excel urenrapport</msg>
   <msg key="Expense_Code">Onkosten code</msg>
+  <msg key="Expense_Dedication">Toewijzing onkosten</msg>
   <msg key="F">F</msg>
   <msg key="February">Februari</msg>
   <msg key="Filter">Filter</msg>
-  <msg key="Filter_Absences">Filter Afwezigheden</msg>
+  <msg key="Filter_Absences">Filter afwezigheid</msg>
   <msg key="Filter_Tasks">Filter taken</msg>
   <msg key="For_which_project">Voor welk project:</msg>
   <msg key="Friday">Vrijdag</msg>
@@ -93,6 +99,7 @@
   <msg key="Grand_Total">Uiteindelijke totaal</msg>
   <msg key="H">H</msg>
   <msg key="here">hier</msg>
+  <msg key="Hour_logging__Casex">Hour logging &amp;amp; Casex</msg>
   <msg key="Hours">Uren</msg>
   <msg key="hours">uren</msg>
   <msg key="Hours_1">Uren:</msg>
@@ -113,7 +120,8 @@
   <msg key="Last_3_months">Laatste 3 maanden</msg>
   <msg key="Local">Lokaal</msg>
   <msg key="Log_Absences">Verlof declareren</msg>
-  <msg key="log_hours">Uren verantwoord</msg>
+  <msg key="log_dedication">Toewijzing invoeren</msg>
+  <msg key="log_hours">Uren invoeren</msg>
   <msg key="Log_hours_for_user">Vastleggen voor:</msg>
   <msg key="Log_your_hours">Voer uw uren in</msg>
   <msg key="lt_A_total_of_total_hour">In het totaal zijn %total_hours_str% zijn op dit project geschreven.</msg>
@@ -125,6 +133,10 @@
   <msg key="lt_Click_me_for_download">Klik hier om de report.csv file te downloaden.</msg>
   <msg key="lt_Click_on_a_persons_na">Klik op een persoonsnaam om een gedetailleerd overzicht te zien.</msg>
   <msg key="lt_Click_on_a_project_na">Klik op de projectnaam om de breakdown te zien van de gegevens per persoon</msg>
+  <msg key="lt_Dedication_days_repor">Toewijzing dagrapport</msg>
+  <msg key="lt_Dedication_Logging__C">Dedication Logging &amp;amp; Casex by %user_name%</msg>
+  <msg key="lt_Dedication_Logging__C_1">Dedication Logging &amp;amp; Casex</msg>
+  <msg key="lt_Dedication_logging_fo">Toewijzing invoering voor</msg>
   <msg key="lt_Description_field_is_">Invullen van het omschrijving veld is verplicht</msg>
   <msg key="lt_Description_is_mandat">Beschrijving is verplicht. Beschrijf het doel van deze onkosten. In het geval van 'km met eigen vervoer'dient u ook het aantal kilometers te vermelden. De hoeveelheid kan worden ingevoerd in &lt;B&gt;&quot;.&quot;&lt;/B&gt; (VS) of &lt;B&gt;&quot;,&quot;&lt;/B&gt; (EU) voor de decimale punt</msg>
   <msg key="lt_Display_all_hours_on_">Laat alle uren op alle projecten zien</msg>
@@ -133,6 +145,7 @@
   <msg key="lt_For_Vacation_Sickness_1">Selecteer de taak Human Resources om vakantie (Land en stad), ziekte en training te registreren</msg>
   <msg key="lt_Full_Time_Equivalents">FTE</msg>
   <msg key="lt_Go_back_to_where_you_">Ga terug naar waar u was</msg>
+  <msg key="lt_Hour_logging__Casex_b">Hour logging &amp;amp; Casex by %user_name%</msg>
   <msg key="lt_Hours_for_pretty_date">Uren van %pretty_date%</msg>
   <msg key="lt_Hours_for_user_name_W">Uren voor $user_name (week start %date_value%)</msg>
   <msg key="lt_hours_spend_on_projec">Geschreven uren op project &quot;%project_name%&quot;</msg>
@@ -173,9 +186,11 @@
   <msg key="lt_To_send_proyect_infor">Klik hier om per e-mail project informatie te verzenden</msg>
   <msg key="lt_To_send_this_informat">Om deze informatie per email te verzenden moet u naar de Microsoft Internet Explorer menu balk gaan en klikken op 'Bestand -&gt; verzenden -&gt; pagina per email...' (deze optie gaat voorbij aan de waarden die u heeft ingegeven bij filtering)</msg>
   <msg key="lt_Today_you_didnt_log_y">U heeft vandaag uw tijdlijst niet ingevoerd!</msg>
+  <msg key="lt_Total_Company_visa_Eu">Totaal (bedrijfscreditcard) Euros:</msg>
   <msg key="lt_total_hours_hours_bet">%total_hours% uren van %first_day_str% tot en met %last_day_str%</msg>
   <msg key="lt_total_hours_units_bet">%total_hours% eenheden tussen %first_day_str% en %last_day_str%</msg>
   <msg key="lt_total_hours_units_bet_1">%total_hours% eenheden tussen %first_day_str% en %last_day_str%</msg>
+  <msg key="lt_Total_not_company_vis">Totaal (geen bedrijfscreditcard) Euros:</msg>
   <msg key="lt_Unexpected_Database_E">Onverwachte Database fout</msg>
   <msg key="lt_Units_on_all_projects">Eenheden op alle projecten</msg>
   <msg key="lt_Units_on_item_by_user">Eenheden op &quot;%item%&quot; per %user_name%</msg>
@@ -239,6 +254,7 @@
   <msg key="Paid_by_Co">Betaald door Co.?</msg>
   <msg key="Past">Verleden</msg>
   <msg key="Percentage">Percentage</msg>
+  <msg key="Printer_Friendly">Printer vriendelijke versie</msg>
   <msg key="Project">Project</msg>
   <msg key="Project_br_Name">Project&lt;br&gt;naam</msg>
   <msg key="Project_History">Gproject geschiedenis</msg>
@@ -250,6 +266,7 @@
   <msg key="Rate_Per_Km">Bedrag per Km.</msg>
   <msg key="Rates">Tarieven</msg>
   <msg key="Real">Werkelijk</msg>
+  <msg key="Restrict_date">Beperk datum</msg>
   <msg key="S">S</msg>
   <msg key="Saturday">Zaterdag</msg>
   <msg key="Save">Opslaan</msg>
@@ -307,6 +324,7 @@
   <msg key="View_employees_hours">Bekijk uren medewerker</msg>
   <msg key="View_employees_units">Bekijk uren medewerker</msg>
   <msg key="View_History">Toon geschiedenis</msg>
+  <msg key="Visa_Amount">Bedrag creditcard</msg>
   <msg key="W">W</msg>
   <msg key="Wednesday">Woensdag</msg>
   <msg key="Week">Week</msg>

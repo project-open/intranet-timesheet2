@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
-<message_catalog package_key="intranet-timesheet2" package_version="3.4.0.6.0" locale="it_IT" charset="ISO-8859-1">
+<message_catalog package_key="intranet-timesheet2" package_version="3.4.0.7.0" locale="it_IT" charset="ISO-8859-1">
 
   <msg key="1_Euro_equals">1 Euro equivale a:</msg>
   <msg key="_user_id">e project_id possono essere forniti. Ma c'è stato un problema con essi...</msg>
@@ -44,6 +44,7 @@
   <msg key="Casex_Summary">Riepilogo casex</msg>
   <msg key="Category_Summaries">Riepilogo categorie</msg>
   <msg key="Choose_project">Scegli progetto</msg>
+  <msg key="Choose_projects_for_user">Scegliere progetti dell'utente %user_name_from_search%</msg>
   <msg key="comma_separated">separato da virgole</msg>
   <msg key="Comp_VISA">Comp. VISA?</msg>
   <msg key="Companies">Aziende</msg>
@@ -59,6 +60,11 @@
   <msg key="Date_for_user">%pretty_date% per %user_name_from_search%</msg>
   <msg key="Day">Giorno</msg>
   <msg key="Day_of_Expense">Giorno di spesa</msg>
+  <msg key="Day_of_week_Fri">Ven</msg>
+  <msg key="Day_of_week_Mon">Lun</msg>
+  <msg key="Day_of_week_Thu">Gio</msg>
+  <msg key="Day_of_week_Tue">Mar</msg>
+  <msg key="Day_of_week_Wed">Mer</msg>
   <msg key="DAYS">GIORNI</msg>
   <msg key="days">giorni</msg>
   <msg key="Dec">Dic</msg>
@@ -121,6 +127,7 @@
   <msg key="Local">Locale</msg>
   <msg key="Log_Absences">Registra assenze</msg>
   <msg key="log_dedication">registra dedizione</msg>
+  <msg key="Log_Hours">Inserisci ore</msg>
   <msg key="log_hours">inserisci ore</msg>
   <msg key="Log_hours_for_user">Inserisci per:</msg>
   <msg key="Log_your_hours">Registra le ore</msg>
@@ -198,9 +205,9 @@
   <msg key="lt_User_user_id_does_not_1">L'utente #%user_id% non esiste. Tornare indietro e riprovare</msg>
   <msg key="lt_View_hours_logged_by_">Visualizza le ore registrate dai membri del team</msg>
   <msg key="lt_View_hours_logged_dur">Visualizza le ore inserite da tutti la settimana scorsa</msg>
-  <msg key="lt_View_the_hours_logged">Visualizza ore inserite da altri</msg>
-  <msg key="lt_View_time_spent_on_al">Visualizza ore spese da tutti su tutti i progetti</msg>
-  <msg key="lt_View_your_hours_on_al">Visualizza le tue ore spese su tutti i progetti</msg>
+  <msg key="lt_View_the_hours_logged">Visualizza le ore inserite da altri</msg>
+  <msg key="lt_View_time_spent_on_al">Visualizza le ore inserite da tutti su tutti i progetti</msg>
+  <msg key="lt_View_your_hours_on_al">Visualizza le proprie ore inserite su tutti i progetti</msg>
   <msg key="lt_We_couldnt_find_absen">Impossibile trovare l'assenza #%absence_id%; apparentemente c'è un errore nella pagina.</msg>
   <msg key="lt_We_couldnt_find_the_u">Impossibile trovare l'utente #%user_id% nel database. Tornare indietro, aggiornare e riprovare.</msg>
   <msg key="lt_We_got_an_error_delet">Errore nell'eliminazione di questa transazione</msg>
@@ -254,6 +261,7 @@
   <msg key="Paid_by_Co">Pagato a Co.?</msg>
   <msg key="Past">Passato</msg>
   <msg key="Percentage">Percentuale</msg>
+  <msg key="Printer_Friendly">Versione da stampare</msg>
   <msg key="Project">Progetto</msg>
   <msg key="Project_br_Name">Nome&lt;br /&gt;progetto</msg>
   <msg key="Project_History">Cronologia progetto</msg>
@@ -292,6 +300,7 @@
   <msg key="Sunday">Domenica</msg>
   <msg key="T">T</msg>
   <msg key="Tasks">Attività</msg>
+  <msg key="The_week_for_user">La settimana di %user_name_from_search%</msg>
   <msg key="this_day_entry">questo inserimento del giorno</msg>
   <msg key="Thursday">Giovedì</msg>
   <msg key="Timescale">Periodo:</msg>

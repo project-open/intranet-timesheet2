@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
-<message_catalog package_key="intranet-timesheet2" package_version="3.4.0.6.0" locale="en_US" charset="ISO-8859-1">
+<message_catalog package_key="intranet-timesheet2" package_version="3.4.0.7.0" locale="en_US" charset="ISO-8859-1">
 
   <msg key="1_Euro_equals">1 Euro equals:</msg>
   <msg key="_user_id">and project_id can be provided. But there was some problem with them...</msg>
@@ -44,6 +44,7 @@
   <msg key="Casex_Summary">Casex Summary</msg>
   <msg key="Category_Summaries">Category Summaries</msg>
   <msg key="Choose_project">Choose project</msg>
+  <msg key="Choose_projects_for_user">Choose projects for user %user_name_from_search%</msg>
   <msg key="comma_separated">comma separated</msg>
   <msg key="Comp_VISA">Comp. VISA?</msg>
   <msg key="Companies">Companies</msg>
@@ -59,6 +60,11 @@
   <msg key="Date_for_user">%pretty_date% for %user_name_from_search%</msg>
   <msg key="Day">Day</msg>
   <msg key="Day_of_Expense">Day of Expense</msg>
+  <msg key="Day_of_week_Fri">Fri</msg>
+  <msg key="Day_of_week_Mon">Mon</msg>
+  <msg key="Day_of_week_Thu">Thu</msg>
+  <msg key="Day_of_week_Tue">Tue</msg>
+  <msg key="Day_of_week_Wed">Wed</msg>
   <msg key="DAYS">DAYS</msg>
   <msg key="days">days</msg>
   <msg key="Dec">Dec</msg>
@@ -121,6 +127,7 @@
   <msg key="Local">Local</msg>
   <msg key="Log_Absences">Log Absences</msg>
   <msg key="log_dedication">log dedication</msg>
+  <msg key="Log_Hours">Log Hours</msg>
   <msg key="log_hours">log hours</msg>
   <msg key="Log_hours_for_user">Log for:</msg>
   <msg key="Log_your_hours">Log your hours</msg>
@@ -263,6 +270,7 @@ of those units were billed hourly, for a total amount of</msg>
   <msg key="Paid_by_Co">Paid by Co.?</msg>
   <msg key="Past">Past</msg>
   <msg key="Percentage">Percentage</msg>
+  <msg key="Printer_Friendly">Printer-friendly version</msg>
   <msg key="Project">Project</msg>
   <msg key="Project_br_Name">Project&lt;br&gt;Name</msg>
   <msg key="Project_History">Project History</msg>
@@ -301,6 +309,7 @@ of those units were billed hourly, for a total amount of</msg>
   <msg key="Sunday">Sunday</msg>
   <msg key="T">T</msg>
   <msg key="Tasks">Tasks</msg>
+  <msg key="The_week_for_user">The week for %user_name_from_search%</msg>
   <msg key="this_day_entry">this day entry</msg>
   <msg key="Thursday">Thursday</msg>
   <msg key="Timescale">Timescale:</msg>
