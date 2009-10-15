@@ -93,6 +93,7 @@
   <msg key="February">Febrero</msg>
   <msg key="Filter">Filtro</msg>
   <msg key="Filter_Absences">Filtrar ausencias</msg>
+  <msg key="Filter_Tasks">Filtrar tareas</msg>
   <msg key="For_which_project">Para que proyecto:</msg>
   <msg key="Friday">Viernes</msg>
   <msg key="From">De:</msg>
@@ -191,7 +192,7 @@
   <msg key="lt_Timeline_for_project_">Calendario para %project_name%</msg>
   <msg key="lt_To_send_proyect_infor">Clic para enviar información del proyecto por correo-e</msg>
   <msg key="lt_To_send_this_informat">Para enviar esta información por correo-e, por favor seleccione en su navegador &quot;Archivo-&gt;Enviar...&quot; (Mozilla Firefox) o &quot;Archivo-&gt;Enviar-&gt;Página por correo electrónico...&quot; (Internet Explorer) (este comando ignora los valores que haya seleccionado en los filtros)</msg>
-  <msg key="lt_Today_you_didnt_log_y">¡No ha registrado sus horas aun hoy!</msg>
+  <msg key="lt_Today_you_didnt_log_y">¡Todavía no ha registrado sus horas de hoy!</msg>
   <msg key="lt_Total_Company_visa_Eu">Total (Company visa) Euros:</msg>
   <msg key="lt_total_hours_hours_bet">%total_hours% horas entre %first_day_str% y %last_day_str%</msg>
   <msg key="lt_total_hours_units_bet">%total_hours% unidades entre %first_day_str% y %last_day_str%</msg>
@@ -232,12 +233,18 @@
   <msg key="Name">Nombre</msg>
   <msg key="New_Absence">Nueva ausencia</msg>
   <msg key="New_Absence_Type">Nueva %absence_type%</msg>
+  <msg key="New_Bank_Holiday">Añadir Festivo</msg>
+  <msg key="New_Personal_Absence">Añadir ausencia por asuntos propios</msg>
+  <msg key="New_Sick_Leave">Añadir baja por enfermedad</msg>
+  <msg key="New_Travel_Absence">Añadir ausencia por viaje</msg>
+  <msg key="New_Vacation_Absence">Añadir ausencia por vacaciones</msg>
   <msg key="Next_Month">Próximo mes</msg>
   <msg key="No_Data_found">No se han encontrado datos</msg>
   <msg key="No_hours_logged">¡No hay horas registradas!</msg>
   <msg key="No_Users_found">¡No se han encontrado usuarios!</msg>
   <msg key="No_users_found">No se han encontrado usuarios</msg>
   <msg key="none">ninguno</msg>
+  <msg key="Not_member_of_project">Vd. no es miembro de este proyecto.</msg>
   <msg key="Not_Member_of_Projects">You are not a member of any open project.</msg>
   <msg key="Notes">Notas:</msg>
   <msg key="Notice">Notice</msg>

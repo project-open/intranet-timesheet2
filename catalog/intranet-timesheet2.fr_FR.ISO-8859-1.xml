@@ -38,6 +38,7 @@
   <msg key="C">C</msg>
   <msg key="Calendar">Calendrier</msg>
   <msg key="Choose_project">Choisir un projet</msg>
+  <msg key="Choose_projects_for_user">Choisir un projet pour l'utilisateur %user_name_from_search% </msg>
   <msg key="Companies">Sociétés</msg>
   <msg key="Company">Société</msg>
   <msg key="Contact">Contact</msg>
@@ -51,6 +52,11 @@
   <msg key="Date_for_user">%pretty_date% pour %user_name_from_search%</msg>
   <msg key="Day">Jour</msg>
   <msg key="Day_of_Expense">Jour de dépense</msg>
+  <msg key="Day_of_week_Fri">Ven</msg>
+  <msg key="Day_of_week_Mon">Lun</msg>
+  <msg key="Day_of_week_Thu">Jeu</msg>
+  <msg key="Day_of_week_Tue">Mar</msg>
+  <msg key="Day_of_week_Wed">Mer</msg>
   <msg key="DAYS">JOURS</msg>
   <msg key="days">jours</msg>
   <msg key="Dec">Dec</msg>
@@ -110,6 +116,7 @@
   <msg key="L">L</msg>
   <msg key="Last_3_months">3 derniers mois</msg>
   <msg key="Log_Absences">Ajouter une absence</msg>
+  <msg key="Log_Hours">Heures Saisies</msg>
   <msg key="log_hours">Saisir ses heures</msg>
   <msg key="Log_your_hours">Saisir vos heures</msg>
   <msg key="lt_A_total_of_total_hour">%total_hours_str% unités ont été consommées au total sur ce projet.</msg>
