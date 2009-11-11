@@ -53,27 +53,22 @@ values (200, 'absence_list_home', 'view_absences_all');
 
 insert into im_view_columns (column_id, view_id, group_id, column_name, column_render_tcl,
 extra_select, extra_where, sort_order, visible_for) values (20001,200,NULL,'Name',
-'"<a href=$absence_view_url>$absence_name</a>"',
-'','',1,'');
+'"<a href=$absence_view_url>$absence_name</a>"','','',1,'');
 insert into im_view_columns (column_id, view_id, group_id, column_name, column_render_tcl,
 extra_select, extra_where, sort_order, visible_for) values (20003,200,NULL,'Date',
-'"$start_date - $end_date"',
-'','',3,'');
+'"$start_date - $end_date"','','',3,'');
 insert into im_view_columns (column_id, view_id, group_id, column_name, column_render_tcl,
 extra_select, extra_where, sort_order, visible_for) values (20005,200,NULL,'User',
-'"<a href=/intranet/users/view?user_id=$owner_id>$owner_name</a>"','','',5,'');
+'"$user_link"','','',5,'');
 insert into im_view_columns (column_id, view_id, group_id, column_name, column_render_tcl,
 extra_select, extra_where, sort_order, visible_for) values (20007,200,NULL,'Type',
 '"$absence_type"','','',7,'');
 insert into im_view_columns (column_id, view_id, group_id, column_name, column_render_tcl,
 extra_select, extra_where, sort_order, visible_for) values (20009,200,NULL,'Description',
-'"$description"',
-'','',9,'');
+'"$description"','','',9,'');
 insert into im_view_columns (column_id, view_id, group_id, column_name, column_render_tcl,
 extra_select, extra_where, sort_order, visible_for) values (20011,200,NULL,'Contact',
-'"$contact_info"',
-'','',11,'');
-
+'"$contact_info"','','',11,'');
 
 
 --------------------------------------------------------------

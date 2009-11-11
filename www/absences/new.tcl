@@ -75,6 +75,8 @@ set context [list $page_title]
 
 set read [im_permission $user_id "read_absences_all"]
 set write [im_permission $user_id "add_absences"]
+set add_absences_for_group_p [im_permission $user_id "add_absences_for_group"]
+
 if {[info exists absence_id]} {
     im_absence_permissions $user_id $absence_id view read write admin
 }
@@ -138,6 +140,25 @@ if {"delete" == $button_pressed} {
 # Build the form
 # ------------------------------------------------------------------
 
+set form_fields {
+	absence_id:key
+	{owner_id:text(hidden)}
+	{absence_name:text(text) {label "[_ intranet-timesheet2.Name]"} {html {size 40}}}
+	{absence_type_id:text(im_category_tree) {label "[_ intranet-timesheet2.Type]"} {custom {category_type "Intranet Absence Type"}}}
+}
+
+if {$add_absences_for_group_p} {
+
+    set group_options [im_profile::profile_options_all -translate_p 1]
+    set group_options [linsert $group_options 0 [list "" ""]]
+
+    lappend form_fields	{group_id:text(select),optional {label "[lang::message::lookup {} intranet-timesheet2.Valid_for_Group {Valid for Group}]"} {options $group_options}}
+
+} else {
+    # The user doesn't have the right to specify absences for groups - set group_id to NULL
+    set group_id ""
+}
+
 ad_form \
     -name absence \
     -cancel_url $cancel_url \
@@ -146,12 +167,7 @@ ad_form \
     -has_edit 1 \
     -mode $form_mode \
     -export {user_id return_url} \
-    -form {
-	absence_id:key
-	{owner_id:text(hidden)}
-	{absence_name:text(text) {label "[_ intranet-timesheet2.Name]"} {html {size 40}}}
-	{absence_type_id:text(im_category_tree) {label "[_ intranet-timesheet2.Type]"} {custom {category_type "Intranet Absence Type"}}}
-    }
+    -form $form_fields
 
 if {[im_permission $user_id edit_absence_status]} {
     set form_list {{absence_status_id:text(im_category_tree) {label "[lang::message::lookup {} intranet-timesheet2.Status Status]"} {custom {category_type "Intranet Absence Status"}}}}
@@ -269,7 +285,8 @@ ad_form -extend -name absence -on_request {
 
 	db_dml update_absence "
 		update im_user_absences	set
-			duration_days = :duration_days
+			duration_days = :duration_days,
+			group_id = :group_id
 		where absence_id = :absence_id
 	"
 
@@ -329,6 +346,7 @@ ad_form -extend -name absence -on_request {
 			start_date = $start_date_sql,
 			end_date = $end_date_sql,
 			duration_days = :duration_days,
+			group_id = :group_id,
 			absence_status_id = :absence_status_id,
 			absence_type_id = :absence_type_id,
 			description = :description,

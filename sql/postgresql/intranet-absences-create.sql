@@ -65,6 +65,9 @@ create table im_user_absences (
         owner_id                integer
                                 constraint im_user_absences_user_fk
                                 references users,
+	group_id		integer
+				constraint im_user_absences_group_fk
+				references groups,
         start_date              timestamptz
                                 constraint im_user_absences_start_const not null,
         end_date                timestamptz
@@ -98,6 +101,12 @@ add constraint owner_and_start_date_unique unique (owner_id, absence_type_id, st
 create index im_user_absences_user_id_idx on im_user_absences(owner_id);
 create index im_user_absences_dates_idx on im_user_absences(start_date, end_date);
 create index im_user_absences_type_idx on im_user_absences(absence_type_id);
+
+
+-- Check constraint to make sure that the owner_id isnt set accidentally
+-- if the absence refers to a group.
+alter table im_user_absences add constraint im_user_absences_group_ck 
+check (not (group_id is not null and absence_type_id != 5005));
 
 
 
@@ -210,17 +219,22 @@ SELECT acs_privilege__add_child('admin', 'add_absences');
 SELECT acs_privilege__create_privilege('view_absences_all','View Absences All','View Absences All');
 SELECT acs_privilege__add_child('admin', 'view_absences_all');
 
+-- add_absences_for_group allows to define absences for groups of users
+SELECT acs_privilege__create_privilege('add_absences_for_group','Add Absences For Group','Add Absences For Group');
+SELECT acs_privilege__add_child('admin', 'add_absences_for_group');
+
+
+
 -- Set default permissions per group
 SELECT im_priv_create('add_absences', 'Employees');
 SELECT im_priv_create('add_absences', 'Freelancers');
 
-SELECT im_priv_create('view_absences_all', 'Accounting');
 SELECT im_priv_create('view_absences_all', 'Employees');
-SELECT im_priv_create('view_absences_all', 'Freelancers');
-SELECT im_priv_create('view_absences_all', 'P/O Admins');
-SELECT im_priv_create('view_absences_all', 'Project Managers');
-SELECT im_priv_create('view_absences_all', 'Sales');
-SELECT im_priv_create('view_absences_all', 'Senior Managers');
+
+-- Allow the Accounting guys, HR dept and Senior managers to add absences for all users
+SELECT im_priv_create('add_absences_for_group', 'Accounting');
+SELECT im_priv_create('add_absences_for_group', 'HR Managers');
+SELECT im_priv_create('add_absences_for_group', 'Senior Managers');
 
 
 -- Privilege that determines if a user can override the Workflow
@@ -406,6 +420,50 @@ SELECT im_new_menu_perms('timesheet2_absences_bankholiday', 'Employees');
 
 
 
+
+
+create or replace function inline_0 ()
+returns integer as '
+declare
+	v_menu		   integer;	
+	v_parent_menu	   integer;
+	v_employees	   integer;
+	v_count		   integer;
+BEGIN
+    select group_id into v_employees from groups where group_name = ''Employees'';
+
+    select count(*) into v_count from im_menus where label = ''reporting-timesheet-weekly-report'';
+    IF v_count > 0 THEN return 0; END IF;
+
+    select menu_id into v_parent_menu from im_menus where label=''reporting-timesheet'';
+
+    v_menu := im_menu__new (
+	null,				-- p_menu_id
+	''acs_object'',			-- object_type
+	now(),				-- creation_date
+	null,				-- creation_user
+	null,				-- creation_ip
+	null,				-- context_id
+	''intranet-timesheet2'',	-- package_name
+	''reporting-timesheet-weekly-report'',	-- label
+	''Timesheet Weekly Report'',	-- name
+	''/intranet-timesheet2/weekly_report'', -- url
+	77,				-- sort_order
+	v_parent_menu,			-- parent_menu_id
+	null				-- p_visible_tcl
+    );
+
+    PERFORM acs_permission__grant_permission(v_menu, v_employees, ''read'');
+
+    return 0;
+end;' language 'plpgsql';
+select inline_0 ();
+drop function inline_0 ();
+
+
+
+
+
 -- ------------------------------------------------------
 -- Add DynFields
 -- ------------------------------------------------------
@@ -460,3 +518,5 @@ SELECT im_new_menu_perms('timesheet2_absences_bankholiday', 'Employees');
 -- 
 -- update acs_attributes set sort_order = 60
 -- where attribute_name = 'contact_info' and object_type = 'im_user_absence';
+
+

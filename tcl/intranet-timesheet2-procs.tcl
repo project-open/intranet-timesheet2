@@ -466,25 +466,45 @@ Please log your hours now or consult with your supervisor."
 
 
 ad_proc absence_list_for_user_and_time_period {user_id first_julian_date last_julian_date} {
-    For a given user and time period, this proc  returns a list 
+    For a given user and time period, this proc returns a list 
     of elements where each element corresponds to one day and describes its
     "work/vacation type".
 } {
     # Select all vacation periods that have at least one day
     # in the given time period.
     set sql "
-select
-	to_char(start_date,'J') as start_date,
-	to_char(end_date,'J') as end_date,
-	im_category_from_id(absence_type_id) as absence_type,
-	im_category_from_id(absence_status_id) as absence_status,
-        absence_id
-from 
-	im_user_absences
-where 
-	owner_id = :user_id
-	and start_date <= to_date(:last_julian_date,'J')
-	and end_date   >= to_date(:first_julian_date,'J')
+	-- Direct absences owner_id = user_id
+	select
+		to_char(start_date,'J') as start_date,
+		to_char(end_date,'J') as end_date,
+		im_category_from_id(absence_type_id) as absence_type,
+		im_category_from_id(absence_status_id) as absence_status,
+		absence_id
+	from 
+		im_user_absences
+	where 
+		owner_id = :user_id and
+		group_id is null and
+		start_date <= to_date(:last_julian_date,'J') and
+		end_date   >= to_date(:first_julian_date,'J')
+    UNION
+	-- Absences via groups - Check if the user is a member of group_id
+	select
+		to_char(start_date,'J') as start_date,
+		to_char(end_date,'J') as end_date,
+		im_category_from_id(absence_type_id) as absence_type,
+		im_category_from_id(absence_status_id) as absence_status,
+		absence_id
+	from 
+		im_user_absences
+	where 
+		group_id in (
+			select group_id
+			from group_element_index gei, membership_rels mr 
+			where gei.rel_id = mr.rel_id and mr.member_state = 'approved'
+		) and
+		start_date <= to_date(:last_julian_date,'J') and
+		end_date   >= to_date(:first_julian_date,'J')
     "
 
 
@@ -574,15 +594,9 @@ ad_proc im_timesheet_absences_sum {
     set hours_per_absence [parameter::get -package_id [im_package_timesheet2_id] -parameter "TimesheetHoursPerAbsence" -default 8]
 
     set num_absences [db_string absences_sum "
-	select
-		count(*)
-	from
-		im_user_absences a,
-		im_day_enumerator(now()::date - '7'::integer, now()::date) d
-	where
-		owner_id = :user_id
-		and a.start_date <= d.d
-		and a.end_date >= d.d
+	select	count(*)
+	from	(
+		) ttt
     " -default 0]
     if {"" == $num_absences} { set num_absences 0}
 
@@ -772,20 +786,21 @@ ad_proc -public im_hours_verify_user_id { { user_id "" } } {
 }
 
 ad_proc -public im_get_next_absence_link { { user_id } } {
-    Returns a html link with the next absence of the given user_id
+    Returns a html link with the next "personal"absence of the given user_id.
+    Do not show Bank Holidays.
 } {
     set sql "
-	select
-	     absence_id,
-	     to_char(start_date,'yyyy-mm-dd') as start_date,
-	     to_char(end_date, 'yyyy-mm-dd') as end_date
+	select	absence_id,
+		to_char(start_date,'yyyy-mm-dd') as start_date,
+		to_char(end_date, 'yyyy-mm-dd') as end_date
 	from
-	     im_user_absences, dual
+		im_user_absences, dual
 	where
-	     owner_id = :user_id and
-	     start_date >= to_date(sysdate,'yyyy-mm-dd')
+		owner_id = :user_id and
+		group_id is null and
+		start_date >= to_date(sysdate,'yyyy-mm-dd')
 	order by
-	     start_date, end_date
+		start_date, end_date
     "
 
     set ret_val ""

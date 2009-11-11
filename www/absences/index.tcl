@@ -54,6 +54,8 @@ set page_focus "im_header_form.keywords"
 set absences_url "/intranet-timesheet2/absences"
 set return_url [im_url_with_query]
 
+set add_absences_for_group_p [im_permission $user_id "add_absences_for_group"]
+
 if {![im_permission $user_id "view_absences"] && ![im_permission $user_id "view_absences_all"]} { 
     ad_return_complaint 1 "You don't have permissions to see absences"
     ad_script_abort
@@ -372,6 +374,10 @@ set idx $start_idx
 db_foreach absences_list $selection {
 
     set absence_view_url [export_vars -base "$absences_url/new" {absence_id return_url {form_mode "display"}}]
+
+    # Calculate the link for the user/group for which the absence is valid
+    set user_link "<a href=\"[export_vars -base "/intranet/users/view" {{user_id $owner_id}}]\">$owner_name</a>"
+    if {"" != $group_id} { set user_link [im_profile::profile_name_from_id -profile_id $group_id] }
 
     #Append together a line of data based on the "column_vars" parameter list
     append table_body_html "<tr$bgcolor([expr $ctr % 2])>\n"
