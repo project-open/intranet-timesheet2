@@ -286,6 +286,9 @@ foreach i $weekly_logging_days {
 	    regsub "," $hours_worked "." hours_worked
 	}
 
+	# Calculate worked days based on worked hours
+	set days_worked [expr $hours_worked / 10.0]
+
 	set action $action_hash($project_id)
 	ns_log Notice "hours/new-2: action=$action, project_id=$project_id"
 	switch $action {
@@ -294,14 +297,14 @@ foreach i $weekly_logging_days {
 		db_dml hours_insert "
 		    insert into im_hours (
 			user_id, project_id,
-			day, hours, 
+			day, hours, days,
 			billing_rate, billing_currency,
 			material_id,
 			note,
 			internal_note
 		     ) values (
 			:user_id_from_search, :project_id, 
-			to_date(:day_julian,'J'), :hours_worked, 
+			to_date(:day_julian,'J'), :hours_worked, :days_worked,
 			:billing_rate, :billing_currency, 
 			:material,
 			:note,
@@ -333,6 +336,7 @@ foreach i $weekly_logging_days {
 		update im_hours
 		set 
 			hours = :hours_worked, 
+			days = :days_worked,
 			note = :note,
 			internal_note = :internal_note,
 			cost_id = null,

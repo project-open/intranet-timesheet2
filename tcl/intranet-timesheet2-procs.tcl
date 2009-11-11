@@ -880,6 +880,10 @@ ad_proc im_absence_new_page_wf_perm_delete_button {
 		    -perm_table $perm_table
     ]
 
+#    ad_return_complaint 1 $perm_table
+
+
+
     ns_log Notice "im_absence_new_page_wf_perm_delete_button absence_id=$absence_id => $perm_set"
     return [expr [lsearch $perm_set "d"] > -1]
 }

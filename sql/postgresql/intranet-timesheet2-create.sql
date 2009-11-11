@@ -35,6 +35,7 @@ create table im_hours (
 				references im_projects,
 	day			timestamptz,
 	hours			numeric(5,2) not null,
+	days			numeric(5,2),
 	cost_id			integer
 				constraint im_hours_cost_fk
 				references im_costs,
