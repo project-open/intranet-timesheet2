@@ -596,6 +596,14 @@ ad_proc im_timesheet_absences_sum {
     set num_absences [db_string absences_sum "
 	select	count(*)
 	from	(
+		select	count(*)
+		from
+			im_user_absences a,
+			im_day_enumerator(now()::date - '7'::integer, now()::date) d
+		where
+			owner_id = :user_id
+			and a.start_date <= d.d
+			and a.end_date >= d.d
 		) ttt
     " -default 0]
     if {"" == $num_absences} { set num_absences 0}
