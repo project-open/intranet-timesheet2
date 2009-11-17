@@ -284,9 +284,7 @@ select
 	substring(a.contact_info from 1 for 40) as contact_info_pretty,
 	to_char(a.start_date, :date_format) as start_date_pretty,
 	to_char(a.end_date, :date_format) as end_date_pretty,
-	im_name_from_user_id(a.owner_id) as owner_name,
-	im_category_from_id(a.absence_status_id) as absence_status,
-	im_category_from_id(a.absence_type_id) as absence_type
+	im_name_from_user_id(a.owner_id) as owner_name
 from
 	im_user_absences a
 where
@@ -412,6 +410,10 @@ set bgcolor(1) " class=rowodd "
 set ctr 0
 set idx $start_idx
 db_foreach absences_list $selection {
+
+    # Use cached TCL function to implement localization
+    set absence_status [im_category_from_id $absence_status_id]
+    set absence_type [im_category_from_id $absence_type_id]
 
     set absence_view_url [export_vars -base "$absences_url/new" {absence_id return_url {form_mode "display"}}]
 
