@@ -363,7 +363,7 @@ if {$add_absences_p} {
     if {[string is integer $user_selection]} { set for_user_id $user_selection }
     set admin_html "
 	<ul>
-	<li><a href=[export_vars -base "$absences_url/new" {{user_id_from_search $for_user_id}}]>[_ intranet-timesheet2.Add_a_new_Absence]</a></li>
+	<li><a href=[export_vars -base "$absences_url/new" {{user_id_from_search $for_user_id} {return_url}}]>[_ intranet-timesheet2.Add_a_new_Absence]</a></li>
 	</ul>
     "
 }
