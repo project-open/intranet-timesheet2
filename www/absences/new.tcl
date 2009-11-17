@@ -22,6 +22,7 @@ if {![info exists panel_p]} {
     }
 }
 
+
 if {![info exists enable_master_p]} { set enable_master_p 1}
 
 # ------------------------------------------------------------------
@@ -253,7 +254,7 @@ ad_form -extend -name absence -on_request {
 
     # Check the number of absence days per interval
     set date_range_days [db_string date_range "select date($end_date_sql) - date($start_date_sql) + 1"]
-    if {$duration_days > $date_range_days} {
+    if {$duration_days > [expr $date_range_days+1]} {
 	ad_return_complaint 1 "<b>Date Range Error</b>:<br>Duration is longer then date interval."
 	ad_script_abort
     }
