@@ -68,7 +68,7 @@ if {![info exists absence_id]} {
 
 if {[exists_and_not_null user_id_from_search]} {
     set user_from_search_name [db_string name "select im_name_from_user_id(:user_id_from_search)" -default ""]
-    append page_title "for $user_from_search_name"
+    append page_title [lang::message::lookup "" intranet-timesheet2.for_username " for %user_from_search_name%"]
 }
 
 set context [list $page_title]
@@ -102,16 +102,23 @@ if {0 == $absence_type_id && ![info exists absence_id]} {
 
 set actions [list]
 
+# Check whether to show the "Edit" and "Delete" buttons.
+# These buttons only make sense if the absences already exists.
+#
 if {[info exists absence_id]} {
+    set absence_exists_p [db_string abs_ex "select count(*) from im_user_absences where absence_id = :absence_id"]
+    if {$absence_exists_p} {
 
-    set edit_perm_func [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter AbsenceNewPageWfEditButtonPerm -default "im_absence_new_page_wf_perm_edit_button"]
-    set delete_perm_func [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter AbsenceNewPageWfDeleteButtonPerm -default "im_absence_new_page_wf_perm_delete_button"]
+	set edit_perm_func [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter AbsenceNewPageWfEditButtonPerm -default "im_absence_new_page_wf_perm_edit_button"]
+	set delete_perm_func [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter AbsenceNewPageWfDeleteButtonPerm -default "im_absence_new_page_wf_perm_delete_button"]
 
-    if {[eval [list $edit_perm_func -absence_id $absence_id]]} {
-	lappend actions [list [lang::message::lookup {} intranet-timesheet2.Edit Edit] edit]
-    }
-    if {[eval [list $delete_perm_func -absence_id $absence_id]]} {
-	lappend actions [list [lang::message::lookup {} intranet-timesheet2.Delete Delete] delete]
+	if {[eval [list $edit_perm_func -absence_id $absence_id]]} {
+	    lappend actions [list [lang::message::lookup {} intranet-timesheet2.Edit Edit] edit]
+	}
+	if {[eval [list $delete_perm_func -absence_id $absence_id]]} {
+	    lappend actions [list [lang::message::lookup {} intranet-timesheet2.Delete Delete] delete]
+
+	}
     }
 }
 

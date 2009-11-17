@@ -61,7 +61,15 @@ set materials_p [parameter::get_from_package_key -package_key intranet-timesheet
 set material_name ""
 set material_id ""
 
+# should we limit the max number of hours logged per day?
 set max_hours_per_day [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter TimesheetMaxHoursPerDay -default 999]
+
+# Conversion factor to calculate days from hours. Make sure it's a float number.
+set hours_per_day [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter TimesheetHoursPerDay -default 10]
+set hours_per_day [expr $hours_per_day * 1.0]
+
+set limit_to_one_day_per_main_project_p [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter TimesheetLimitToOneDayPerUserAndMainProjectP -default 1]
+
 
 if {![im_column_exists im_hours internal_note]} {
     ad_return_complaint 1 "Internal error in intranet-timesheet2:<br>
@@ -287,7 +295,10 @@ foreach i $weekly_logging_days {
 	}
 
 	# Calculate worked days based on worked hours
-	set days_worked [expr $hours_worked / 10.0]
+	set days_worked ""
+	if {"" != $hours_worked} {
+	    set days_worked [expr $hours_worked / :hours_per_day]
+	}
 
 	set action $action_hash($project_id)
 	ns_log Notice "hours/new-2: action=$action, project_id=$project_id"
@@ -351,6 +362,65 @@ foreach i $weekly_logging_days {
 	}
     }
     # end of looping through days
+
+
+    if {$limit_to_one_day_per_main_project_p} {
+	# Timesheet Correction Function:
+	# Limit the number of days logged per project and day to 1.0
+	# (the customer would be surprised to see one guy charging 
+	# more then one day...
+	# This query determines the logged hours per main project.
+	set ts_correction_sql "
+	select
+		project_id as correction_project_id,
+		sum(hours) as correction_hours
+	from
+		(select	h.hours,
+			parent.project_id,
+			parent.project_name,
+			h.day::date,
+			h.user_id
+		from	im_projects parent,
+			im_projects children,
+			im_hours h
+		where	
+			parent.parent_id is null and
+			h.user_id = :user_id and
+			h.day::date = to_date(:day_julian,'J') and
+			children.tree_sortkey between 
+				parent.tree_sortkey and 
+				tree_right(parent.tree_sortkey) and
+			h.project_id = children.project_id
+		) h
+	group by project_id
+	having sum(hours) > :hours_per_day
+        "
+	db_foreach ts_correction $ts_correction_sql {
+
+	    # We have found a project with with more then $hours_per_day
+	    # hours logged on it by a single user and a single days.
+	    # We now need to cut all logged _days_ (not hours...) by
+	    # the factor sum(hour)/$hours_per_day so that at the end we
+	    # will get exactly one day logged to the main project.
+	    set correction_factor [expr $hours_per_day/$correction_hours]
+	    db_dml appy_correction_factor "
+		update im_hours set days = days * :correction_factor
+		where
+			day = to_date(:day_julian,'J') and
+			user_id = :user_id and
+			project_id in (
+				select	children.project_id
+				from	im_projects parent,
+					im_projects children
+				where	parent.parent_id = :correction_project_id and
+					children.tree_sortkey between 
+						parent.tree_sortkey and 
+						tree_right(parent.tree_sortkey)
+			)
+	    "
+
+	}
+    }
 
 }
 

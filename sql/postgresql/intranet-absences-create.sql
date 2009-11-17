@@ -447,7 +447,7 @@ BEGIN
 	''intranet-timesheet2'',	-- package_name
 	''reporting-timesheet-weekly-report'',	-- label
 	''Timesheet Weekly Report'',	-- name
-	''/intranet-timesheet2/weekly_report'', -- url
+	''/intranet-timesheet2/weekly_report?'', -- url
 	77,				-- sort_order
 	v_parent_menu,			-- parent_menu_id
 	null				-- p_visible_tcl

@@ -371,7 +371,6 @@ ad_proc -public im_timesheet_project_component {user_id project_id} {
               [_ intranet-timesheet2.lt_See_the_breakdown_by_]
             </a>\n"
         }
-#	append hours_logged "<li><a href=\"/intranet-timesheet2/weekly_report?project_id=$project_id\">[_ intranet-timesheet2.lt_View_hours_logged_by_]</a>"
     }
 
     if {$read} {
@@ -392,26 +391,24 @@ ad_proc -public im_timesheet_project_component {user_id project_id} {
 	if { $redirect_p && $num_hours < $expected_hours && $add_hours } {
 
             set default_message "
-You have logged %num_hours% hours in the last %num_days% days.
-However, you are expected to log atleast %expected_hours% hours
-or an equivalent amount of absences.
-Please log your hours now or consult with your supervisor."
+		You have logged %num_hours% hours in the last %num_days% days.
+		However, you are expected to log atleast %expected_hours% hours
+		or an equivalent amount of absences.
+		Please log your hours now or consult with your supervisor.
+	    "
 	    set absences_hours_message ""
 	    set header [lang::message::lookup "" intranet-timesheet2.Please_Log_Your_Hours "Please Log Your Hours"]
 	    set message [lang::message::lookup "" intranet-timesheet2.You_need_to_log_hours $default_message]
 	    ad_returnredirect [export_vars -base "/intranet-timesheet2/hours/index" {header message}]
 	}
 
+	set show_week_p 0
         if { $hours_today == 0 } {
-
-	    set log_hours_link "<a href=/intranet-timesheet2/hours/new?project_id=$project_id&[export_url_vars return_url]>"
+	    set log_hours_link "<a href=[export_vars -base "/intranet-timesheet2/hours/new" {project_id return_url show_week_p}]>"
             append hours_logged "<li><font color=\"\#FF0000\">[_ intranet-timesheet2.lt_Today_you_didnt_log_y]</font> [_ intranet-timesheet2.lt_Log_your_log_hours_li]</a>\n"
-
         } else {
-
-	    set log_hours_link "<a href=\"/intranet-timesheet2/hours/new?[export_url_vars project_id return_url]\">"
+	    set log_hours_link "<a href=[export_vars -base "/intranet-timesheet2/hours/new" {project_id return_url show_week_p}]>"
             append hours_logged "<li>[_ intranet-timesheet2.lt_Log_your_log_hours_li_1]</a>\n"
-
         }
 
 	# Show the "Work Absences" link only to in-house staff.
@@ -427,12 +424,9 @@ Please log your hours now or consult with your supervisor."
     }
     append info_html "$hours_logged</ul>"
 
-
-
     # Add the <ul>-List of associated menus
     set start_date "2000-01-01"
     set end_date "2100-01-01"
-
 
     # show those menus from the Timesheet group ('reporting-timesheet-%')
     # that have a '?' in the URL, indicating that they take arguments.

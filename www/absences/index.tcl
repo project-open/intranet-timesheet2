@@ -34,11 +34,12 @@ ad_page_contract {
     { order_by "User" }
     { how_many "" }
     { absence_type_id:integer "-1" }
-    { user_selection "mine" }
+    { user_selection "all" }
     { timescale "all" }
     { view_name "absence_list_home" }
     { start_date "" }
     { end_date "" }
+    { user_id_from_search "" }
 }
 
 # ---------------------------------------------------------------
@@ -47,28 +48,67 @@ ad_page_contract {
 
 set user_id [ad_maybe_redirect_for_registration]
 set subsite_id [ad_conn subsite_id]
-set page_title "[_ intranet-timesheet2.Absences]"
+set add_absences_for_group_p [im_permission $user_id "add_absences_for_group"]
+set add_hours_all_p [im_permission $user_id "add_hours_all"]
+set view_absences_all_p [im_permission $user_id "view_absences_all"]
+set add_absences_p [im_permission $user_id "add_absences"]
+
+if {![im_permission $user_id "view_absences"] && !$view_absences_all_p} { 
+    ad_return_complaint 1 "You don't have permissions to see absences"
+    ad_script_abort
+}
+
+# "user_id_from_search" is the guy we're going to log absences for.
+# reset this variable to the current user if undefined or if the user doesn't have
+# the permission to log hours/absences for other user.
+if {"" != $user_id_from_search && $add_hours_all_p} { 
+    set user_selection $user_id_from_search
+}
+
+if {!$view_absences_all_p} {
+    set user_selection "mine"
+}
+
+
+set user_name $user_selection
+if {[string is integer $user_selection]} {
+    set user_name [im_name_from_user_id $user_selection]
+} else {
+    set user_name [lang::message::lookup "" intranet-core.$user_selection $user_selection]
+}
+
+set page_title "[lang::message::lookup "" intranet-timesheet2.Absences_for_user "Absences for %user_name%"]"
 set context [list $page_title]
 set context_bar [im_context_bar $page_title]
 set page_focus "im_header_form.keywords"
 set absences_url "/intranet-timesheet2/absences"
 set return_url [im_url_with_query]
 
-set add_absences_for_group_p [im_permission $user_id "add_absences_for_group"]
-
-if {![im_permission $user_id "view_absences"] && ![im_permission $user_id "view_absences_all"]} { 
-    ad_return_complaint 1 "You don't have permissions to see absences"
-    ad_script_abort
-}
-
 set user_view_page "/intranet/users/view"
 set absence_view_page "$absences_url/new"
 
 set user_selection_types [list "all" "All" "mine" "Mine" "employees" "Employees" "providers" "Providers" "customers" "Customers"]
 
-
-if {![im_permission $user_id "view_absences_all"]} {
+# Users can only see their own absences, unless they have a special permission
+if {!$view_absences_all_p} {
     set user_selection_types [list "mine" "Mine"]
+}
+
+if {$add_hours_all_p} {
+    # Add employees to user_selection
+    set emp_sql "
+	select	im_name_from_user_id(user_id) as name,
+		user_id
+	from	cc_users u,
+		group_approved_member_map gamm
+	where	u.user_id = gamm.member_id
+		and gamm.group_id = [im_employee_group_id]
+	order by lower(im_name_from_user_id(user_id))
+    "
+    db_foreach emps $emp_sql {
+	lappend user_selection_types $user_id
+	lappend user_selection_types $name
+    }
 }
 
 set timescale_types [list "all" "All" "today" "Today" "next_1m" "Next_Month" "past" "Past" "future" "Future" "last_3m" "Last_3_months"]
@@ -146,37 +186,35 @@ if { ![empty_string_p $user_selection] } {
     if { "mine"==$user_selection } {
             lappend criteria "a.owner_id=:user_id"
     } else {
-	if {[im_permission $user_id "view_absences_all"]} {
+	if {$view_absences_all_p} {
 	    switch $user_selection {
+		"all" {
+		    # Nothing.
+		}
 		"employees" {
-                        lappend criteria "a.owner_id IN (select
-                                                                m.member_id
-                                                        from
-                                                                group_approved_member_map m
-                                                        where
-                                                                m.group_id = [im_employee_group_id]
+                        lappend criteria "a.owner_id IN (select	m.member_id
+                                                        from	group_approved_member_map m
+                                                        where	m.group_id = [im_employee_group_id]
                                                         )"
 
         	}
 		"providers" {
-                        lappend criteria "a.owner_id IN (select 
-								m.member_id 
-							from
-								group_approved_member_map m 
-							where
-								m.group_id = [im_freelance_group_id]
+                        lappend criteria "a.owner_id IN (select	m.member_id 
+							from	group_approved_member_map m 
+							where	m.group_id = [im_freelance_group_id]
 							)"
 		}
                 "customers" {
-                        lappend criteria "a.owner_id IN (select
-                                                                m.member_id
-                                                        from
-                                                                group_approved_member_map m
-                                                        where
-                                                                m.group_id = [im_customer_group_id]
+                        lappend criteria "a.owner_id IN (select	m.member_id
+                                                        from	group_approved_member_map m
+                                                        where	m.group_id = [im_customer_group_id]
                                                         )"
                 }  default  {
-			ad_return_complaint 1 "Please select a user group."			
+		    if {[string is integer $user_selection]} {
+			lappend criteria "a.owner_id = :user_selection"
+		    } else {
+			ad_return_complaint 1 "Invalid User Selection:<br>Value '$user_selection' is not a user_id or one of {mine|all|employees|providers|customers}."
+		    }
 		}
 	    }
  	    ns_set put $bind_vars user_selection $user_selection
@@ -236,7 +274,7 @@ if { ![empty_string_p $where_clause] } {
 
 
 set perm_clause "and owner_id = :user_id"
-if {[im_permission $user_id "view_absences_all"]} { set perm_clause "" }
+if {$view_absences_all_p} { set perm_clause "" }
 
 set sql "
 select
@@ -322,12 +360,14 @@ set filter_html "
 # Do we have to show administration links?
 
 set admin_html ""
-if {[im_permission $user_id "add_absences"]} { 
-	set admin_html "<ul>
-		<li><a href=$absences_url/new>[_ intranet-timesheet2.Add_a_new_Absence]</a></li>
-		[im_menu_ul_list -no_uls 1 -package_key "intranet-timesheet2" "timesheet2_absences" {}]
-	      </ul>
-	"
+if {$add_absences_p} {
+    set for_user_id ""
+    if {[string is integer $user_selection]} { set for_user_id $user_selection }
+    set admin_html "
+	<ul>
+	<li><a href=[export_vars -base "$absences_url/new" {{user_id_from_search $for_user_id}}]>[_ intranet-timesheet2.Add_a_new_Absence]</a></li>
+	</ul>
+    "
 }
 
 
