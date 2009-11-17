@@ -297,7 +297,7 @@ foreach i $weekly_logging_days {
 	# Calculate worked days based on worked hours
 	set days_worked ""
 	if {"" != $hours_worked} {
-	    set days_worked [expr $hours_worked / :hours_per_day]
+	    set days_worked [expr $hours_worked / $hours_per_day]
 	}
 
 	set action $action_hash($project_id)
