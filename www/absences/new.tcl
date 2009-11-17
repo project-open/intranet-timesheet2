@@ -59,6 +59,7 @@ if {[info exists absence_id]} {
     }
 }
 
+if {![exists_and_not_null absence_owner_id]} { set absence_owner_id $user_id_from_search }
 if {![exists_and_not_null absence_owner_id]} { set absence_owner_id $user_id }
 
 if {![info exists absence_id]} {
@@ -123,15 +124,6 @@ if {[info exists absence_id]} {
     }
 }
 
-
-# You need to be the owner of the absence in order to delete it.
-if {0 && [info exists absence_id]} {
-    set owner_id [db_string owner "select creation_user from acs_objects where object_id = :absence_id" -default 0]
-    if {$user_id == $owner_id} {
-	lappend actions {"Delete" delete}
-    }
-}
-
 # ------------------------------------------------------------------
 # Delete pressed?
 # ------------------------------------------------------------------
@@ -150,7 +142,7 @@ if {"delete" == $button_pressed} {
 
 set form_fields {
 	absence_id:key
-	{owner_id:text(hidden)}
+	{absence_owner_id:text(hidden)}
 	{absence_name:text(text) {label "[_ intranet-timesheet2.Name]"} {html {size 40}}}
 	{absence_type_id:text(im_category_tree) {label "[_ intranet-timesheet2.Type]"} {custom {category_type "Intranet Absence Type"}}}
 }
@@ -220,7 +212,8 @@ ad_form -extend -name absence -on_request {
     if {![info exists start_date]} { set start_date [db_string today "select to_char(now(), :date_time_format)"] }
     if {![info exists end_date]} { set end_date [db_string today "select to_char(now(), :date_time_format)"] }
     if {![info exists duration_days]} { set duration_days "" }
-    if {![info exists owner_id]} { set owner_id $user_id }
+    if {![info exists absence_owner_id] || 0 == $absence_owner_id} { set absence_owner_id $user_id_from_scratch }
+    if {![info exists absence_owner_id] || 0 == $absence_owner_id} { set absence_owner_id $user_id }
     if {![info exists absence_type_id]} { set absence_type_id [im_absence_type_vacation] }
     if {![info exists absence_status_id]} { set absence_status_id [im_absence_status_requested] }
     
@@ -262,12 +255,12 @@ ad_form -extend -name absence -on_request {
     if { [db_string exists "
 		select	count(*) 
 		from	im_user_absences a
-		where	a.owner_id = :user_id and
+		where	a.owner_id = :absence_owner_id and
 			a.absence_type_id = :absence_type_id and
 			a.start_date = to_timestamp(:start_date, 'YYYY MM DD HH24 MI')
 	   "]
      } {
-	ad_return_complaint 1 [lang::message::lookup "" intranet-timesheet2.Absence_Duplicate_Start "There is already an absence with exactly the same start date."]
+	ad_return_complaint 1 [lang::message::lookup "" intranet-timesheet2.Absence_Duplicate_Start "There is already an absence with exactly the same owner, type and start date."]
     }
 
     db_transaction {
@@ -281,7 +274,7 @@ ad_form -extend -name absence -on_request {
 			null,
 
 			:absence_name,
-			:owner_id,
+			:absence_owner_id,
 			$start_date_sql,
 			$end_date_sql,
 			:absence_status_id,
@@ -350,7 +343,7 @@ ad_form -extend -name absence -on_request {
     db_dml update_absence "
 		UPDATE im_user_absences SET
 			absence_name = :absence_name,
-			owner_id = :owner_id,
+			owner_id = :absence_owner_id,
 			start_date = $start_date_sql,
 			end_date = $end_date_sql,
 			duration_days = :duration_days,
