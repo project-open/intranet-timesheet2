@@ -200,7 +200,7 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
     if {$day_of_week == 1 } {
 	append hours "<br>
 		<a href=[export_vars -base "new" {user_id_from_search {julian_date $current_date} {show_week_p 1} return_url}]
-		><span class='log_hours'>log hours for the week</span></a>
+		><span class='log_hours'>[lang::message::lookup "" intranet-timesheet2.Log_hours_for_the_week "Log hours for the week"]</span></a>
 	"
     }
 
