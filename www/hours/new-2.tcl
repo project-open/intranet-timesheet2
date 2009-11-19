@@ -395,6 +395,7 @@ foreach i $weekly_logging_days {
 	group by project_id
 	having sum(hours) > :hours_per_day
         "
+
 	db_foreach ts_correction $ts_correction_sql {
 
 	    # We have found a project with with more then $hours_per_day
@@ -403,6 +404,7 @@ foreach i $weekly_logging_days {
 	    # the factor sum(hour)/$hours_per_day so that at the end we
 	    # will get exactly one day logged to the main project.
 	    set correction_factor [expr $hours_per_day/$correction_hours]
+
 	    db_dml appy_correction_factor "
 		update im_hours set days = days * :correction_factor
 		where
