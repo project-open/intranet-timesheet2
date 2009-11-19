@@ -6,6 +6,11 @@
 
 
 <%= [im_box_header $page_title] %>
+@absence_cube_html;noquote@
+<%= [im_box_footer] %>
+
+
+<%= [im_box_header $page_title] %>
 
 	<table>
 	    <%= $table_header_html %>

@@ -47,6 +47,7 @@ ad_page_contract {
 # ---------------------------------------------------------------
 
 set user_id [ad_maybe_redirect_for_registration]
+set current_user_id $user_id
 set subsite_id [ad_conn subsite_id]
 set add_absences_for_group_p [im_permission $user_id "add_absences_for_group"]
 set add_hours_all_p [im_permission $user_id "add_hours_all"]
@@ -122,7 +123,7 @@ if { ![exists_and_not_null absence_type_id] } {
 if {"" == $start_date} { set start_date [parameter::get_from_package_key -package_key "intranet-cost" -parameter DefaultStartDate -default "2000-01-01"] }
 if {"" == $end_date} { set end_date [parameter::get_from_package_key -package_key "intranet-cost" -parameter DefaultEndDate -default "2100-01-01"] }
 
-
+set org_start_date $start_date
 
 set end_idx [expr $start_idx + $how_many - 1]
 set date_format "YYYY-MM-DD"
@@ -184,7 +185,7 @@ set bind_vars [ns_set create]
 if { ![empty_string_p $user_selection] } {
 
     if { "mine"==$user_selection } {
-            lappend criteria "a.owner_id=:user_id"
+            lappend criteria "a.owner_id = :current_user_id"
     } else {
 	if {$view_absences_all_p} {
 	    switch $user_selection {
@@ -496,3 +497,14 @@ set left_navbar_html "
                 $admin_html
             </div>
 "
+
+# Calendar display for vacation days
+set absence_cube_html [im_absence_cube \
+			   -absence_status_id $status_id \
+			   -absence_type_id $absence_type_id \
+			   -user_selection $user_selection \
+			   -timescale $timescale \
+			   -report_start_date $org_start_date \
+			   -user_id_from_search $user_id_from_search \
+]
+

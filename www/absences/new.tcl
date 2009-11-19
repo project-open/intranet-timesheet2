@@ -142,7 +142,7 @@ if {"delete" == $button_pressed} {
 
 set form_fields {
 	absence_id:key
-	{absence_owner_id:text(hidden)}
+	{absence_owner_id:text(hidden),optional}
 	{absence_name:text(text) {label "[_ intranet-timesheet2.Name]"} {html {size 40}}}
 	{absence_type_id:text(im_category_tree) {label "[_ intranet-timesheet2.Type]"} {custom {category_type "Intranet Absence Type"}}}
 }
