@@ -428,7 +428,7 @@ foreach i $weekly_logging_days {
 
 
 # Create the necessary cost items for the timesheet hours
-# im_timesheet2_sync_timesheet_costs -project_id $project_id
+im_timesheet2_sync_timesheet_costs -project_id $project_id
 
 
 # ----------------------------------------------------------
