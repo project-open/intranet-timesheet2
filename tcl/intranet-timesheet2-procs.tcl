@@ -1210,11 +1210,12 @@ ad_proc -public im_absence_vacation_balance_component {
     Returns a HTML component showing the number of days left
     for the user
 } {
+    set current_user_id [ad_get_user_id]
     # This is a sensitive field, so only allows this for the user himself
     # and for users with HR permissions.
 
     set read_p 0
-    if {$user_id_from_search == [ad_get_user_id]} { set read_p 1 }
+    if {$user_id_from_search == $current_user_id} { set read_p 1 }
     if {[im_permission $current_user_id view_hr]} { set read_p 1 }
     if {!$read_p} { return "" }
 
