@@ -30,6 +30,7 @@ if {![info exists enable_master_p]} { set enable_master_p 1}
 # ------------------------------------------------------------------
 
 set user_id [ad_maybe_redirect_for_registration]
+set current_user_id $user_id
 set action_url "/intranet-timesheet2/absences/new"
 set cancel_url "/intranet-timesheet2/absences/index"
 set current_url [im_url_with_query]
@@ -60,7 +61,7 @@ if {[info exists absence_id]} {
 }
 
 if {![exists_and_not_null absence_owner_id]} { set absence_owner_id $user_id_from_search }
-if {![exists_and_not_null absence_owner_id]} { set absence_owner_id $user_id }
+if {![exists_and_not_null absence_owner_id]} { set absence_owner_id $current_user_id }
 
 if {![info exists absence_id]} {
     set page_title [lang::message::lookup "" intranet-timesheet2.New_Absence_Type "%absence_type%"]
@@ -75,14 +76,14 @@ if {[exists_and_not_null user_id_from_search]} {
 
 set context [list $page_title]
 
-set read [im_permission $user_id "read_absences_all"]
-set write [im_permission $user_id "add_absences"]
-set add_absences_for_group_p [im_permission $user_id "add_absences_for_group"]
+set read [im_permission $current_user_id "read_absences_all"]
+set write [im_permission $current_user_id "add_absences"]
+set add_absences_for_group_p [im_permission $current_user_id "add_absences_for_group"]
 
 if {[info exists absence_id]} {
-    im_absence_permissions $user_id $absence_id view read write admin
+    im_absence_permissions $current_user_id $absence_id view read write admin
 }
-if {![im_permission $user_id "add_absences"]} {
+if {![im_permission $current_user_id "add_absences"]} {
     ad_return_complaint "[_ intranet-timesheet2.lt_Insufficient_Privileg]" "
     <li>[_ intranet-timesheet2.lt_You_dont_have_suffici]"
 }
@@ -169,7 +170,7 @@ ad_form \
     -export {user_id return_url} \
     -form $form_fields
 
-if {[im_permission $user_id edit_absence_status]} {
+if {[im_permission $current_user_id edit_absence_status]} {
     set form_list {{absence_status_id:text(im_category_tree) {label "[lang::message::lookup {} intranet-timesheet2.Status Status]"} {custom {category_type "Intranet Absence Status"}}}}
 } else {
 #    set form_list {{absence_status_id:text(im_category_tree) {mode display} {label "[lang::message::lookup {} intranet-timesheet2.Status Status]"} {custom {category_type "Intranet Absence Status"}}}}
@@ -213,13 +214,14 @@ ad_form -extend -name absence -on_request {
     if {![info exists end_date]} { set end_date [db_string today "select to_char(now(), :date_time_format)"] }
     if {![info exists duration_days]} { set duration_days "" }
     if {![info exists absence_owner_id] || 0 == $absence_owner_id} { set absence_owner_id $user_id_from_scratch }
-    if {![info exists absence_owner_id] || 0 == $absence_owner_id} { set absence_owner_id $user_id }
+    if {![info exists absence_owner_id] || 0 == $absence_owner_id} { set absence_owner_id $current_user_id }
     if {![info exists absence_type_id]} { set absence_type_id [im_absence_type_vacation] }
     if {![info exists absence_status_id]} { set absence_status_id [im_absence_status_requested] }
     
 } -select_query {
 
 	select	a.*,
+		a.owner_id as absence_owner_id,
 		to_char(start_date, 'YYYY MM DD HH24 MI') as start_date,
 		to_char(end_date, 'YYYY MM DD HH24 MI') as end_date
 	from	im_user_absences a

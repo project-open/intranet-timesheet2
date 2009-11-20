@@ -53,6 +53,8 @@ set add_absences_for_group_p [im_permission $user_id "add_absences_for_group"]
 set add_hours_all_p [im_permission $user_id "add_hours_all"]
 set view_absences_all_p [im_permission $user_id "view_absences_all"]
 set add_absences_p [im_permission $user_id "add_absences"]
+set org_absence_type_id $absence_type_id
+
 
 set today [db_string today "select now()::date"]
 
@@ -532,10 +534,16 @@ set left_navbar_html "
             </div>
 "
 
+
+
+# ---------------------------------------------------------------
+# 
+# ---------------------------------------------------------------
+
 # Calendar display for vacation days
 set absence_cube_html [im_absence_cube \
 			   -absence_status_id $status_id \
-			   -absence_type_id $absence_type_id \
+			   -absence_type_id $org_absence_type_id \
 			   -user_selection $user_selection \
 			   -timescale $timescale \
 			   -report_start_date $org_start_date \
