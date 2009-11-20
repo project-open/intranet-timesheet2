@@ -909,6 +909,10 @@ ad_proc im_absence_cube_render_cell {
             5004 | Training	- Yellow
             5005 | Bank Holiday	- Grey
 } {
+    # Show empty cells according to even/odd row formatting
+    if {"" == $value} { return "<td>&nbsp;</td>\n" }
+
+    # Define a list of colours to pick from
     set color_list {
 	FF0000
 	FF3000
@@ -918,6 +922,8 @@ ad_proc im_absence_cube_render_cell {
 	808080
     }
     set color [lindex $color_list $value]
+
+    ns_log Notice "im_absence_cube_render_cell: $value -> $color"
     if {"" == $color} { set color FFFFFF }
 
     return "<td bgcolor=\#$color>&nbsp;</td>\n"
@@ -926,7 +932,6 @@ ad_proc im_absence_cube_render_cell {
 
 
 ad_proc im_absence_cube {
-    {-report_start_date "" }
     {-num_days 21}
     {-absence_status_id "" }
     {-absence_type_id "" }
@@ -938,6 +943,20 @@ ad_proc im_absence_cube {
     Returns a rendered cube with a graphical absence display
     for users.
 } {
+    switch $timescale {
+	today { return "" }
+	all { return "" }
+	next_3w { set num_days 21 }
+	next_1m { set num_days 31 }
+	default {
+	    set num_days 31
+	}
+	past { return "" }
+	future { set num_days 31 }
+	last_3m { return "" }
+	next_3m { return "" }
+    }
+
     set user_url "/intranet/users/view"
     set date_format "YYYY-MM-DD"
     set current_user_id [ad_get_user_id]

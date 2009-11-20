@@ -35,7 +35,7 @@ ad_page_contract {
     { how_many "" }
     { absence_type_id:integer "-1" }
     { user_selection "all" }
-    { timescale "all" }
+    { timescale "next_3w" }
     { view_name "absence_list_home" }
     { start_date "" }
     { end_date "" }
@@ -53,6 +53,8 @@ set add_absences_for_group_p [im_permission $user_id "add_absences_for_group"]
 set add_hours_all_p [im_permission $user_id "add_hours_all"]
 set view_absences_all_p [im_permission $user_id "view_absences_all"]
 set add_absences_p [im_permission $user_id "add_absences"]
+
+set today [db_string today "select now()::date"]
 
 if {![im_permission $user_id "view_absences"] && !$view_absences_all_p} { 
     ad_return_complaint 1 "You don't have permissions to see absences"
@@ -112,18 +114,20 @@ if {$add_hours_all_p} {
     }
 }
 
-set timescale_types [list "all" "All" "today" "Today" "next_1m" "Next_Month" "past" "Past" "future" "Future" "last_3m" "Last_3_months"]
+set timescale_types [list \
+			 "all" "All" \
+			 "today" "Today" \
+			 "next_3w" "Next 3 Weeks" \
+			 "past" "Past" \
+			 "future" "Future" \
+			 "last_3m" "Last_3_months" \
+			 "next_3m" "Next_3_months" \
+]
 
 if { ![exists_and_not_null absence_type_id] } {
     # Default type is "all" == -1 - select the id once and memoize it
     set absence_type_id -1;
 }
-
-
-if {"" == $start_date} { set start_date [parameter::get_from_package_key -package_key "intranet-cost" -parameter DefaultStartDate -default "2000-01-01"] }
-if {"" == $end_date} { set end_date [parameter::get_from_package_key -package_key "intranet-cost" -parameter DefaultEndDate -default "2100-01-01"] }
-
-set org_start_date $start_date
 
 set end_idx [expr $start_idx + $how_many - 1]
 set date_format "YYYY-MM-DD"
@@ -240,6 +244,44 @@ if { ![empty_string_p $absence_type_id] &&  $absence_type_id != -1 } {
      lappend criteria "a.absence_type_id = :absence_type_id"
 }
 
+switch $timescale {
+    "all" { }
+    "today" { 
+	set start_date $today
+	set end_date $today
+    }
+    "next_3w" { 
+	set start_date $today
+	set end_date [db_string 3w "select now()::date + 21"]
+    }
+    "next_1m" { 
+	set start_date $today
+	set end_date [db_string 3w "select now()::date + 31"]
+    }
+    "past" { 
+	set start_date "2000-01-01"
+	set end_date $today
+    }
+    "future" { 
+	set start_date $today
+	set end_date "2100-01-01"
+    }
+    "last_3m" { 
+	set start_date [db_string last_3m_start_date "select now()::date -93"]
+	set end_date $today
+    }
+    "next_3m" { 
+	set start_date $today
+	set end_date [db_string last_3m_start_date "select now()::date +93"]
+    }
+}
+
+if {"" == $start_date} { set start_date [parameter::get_from_package_key -package_key "intranet-cost" -parameter DefaultStartDate -default "2000-01-01"] }
+if {"" == $end_date} { set end_date [parameter::get_from_package_key -package_key "intranet-cost" -parameter DefaultEndDate -default "2100-01-01"] }
+
+set org_start_date $start_date
+
+
 if {"" != $start_date} {
     lappend criteria "a.start_date >= :start_date::timestamptz"
 }
@@ -248,14 +290,6 @@ if {"" != $end_date} {
 }
 
 
-switch $timescale {
-    "all" { }
-    "today" { lappend criteria "a.start_date::date <= now()::date and a.end_date >= now()::date" }
-    "next_1m" { lappend criteria "a.start_date < now()::date + 30 and a.end_date >= now()::date" }
-    "past" { lappend criteria "a.start_date < '[db_string get_today "select sysdate from dual"]'" }
-    "future" { lappend criteria "a.start_date > '[db_string get_today "select sysdate from dual"]'" }
-    "last_3m" { lappend criteria "a.start_date < now()::date and a.end_date >= now()::date - 120" }
-}
 
 set order_by_clause ""
 switch $order_by {
