@@ -612,14 +612,40 @@ ad_proc im_timesheet_update_timesheet_cache {
 } {
     Returns the total hours registered for the specified table and id.
 } {
-    set num_hours [im_timesheet_hours_sum -project_id $project_id]
-    set cached_hours [db_string cached_hours "select reported_hours_cache from im_projects where project_id = :project_id" -default 0]
+    # Determine all hours and days in the project and its children
+    db_1row timesheet_sum "
+	select	sum(h.hours) as num_hours,
+		sum(h.days) as num_days
+	from	im_hours h
+	where	h.project_id in (
+			select	children.project_id
+			from	im_projects parent,
+				im_projects children
+			where	parent.project_id = :project_id and
+				children.tree_sortkey between 
+					parent.tree_sortkey 
+					and tree_right(parent.tree_sortkey)
+		    UNION
+			select	:project_id as project_id
+		) and
+		h.day::date <= now()::date
+    "
+
+    set reported_hours_cache 0
+    set reported_days_cache 0
+    db_0or1row cached_hours "
+	select	p.reported_hours_cache,
+		p.reported_days_cache
+	from	im_projects p
+	where	p.project_id = :project_id
+    "
 
     # Update im_project reported_hours_cache
-    if {$num_hours != $cached_hours} {
+    if {$num_hours != $reported_hours_cache || $num_days != $reported_days_cache} {
 	db_dml update_project_reported_hours "
-		update im_projects
-		set reported_hours_cache = :num_hours
+		update im_projects set 
+			reported_hours_cache = :num_hours,
+			reported_days_cache = :num_days
 		where project_id = :project_id
 	"
 
