@@ -989,9 +989,9 @@ ad_proc im_absence_cube {
 	    set num_days 31
 	}
 	past { return "" }
-	future { set num_days 31 }
+	future { set num_days 93 }
 	last_3m { return "" }
-	next_3m { return "" }
+	next_3m { set num_days 93 }
     }
 
     set user_url "/intranet/users/view"
