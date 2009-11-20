@@ -1203,3 +1203,18 @@ ad_proc im_absence_cube {
     "
 }
 
+
+ad_proc -public im_absence_vacation_balance_component {
+    -user_id_from_search:required
+} {
+    Returns a HTML component showing the number of days left
+    for the user
+} {
+    set params [list \
+		    [list user_id_from_search $user_id_from_search] \
+		    [list return_url [im_url_with_query]] \
+    ]
+
+    set result [ad_parse_template -params $params "/packages/intranet-timesheet2/www/absences/vacation-balance-component"]
+    return [string trim $result]
+}
