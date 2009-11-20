@@ -427,8 +427,14 @@ foreach i $weekly_logging_days {
 }
 
 
-# Create the necessary cost items for the timesheet hours
-im_timesheet2_sync_timesheet_costs -project_id $project_id
+# Update the affected project's cost_hours_cache and cost_days_cache fields,
+# so that the numbers will appear correctly in the TaskListPage
+foreach project_id $all_project_ids {
+    im_timesheet_update_timesheet_cache -project_id $project_id
+}
+
+# Do not update cost items at this moment.
+#    im_timesheet2_sync_timesheet_costs -project_id $project_id
 
 
 # ----------------------------------------------------------
