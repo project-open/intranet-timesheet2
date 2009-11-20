@@ -117,6 +117,8 @@ set vacation_sql "
 	order by
 		a.start_date
 "
+if {"" == $vacation_balance} { set vacation_balance 0 }
+if {"" == $vacation_days_per_year} { set vacation_days_per_year 0 }
 
 set vacation_days_left [expr $vacation_balance + $vacation_days_per_year]
 set vacation_days_taken 0
