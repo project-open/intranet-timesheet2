@@ -28,7 +28,8 @@ ad_proc -public im_absence_type_vacation {} { return 5000 }
 ad_proc -public im_absence_type_personal {} { return 5001 }
 ad_proc -public im_absence_type_sick {} { return 5002 }
 ad_proc -public im_absence_type_travel {} { return 5003 }
-ad_proc -public im_absence_type_bank_holiday {} { return 5004 }
+ad_proc -public im_absence_type_training {} { return 5004 }
+ad_proc -public im_absence_type_bank_holiday {} { return 5005 }
 
 
 ad_proc -public im_absence_status_active {} { return 16000 }
@@ -908,23 +909,59 @@ ad_proc im_absence_cube_render_cell {
             5003 | Travel	- Purple
             5004 | Training	- Yellow
             5005 | Bank Holiday	- Grey
+    Value contains a string of last digits of the absence types.
+    Multiple values are possible for example "05", meaning that
+    a Vacation and a holiday meet. 
 } {
     # Show empty cells according to even/odd row formatting
     if {"" == $value} { return "<td>&nbsp;</td>\n" }
 
     # Define a list of colours to pick from
-    set color_list {
-	FF0000
-	FF3000
-	0000FF
-	9900FF
-	FFFF00
+    set color_list {	
+	F00000
+	F03000
+	0000F0
+	9900F0
+	F0F000
 	808080
     }
-    set color [lindex $color_list $value]
+
+    set hex_list {0 1 2 3 4 5 6 7 8 9 A B C D E F}
+    set len [string length $value]
+    set r 0
+    set g 0
+    set b 0
+    
+    # Mix the colors for each of the characters in "value"
+    for {set i 0} {$i < $len} {incr i} {
+	set v [string range $value $i $i]
+	set col [lindex $color_list $v]
+
+	set r [expr $r + [lsearch $hex_list [string range $col 0 0]] * 16]
+	set r [expr $r + [lsearch $hex_list [string range $col 1 1]]]
+	
+	set g [expr $g + [lsearch $hex_list [string range $col 2 2]] * 16]
+	set g [expr $g + [lsearch $hex_list [string range $col 3 3]]]
+	
+	set b [expr $b + [lsearch $hex_list [string range $col 4 4]] * 16]
+	set b [expr $b + [lsearch $hex_list [string range $col 5 5]]]
+    }
+    
+    # Calculate the median
+    set r [expr $r / $len]
+    set g [expr $g / $len]
+    set b [expr $b / $len]
+
+    # Convert the RGB values back into a hex color string
+    set color ""
+    append color [lindex $hex_list [expr $r / 16]]
+    append color [lindex $hex_list [expr $r % 16]]
+    append color [lindex $hex_list [expr $g / 16]]
+    append color [lindex $hex_list [expr $g % 16]]
+    append color [lindex $hex_list [expr $b / 16]]
+    append color [lindex $hex_list [expr $b % 16]]
 
     ns_log Notice "im_absence_cube_render_cell: $value -> $color"
-    if {"" == $color} { set color FFFFFF }
 
     return "<td bgcolor=\#$color>&nbsp;</td>\n"
 }
@@ -968,6 +1005,8 @@ ad_proc im_absence_cube {
     }
 
     set report_end_date [db_string end_date "select :report_start_date::date + :num_days::integer"]
+
+    if {-1 == $absence_type_id} { set absence_type_id "" }
 
     # ---------------------------------------------------------------
     # Limit the number of users and days
@@ -1054,12 +1093,24 @@ ad_proc im_absence_cube {
 		im_name_from_user_id(user_id) as user_name
 	from	users u
 	where	user_id in (
-			select	owner_id
+			-- Individual Absences per user
+			select	a.owner_id
 			from	im_user_absences a,
 				users u
 			where	a.owner_id = u.user_id and
 				a.start_date <= :report_end_date::date and
 				a.end_date >= :report_start_date::date
+				$where_clause
+		     UNION
+			-- Absences for user groups
+			select	mm.member_id as owner_id
+			from	im_user_absences a,
+				users u,
+				group_distinct_member_map mm
+			where	mm.member_id = u.user_id and
+				a.start_date <= :report_end_date::date and
+				a.end_date >= :report_start_date::date and
+				mm.group_id = a.group_id
 				$where_clause
 		)
 	order by
