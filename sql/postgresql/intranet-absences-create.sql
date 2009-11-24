@@ -372,7 +372,7 @@ SELECT im_component_plugin__new (
 	'/intranet/users/view',		-- page_url
 	null,				-- view_name
 	20,				-- sort_order
-	'im_absence_vacation_balance_component -user_id_from_search $current_user_id'	-- component_tcl
+	'im_absence_vacation_balance_component -user_id_from_search $user_id'	-- component_tcl
 );
 
 -- The component itself does a more thorough check
