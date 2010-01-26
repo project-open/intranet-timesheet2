@@ -922,6 +922,21 @@ ad_proc im_absence_new_page_wf_perm_delete_button {
 # Absence Cube
 # ---------------------------------------------------------------------
 
+ad_proc im_absence_cube_color_list { } {
+    Returns the list of colors for the various types of absences
+} {
+    set color_list {	
+	F00000
+	F08000
+	0000F0
+	9900F0
+	F0F000
+	808080
+    }
+    return $color_list
+}
+
+
 
 ad_proc im_absence_cube_render_cell {
     value
@@ -943,14 +958,7 @@ ad_proc im_absence_cube_render_cell {
     if {"" == $value} { return "<td>&nbsp;</td>\n" }
 
     # Define a list of colours to pick from
-    set color_list {	
-	F00000
-	F03000
-	0000F0
-	9900F0
-	F0F000
-	808080
-    }
+    set color_list [im_absence_cube_color_list]
 
     set hex_list {0 1 2 3 4 5 6 7 8 9 A B C D E F}
     set len [string length $value]
@@ -986,8 +994,6 @@ ad_proc im_absence_cube_render_cell {
     append color [lindex $hex_list [expr $g % 16]]
     append color [lindex $hex_list [expr $b / 16]]
     append color [lindex $hex_list [expr $b % 16]]
-
-    ns_log Notice "im_absence_cube_render_cell: $value -> $color"
 
     return "<td bgcolor=\#$color>&nbsp;</td>\n"
 }
