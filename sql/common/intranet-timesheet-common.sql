@@ -72,12 +72,19 @@ extra_select, extra_where, sort_order, visible_for) values (20011,200,NULL,'Cont
 
 
 --------------------------------------------------------------
--- Add view column to users overview
+-- Add view column to users and employees overview
 -- 
 -- 
 delete from im_view_columns where column_id = 207;
 insert into im_view_columns (column_id, view_id, group_id, column_name, column_render_tcl,
 extra_select, extra_where, sort_order, visible_for) values (207, 10, NULL, 'Next Absence',
+'"[im_get_next_absence_link $user_id ]"',
+'','',10,'');
+
+
+delete from im_view_columns where column_id = 5507;
+insert into im_view_columns (column_id, view_id, group_id, column_name, column_render_tcl,
+extra_select, extra_where, sort_order, visible_for) values (5507, 55, NULL, 'Next Absence',
 '"[im_get_next_absence_link $user_id ]"',
 '','',10,'');
 
