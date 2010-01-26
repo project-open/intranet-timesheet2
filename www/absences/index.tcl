@@ -13,7 +13,6 @@
 # FITNESS FOR A PARTICULAR PURPOSE.
 # See the GNU General Public License for more details.
 
-
 # ---------------------------------------------------------------
 # 1. Page Contract
 # ---------------------------------------------------------------
@@ -121,10 +120,11 @@ set timescale_types [list \
 			 "all" "All" \
 			 "today" "Today" \
 			 "next_3w" "Next 3 Weeks" \
-			 "past" "Past" \
-			 "future" "Future" \
-			 "last_3m" "Last_3_months" \
 			 "next_3m" "Next_3_months" \
+			 "future" "Future" \
+			 "past" "Past" \
+			 "last_3m" "Last_3_months" \
+			 "last_3w" "Last 3 Weeks" \
 ]
 
 if { ![exists_and_not_null absence_type_id] } {
@@ -256,6 +256,10 @@ switch $timescale {
     "next_3w" { 
 	set start_date $today
 	set end_date [db_string 3w "select now()::date + 21"]
+    }
+    "last_3w" { 
+	set start_date [db_string 3w "select now()::date - 21"]
+	set end_date $today
     }
     "next_1m" { 
 	set start_date $today
@@ -406,6 +410,34 @@ if {$add_absences_p} {
     "
 }
 
+#	5000 | Vacation     - Red
+#       5001 | Personal     - Orange
+#       5002 | Sick         - Blue
+#       5003 | Travel       - Purple
+#       5004 | Training     - Yellow
+#       5005 | Bank Holiday - Grey
+
+set color_list [im_absence_cube_color_list]
+set absence_type_ids {5000 5001 5002 5003 5004 5005 }
+set col_sql "
+	select	category_id, category
+	from	im_categories
+	where	category_type = 'Intranet Absence Type'
+	order by category_id
+"
+append admin_html "<div class=filter-title>[lang::message::lookup "" intranet-timesheet2.Color_codes "Color Codes"]</div>\n"
+append admin_html "<table>\n"
+db_foreach cols $col_sql {
+    set index [expr $category_id - 5000]
+    set col [lindex $color_list $index]
+    regsub -all " " $category "_" category_key
+    set category_l10n [lang::message::lookup "" intranet-core.$category_key $category]
+
+    append admin_html "<tr><td bgcolor=\#$col>$category_l10n</td></tr>\n"
+}
+append admin_html "</table>\n"
+
+
 
 # ---------------------------------------------------------------
 # 7. Format the List Table Header
@@ -463,7 +495,6 @@ db_foreach absences_list $selection {
     append table_body_html "<tr$bgcolor([expr $ctr % 2])>\n"
     foreach column_var $column_vars {
 	append table_body_html "\t<td valign=top>"
-#	regsub -all "\"" $column_var "" column_var
 	set cmd "append table_body_html $column_var"
 	eval $cmd
 	append table_body_html "</td>\n"
