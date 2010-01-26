@@ -1016,14 +1016,15 @@ ad_proc im_absence_cube {
 	today { return "" }
 	all { return "" }
 	next_3w { set num_days 21 }
+	last_3w { set num_days 21 }
 	next_1m { set num_days 31 }
+	past { return "" }
+	future { set num_days 93 }
+	last_3m { set num_days 93 }
+	next_3m { set num_days 93 }
 	default {
 	    set num_days 31
 	}
-	past { return "" }
-	future { set num_days 93 }
-	last_3m { return "" }
-	next_3m { set num_days 93 }
     }
 
     set user_url "/intranet/users/view"
