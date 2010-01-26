@@ -515,11 +515,14 @@ ad_proc absence_list_for_user_and_time_period {user_id first_julian_date last_ju
         set absence_status_3letter_l10n [lang::message::lookup "" intranet-timesheet2.Absence_status_3letter_$absence_status_3letter $absence_status_3letter]
 	set absent_status_3letter_l10n $absence_status_3letter_l10n
 
+	regsub " " $absence_type "_" absence_type_key
+	set absence_type_l10n [lang::message::lookup "" intranet-core.$absence_type_key $absence_type]
+
 	for {set i [max $start_date $first_julian_date]} {$i<=[min $end_date $last_julian_date]} {incr i } {
 	   set vacation($i) "
-<a href=\"/intranet-timesheet2/absences/new?form_mode=display&absence_id=$absence_id\"
->[_ intranet-timesheet2.Absent_1]</a> 
-$absence_type<br>
+		<a href=\"/intranet-timesheet2/absences/new?form_mode=display&absence_id=$absence_id\"
+		>[_ intranet-timesheet2.Absent_1]</a> 
+		$absence_type_l10n<br>
            "
 	}
     }
