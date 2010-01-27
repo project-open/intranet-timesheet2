@@ -837,7 +837,7 @@ ad_proc -public im_get_next_absence_link { { user_id } } {
 
     set ret_val ""
     db_foreach select_next_absence $sql {
-	set ret_val "<a href=\"/intranet-timesheet2/absences/view?absence_id=$absence_id\">$start_date - $end_date</a>"
+	set ret_val "<a href=\"/intranet-timesheet2/absences/new?form_mode=display&absence_id=$absence_id\">$start_date - $end_date</a>"
 	break
     }
     return $ret_val
