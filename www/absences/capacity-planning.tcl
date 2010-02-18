@@ -23,19 +23,30 @@ ad_page_contract {
     { project_status_id 0 }
     { project_type_id:integer 0 }
     { letter:trim "" }
-    { month "" }
-    { year "" }
+    { cap_month "" }
+    { cap_year "" }
     { start_idx:integer 0 }
     { how_many "" }
     { view_name "project_list" }
     { filter_advanced_p:integer 0 }
 }
 
-
-# for testing 
-set cap_month 2
-set cap_year 2010
-
+# Date settings
+set days_in_past 7
+set date_format [im_l10n_sql_date_format]
+db_1row todays_date "
+select
+        to_char(sysdate::date - :days_in_past::integer, 'YYYY') as todays_year,
+        to_char(sysdate::date - :days_in_past::integer, 'MM') as todays_month,
+        to_char(sysdate::date - :days_in_past::integer, 'DD') as todays_day
+from dual
+"
+if {"" == $cap_month} {
+    set cap_month "$todays_month"
+}
+if {"" == $cap_year} {
+    set cap_year "$todays_year"
+}
 
 # General settings
 set show_context_help_p 0
@@ -45,13 +56,15 @@ set context [list "Permissions"]
 set subsite_id [ad_conn subsite_id]
 set context_bar [im_context_bar $page_title]
 set url_stub [im_url_with_query]
+set project_url "/intranet/projects/view?project_id="
 
-# Please verify-might need adjustment
+# Please verify - might need adjustment
 set im_absence_type_vacation 5000
 set im_absence_type_personal 5001
 set im_absence_type_sick 5002
 set im_absence_type_travel 5003
 set im_absence_type_bankholiday 5005 
+set im_absence_type_training 5004
 
 # Date operations 
 set first_day_of_month ""
@@ -84,53 +97,119 @@ set title_sql "
                         	d.d between a.start_date and a.end_date and
 				a.owner_id = p.person_id and
 	                        a.absence_type_id = $im_absence_type_vacation) as 
-		vacation_days 
-	from 
+		vacation_days,
+                        (select
+                                count(*)
+                        from
+                                im_user_absences a,
+                                (select im_day_enumerator as d from im_day_enumerator(to_date('first_day_of_month','mm/dd/yyyy'), to_date('$last_day_of_month','yyyy-mm-dd'))) d
+                        where
+                                a.start_date <=  to_date('$last_day_of_month','yyyy-mm-dd')::date and
+                                a.end_date >= to_date('$first_day_of_month','yyyy-mm-dd')::date and
+                                d.d between a.start_date and a.end_date and
+                                a.owner_id = p.person_id and
+                                a.absence_type_id = $im_absence_type_training) as
+                training_days,
+                        (select
+                                count(*)
+                        from
+                                im_user_absences a,
+                                (select im_day_enumerator as d from im_day_enumerator(to_date('first_day_of_month','mm/dd/yyyy'), to_date('$last_day_of_month','yyyy-mm-dd'))) d
+                        where
+                                a.start_date <=  to_date('$last_day_of_month','yyyy-mm-dd')::date and
+                                a.end_date >= to_date('$first_day_of_month','yyyy-mm-dd')::date and
+                                d.d between a.start_date and a.end_date and
+                                a.owner_id = p.person_id and
+	                                (a.absence_type_id = $im_absence_type_personal or 
+					 a.absence_type_id = $im_absence_type_sick or 
+					 a.absence_type_id = $im_absence_type_travel)
+				) as 
+                other_absences
+ 	from 
 		persons p,
-		im_hours h
-
+		acs_rels r, 
+		membership_rels mr 
+	where 	
+		r.rel_id = mr.rel_id and 
+		r.object_id_two = p.person_id and 
+		r.object_id_one = 463 and 
+		mr.member_state = 'approved'
 "
-
-#	where 
-#		p.person_id = 28467 or p.person_id = 28395
 
 # ---------------------------------------------------------------
 # Create table header
 # ---------------------------------------------------------------
 
 set table_header_html ""
-append table_header_html "<table cellpadding='4' cellspacing='4' border='1'><tr>\n"
+set table_header_html "<form action='/intranet-timesheet2/absences/capacity-planning-2.tcl' method='POST'>[export_form_vars cap_month cap_year]"
+append table_header_html "<table><tbody><tr>\n"
+append table_header_html "<td colspan='3'></td>"
 
 # ---------------------------------------------------------------
 # Create top column (employees) 
 # ---------------------------------------------------------------
 
+set ctr_employees 0 
 
-set ctr 0 
-
-append table_header_html "<td>ID:<br>"
-append table_header_html "Name:<br>"
-append table_header_html "Work Days:<br>"
-append table_header_html "Vacation Days<br>"
-append table_header_html "</td>"
+append table_header_html "<td><table style='margin:3px'><tr><td>[lang::message::lookup "" intranet-core.User_Id "User Id"]:</td></tr>\n"
+append table_header_html "<tr><td>[lang::message::lookup "" intranet-core.Username "Name"]:<br><br></td></tr>\n"
+append table_header_html "<tr><td>[lang::message::lookup "" intranet-timesheet2.Workdays "Workdays"]:</td></tr>\n"  
+append table_header_html "<tr><td>[lang::message::lookup "" intranet-core.Vacation "Vacation"]:</td></tr>\n"
+append table_header_html "<tr><td>[lang::message::lookup "" intranet-timesheet2.Training "Training"]:</td></tr>\n"  
+append table_header_html "<tr><td>[lang::message::lookup "" intranet-timesheet2.OtherAbsences "Other absences"]:</td></tr>\n"  
+append table_header_html "</table></td>"
 
 db_foreach projects_info_query $title_sql  {
-	append table_header_html "<td>"
-	append table_header_html $person_id "<br>"
-	append table_header_html $first_names "&nbsp;" "$last_name" "<br>"
-	append table_header_html $work_days "<br>"
-	append table_header_html $vacation_days
-	append table_header_html "</td>"
-	incr ctr
+	append table_header_html "<td><table style='margin:3px'>\n"
+	append table_header_html "<tr><td>$person_id</td></tr>\n"
+	append table_header_html "<tr><td><b>$first_names<br>$last_name</b></td></tr>\n"
+	append table_header_html "<tr><td>$work_days</td></tr>\n"
+	append table_header_html "<tr><td>$vacation_days</td></tr>\n"
+        append table_header_html "<tr><td>$training_days</td></tr>\n"
+        append table_header_html "<tr><td>$other_absences</td></tr>\n"
+	append table_header_html "</table></td>\n"
+	set employee_array($ctr_employees) $person_id
+	incr ctr_employees
 }
 
+append table_header_html "</tr><tr><td colspan=100>&nbsp;</td></tr>"
 
+# ---------------------------------------------------------------
+# Set capacity arr
+# ---------------------------------------------------------------
+
+set sql "
+	select 
+		c.days_capacity,
+		c.project_id,
+		c.user_id
+ 	from 
+		im_capacity_planning c,
+                users u,
+                acs_rels r,
+                membership_rels mr
+	where 
+                r.rel_id = mr.rel_id and
+                r.object_id_two = u.user_id and
+                r.object_id_one = 463 and
+                mr.member_state = 'approved' and 
+		c.year = :cap_year and  
+		c.month = :cap_month and 
+		c.user_id = u.user_id
+"
+
+db_foreach sql $sql {
+	set cap_array_index [concat $user_id.$project_id]
+	set cap_array($cap_array_index) $days_capacity
+}
 
 # ---------------------------------------------------------------
 # Create table body
 # ---------------------------------------------------------------
-set table_body_html ""
 
+
+
+set table_body_html ""
 
 # build sql 
 
@@ -153,7 +232,6 @@ set max_project_name_len 50
 
 set list_sort_order [parameter::get_from_package_key -package_key "intranet-timesheet2" -parameter TimesheetAddHoursSortOrder -default "name"]
 
-# Handle subprojects
 
 
     # ---------------------------------------------------------
@@ -202,7 +280,10 @@ set list_sort_order [parameter::get_from_package_key -package_key "intranet-time
     set sql "
                 select
                         p.project_id,
-                        substring(p.project_name for :max_project_name_len) as project_name_shortened
+                        substring(p.project_name for :max_project_name_len) as project_name_shortened,
+			to_char(start_date, 'DD/MM/YYYY') as start_date,
+                        to_char(end_date, 'DD/MM/YYYY') as end_date,
+			im_name_from_user_id(p.project_lead_id) as lead_name
 		from
 			im_projects p
                 where
@@ -213,56 +294,74 @@ set list_sort_order [parameter::get_from_package_key -package_key "intranet-time
                         p.project_name
     "
 
-    set options [list]
+
+    set bgcolor(0) " class=roweven "
+    set bgcolor(1) " class=rowodd "
+    set ctr 0
+
+    append table_body_html "<tr>\n"
+    append table_body_html "<td style='background-color:#ccc;font-weight:bold'>[lang::message::lookup "" intranet-core.Project_name "Project name"]</td>\n"
+    append table_body_html "<td style='background-color:#ccc;font-weight:bold'>[lang::message::lookup "" intranet-core.Start_Date "Start Date"]</td>\n"
+    append table_body_html "<td style='background-color:#ccc;font-weight:bold'>[lang::message::lookup "" intranet-core.End_Date "End Date"]</td>\n"
+    append table_body_html "<td style='background-color:#ccc;font-weight:bold'>[lang::message::lookup "" intranet-core.AvailableDays "Days available"]</td>\n"
+    append table_body_html "<td colspan='1000'>&nbsp;</td></tr>\n"
+
     db_foreach project_name $sql {
-	append table_body_html "<tr><td>$project_name_shortened</td></tr>"
+	append table_body_html "<tr$bgcolor([expr $ctr % 2])>\n"
+	append table_body_html "<td><a href='$project_url$project_id'>$project_name_shortened</a></td>\n"
+	append table_body_html "<td>$start_date</td>\n"	
+	append table_body_html "<td>$end_date</td>\n"	
+	append table_body_html "<td>Manntage</td>\n"
+	for { set i 1 } { $i <= $ctr_employees } { incr i } {
+		set cap_array_index [concat $employee_array([expr $i-1]).$project_id]		
+		if { [info exists cap_array($cap_array_index)] } {
+			set cap_textbox_value $cap_array($cap_array_index) 	
+		} else {
+			set cap_textbox_value "" 	
+		}
+		append table_body_html "<td><input type='textbox' name='capacity.$cap_array_index' value='$cap_textbox_value' size='3'/></td>\n"
+	}	
+        append table_body_html "</tr>\n"
+	incr ctr
     }
-
-
 
 # ---------------------------------------------------------------
 # Create table footer
 # ---------------------------------------------------------------
 
-append table_footer_html "</tr></table>\n"
-
-
-
-
+append table_footer_html "</tbody><tr><td colspan='100' align='right'><input type=submit value='Save'></td></tr></table>\n</form>"
 
 # ---------------------
 # final standard stuff
 # ---------------------
 
 set filter_html "
-<form method=get name=projects_filter action='/intranet/projects/index'>
-[export_form_vars start_idx order_by how_many view_name include_subprojects_p letter]
-
-<table border=0 cellpadding=0 cellspacing=1>
+<form method=get name=capacity_filter action='/intranet-timesheet2/absences/capacity-planning'>
+<table border=0 cellpadding=3 cellspacing=3>
 "
 
 
-if {[im_permission $user_id "view_projects_all"]} {
-    append filter_html "
-  <tr>
-    <td class=form-label>[_ intranet-core.Project_Status]:</td>
-    <td class=form-widget>[im_category_select -include_empty_p 1 "Intranet Project Status" project_status_id $project_status_id]</td>
-  </tr>
-    "
-}
+# if {[im_permission $user_id "view_projects_all"]} {
+#    append filter_html "
+#  <tr>
+#    <td class=form-label>[_ intranet-core.Project_Status]:</td>
+#    <td class=form-widget>[im_category_select -include_empty_p 1 "Intranet Project Status" project_status_id $project_status_id]</td>
+#  </tr>
+#    "
+# }
 
 
 append filter_html "
   <tr>
-<td class=form-label>[_ intranet-core.Start_Date]</td>
+<td class=form-label>[lang::message::lookup "" intranet-core.Month "Month"]</td
             <td class=form-widget>
-              <input type=textfield name=cap_month value=$cap_month>
+              <input type=textfield name=cap_month value=$cap_month size='2' maxlength='2'>
             </td>
   </tr>
   <tr>
-<td class=form-label>[lang::message::lookup "" intranet-core.End_Date "End Date"]</td>
+<td class=form-label>[lang::message::lookup "" intranet-core.Year "Year"]</td>
             <td class=form-widget>
-              <input type=textfield name=cap_year value=$cap_year>
+              <input type=textfield name=cap_year value=$cap_year size='4' maxlength='4'>
             </td>
   </tr>
 "
