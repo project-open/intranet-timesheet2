@@ -274,7 +274,6 @@ ad_form -extend -name absence -on_request {
 			:user_id,
 			'[ns_conn peeraddr]',
 			null,
-
 			:absence_name,
 			:absence_owner_id,
 			$start_date_sql,
@@ -282,7 +281,8 @@ ad_form -extend -name absence -on_request {
 			:absence_status_id,
 			:absence_type_id,
 			:description,
-			:contact_info
+			:contact_info,
+			:group_id
 		)
 	"]
 
