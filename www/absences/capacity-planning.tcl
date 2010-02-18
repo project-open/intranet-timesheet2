@@ -31,6 +31,12 @@ ad_page_contract {
     { filter_advanced_p:integer 0 }
 }
 
+
+proc round_down {val rounder} {
+       set nval [expr floor($val*$rounder) /$rounder]
+       return $nval
+       }
+
 # Date settings
 set days_in_past 7
 set date_format [im_l10n_sql_date_format]
@@ -57,6 +63,8 @@ set subsite_id [ad_conn subsite_id]
 set context_bar [im_context_bar $page_title]
 set url_stub [im_url_with_query]
 set project_url "/intranet/projects/view?project_id="
+set floating_point_helper ".0"
+
 
 # Please verify - might need adjustment
 set im_absence_type_vacation 5000
@@ -65,6 +73,11 @@ set im_absence_type_sick 5002
 set im_absence_type_travel 5003
 set im_absence_type_bankholiday 5005 
 set im_absence_type_training 5004
+
+# set excluded projects
+set exclude_closed_projects [im_sub_categories [im_project_status_deleted] ]
+set exclude_deleted_projects [im_sub_categories [im_project_status_closed]]
+set exclude_status_id [concat $exclude_closed_projects $exclude_deleted_projects] 
 
 # Date operations 
 set first_day_of_month ""
@@ -124,7 +137,18 @@ set title_sql "
 					 a.absence_type_id = $im_absence_type_sick or 
 					 a.absence_type_id = $im_absence_type_travel)
 				) as 
-                other_absences
+                other_absences,
+			(select
+				sum(c.days_capacity) 
+			from 
+				im_capacity_planning c,
+				im_projects proj
+			where 
+				c.user_id= p.person_id and 
+				c.project_id = proj.project_id and 
+				proj.project_status_id not in ([join $exclude_status_id ","])
+				) as 
+		workload  
  	from 
 		persons p,
 		acs_rels r, 
@@ -151,8 +175,9 @@ append table_header_html "<td colspan='3'></td>"
 
 set ctr_employees 0 
 
-append table_header_html "<td><table style='margin:3px'><tr><td>[lang::message::lookup "" intranet-core.User_Id "User Id"]:</td></tr>\n"
+append table_header_html "<td><table border=1 style='margin:3px'><tr><td>[lang::message::lookup "" intranet-core.User_Id "User Id"]:</td></tr>\n"
 append table_header_html "<tr><td>[lang::message::lookup "" intranet-core.Username "Name"]:<br><br></td></tr>\n"
+append table_header_html "<tr><td>[lang::message::lookup "" intranet-core.Workload "Workload"]:</td></tr>\n"
 append table_header_html "<tr><td>[lang::message::lookup "" intranet-timesheet2.Workdays "Workdays"]:</td></tr>\n"  
 append table_header_html "<tr><td>[lang::message::lookup "" intranet-core.Vacation "Vacation"]:</td></tr>\n"
 append table_header_html "<tr><td>[lang::message::lookup "" intranet-timesheet2.Training "Training"]:</td></tr>\n"  
@@ -160,9 +185,17 @@ append table_header_html "<tr><td>[lang::message::lookup "" intranet-timesheet2.
 append table_header_html "</table></td>"
 
 db_foreach projects_info_query $title_sql  {
-	append table_header_html "<td><table style='margin:3px'>\n"
+
+	set workload_formatted [expr [round_down [expr $workload / [concat $work_days$floating_point_helper]] 100 ] * 100]
+	if { $workload_formatted > 100} {
+		set workload_formatted "<span style='color:red;font-weight:bold'>$workload_formatted%</span>"
+	} else {
+		append workload_formatted "%" 
+	}
+	append table_header_html "<td><table border=1 style='margin:3px'>\n"
 	append table_header_html "<tr><td>$person_id</td></tr>\n"
 	append table_header_html "<tr><td><b>$first_names<br>$last_name</b></td></tr>\n"
+	append table_header_html "<tr><td>$workload_formatted</td></tr>\n"
 	append table_header_html "<tr><td>$work_days</td></tr>\n"
 	append table_header_html "<tr><td>$vacation_days</td></tr>\n"
         append table_header_html "<tr><td>$training_days</td></tr>\n"
@@ -187,7 +220,8 @@ set sql "
 		im_capacity_planning c,
                 users u,
                 acs_rels r,
-                membership_rels mr
+                membership_rels mr,
+		im_projects p
 	where 
                 r.rel_id = mr.rel_id and
                 r.object_id_two = u.user_id and
@@ -195,7 +229,9 @@ set sql "
                 mr.member_state = 'approved' and 
 		c.year = :cap_year and  
 		c.month = :cap_month and 
-		c.user_id = u.user_id
+		c.user_id = u.user_id and 
+		c.project_id = p.project_id and
+		p.project_status_id not in ([join $exclude_status_id ","]) 	
 "
 
 db_foreach sql $sql {
@@ -212,11 +248,6 @@ db_foreach sql $sql {
 set table_body_html ""
 
 # build sql 
-
-# exclude deleted and closed projects 
-set exclude_closed_projects [im_sub_categories [im_project_status_deleted] ]
-set exclude_deleted_projects [im_sub_categories [im_project_status_closed]]
-set exclude_status_id [concat $exclude_closed_projects $exclude_deleted_projects] 
 
 # exclude sub-projects
 set exclude_subprojects_p 1 
@@ -238,14 +269,13 @@ set list_sort_order [parameter::get_from_package_key -package_key "intranet-time
     # Compile "criteria"
 
     set p_criteria [list]
-    set main_p_criteria [list]
+
     if {$exclude_subprojects_p} {
         lappend p_criteria "p.parent_id is null"
     }
 
     if {0 != $exclude_status_id && "" != $exclude_status_id} {
-        lappend p_criteria "p.project_status_id not in ([join [im_sub_categories $exclude_status_id] ","])"
-        lappend main_p_criteria "p.project_status_id not in ([join [im_sub_categories $exclude_status_id] ","])"
+        lappend p_criteria "p.project_status_id not in ([join $exclude_status_id ","])"
     }
 
     if {0 != $exclude_type_id && "" != $exclude_type_id} {
