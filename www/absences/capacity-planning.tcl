@@ -175,7 +175,7 @@ append table_header_html "<td colspan='3'></td>"
 
 set ctr_employees 0 
 
-append table_header_html "<td><table border=1 style='margin:3px'><tr><td>[lang::message::lookup "" intranet-core.User_Id "User Id"]:</td></tr>\n"
+append table_header_html "<td><table border=0 style='margin:3px'><tr><td>[lang::message::lookup "" intranet-core.User_Id "User Id"]:</td></tr>\n"
 append table_header_html "<tr><td>[lang::message::lookup "" intranet-core.Username "Name"]:<br><br></td></tr>\n"
 append table_header_html "<tr><td>[lang::message::lookup "" intranet-core.Workload "Workload"]:</td></tr>\n"
 append table_header_html "<tr><td>[lang::message::lookup "" intranet-timesheet2.Workdays "Workdays"]:</td></tr>\n"  
@@ -192,7 +192,7 @@ db_foreach projects_info_query $title_sql  {
 	} else {
 		append workload_formatted "%" 
 	}
-	append table_header_html "<td><table border=1 style='margin:3px'>\n"
+	append table_header_html "<td><table border=0 style='margin:3px'>\n"
 	append table_header_html "<tr><td>$person_id</td></tr>\n"
 	append table_header_html "<tr><td><b>$first_names<br>$last_name</b></td></tr>\n"
 	append table_header_html "<tr><td>$workload_formatted</td></tr>\n"
@@ -205,7 +205,7 @@ db_foreach projects_info_query $title_sql  {
 	incr ctr_employees
 }
 
-append table_header_html "</tr><tr><td colspan=100>&nbsp;</td></tr>"
+append table_header_html "</tr>"
 
 # ---------------------------------------------------------------
 # Set capacity arr
