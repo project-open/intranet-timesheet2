@@ -105,8 +105,8 @@ create index im_user_absences_type_idx on im_user_absences(absence_type_id);
 
 -- Check constraint to make sure that the owner_id isnt set accidentally
 -- if the absence refers to a group.
-alter table im_user_absences add constraint im_user_absences_group_ck 
-check (not (group_id is not null and absence_type_id != 5005));
+-- alter table im_user_absences add constraint im_user_absences_group_ck 
+-- check (not (group_id is not null and absence_type_id != 5005));
 
 
 
@@ -266,7 +266,9 @@ SELECT im_category_new (5000, 'Vacation', 'Intranet Absence Type');
 SELECT im_category_new (5001, 'Personal', 'Intranet Absence Type');
 SELECT im_category_new (5002, 'Sick', 'Intranet Absence Type');
 SELECT im_category_new (5003, 'Travel', 'Intranet Absence Type');
-SELECT im_category_new (5004, 'Bank Holiday', 'Intranet Absence Type');
+SELECT im_category_new (5004, 'Training', 'Intranet Absence Type');
+SELECT im_category_new (5005, 'Bank Holiday', 'Intranet Absence Type');
+
 
 -- Set the default WF for each absence type
 update im_categories set aux_string1 = 'vacation_approval_wf' where category_id = 5000;
