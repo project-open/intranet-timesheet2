@@ -85,7 +85,7 @@ if {$show_week_p} {
 
 # Materials
 set materials_p [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter HourLoggingWithMaterialsP -default 0]
-set material_options [im_material_options -include_empty 1]
+set material_options [im_material_options -include_empty 1 -restrict_to_uom_id [im_uom_hour]]
 set default_material_id [im_material_default_material_id]
 
 # Project_ID and list of project IDs
@@ -604,6 +604,10 @@ db_foreach hours_hash $hours_sql {
     if {"" != $invoice_id} {
         set hours_invoice_hash($key) $invoice_id
     }
+    if {$materials_p} {
+	set hours_material_id($key) $material_id
+	set hours_material($key) $material
+    }
 }
 
 # ad_return_complaint 1 [array get hours_invoice_hash]
@@ -891,10 +895,15 @@ template::multirow foreach hours_multirow {
 	set hours ""
 	set note ""
 	set internal_note ""
+	set material_id $default_material_id
+	set material "Default"
 	set key "$project_id-$julian_day_offset"
 	if {[info exists hours_hours($key)]} { set hours $hours_hours($key) }
 	if {[info exists hours_note($key)]} { set note $hours_note($key) }
 	if {[info exists hours_internal_note($key)]} { set internal_note $hours_internal_note($key) }
+
+	if {[info exists hours_material_id($key)]} { set material_id $hours_material_id($key) }
+	if {[info exists hours_material($key)]} { set material $hours_material($key) }
 
 	# Determine whether the hours have already been included in a timesheet invoice
 	set invoice_id 0
