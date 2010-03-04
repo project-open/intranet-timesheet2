@@ -70,6 +70,7 @@ set hours_per_day [expr $hours_per_day * 1.0]
 
 set limit_to_one_day_per_main_project_p [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter TimesheetLimitToOneDayPerUserAndMainProjectP -default 1]
 
+set sync_cost_item_p [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter "SyncHoursImmediatelyAfterEntryP" -default 1]
 
 if {![im_column_exists im_hours internal_note]} {
     ad_return_complaint 1 "Internal error in intranet-timesheet2:<br>
@@ -433,8 +434,13 @@ foreach project_id $all_project_ids {
     im_timesheet_update_timesheet_cache -project_id $project_id
 }
 
-# Do not update cost items at this moment.
-#    im_timesheet2_sync_timesheet_costs -project_id $project_id
+# Create cost items for every logged hours?
+# This may take up to a second per user, so we may want to avoid this
+# in very busy Swisss systems where everybody logs hours between 16:00 and 16:30...
+if {$sync_cost_item_p} {
+    im_timesheet2_sync_timesheet_costs -project_id $project_id
+}
+
 
 
 # ----------------------------------------------------------
