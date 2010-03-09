@@ -290,7 +290,7 @@ set org_start_date $start_date
 
 
 if {"" != $start_date} {
-    lappend criteria "a.start_date >= :start_date::timestamptz"
+    lappend criteria "a.end_date >= :start_date::timestamptz"
 }
 if {"" != $end_date} {
     lappend criteria "a.start_date <= :end_date::timestamptz"
