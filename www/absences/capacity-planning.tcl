@@ -49,6 +49,51 @@ set user_url "/intranet/users/view?user_id="
 set floating_point_helper ".0"
 
 
+# ---------------------
+# final standard stuff
+# ---------------------
+
+set filter_html "
+<form method=get name=capacity_filter action='/intranet-timesheet2/absences/capacity-planning'>
+<table border=0 cellpadding=3 cellspacing=3>
+"
+
+
+# if {[im_permission $user_id "view_projects_all"]} {
+#    append filter_html "
+#  <tr>
+#    <td class=form-label>[_ intranet-core.Project_Status]:</td>
+#    <td class=form-widget>[im_category_select -include_empty_p 1 "Intranet Project Status" project_status_id $project_status_id]</td>
+#  </tr>
+#    "
+# }
+
+
+append filter_html "
+  <tr>
+<td class=form-label>[lang::message::lookup "" intranet-core.Month "Month"]</td
+            <td class=form-widget>
+              <input type=textfield name=cap_month value=$cap_month size='2' maxlength='2'>
+            </td>
+  </tr>
+  <tr>
+<td class=form-label>[lang::message::lookup "" intranet-core.Year "Year"]</td>
+            <td class=form-widget>
+              <input type=textfield name=cap_year value=$cap_year size='4' maxlength='4'>
+            </td>
+  </tr>
+"
+append filter_html "
+  <tr>
+    <td class=form-label></td>
+    <td class=form-widget>
+          <input type=submit value='[lang::message::lookup "" intranet-core.Action_Go "Go"]' name=submit>
+    </td>
+  </tr>
+"
+
+append filter_html "</table>\n</form>\n"
+
 # Date settings
 set days_in_past 7
 set date_format [im_l10n_sql_date_format]
@@ -108,47 +153,12 @@ set title_sql "
 		p.person_id, 
 		p.first_names, 
 		p.last_name,
-			(select count(*) from (select * from im_absences_working_days_month(p.person_id,$cap_month,$cap_year) t(days int))ct) as 
-		work_days,
-			(select
-                        	count(*)
-	                from
-        	                im_user_absences a,
-                	        (select im_day_enumerator as d from im_day_enumerator(to_date('$first_day_of_month','mm/dd/yyyy'), to_date('$last_day_of_month','yyyy-mm-dd'))) d
-	                where
-        	                a.start_date <=  to_date('$last_day_of_month','yyyy-mm-dd')::date and
-                	        a.end_date >= to_date('$first_day_of_month','yyyy-mm-dd')::date and
-                        	d.d between a.start_date and a.end_date and
-				a.owner_id = p.person_id and
-	                        a.absence_type_id = $im_absence_type_vacation) as 
-		vacation_days,
-                        (select
-                                count(*)
-                        from
-                                im_user_absences a,
-                                (select im_day_enumerator as d from im_day_enumerator(to_date('$first_day_of_month','mm/dd/yyyy'), to_date('$last_day_of_month','yyyy-mm-dd'))) d
-                        where
-                                a.start_date <=  to_date('$last_day_of_month','yyyy-mm-dd')::date and
-                                a.end_date >= to_date('$first_day_of_month','yyyy-mm-dd')::date and
-                                d.d between a.start_date and a.end_date and
-                                a.owner_id = p.person_id and
-                                a.absence_type_id = $im_absence_type_training) as
-                training_days,
-                        (select
-                                count(*)
-                        from
-                                im_user_absences a,
-                                (select im_day_enumerator as d from im_day_enumerator(to_date('$first_day_of_month','mm/dd/yyyy'), to_date('$last_day_of_month','yyyy-mm-dd'))) d
-                        where
-                                a.start_date <=  to_date('$last_day_of_month','yyyy-mm-dd')::date and
-                                a.end_date >= to_date('$first_day_of_month','yyyy-mm-dd')::date and
-                                d.d between a.start_date and a.end_date and
-                                a.owner_id = p.person_id and
-	                                (a.absence_type_id = $im_absence_type_personal or 
-					 a.absence_type_id = $im_absence_type_sick or 
-					 a.absence_type_id = $im_absence_type_travel)
-				) as 
-                other_absences,
+			(select count(*) from (select * from im_absences_working_days_month(p.person_id,$cap_month,$cap_year) t(days int))ct) as work_days,
+			(select count(distinct absence_query.days) from (select * from im_absences_month_absence_type (p.person_id, $cap_month, $cap_year, $im_absence_type_vacation) AS (days date)) absence_query) as vacation_days,
+			(select count(distinct absence_query.days) from (select * from im_absences_month_absence_type (p.person_id, $cap_month, $cap_year, $im_absence_type_training) AS (days date)) absence_query) as training_days,
+			(select count(distinct absence_query.days) from (select * from im_absences_month_absence_type (p.person_id, $cap_month, $cap_year, $im_absence_type_travel) AS (days date)) absence_query) as travel_days,
+			(select count(distinct absence_query.days) from (select * from im_absences_month_absence_type (p.person_id, $cap_month, $cap_year, $im_absence_type_sick) AS (days date)) absence_query) as sick_days,
+			(select count(distinct absence_query.days) from (select * from im_absences_month_absence_type (p.person_id, $cap_month, $cap_year, $im_absence_type_personal) AS (days date)) absence_query) as personal_days,
 			(select
 				sum(c.days_capacity) 
 			from 
@@ -157,7 +167,8 @@ set title_sql "
 			where 
 				c.user_id= p.person_id and 
 				c.project_id = proj.project_id and 
-				proj.project_status_id not in ([join $exclude_status_id ","])
+				proj.project_status_id not in ([join $exclude_status_id ","]) and
+				c.month = $cap_month
 				) as 
 		workload  
 	from 
@@ -178,7 +189,11 @@ set title_sql "
 set table_header_html ""
 set table_header_html "<form action='/intranet-timesheet2/absences/capacity-planning-2.tcl' method='POST'>[export_form_vars cap_month cap_year]"
 append table_header_html "<table border='0'><tbody><tr>\n"
-append table_header_html "<td colspan='4'></td>"
+append table_header_html "<td colspan='4' valign='top'> <br>
+<div class='filter-block'>
+        <div class='filter-title'>Period:</div>
+        $filter_html</div>
+</td>"
 
 # ---------------------------------------------------------------
 # Create top column (employees) 
@@ -193,8 +208,8 @@ append table_header_html "<tr><td><b>[lang::message::lookup "" intranet-timeshee
 append table_header_html "<tr><td><b>[lang::message::lookup "" intranet-core.Vacation "Vacation"]:</b></td></tr>\n"
 append table_header_html "<tr><td><b>[lang::message::lookup "" intranet-timesheet2.Training "Training"]:</b></td></tr>\n"  
 append table_header_html "<tr><td><b>[lang::message::lookup "" intranet-timesheet2.OtherAbsences "Other absences"]:</b></td></tr>\n"  
+append table_header_html "<tr><td><b>[lang::message::lookup "" intranet-timesheet2.SumPlannedDays "Sum planned days"]:</b></td></tr>\n"  
 append table_header_html "</tbody></table></td>"
-
 
 
 db_foreach projects_info_query $title_sql  {
@@ -216,7 +231,8 @@ db_foreach projects_info_query $title_sql  {
 	append table_header_html "<tr><td>$work_days</td></tr>\n"
 	append table_header_html "<tr><td>$vacation_days</td></tr>\n"
         append table_header_html "<tr><td>$training_days</td></tr>\n"
-        append table_header_html "<tr><td>$other_absences</td></tr>\n"
+        append table_header_html "<tr><td>[expr $travel_days+$sick_days + $personal_days]</td></tr>\n"
+        append table_header_html "<tr><td>[expr $travel_days+$sick_days + $personal_days + $vacation_days + $training_days]</td></tr>\n"
 	append table_header_html "<tbody></table></td>\n"
 	set employee_array($ctr_employees) $person_id
 	incr ctr_employees
@@ -350,7 +366,7 @@ set list_sort_order [parameter::get_from_package_key -package_key "intranet-time
 						children.tree_sortkey between parent.tree_sortkey and tree_right(parent.tree_sortkey)
 						and parent.tree_sortkey in  
 						(
-							select tree_sortkey from im_projects where project_id=28960
+							select tree_sortkey from im_projects where project_id = p.project_id
 						)
 					)
 			) as sum_planned_units, 
@@ -371,7 +387,7 @@ set list_sort_order [parameter::get_from_package_key -package_key "intranet-time
 						children.tree_sortkey between parent.tree_sortkey and tree_right(parent.tree_sortkey)
 						and parent.tree_sortkey in  
 						(
-							select tree_sortkey from im_projects where project_id=28960
+							select tree_sortkey from im_projects where project_id = p.project_id
 						)
 					)
 			) as sum_logged_units
@@ -427,51 +443,6 @@ set list_sort_order [parameter::get_from_package_key -package_key "intranet-time
 # ---------------------------------------------------------------
 
 append table_footer_html "</tbody><tr><td>&nbsp;</td></tr><tr><td colspan='100' align='right'><input type=submit value='[lang::message::lookup "" intranet-core.BtnSaveUpdate "Save/Update"]'></td></tr></table>\n</form>"
-
-# ---------------------
-# final standard stuff
-# ---------------------
-
-set filter_html "
-<form method=get name=capacity_filter action='/intranet-timesheet2/absences/capacity-planning'>
-<table border=0 cellpadding=3 cellspacing=3>
-"
-
-
-# if {[im_permission $user_id "view_projects_all"]} {
-#    append filter_html "
-#  <tr>
-#    <td class=form-label>[_ intranet-core.Project_Status]:</td>
-#    <td class=form-widget>[im_category_select -include_empty_p 1 "Intranet Project Status" project_status_id $project_status_id]</td>
-#  </tr>
-#    "
-# }
-
-
-append filter_html "
-  <tr>
-<td class=form-label>[lang::message::lookup "" intranet-core.Month "Month"]</td
-            <td class=form-widget>
-              <input type=textfield name=cap_month value=$cap_month size='2' maxlength='2'>
-            </td>
-  </tr>
-  <tr>
-<td class=form-label>[lang::message::lookup "" intranet-core.Year "Year"]</td>
-            <td class=form-widget>
-              <input type=textfield name=cap_year value=$cap_year size='4' maxlength='4'>
-            </td>
-  </tr>
-"
-append filter_html "
-  <tr>
-    <td class=form-label></td>
-    <td class=form-widget>
-          <input type=submit value='[lang::message::lookup "" intranet-core.Action_Go "Go"]' name=submit>
-    </td>
-  </tr>
-"
-
-append filter_html "</table>\n</form>\n"
 
 # Left Navbar is the filter/select part of the left bar
 set left_navbar_html "
