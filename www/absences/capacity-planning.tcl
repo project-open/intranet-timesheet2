@@ -31,7 +31,27 @@ ad_page_contract {
     { user_id_from_search:multiple 0 }
 }
 
-# ad_return_complaint 1 $user_id_from_search
+# ------------------------------------------------------------
+# Security
+
+# Label: Provides the security context for this report
+# because it identifies unquely the report's Menu and
+# its permissions.
+set current_user_id [ad_maybe_redirect_for_registration]
+set menu_label "capacity-planning"
+
+set read_p [db_string report_perms "
+        select  im_object_permission_p(m.menu_id, :current_user_id, 'read')
+        from    im_menus m
+        where   m.label = :menu_label
+" -default 'f']
+
+if {![string equal "t" $read_p]} {
+    ad_return_complaint 1 "<li>
+[lang::message::lookup "" intranet-reporting.You_dont_have_permissions "You don't have the necessary permissions to view this page"]"
+    return
+}
+
 
 proc round_down {val rounder} {
        set nval [expr floor($val*$rounder) /$rounder]
@@ -72,19 +92,29 @@ if {"" == $cap_year} {
 
 
 # ---------------------------
-# Hidden vars
+# Set Filter & employee list
 # ---------------------------
 
-# foreach uid $user_id_from_search {
-#      append export_vars "<input type=hidden name=user_id_from_search value=$uid>\n"
-# }
+if { 0 == $user_id_from_search } {
+    # mark all users 
+    set user_id_options [db_list users "
+        select
+                p.person_id
+        from
+                persons p,
+                acs_rels r,
+                membership_rels mr
+        where
+                r.rel_id = mr.rel_id and
+                r.object_id_two = p.person_id and
+                r.object_id_one = 463 and
+                mr.member_state = 'approved'
+	"]
+} else {
+    set user_id_options [join $user_id_from_search " "]
+}
 
-
-# ---------------------------
-# Set Filter & emplyee list
-# ---------------------------
-
-set employee_select [im_employee_select_multiple user_id_from_search "" 12 multiple]
+set employee_select [im_employee_select_multiple user_id_from_search $user_id_options 12 multiple]
 
 set filter_html "
 <form method=get name=capacity_filter action='/intranet-timesheet2/absences/capacity-planning'>
@@ -140,6 +170,7 @@ set im_absence_type_training 5004
 # set excluded projects
 # set exclude_closed_projects [im_sub_categories [im_project_status_deleted] ]
 # set exclude_deleted_projects [im_sub_categories [im_project_status_closed]]
+
 # set exclude_status_id [concat $exclude_closed_projects $exclude_deleted_projects] 
 set exclude_status_id 0
 
@@ -156,6 +187,8 @@ set last_day_of_month [db_string get_number_days_month "select to_date( '$cap_ye
 
 # set sql for top line (user and absences)
 # workdays: total business days - absences - saturday/sunday - bank holidays
+
+set exclude_user_id [join [join $user_id_options " "] ","]
 
 set title_sql "
 	select 
@@ -188,7 +221,8 @@ set title_sql "
 		r.rel_id = mr.rel_id and 
 		r.object_id_two = p.person_id and 
 		r.object_id_one = 463 and 
-		mr.member_state = 'approved'
+		mr.member_state = 'approved' and
+		p.person_id in ($exclude_user_id)
 "
 
 # ---------------------------------------------------------------
@@ -213,7 +247,7 @@ append table_header_html "<td colspan='4' valign='top'>
 
 set ctr_employees 0 
 
-append table_header_html "<td><table border=0 style='margin:3px' class='table_fixed_height'><tbody><tr><td>[lang::message::lookup "" intranet-core.User_Id "User Id"]:</b></td></tr>\n"
+append table_header_html "<td valign='top'><table border='0' style='margin:3px' class='table_fixed_height'><tbody><tr><td>[lang::message::lookup "" intranet-core.User_Id "User Id"]:</b></td></tr>\n"
 append table_header_html "<tr><td><b>[lang::message::lookup "" intranet-core.Username "Name"]:</b><br><br></td></tr>\n"
 append table_header_html "<tr><td><b>[lang::message::lookup "" intranet-core.Workload "Workload"]:</b></td></tr>\n"
 append table_header_html "<tr><td><b>[lang::message::lookup "" intranet-timesheet2.Workdays "Workdays"]:</b></td></tr>\n"  
