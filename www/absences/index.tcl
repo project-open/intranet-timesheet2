@@ -403,12 +403,29 @@ set admin_html ""
 if {$add_absences_p} {
     set for_user_id ""
     if {[string is integer $user_selection]} { set for_user_id $user_selection }
-    set admin_html "
+    
+set admin_html "
 	<ul>
 	<li><a href=[export_vars -base "$absences_url/new" {{user_id_from_search $for_user_id} {return_url}}]>[_ intranet-timesheet2.Add_a_new_Absence]</a></li>
-	</ul>
     "
 }
+
+set read_p [db_string report_perms "
+        select  im_object_permission_p(m.menu_id, :current_user_id, 'read')
+        from    im_menus m
+        where   m.label = 'capacity-planning'
+" -default 'f']
+
+if {[string equal "t" $read_p]} {
+    set cap_link [lang::message::lookup "" intranet-core.CapacityPlanning "Capacity Planning"]
+    append admin_html "<li><a href='/intranet-timesheet2/absences/capacity-planning'>$cap_link</a></li></ul>"
+} else {
+    append admin_html "</ul>"
+}
+
+
+
+
 
 #	5000 | Vacation     - Red
 #       5001 | Personal     - Orange
