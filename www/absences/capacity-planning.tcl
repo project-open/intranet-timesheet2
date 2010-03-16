@@ -22,14 +22,16 @@ ad_page_contract {
     { project_status_id 0 }
     { project_type_id:integer 0 }
     { letter:trim "" }
-    { cap_month "" }
-    { cap_year "" }
+    { cap_month:integer "" }
+    { cap_year:integer "" }
     { start_idx:integer 0 }
     { how_many "" }
     { view_name "project_list" }
     { filter_advanced_p:integer 0 }
+    { user_id_from_search:multiple 0 }
 }
 
+# ad_return_complaint 1 $user_id_from_search
 
 proc round_down {val rounder} {
        set nval [expr floor($val*$rounder) /$rounder]
@@ -48,16 +50,46 @@ set project_url "/intranet/projects/view?project_id="
 set user_url "/intranet/users/view?user_id="
 set floating_point_helper ".0"
 
+# Date settings
+set days_in_past 7
+set date_format [im_l10n_sql_date_format]
+db_1row todays_date "
+select
+        to_char(sysdate::date - :days_in_past::integer, 'YYYY') as todays_year,
+        to_char(sysdate::date - :days_in_past::integer, 'MM') as todays_month,
+        to_char(sysdate::date - :days_in_past::integer, 'DD') as todays_day
+from dual
+"
 
-# ---------------------
-# final standard stuff
-# ---------------------
+# set default value for month/year
+if {"" == $cap_month} {
+    set cap_month "[lindex [split [expr $todays_month$floating_point_helper + 1] "." ] 0 ]"
+}
+
+if {"" == $cap_year} {
+    set cap_year "$todays_year"
+}
+
+
+# ---------------------------
+# Hidden vars
+# ---------------------------
+
+# foreach uid $user_id_from_search {
+#      append export_vars "<input type=hidden name=user_id_from_search value=$uid>\n"
+# }
+
+
+# ---------------------------
+# Set Filter & emplyee list
+# ---------------------------
+
+set employee_select [im_employee_select_multiple user_id_from_search "" 12 multiple]
 
 set filter_html "
 <form method=get name=capacity_filter action='/intranet-timesheet2/absences/capacity-planning'>
-<table border=0 cellpadding=3 cellspacing=3>
+<table border='0' cellpadding='3' cellspacing='3'>
 "
-
 
 # if {[im_permission $user_id "view_projects_all"]} {
 #    append filter_html "
@@ -70,48 +102,25 @@ set filter_html "
 
 
 append filter_html "
-  <tr>
-<td class=form-label>[lang::message::lookup "" intranet-core.Month "Month"]</td
-            <td class=form-widget>
-              <input type=textfield name=cap_month value=$cap_month size='2' maxlength='2'>
-            </td>
-  </tr>
-  <tr>
-<td class=form-label>[lang::message::lookup "" intranet-core.Year "Year"]</td>
-            <td class=form-widget>
-              <input type=textfield name=cap_year value=$cap_year size='4' maxlength='4'>
-            </td>
-  </tr>
+<tr>
+	<td class=form-label valign='top'>[lang::message::lookup "" intranet-core.Month "Month"]<br><br>[lang::message::lookup "" intranet-core.Year "Year"]</td
+	<td class=form-widget valign='top'><input type=textfield name='cap_month' value='$cap_month' size='2' maxlength='2'><br><br><input type=textfield name='cap_year' value='$cap_year' size='4' maxlength='4'></td>
+	<td rowspan='4'>&nbsp;&nbsp;</td>
+	<td rowspan='4'>$employee_select</td>
+</tr>
+
 "
+
 append filter_html "
   <tr>
     <td class=form-label></td>
-    <td class=form-widget>
-          <input type=submit value='[lang::message::lookup "" intranet-core.Action_Go "Go"]' name=submit>
-    </td>
+    <td class=form-label></td>
+    <td class=form-label></td>
+    <td class=form-widget valign='bottom'><input type=submit value='[lang::message::lookup "" intranet-core.Action_Go "Go"]' name=submit></td>
   </tr>
 "
 
 append filter_html "</table>\n</form>\n"
-
-# Date settings
-set days_in_past 7
-set date_format [im_l10n_sql_date_format]
-db_1row todays_date "
-select
-        to_char(sysdate::date - :days_in_past::integer, 'YYYY') as todays_year,
-        to_char(sysdate::date - :days_in_past::integer, 'MM') as todays_month,
-        to_char(sysdate::date - :days_in_past::integer, 'DD') as todays_day
-from dual
-"
-
-if {"" == $cap_month} {
-    set cap_month "[lindex [split [expr $todays_month$floating_point_helper + 1] "." ] 0 ]"
-}
-
-if {"" == $cap_year} {
-    set cap_year "$todays_year"
-}
 
 if { ("" != $cap_month && ![regexp {^[0-9][0-9]$} $cap_month] && ![regexp {^[0-9]$} $cap_month]) || ("" != $cap_month && [lindex [split $cap_month$floating_point_helper "."] 0 ] > 12) } {
     ad_return_complaint 1 "Month doesn't have the right format.<br>
@@ -187,11 +196,14 @@ set title_sql "
 # ---------------------------------------------------------------
 
 set table_header_html ""
-set table_header_html "<form action='/intranet-timesheet2/absences/capacity-planning-2.tcl' method='POST'>[export_form_vars cap_month cap_year]"
+# set table_header_html "<form action='/intranet-timesheet2/absences/capacity-planning-2.tcl' method='POST'>[export_form_vars cap_month cap_year]"
+# set table_header_html "<form action='/intranet-timesheet2/absences/capacity-planning-2.tcl' method='POST'>[export_form_vars user_id_from_search]"
+set table_header_html "<form action='/intranet-timesheet2/absences/capacity-planning-2.tcl' method='POST'>"
+
 append table_header_html "<table border='0'><tbody><tr>\n"
-append table_header_html "<td colspan='4' valign='top'> <br>
+append table_header_html "<td colspan='4' valign='top'>
 <div class='filter-block'>
-        <div class='filter-title'>Period:</div>
+        <div class='filter-title'>Filter:</div>
         $filter_html</div>
 </td>"
 
