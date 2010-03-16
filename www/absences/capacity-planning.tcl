@@ -1,16 +1,10 @@
 # /packages/intranet-timesheet2/www/absences/capacity-planning.tcl
 #
-# Copyright (C) 1998-2004 various parties
+# Copyright (C) 2003 - 2010 ]project-open[
 #
-# This program is free software. You can redistribute it
-# and/or modify it under the terms of the GNU General
-# Public License as published by the Free Software Foundation;
-# either version 2 of the License, or (at your option)
-# any later version. This program is distributed in the
-# hope that it will be useful, but WITHOUT ANY WARRANTY;
-# without even the implied warranty of MERCHANTABILITY or
-# FITNESS FOR A PARTICULAR PURPOSE.
-# See the GNU General Public License for more details.
+# All rights reserved. Please check
+# http://www.project-open.com/ for licensing details.
+
 
 ad_page_contract {
     Capacity planning 
@@ -30,6 +24,7 @@ ad_page_contract {
     { filter_advanced_p:integer 0 }
     { user_id_from_search:multiple 0 }
 }
+
 
 # ------------------------------------------------------------
 # Security
@@ -230,8 +225,6 @@ set title_sql "
 # ---------------------------------------------------------------
 
 set table_header_html ""
-# set table_header_html "<form action='/intranet-timesheet2/absences/capacity-planning-2.tcl' method='POST'>[export_form_vars cap_month cap_year]"
-# set table_header_html "<form action='/intranet-timesheet2/absences/capacity-planning-2.tcl' method='POST'>[export_form_vars user_id_from_search]"
 set table_header_html "<form action='/intranet-timesheet2/absences/capacity-planning-2.tcl' method='POST'>"
 
 append table_header_html "<table border='0'><tbody><tr>\n"
@@ -508,4 +501,3 @@ append left_navbar_html "
         </div>
         </div>
 "
-
