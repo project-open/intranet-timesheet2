@@ -12,7 +12,6 @@
 # FITNESS FOR A PARTICULAR PURPOSE.
 # See the GNU General Public License for more details.
 
-
 ad_page_contract {
     Capacity planning 
     @author Klaus Hofeditz (klaus.hofeditz@project-open.com)
@@ -37,6 +36,19 @@ proc round_down {val rounder} {
        return $nval
        }
 
+# General settings
+set show_context_help_p 0
+set user_id [ad_maybe_redirect_for_registration]
+set page_title "Capacity Planning"
+set context [list "Permissions"]
+set subsite_id [ad_conn subsite_id]
+set context_bar [im_context_bar $page_title]
+set url_stub [im_url_with_query]
+set project_url "/intranet/projects/view?project_id="
+set user_url "/intranet/users/view?user_id="
+set floating_point_helper ".0"
+
+
 # Date settings
 set days_in_past 7
 set date_format [im_l10n_sql_date_format]
@@ -47,23 +59,20 @@ select
         to_char(sysdate::date - :days_in_past::integer, 'DD') as todays_day
 from dual
 "
+
 if {"" == $cap_month} {
-    set cap_month "$todays_month"
+    set cap_month "[lindex [split [expr $todays_month$floating_point_helper + 1] "." ] 0 ]"
 }
+
 if {"" == $cap_year} {
     set cap_year "$todays_year"
 }
 
-# General settings
-set show_context_help_p 0
-set user_id [ad_maybe_redirect_for_registration]
-set page_title "Capacity Planning"
-set context [list "Permissions"]
-set subsite_id [ad_conn subsite_id]
-set context_bar [im_context_bar $page_title]
-set url_stub [im_url_with_query]
-set project_url "/intranet/projects/view?project_id="
-set floating_point_helper ".0"
+if { ("" != $cap_month && ![regexp {^[0-9][0-9]$} $cap_month] && ![regexp {^[0-9]$} $cap_month]) || ("" != $cap_month && [lindex [split $cap_month$floating_point_helper "."] 0 ] > 12) } {
+    ad_return_complaint 1 "Month doesn't have the right format.<br>
+    Current value: '$cap_month'<br>
+    Expected format: 'MM'"
+}
 
 
 # Please verify - might need adjustment
@@ -75,9 +84,11 @@ set im_absence_type_bankholiday 5005
 set im_absence_type_training 5004
 
 # set excluded projects
-set exclude_closed_projects [im_sub_categories [im_project_status_deleted] ]
-set exclude_deleted_projects [im_sub_categories [im_project_status_closed]]
-set exclude_status_id [concat $exclude_closed_projects $exclude_deleted_projects] 
+# set exclude_closed_projects [im_sub_categories [im_project_status_deleted] ]
+# set exclude_deleted_projects [im_sub_categories [im_project_status_closed]]
+# set exclude_status_id [concat $exclude_closed_projects $exclude_deleted_projects] 
+set exclude_status_id 0
+
 
 # Date operations 
 set first_day_of_month ""
@@ -103,7 +114,7 @@ set title_sql "
                         	count(*)
 	                from
         	                im_user_absences a,
-                	        (select im_day_enumerator as d from im_day_enumerator(to_date('first_day_of_month','mm/dd/yyyy'), to_date('$last_day_of_month','yyyy-mm-dd'))) d
+                	        (select im_day_enumerator as d from im_day_enumerator(to_date('$first_day_of_month','mm/dd/yyyy'), to_date('$last_day_of_month','yyyy-mm-dd'))) d
 	                where
         	                a.start_date <=  to_date('$last_day_of_month','yyyy-mm-dd')::date and
                 	        a.end_date >= to_date('$first_day_of_month','yyyy-mm-dd')::date and
@@ -115,7 +126,7 @@ set title_sql "
                                 count(*)
                         from
                                 im_user_absences a,
-                                (select im_day_enumerator as d from im_day_enumerator(to_date('first_day_of_month','mm/dd/yyyy'), to_date('$last_day_of_month','yyyy-mm-dd'))) d
+                                (select im_day_enumerator as d from im_day_enumerator(to_date('$first_day_of_month','mm/dd/yyyy'), to_date('$last_day_of_month','yyyy-mm-dd'))) d
                         where
                                 a.start_date <=  to_date('$last_day_of_month','yyyy-mm-dd')::date and
                                 a.end_date >= to_date('$first_day_of_month','yyyy-mm-dd')::date and
@@ -127,7 +138,7 @@ set title_sql "
                                 count(*)
                         from
                                 im_user_absences a,
-                                (select im_day_enumerator as d from im_day_enumerator(to_date('first_day_of_month','mm/dd/yyyy'), to_date('$last_day_of_month','yyyy-mm-dd'))) d
+                                (select im_day_enumerator as d from im_day_enumerator(to_date('$first_day_of_month','mm/dd/yyyy'), to_date('$last_day_of_month','yyyy-mm-dd'))) d
                         where
                                 a.start_date <=  to_date('$last_day_of_month','yyyy-mm-dd')::date and
                                 a.end_date >= to_date('$first_day_of_month','yyyy-mm-dd')::date and
@@ -149,7 +160,7 @@ set title_sql "
 				proj.project_status_id not in ([join $exclude_status_id ","])
 				) as 
 		workload  
- 	from 
+	from 
 		persons p,
 		acs_rels r, 
 		membership_rels mr 
@@ -166,8 +177,8 @@ set title_sql "
 
 set table_header_html ""
 set table_header_html "<form action='/intranet-timesheet2/absences/capacity-planning-2.tcl' method='POST'>[export_form_vars cap_month cap_year]"
-append table_header_html "<table><tbody><tr>\n"
-append table_header_html "<td colspan='3'></td>"
+append table_header_html "<table border='0'><tbody><tr>\n"
+append table_header_html "<td colspan='4'></td>"
 
 # ---------------------------------------------------------------
 # Create top column (employees) 
@@ -175,32 +186,38 @@ append table_header_html "<td colspan='3'></td>"
 
 set ctr_employees 0 
 
-append table_header_html "<td><table border=0 style='margin:3px'><tr><td>[lang::message::lookup "" intranet-core.User_Id "User Id"]:</td></tr>\n"
-append table_header_html "<tr><td>[lang::message::lookup "" intranet-core.Username "Name"]:<br><br></td></tr>\n"
-append table_header_html "<tr><td>[lang::message::lookup "" intranet-core.Workload "Workload"]:</td></tr>\n"
-append table_header_html "<tr><td>[lang::message::lookup "" intranet-timesheet2.Workdays "Workdays"]:</td></tr>\n"  
-append table_header_html "<tr><td>[lang::message::lookup "" intranet-core.Vacation "Vacation"]:</td></tr>\n"
-append table_header_html "<tr><td>[lang::message::lookup "" intranet-timesheet2.Training "Training"]:</td></tr>\n"  
-append table_header_html "<tr><td>[lang::message::lookup "" intranet-timesheet2.OtherAbsences "Other absences"]:</td></tr>\n"  
-append table_header_html "</table></td>"
+append table_header_html "<td><table border=0 style='margin:3px' class='table_fixed_height'><tbody><tr><td>[lang::message::lookup "" intranet-core.User_Id "User Id"]:</b></td></tr>\n"
+append table_header_html "<tr><td><b>[lang::message::lookup "" intranet-core.Username "Name"]:</b><br><br></td></tr>\n"
+append table_header_html "<tr><td><b>[lang::message::lookup "" intranet-core.Workload "Workload"]:</b></td></tr>\n"
+append table_header_html "<tr><td><b>[lang::message::lookup "" intranet-timesheet2.Workdays "Workdays"]:</b></td></tr>\n"  
+append table_header_html "<tr><td><b>[lang::message::lookup "" intranet-core.Vacation "Vacation"]:</b></td></tr>\n"
+append table_header_html "<tr><td><b>[lang::message::lookup "" intranet-timesheet2.Training "Training"]:</b></td></tr>\n"  
+append table_header_html "<tr><td><b>[lang::message::lookup "" intranet-timesheet2.OtherAbsences "Other absences"]:</b></td></tr>\n"  
+append table_header_html "</tbody></table></td>"
+
+
 
 db_foreach projects_info_query $title_sql  {
 
-	set workload_formatted [expr [round_down [expr $workload / [concat $work_days$floating_point_helper]] 100 ] * 100]
+    	if { ![empty_string_p $workload] } {
+		set workload_formatted [expr [round_down [expr $workload / [concat $work_days$floating_point_helper]] 100 ] * 100]
+	} else {
+                set workload_formatted 0
+	}
 	if { $workload_formatted > 100} {
 		set workload_formatted "<span style='color:red;font-weight:bold'>$workload_formatted%</span>"
 	} else {
 		append workload_formatted "%" 
 	}
-	append table_header_html "<td><table border=0 style='margin:3px'>\n"
-	append table_header_html "<tr><td>$person_id</td></tr>\n"
-	append table_header_html "<tr><td><b>$first_names<br>$last_name</b></td></tr>\n"
+	append table_header_html "<td valign='top'><table border=0 style='margin:3px' class='table_fixed_height'><tbody>\n"
+	append table_header_html "<tr><td><a href='$user_url$person_id'>$person_id</a></td></tr>\n"
+	append table_header_html "<tr height='40px'><td><b>$first_names<br>$last_name</b></td></tr>\n"
 	append table_header_html "<tr><td>$workload_formatted</td></tr>\n"
 	append table_header_html "<tr><td>$work_days</td></tr>\n"
 	append table_header_html "<tr><td>$vacation_days</td></tr>\n"
         append table_header_html "<tr><td>$training_days</td></tr>\n"
         append table_header_html "<tr><td>$other_absences</td></tr>\n"
-	append table_header_html "</table></td>\n"
+	append table_header_html "<tbody></table></td>\n"
 	set employee_array($ctr_employees) $person_id
 	incr ctr_employees
 }
@@ -285,13 +302,15 @@ set list_sort_order [parameter::get_from_package_key -package_key "intranet-time
 
     if {$exclude_tasks_p} {
         lappend p_criteria "p.project_type_id not in ([join [im_sub_categories [im_project_type_task]] ","])"
-        # Main project is never of type task...
     }
 
     if {0 != $project_type_id && "" != $project_type_id} {
         lappend p_criteria "p.project_type_id in ([join [im_sub_categories $project_type_id] ","])"
         # No restriction on parent's project type!
     }
+	
+	set days_current_month [db_string get_view_id "SELECT date_part('day', '$cap_year-$cap_month-01' ::date + '1 month'::interval - '1 day'::interval)" -default 0]
+    	lappend p_criteria "p.end_date :: date >= '$cap_year/$cap_month/$days_current_month' :: date"  
 
     # -----------------------------------------------------------------
     # Compose the SQL
@@ -313,7 +332,49 @@ set list_sort_order [parameter::get_from_package_key -package_key "intranet-time
                         substring(p.project_name for :max_project_name_len) as project_name_shortened,
 			to_char(start_date, 'DD/MM/YYYY') as start_date,
                         to_char(end_date, 'DD/MM/YYYY') as end_date,
-			im_name_from_user_id(p.project_lead_id) as lead_name
+			im_name_from_user_id(p.project_lead_id) as lead_name,
+			(
+				select 
+					 sum(coalesce(tt.planned_units,0)) 
+				from 
+					im_timesheet_tasks tt
+				where 
+					task_id in 
+					( 
+					  select 
+						children.project_id
+					  from 
+						im_projects parent, 
+						im_projects children
+					  where 
+						children.tree_sortkey between parent.tree_sortkey and tree_right(parent.tree_sortkey)
+						and parent.tree_sortkey in  
+						(
+							select tree_sortkey from im_projects where project_id=28960
+						)
+					)
+			) as sum_planned_units, 
+			( 
+				select 
+					sum(coalesce(h.days,0))				
+				from
+					im_hours h
+				where 
+					h.project_id in
+					( 
+					select 
+						children.project_id
+					from 
+						im_projects parent, 
+						im_projects children
+					where 
+						children.tree_sortkey between parent.tree_sortkey and tree_right(parent.tree_sortkey)
+						and parent.tree_sortkey in  
+						(
+							select tree_sortkey from im_projects where project_id=28960
+						)
+					)
+			) as sum_logged_units
 		from
 			im_projects p
                 where
@@ -330,7 +391,8 @@ set list_sort_order [parameter::get_from_package_key -package_key "intranet-time
     set ctr 0
 
     append table_body_html "<tr>\n"
-    append table_body_html "<td style='background-color:#ccc;font-weight:bold'>[lang::message::lookup "" intranet-core.Project_name "Project name"]</td>\n"
+    append table_body_html "<td style='background-color:#ccc;font-weight:bold'>[lang::message::lookup "" intranet-core.Project_name "Project Name"]</td>\n"
+    append table_body_html "<td style='background-color:\#ccc;font-weight:bold'>[lang::message::lookup "" intranet-core.Project_Manager "Project Manager"]</td>\n"
     append table_body_html "<td style='background-color:#ccc;font-weight:bold'>[lang::message::lookup "" intranet-core.Start_Date "Start Date"]</td>\n"
     append table_body_html "<td style='background-color:#ccc;font-weight:bold'>[lang::message::lookup "" intranet-core.End_Date "End Date"]</td>\n"
     append table_body_html "<td style='background-color:#ccc;font-weight:bold'>[lang::message::lookup "" intranet-core.AvailableDays "Days available"]</td>\n"
@@ -339,9 +401,14 @@ set list_sort_order [parameter::get_from_package_key -package_key "intranet-time
     db_foreach project_name $sql {
 	append table_body_html "<tr$bgcolor([expr $ctr % 2])>\n"
 	append table_body_html "<td><a href='$project_url$project_id'>$project_name_shortened</a></td>\n"
+        append table_body_html "<td>$lead_name</td>\n"
 	append table_body_html "<td>$start_date</td>\n"	
 	append table_body_html "<td>$end_date</td>\n"	
-	append table_body_html "<td>Manntage</td>\n"
+
+	if { [empty_string_p $sum_planned_units] } { set sum_planned_units 0}
+        if { [empty_string_p $sum_logged_units] } { set sum_logged_units 0}
+	append table_body_html "<td align='center'>[expr $sum_planned_units - $sum_logged_units]</td>\n"
+
 	for { set i 1 } { $i <= $ctr_employees } { incr i } {
 		set cap_array_index [concat $employee_array([expr $i-1]).$project_id]		
 		if { [info exists cap_array($cap_array_index)] } {
@@ -359,7 +426,7 @@ set list_sort_order [parameter::get_from_package_key -package_key "intranet-time
 # Create table footer
 # ---------------------------------------------------------------
 
-append table_footer_html "</tbody><tr><td colspan='100' align='right'><input type=submit value='Save'></td></tr></table>\n</form>"
+append table_footer_html "</tbody><tr><td>&nbsp;</td></tr><tr><td colspan='100' align='right'><input type=submit value='[lang::message::lookup "" intranet-core.BtnSaveUpdate "Save/Update"]'></td></tr></table>\n</form>"
 
 # ---------------------
 # final standard stuff
@@ -424,5 +491,4 @@ append left_navbar_html "
         </div>
         </div>
 "
-
 
