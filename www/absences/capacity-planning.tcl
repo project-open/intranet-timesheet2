@@ -128,21 +128,22 @@ set filter_html "
 
 append filter_html "
 <tr>
-	<td class=form-label valign='top'>[lang::message::lookup "" intranet-core.Month "Month"]<br><br>[lang::message::lookup "" intranet-core.Year "Year"]</td
-	<td class=form-widget valign='top'><input type=textfield name='cap_month' value='$cap_month' size='2' maxlength='2'><br><br><input type=textfield name='cap_year' value='$cap_year' size='4' maxlength='4'></td>
-	<td rowspan='4'>&nbsp;&nbsp;</td>
-	<td rowspan='4'>$employee_select</td>
+	<td class=form-label valign='top'>
+		<table>
+		<tr>
+			<td>[lang::message::lookup "" intranet-core.Month "Month"]</td>
+			<td class=form-widget valign='top'><input type=textfield name='cap_month' value='$cap_month' size='2' maxlength='2'></td>
+		</tr>
+		<tr>
+			<td valign='top'>[lang::message::lookup "" intranet-core.Year "Year"]</td>
+			<td valign='top'><input type=textfield name='cap_year' value='$cap_year' size='4' maxlength='4'></td>
+		</tr>
+		</table>
+	</td>	
+	<td>&nbsp;&nbsp;</td>
+	<td valign='top'>$employee_select</td>
+	 <td class=form-widget valign='bottom'><input type=submit value='[lang::message::lookup "" intranet-core.BtnSaveUpdate "Save/Update"]' name=submit></td>
 </tr>
-
-"
-
-append filter_html "
-  <tr>
-    <td class=form-label></td>
-    <td class=form-label></td>
-    <td class=form-label></td>
-    <td class=form-widget valign='bottom'><input type=submit value='[lang::message::lookup "" intranet-core.BtnSaveUpdate "Save/Update"]' name=submit></td>
-  </tr>
 "
 
 append filter_html "</table>\n</form>\n"
