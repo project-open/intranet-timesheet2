@@ -141,7 +141,7 @@ append filter_html "
     <td class=form-label></td>
     <td class=form-label></td>
     <td class=form-label></td>
-    <td class=form-widget valign='bottom'><input type=submit value='[lang::message::lookup "" intranet-core.Action_Go "Go"]' name=submit></td>
+    <td class=form-widget valign='bottom'><input type=submit value='[lang::message::lookup "" intranet-core.BtnSaveUpdate "Save/Update"]' name=submit></td>
   </tr>
 "
 
@@ -218,6 +218,10 @@ set title_sql "
 		r.object_id_one = 463 and 
 		mr.member_state = 'approved' and
 		p.person_id in ($exclude_user_id)
+	order by 
+		p.last_name,
+		p.first_names 
+
 "
 
 # ---------------------------------------------------------------
@@ -244,19 +248,22 @@ append table_header_html "<td valign='top'><table border='0' style='margin:3px' 
 append table_header_html "<tr><td><b>[lang::message::lookup "" intranet-core.Username "Name"]:</b><br><br></td></tr>\n"
 append table_header_html "<tr><td><b>[lang::message::lookup "" intranet-core.Workload "Workload"]:</b></td></tr>\n"
 append table_header_html "<tr><td><b>[lang::message::lookup "" intranet-timesheet2.Workdays "Workdays"]:</b></td></tr>\n"  
+append table_header_html "<tr><td><b>[lang::message::lookup "" intranet-timesheet2.Capacity "Capacity (days)"]:</b></td></tr>\n"
 append table_header_html "<tr><td><b>[lang::message::lookup "" intranet-core.Vacation "Vacation"]:</b></td></tr>\n"
 append table_header_html "<tr><td><b>[lang::message::lookup "" intranet-timesheet2.Training "Training"]:</b></td></tr>\n"  
 append table_header_html "<tr><td><b>[lang::message::lookup "" intranet-timesheet2.OtherAbsences "Other absences"]:</b></td></tr>\n"  
-append table_header_html "<tr><td><b>[lang::message::lookup "" intranet-timesheet2.SumPlannedDays "Sum planned days"]:</b></td></tr>\n"  
+append table_header_html "<tr><td><b>[lang::message::lookup "" intranet-timesheet2.TotalAbsences "Total Absences"]:</b></td></tr>\n"  
+
 append table_header_html "</tbody></table></td>"
 
 
 db_foreach projects_info_query $title_sql  {
-
+	
     	if { ![empty_string_p $workload] } {
 		set workload_formatted [expr [round_down [expr $workload / [concat $work_days$floating_point_helper]] 100 ] * 100]
 	} else {
                 set workload_formatted 0
+		set workload 0
 	}
 	if { $workload_formatted > 100} {
 		set workload_formatted "<span style='color:red;font-weight:bold'>$workload_formatted%</span>"
@@ -264,14 +271,15 @@ db_foreach projects_info_query $title_sql  {
 		append workload_formatted "%" 
 	}
 	append table_header_html "<td valign='top'><table border=0 style='margin:3px' class='table_fixed_height'><tbody>\n"
-	append table_header_html "<tr><td><a href='$user_url$person_id'>$person_id</a></td></tr>\n"
-	append table_header_html "<tr height='40px'><td><b>$first_names<br>$last_name</b></td></tr>\n"
+	append table_header_html "<tr><td>$person_id</td></tr>\n"
+	append table_header_html "<tr height='40px'><td><b><a href='$user_url$person_id'>$first_names<br>$last_name</a></b></td></tr>\n"
 	append table_header_html "<tr><td>$workload_formatted</td></tr>\n"
 	append table_header_html "<tr><td>$work_days</td></tr>\n"
+        append table_header_html "<tr><td><b>[expr $work_days-$workload]</b></td></tr>\n"
 	append table_header_html "<tr><td>$vacation_days</td></tr>\n"
         append table_header_html "<tr><td>$training_days</td></tr>\n"
         append table_header_html "<tr><td>[expr $travel_days+$sick_days + $personal_days]</td></tr>\n"
-        append table_header_html "<tr><td>[expr $travel_days+$sick_days + $personal_days + $vacation_days + $training_days]</td></tr>\n"
+        append table_header_html "<tr><td><b>[expr $travel_days+$sick_days + $personal_days + $vacation_days + $training_days]</b></td></tr>\n"
 	append table_header_html "<tbody></table></td>\n"
 	set employee_array($ctr_employees) $person_id
 	incr ctr_employees
@@ -481,7 +489,7 @@ set list_sort_order [parameter::get_from_package_key -package_key "intranet-time
 # Create table footer
 # ---------------------------------------------------------------
 
-append table_footer_html "</tbody><tr><td>&nbsp;</td></tr><tr><td colspan='100' align='right'><input type=submit value='[lang::message::lookup "" intranet-core.BtnSaveUpdate "Save/Update"]'></td></tr></table>\n</form>"
+append table_footer_html "</tbody><tr><td>&nbsp;</td></tr><tr><td colspan='100' align='right'><!--<input type=submit value='[lang::message::lookup "" intranet-core.BtnSaveUpdate "Save/Update"]'>--></td></tr></table>\n</form>"
 
 # Left Navbar is the filter/select part of the left bar
 set left_navbar_html "
