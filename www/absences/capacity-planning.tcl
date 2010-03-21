@@ -110,11 +110,7 @@ if { 0 == $user_id_from_search } {
 }
 
 set employee_select [im_employee_select_multiple user_id_from_search $user_id_options 12 multiple]
-
-set filter_html "
-<form method=get name=capacity_filter action='/intranet-timesheet2/absences/capacity-planning'>
-<table border='0' cellpadding='3' cellspacing='3'>
-"
+set filter_html "<form action='/intranet-timesheet2/absences/capacity-planning.tcl' method='GET'><table border='0' cellpadding='3' cellspacing='3'>"
 
 # if {[im_permission $user_id "view_projects_all"]} {
 #    append filter_html "
@@ -142,7 +138,7 @@ append filter_html "
 	</td>	
 	<td>&nbsp;&nbsp;</td>
 	<td valign='top'>$employee_select</td>
-	 <td class=form-widget valign='bottom'><input type=submit value='[lang::message::lookup "" intranet-core.BtnSaveUpdate "Save/Update"]' name=submit></td>
+	 <td class=form-widget valign='bottom'><input type=submit value='[lang::message::lookup "" intranet-core.BtnSaveUpdate "Filter"]' name=submit></td>
 </tr>
 "
 
@@ -230,8 +226,6 @@ set title_sql "
 # ---------------------------------------------------------------
 
 set table_header_html ""
-set table_header_html "<form action='/intranet-timesheet2/absences/capacity-planning-2.tcl' method='POST'>"
-
 append table_header_html "<table border='0'><tbody><tr>\n"
 append table_header_html "<td colspan='4' valign='top'>
 <div class='filter-block'>
@@ -325,8 +319,7 @@ db_foreach sql $sql {
 # ---------------------------------------------------------------
 
 
-
-set table_body_html ""
+set table_body_html "<form action='/intranet-timesheet2/absences/capacity-planning-2.tcl' method='POST'>[export_vars -form { cap_year cap_month user_id_from_search }]"
 
 # build sql 
 
@@ -490,7 +483,7 @@ set list_sort_order [parameter::get_from_package_key -package_key "intranet-time
 # Create table footer
 # ---------------------------------------------------------------
 
-append table_footer_html "</tbody><tr><td>&nbsp;</td></tr><tr><td colspan='100' align='right'><!--<input type=submit value='[lang::message::lookup "" intranet-core.BtnSaveUpdate "Save/Update"]'>--></td></tr></table>\n</form>"
+append table_footer_html "</tbody><tr><td>&nbsp;</td></tr><tr><td colspan='100' align='left'><input type=submit value='[lang::message::lookup "" intranet-core.BtnSaveUpdate "Save/Update"]'></td></tr></table>\n</form>"
 
 # Left Navbar is the filter/select part of the left bar
 set left_navbar_html "
