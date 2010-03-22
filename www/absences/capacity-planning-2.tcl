@@ -86,10 +86,12 @@ foreach {cap_index cap_value} [array get capacity] {
 	}
 }
 
+set user_id_from_search [join $user_id_from_search " "]
+
 ad_returnredirect [export_vars -base "/intranet-timesheet2/absences/capacity-planning.tcl" {
         { cap_year "$cap_year" }
         { cap_month "$cap_month" }
-    	{ user_id_from_search "$user_id_from_search" }
+        { user_id_from_search "$user_id_from_search" }
 }]
 
 
