@@ -233,6 +233,7 @@ db_foreach projects_info_query $title_sql  {
 	
     	if { ![empty_string_p $workload] } {
 		set workload_formatted [expr [round_down [expr $workload / [concat $work_days$floating_point_helper]] 100 ] * 100]
+	    	set workload_formatted [string range $workload_formatted 0 [expr [string length $workload_formatted] - 3 ] ]
 	} else {
                 set workload_formatted 0
 		set workload 0
@@ -240,8 +241,15 @@ db_foreach projects_info_query $title_sql  {
 	if { $workload_formatted > 100} {
 		set workload_formatted "<span style='color:red;font-weight:bold'>$workload_formatted%</span>"
 	} else {
-		append workload_formatted "%" 
+		set workload_formatted "$workload_formatted%"
 	}
+	
+        if { [expr $work_days-$workload] < 0} {
+                set capacity_formatted "<span style='color:red;font-weight:bold'>[expr $work_days-$workload]</span>"
+        } else {
+                set capacity_formatted [expr $work_days-$workload]
+	}
+
 	append table_main_html "<td valign='top'><table border=0 style='margin:3px' class='table_fixed_height'><tbody>\n"
 	append table_main_html "<tr><td>$person_id</td></tr>\n"
 	append table_main_html "<tr height='40px'><td><b><a href='$user_url$person_id'>$first_names<br>$last_name</a></b></td></tr>\n"
@@ -252,9 +260,10 @@ db_foreach projects_info_query $title_sql  {
         append table_main_html "<tr><td>[expr $travel_days+$sick_days + $personal_days]</td></tr>\n"
         append table_main_html "<tr><td><b>[expr $travel_days+$sick_days + $personal_days + $vacation_days + $training_days]</b></td></tr>\n"
         append table_main_html "<tr><td>$workload</td></tr>\n"
-        append table_main_html "<tr><td><b>[expr $work_days-$workload]</b></td></tr>\n"
+        append table_main_html "<tr><td><b>$capacity_formatted</b></td></tr>\n"
 	append table_main_html "<tbody></table></td>\n"
 	set employee_array($ctr_employees) $person_id
+
 	incr ctr_employees
 	set sum_workdays [expr $sum_workdays + $work_days ]
         set sum_workload [expr $sum_workload + $workload ]
@@ -264,12 +273,12 @@ db_foreach projects_info_query $title_sql  {
 append table_main_html "</tr>"
 
 
-if { ![empty_string_p $sum_workload] } {
+if { ![empty_string_p $sum_workload] && "0" != $sum_workdays } {
     set sum_workload_ratio [expr [round_down [expr $sum_workload / [concat $sum_workdays$floating_point_helper]] 100 ] * 100]
+    set sum_workload_ratio [string range $sum_workload_ratio 0 [expr [string length $sum_workload_ratio] - 3 ] ]
 } else {
     set sum_workload_ratio 0
 }
-
 
 append filter_html "
 <tr>
@@ -288,16 +297,16 @@ append filter_html "
                 </tr>
  
                <tr>
-                        <td valign='bottom'><b>[lang::message::lookup "" intranet-core.WorkdaysTotal "Total workdays"]:</b></td>
-                        <td valign='bottom'>$sum_workdays</td>
+                        <td valign='bottom' style='border-bottom:1px dashed #666666;'><b>[lang::message::lookup "" intranet-core.WorkdaysTotal "Total workdays"]:</b></td>
+                        <td valign='bottom' style='border-bottom:1px dashed #666666;'>$sum_workdays</td>
                 </tr>
                <tr>
-                        <td valign='bottom'><b>[lang::message::lookup "" intranet-core.PlannedTotal "Total planned days"]:</b></td>
-                        <td valign='bottom'>$sum_workload</td>
+                        <td valign='bottom' style='border-bottom:1px dashed #666666;'><b>[lang::message::lookup "" intranet-core.PlannedTotal "Total planned days"]:</b></td>
+                        <td valign='bottom' style='border-bottom:1px dashed #666666;'>$sum_workload</td>
                 </tr>
                 <tr>
-                        <td valign='bottom'><b>[lang::message::lookup "" intranet-core.LoadTotal "Total Load"]:</b></td>
-                        <td valign='bottom'>$sum_workload_ratio&nbsp;%</td>
+                        <td valign='bottom' style='border-bottom:1px dashed #666666;'><b>[lang::message::lookup "" intranet-core.LoadTotal "Total Load"]:</b></td>
+                        <td valign='bottom' style='border-bottom:1px dashed #666666;'>$sum_workload_ratio%</td>
                 </tr>
 		</table>
 	</td>	
