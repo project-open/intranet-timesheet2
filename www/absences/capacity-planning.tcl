@@ -122,27 +122,6 @@ set filter_html "<form action='/intranet-timesheet2/absences/capacity-planning.t
 # }
 
 
-append filter_html "
-<tr>
-	<td class=form-label valign='top'>
-		<table>
-		<tr>
-			<td>[lang::message::lookup "" intranet-core.Month "Month"]</td>
-			<td class=form-widget valign='top'><input type=textfield name='cap_month' value='$cap_month' size='2' maxlength='2'></td>
-		</tr>
-		<tr>
-			<td valign='top'>[lang::message::lookup "" intranet-core.Year "Year"]</td>
-			<td valign='top'><input type=textfield name='cap_year' value='$cap_year' size='4' maxlength='4'></td>
-		</tr>
-		</table>
-	</td>	
-	<td>&nbsp;&nbsp;</td>
-	<td valign='top'>$employee_select</td>
-	 <td class=form-widget valign='bottom'><input type=submit value='[lang::message::lookup "" intranet-core.BtnSaveUpdate "Filter"]' name=submit></td>
-</tr>
-"
-
-append filter_html "</table>\n</form>\n"
 
 if { ("" != $cap_month && ![regexp {^[0-9][0-9]$} $cap_month] && ![regexp {^[0-9]$} $cap_month]) || ("" != $cap_month && [lindex [split $cap_month$floating_point_helper "."] 0 ] > 12) } {
     ad_return_complaint 1 "Month doesn't have the right format.<br>
@@ -227,29 +206,27 @@ set title_sql "
 
 set table_header_html ""
 append table_header_html "<table border='0'><tbody><tr>\n"
-append table_header_html "<td colspan='4' valign='top'>
-<div class='filter-block'>
-        <div class='filter-title'>Filter:</div>
-        $filter_html</div>
-</td>"
 
 # ---------------------------------------------------------------
 # Create top column (employees) 
 # ---------------------------------------------------------------
 
 set ctr_employees 0 
+set sum_workdays 0
+set sum_workload 0
+set table_main_html ""
 
-append table_header_html "<td valign='top'><table border='0' style='margin:3px' class='table_fixed_height'><tbody><tr><td>[lang::message::lookup "" intranet-core.User_Id "User Id"]:</b></td></tr>\n"
-append table_header_html "<tr><td><b>[lang::message::lookup "" intranet-core.Username "Name"]:</b><br><br></td></tr>\n"
-append table_header_html "<tr><td><b>[lang::message::lookup "" intranet-core.Workload "Workload"]:</b></td></tr>\n"
-append table_header_html "<tr><td><b>[lang::message::lookup "" intranet-timesheet2.Workdays "Workdays"]:</b></td></tr>\n"  
-append table_header_html "<tr><td><b>[lang::message::lookup "" intranet-timesheet2.Capacity "Capacity (days)"]:</b></td></tr>\n"
-append table_header_html "<tr><td><b>[lang::message::lookup "" intranet-core.Vacation "Vacation"]:</b></td></tr>\n"
-append table_header_html "<tr><td><b>[lang::message::lookup "" intranet-timesheet2.Training "Training"]:</b></td></tr>\n"  
-append table_header_html "<tr><td><b>[lang::message::lookup "" intranet-timesheet2.OtherAbsences "Other absences"]:</b></td></tr>\n"  
-append table_header_html "<tr><td><b>[lang::message::lookup "" intranet-timesheet2.TotalAbsences "Total Absences"]:</b></td></tr>\n"  
-
-append table_header_html "</tbody></table></td>"
+append table_main_html "<td valign='top'><table border='0' style='margin:3px' class='table_fixed_height'><tbody><tr><td>[lang::message::lookup "" intranet-core.User_Id "User Id"]:</b></td></tr>\n"
+append table_main_html "<tr><td><b>[lang::message::lookup "" intranet-core.Username "Name"]:</b><br><br></td></tr>\n"
+append table_main_html "<tr><td><b>[lang::message::lookup "" intranet-core.Workload "Workload"]:</b></td></tr>\n"
+append table_main_html "<tr><td><b>[lang::message::lookup "" intranet-timesheet2.Workdays "Workdays"]:</b></td></tr>\n"  
+append table_main_html "<tr><td><b>[lang::message::lookup "" intranet-core.Vacation "Vacation"]:</b></td></tr>\n"
+append table_main_html "<tr><td><b>[lang::message::lookup "" intranet-timesheet2.Training "Training"]:</b></td></tr>\n"  
+append table_main_html "<tr><td><b>[lang::message::lookup "" intranet-timesheet2.OtherAbsences "Other absences"]:</b></td></tr>\n"  
+append table_main_html "<tr><td><b>[lang::message::lookup "" intranet-timesheet2.TotalAbsences "Total Absences"]:</b></td></tr>\n"  
+append table_main_html "<tr><td><b>[lang::message::lookup "" intranet-timesheet2.DaysPlanned "Days planned"]:</b></td></tr>\n"  
+append table_main_html "<tr><td><b>[lang::message::lookup "" intranet-timesheet2.Capacity "Capacity (days)"]:</b></td></tr>\n"
+append table_main_html "</tbody></table></td>"
 
 
 db_foreach projects_info_query $title_sql  {
@@ -265,22 +242,82 @@ db_foreach projects_info_query $title_sql  {
 	} else {
 		append workload_formatted "%" 
 	}
-	append table_header_html "<td valign='top'><table border=0 style='margin:3px' class='table_fixed_height'><tbody>\n"
-	append table_header_html "<tr><td>$person_id</td></tr>\n"
-	append table_header_html "<tr height='40px'><td><b><a href='$user_url$person_id'>$first_names<br>$last_name</a></b></td></tr>\n"
-	append table_header_html "<tr><td>$workload_formatted</td></tr>\n"
-	append table_header_html "<tr><td>$work_days</td></tr>\n"
-        append table_header_html "<tr><td><b>[expr $work_days-$workload]</b></td></tr>\n"
-	append table_header_html "<tr><td>$vacation_days</td></tr>\n"
-        append table_header_html "<tr><td>$training_days</td></tr>\n"
-        append table_header_html "<tr><td>[expr $travel_days+$sick_days + $personal_days]</td></tr>\n"
-        append table_header_html "<tr><td><b>[expr $travel_days+$sick_days + $personal_days + $vacation_days + $training_days]</b></td></tr>\n"
-	append table_header_html "<tbody></table></td>\n"
+	append table_main_html "<td valign='top'><table border=0 style='margin:3px' class='table_fixed_height'><tbody>\n"
+	append table_main_html "<tr><td>$person_id</td></tr>\n"
+	append table_main_html "<tr height='40px'><td><b><a href='$user_url$person_id'>$first_names<br>$last_name</a></b></td></tr>\n"
+	append table_main_html "<tr><td>$workload_formatted</td></tr>\n"
+	append table_main_html "<tr><td>$work_days</td></tr>\n"
+	append table_main_html "<tr><td>$vacation_days</td></tr>\n"
+        append table_main_html "<tr><td>$training_days</td></tr>\n"
+        append table_main_html "<tr><td>[expr $travel_days+$sick_days + $personal_days]</td></tr>\n"
+        append table_main_html "<tr><td><b>[expr $travel_days+$sick_days + $personal_days + $vacation_days + $training_days]</b></td></tr>\n"
+        append table_main_html "<tr><td>$workload</td></tr>\n"
+        append table_main_html "<tr><td><b>[expr $work_days-$workload]</b></td></tr>\n"
+	append table_main_html "<tbody></table></td>\n"
 	set employee_array($ctr_employees) $person_id
 	incr ctr_employees
+	set sum_workdays [expr $sum_workdays + $work_days ]
+        set sum_workload [expr $sum_workload + $workload ]
 }
 
-append table_header_html "</tr>"
+
+append table_main_html "</tr>"
+
+
+if { ![empty_string_p $sum_workload] } {
+    set sum_workload_ratio [expr [round_down [expr $sum_workload / [concat $sum_workdays$floating_point_helper]] 100 ] * 100]
+} else {
+    set sum_workload_ratio 0
+}
+
+
+append filter_html "
+<tr>
+	<td class=form-label valign='top'>
+		<table>
+		<tr>
+			<td>[lang::message::lookup "" intranet-core.Month "Month"]</td>
+			<td class=form-widget valign='top'><input type=textfield name='cap_month' value='$cap_month' size='2' maxlength='2'></td>
+		</tr>
+		<tr>
+			<td valign='top'>[lang::message::lookup "" intranet-core.Year "Year"]</td>
+			<td valign='top'><input type=textfield name='cap_year' value='$cap_year' size='4' maxlength='4'></td>
+		</tr>
+               <tr>
+                        <td colspan='2'><hr></td>
+                </tr>
+ 
+               <tr>
+                        <td valign='bottom'><b>[lang::message::lookup "" intranet-core.WorkdaysTotal "Total workdays"]:</b></td>
+                        <td valign='bottom'>$sum_workdays</td>
+                </tr>
+               <tr>
+                        <td valign='bottom'><b>[lang::message::lookup "" intranet-core.PlannedTotal "Total planned days"]:</b></td>
+                        <td valign='bottom'>$sum_workload</td>
+                </tr>
+                <tr>
+                        <td valign='bottom'><b>[lang::message::lookup "" intranet-core.LoadTotal "Total Load"]:</b></td>
+                        <td valign='bottom'>$sum_workload_ratio&nbsp;%</td>
+                </tr>
+		</table>
+	</td>	
+	<td>&nbsp;&nbsp;</td>
+	<td valign='top'>$employee_select</td>
+	 <td class=form-widget valign='bottom'><input type=submit value='[lang::message::lookup "" intranet-core.BtnSaveUpdate "Filter"]' name=submit></td>
+</tr>
+"
+
+append filter_html "</table>\n</form>\n"
+
+
+append table_header_html "<td colspan='4' valign='top'>
+<div class='filter-block'>
+        <div class='filter-title'>Filter:</div>
+        $filter_html</div>
+</td>"
+
+append table_header_html $table_main_html
+
 
 # ---------------------------------------------------------------
 # Set capacity arr
