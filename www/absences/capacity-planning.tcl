@@ -54,7 +54,7 @@ proc round_down {val rounder} {
        }
 
 # General settings
-set show_context_help_p 0
+set show_context_help_p 1
 set user_id [ad_maybe_redirect_for_registration]
 set page_title "Capacity Planning"
 set context [list "Permissions"]
