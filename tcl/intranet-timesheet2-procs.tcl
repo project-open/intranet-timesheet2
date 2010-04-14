@@ -940,8 +940,7 @@ ad_proc im_absence_cube_color_list { } {
 }
 
 
-
-ad_proc im_absence_cube_render_cell {
+ad_proc im_absence_mix_colors {
     value
 } {
     Renders a single report cell, depending on value.
@@ -998,9 +997,20 @@ ad_proc im_absence_cube_render_cell {
     append color [lindex $hex_list [expr $b / 16]]
     append color [lindex $hex_list [expr $b % 16]]
 
-    return "<td bgcolor=\#$color>&nbsp;</td>\n"
+    return $color
 }
 
+
+
+ad_proc im_absence_cube_render_cell {
+    value
+} {
+    Renders a single report cell, depending on value.
+    Takes the color from absences color lookup.
+} {
+    set color [im_absence_mix_colors $value]
+    return "<td bgcolor=\#$color>&nbsp;</td>\n"
+}
 
 
 ad_proc im_absence_cube {
