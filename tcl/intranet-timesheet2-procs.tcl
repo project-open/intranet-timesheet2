@@ -957,7 +957,7 @@ ad_proc im_absence_mix_colors {
     a Vacation and a holiday meet. 
 } {
     # Show empty cells according to even/odd row formatting
-    if {"" == $value} { return "<td>&nbsp;</td>\n" }
+    if {"" == $value} { return "" }
 
     # Define a list of colours to pick from
     set color_list [im_absence_cube_color_list]
@@ -1009,7 +1009,11 @@ ad_proc im_absence_cube_render_cell {
     Takes the color from absences color lookup.
 } {
     set color [im_absence_mix_colors $value]
-    return "<td bgcolor=\#$color>&nbsp;</td>\n"
+    if {"" != $color} {
+	return "<td bgcolor=\#$color>&nbsp;</td>\n"
+    } else {
+	return "<td>&nbsp;</td>\n"
+    }
 }
 
 

@@ -509,7 +509,7 @@ db_foreach absences_list $selection {
     if {"" != $group_id} { set user_link [im_profile::profile_name_from_id -profile_id $group_id] }
 
     #Append together a line of data based on the "column_vars" parameter list
-    append table_body_html "<tr$bgcolor([expr $ctr % 2])>\n"
+    append table_body_html "<tr $bgcolor([expr $ctr % 2])>\n"
     foreach column_var $column_vars {
 	append table_body_html "\t<td valign=top>"
 	set cmd "append table_body_html $column_var"
