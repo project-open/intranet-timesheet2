@@ -627,3 +627,8 @@ ad_proc -public im_absence_vacation_balance_component {
     set result [ad_parse_template -params $params "/packages/intranet-timesheet2/www/absences/vacation-balance-component"]
     return [string trim $result]
 }
+
+
+
+
+
