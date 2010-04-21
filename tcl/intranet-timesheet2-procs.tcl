@@ -669,29 +669,3 @@ ad_proc -public im_hours_verify_user_id { { user_id "" } } {
     return -code return
 }
 
-ad_proc -public im_get_next_absence_link { { user_id } } {
-    Returns a html link with the next "personal"absence of the given user_id.
-    Do not show Bank Holidays.
-} {
-    set sql "
-	select	absence_id,
-		to_char(start_date,'yyyy-mm-dd') as start_date,
-		to_char(end_date, 'yyyy-mm-dd') as end_date
-	from
-		im_user_absences, dual
-	where
-		owner_id = :user_id and
-		group_id is null and
-		start_date >= to_date(sysdate,'yyyy-mm-dd')
-	order by
-		start_date, end_date
-    "
-
-    set ret_val ""
-    db_foreach select_next_absence $sql {
-	set ret_val "<a href=\"/intranet-timesheet2/absences/new?form_mode=display&absence_id=$absence_id\">$start_date - $end_date</a>"
-	break
-    }
-    return $ret_val
-}
-
