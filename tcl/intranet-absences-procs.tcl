@@ -302,6 +302,9 @@ ad_proc im_absence_mix_colors {
             5003 | Travel	- Purple
             5004 | Training	- Yellow
             5005 | Bank Holiday	- Grey
+    " " indentifies an "empty vacation", which is represented with
+    color white. This is necessary to represent weekly absences,
+    where less then 5 days are taken as absence.
     Value contains a string of last digits of the absence types.
     Multiple values are possible for example "05", meaning that
     a Vacation and a holiday meet. 
@@ -321,7 +324,9 @@ ad_proc im_absence_mix_colors {
     # Mix the colors for each of the characters in "value"
     for {set i 0} {$i < $len} {incr i} {
 	set v [string range $value $i $i]
-	set col [lindex $color_list $v]
+
+	set col "FFFFFF"
+	if {" " != $v} { set col [lindex $color_list $v] }
 
 	set r [expr $r + [lsearch $hex_list [string range $col 0 0]] * 16]
 	set r [expr $r + [lsearch $hex_list [string range $col 1 1]]]
