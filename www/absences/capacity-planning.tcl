@@ -252,7 +252,7 @@ db_foreach projects_info_query $title_sql  {
 
 	append table_main_html "<td valign='top'><table border=0 style='margin:3px' class='table_fixed_height'><tbody>\n"
 	append table_main_html "<tr><td>$person_id</td></tr>\n"
-	append table_main_html "<tr height='40px'><td><b><a href='$user_url$person_id'>$first_names<br>$last_name</a></b></td></tr>\n"
+	append table_main_html "<tr height='40px'><td><b><span class='nobr'><a href='$user_url$person_id'>$first_names</span><br><span class='nobr'>$last_name</span></a></b></td></tr>\n"
 	append table_main_html "<tr><td>$workload_formatted</td></tr>\n"
 	append table_main_html "<tr><td>$work_days</td></tr>\n"
 	append table_main_html "<tr><td>$vacation_days</td></tr>\n"
