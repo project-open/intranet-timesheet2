@@ -412,8 +412,22 @@ set list_sort_order [parameter::get_from_package_key -package_key "intranet-time
         # No restriction on parent's project type!
     }
 	
-	set days_current_month [db_string get_view_id "SELECT date_part('day', '$cap_year-$cap_month-01' ::date + '1 month'::interval - '1 day'::interval)" -default 0]
-    	lappend p_criteria "p.end_date :: date >= '$cap_year/$cap_month/$days_current_month' :: date"  
+    set days_current_month [db_string days_current_month "SELECT date_part('day', '$cap_year-$cap_month-01' ::date + '1 month'::interval - '1 day'::interval)" -default 0]
+    if { "1" == $cap_month  } {
+	set cap_month  12
+	set cap_year [expr $cap_year-1]
+    } else {
+	set cap_month [expr $cap_month-1]
+    }
+
+    set first_day_of_month ""
+    set number_days_month ""
+
+    append first_day_of_month $cap_year "-" $cap_month "-01"
+    set number_days_month [db_string get_number_days_month "SELECT date_part('day','$first_day_of_month'::date + '1 month'::interval - '1 day'::interval)" -default 0]
+#    set last_day_of_month [db_string get_number_days_month "select to_date( '$cap_year' || '-' || '$cap_month' || '-' || '$number_days_month','yyyy-mm-dd')+1 from dual;" -default 0]
+
+    lappend p_criteria "p.end_date :: date >= '$cap_year/$cap_month/$number_days_month' :: date"  
 
     # -----------------------------------------------------------------
     # Compose the SQL
@@ -487,7 +501,6 @@ set list_sort_order [parameter::get_from_package_key -package_key "intranet-time
                 order by
                         p.project_name
     "
-
 
     set bgcolor(0) " class=roweven "
     set bgcolor(1) " class=rowodd "
