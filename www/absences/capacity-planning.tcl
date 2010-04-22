@@ -425,8 +425,6 @@ set list_sort_order [parameter::get_from_package_key -package_key "intranet-time
 
     append first_day_of_month $cap_year "-" $cap_month "-01"
     set number_days_month [db_string get_number_days_month "SELECT date_part('day','$first_day_of_month'::date + '1 month'::interval - '1 day'::interval)" -default 0]
-#    set last_day_of_month [db_string get_number_days_month "select to_date( '$cap_year' || '-' || '$cap_month' || '-' || '$number_days_month','yyyy-mm-dd')+1 from dual;" -default 0]
-
     lappend p_criteria "p.end_date :: date >= '$cap_year/$cap_month/$number_days_month' :: date"  
 
     # -----------------------------------------------------------------
