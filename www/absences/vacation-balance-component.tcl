@@ -82,20 +82,20 @@ list::create \
     -actions {
     } -elements {
         absence_name {
-            label "[lang::message::lookup {} intranet-timesheet.Name Name]"
+            label "[lang::message::lookup {} intranet-timesheet2.Name Name]"
             link_url_eval $absence_url
         }
 	absence_type {
-            label "[lang::message::lookup {} intranet-timesheet.Type Type]"
+            label "[lang::message::lookup {} intranet-timesheet2.Type Type]"
 	}
 	start_date_pretty {
-            label "[lang::message::lookup {} intranet-timesheet.Start_Date Start]"
+            label "[lang::message::lookup {} intranet-timesheet2.Start_Date Start]"
 	}
 	end_date_pretty {
-            label "[lang::message::lookup {} intranet-timesheet.End_Date End]"
+            label "[lang::message::lookup {} intranet-timesheet2.End_Date End]"
 	}
 	duration_days {
-            label "[lang::message::lookup {} intranet-timesheet.Vacation_Days_Taken {Vacation Days Taken}]"
+            label "[lang::message::lookup {} intranet-timesheet2.Vacation_Days_Taken {Vacation Days Taken}]"
 	}
     }
 
