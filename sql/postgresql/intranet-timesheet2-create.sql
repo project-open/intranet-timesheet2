@@ -22,7 +22,12 @@
 -- We record logged hours of both project and client related work
 --
 
+-- Sequence to create fake object_ids for im_hours
+create sequence im_hours_seq;
+
 create table im_hours (
+	hour_id			integer 
+				default nextval('im_hours_seq'),
 	user_id			integer 
 				constraint im_hours_user_id_nn
 				not null 
