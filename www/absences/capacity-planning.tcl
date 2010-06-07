@@ -138,7 +138,7 @@ if { 0 == $project_type_id_from_search } {
     set project_type_options [join $project_type_id_from_search " "]
 }
 
-set pm_select [im_pm_select_multiple project_lead_id_from_search $project_lead_id_options 7 multiple]
+set pm_select [im_active_pm_select_multiple project_lead_id_from_search $project_lead_id_options 7 multiple]
 set employee_select [im_employee_select_multiple user_id_from_search $user_id_options 7 multiple]
 set project_type_select [im_category_select_multiple "Intranet Project Type" project_type_id_from_search $project_type_options 7 multiple]
 
