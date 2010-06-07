@@ -114,22 +114,20 @@ if { 0 == $user_id_from_search } {
 if { 0 == $project_lead_id_from_search } {
     # mark all users
     set project_lead_id_options [db_list users "
-        select
-                p.person_id
-        from
-                persons p,
-                acs_rels r,
-                membership_rels mr
-        where
-                r.rel_id = mr.rel_id and
-                r.object_id_two = p.person_id and
-                r.object_id_one = 467 and
-                mr.member_state = 'approved'
+	select distinct
+		pe.person_id 
+	from 
+		persons pe, 
+		im_projects p,
+		registered_users u 
+	where 
+		p.project_lead_id = pe.person_id and 
+		u.user_id = pe.person_id and 
+		p.project_status_id not in ([im_project_status_deleted])
         "]
 } else {
     set project_lead_id_options [join $project_lead_id_from_search " "]
 }
-
 
 if { 0 == $project_type_id_from_search } {
     # mark all project types
