@@ -23,6 +23,8 @@ ad_page_contract {
     { view_name "project_list" }
     { filter_advanced_p:integer 0 }
     { user_id_from_search:multiple 0 }
+    { project_lead_id_from_search:multiple 0 }
+    { project_type_id_from_search:multiple 0 }
 }
 
 
@@ -64,7 +66,6 @@ set url_stub [im_url_with_query]
 set project_url "/intranet/projects/view?project_id="
 set user_url "/intranet/users/view?user_id="
 set floating_point_helper ".0"
-
 # Date settings
 set days_in_past 7
 set date_format [im_l10n_sql_date_format]
@@ -109,8 +110,40 @@ if { 0 == $user_id_from_search } {
     set user_id_options [join $user_id_from_search " "]
 }
 
-set employee_select [im_employee_select_multiple user_id_from_search $user_id_options 12 multiple]
-set filter_html "<form action='/intranet-timesheet2/absences/capacity-planning.tcl' method='GET'><table border='0' cellpadding='3' cellspacing='3'>"
+
+if { 0 == $project_lead_id_from_search } {
+    # mark all users
+    set project_lead_id_options [db_list users "
+        select
+                p.person_id
+        from
+                persons p,
+                acs_rels r,
+                membership_rels mr
+        where
+                r.rel_id = mr.rel_id and
+                r.object_id_two = p.person_id and
+                r.object_id_one = 467 and
+                mr.member_state = 'approved'
+        "]
+} else {
+    set project_lead_id_options [join $project_lead_id_from_search " "]
+}
+
+
+if { 0 == $project_type_id_from_search } {
+    # mark all project types
+    set project_type_options [db_list get_project_type_categories "select category_id from im_categories where category_type = 'Intranet Project Type' and enabled_p = 't'"]
+} else {
+    set project_type_options [join $project_type_id_from_search " "]
+}
+
+set pm_select [im_pm_select_multiple project_lead_id_from_search $project_lead_id_options 7 multiple]
+set employee_select [im_employee_select_multiple user_id_from_search $user_id_options 7 multiple]
+set project_type_select [im_category_select_multiple "Intranet Project Type" project_type_id_from_search $project_type_options 7 multiple]
+
+
+set filter_html "<form action='/intranet-timesheet2/absences/capacity-planning.tcl' method='GET'><table border='0' cellpadding='0' cellspacing='0'>"
 
 # if {[im_permission $user_id "view_projects_all"]} {
 #    append filter_html "
@@ -160,6 +193,9 @@ set last_day_of_month [db_string get_number_days_month "select to_date( '$cap_ye
 # workdays: total business days - absences - saturday/sunday - bank holidays
 
 set exclude_user_id [join [join $user_id_options " "] ","]
+set exclude_project_lead_id [join [join $project_lead_id_options " "] ","]
+
+
 
 set title_sql "
 	select 
@@ -187,13 +223,15 @@ set title_sql "
 	from 
 		persons p,
 		acs_rels r, 
-		membership_rels mr 
-	where 	
+		membership_rels mr,
+		users_active u
+ 	where 	
 		r.rel_id = mr.rel_id and 
 		r.object_id_two = p.person_id and 
 		r.object_id_one = 463 and 
 		mr.member_state = 'approved' and
-		p.person_id in ($exclude_user_id)
+		p.person_id in ($exclude_user_id) and
+		u.user_id = p.person_id
 	order by 
 		p.last_name,
 		p.first_names 
@@ -282,20 +320,53 @@ if { ![empty_string_p $sum_workload] && "0" != $sum_workdays } {
 
 append filter_html "
 <tr>
-	<td class=form-label valign='top'>
-		<table>
-		<tr>
-			<td>[lang::message::lookup "" intranet-core.Month "Month"]</td>
-			<td class=form-widget valign='top'><input type=textfield name='cap_month' value='$cap_month' size='2' maxlength='2'></td>
-		</tr>
-		<tr>
-			<td valign='top'>[lang::message::lookup "" intranet-core.Year "Year"]</td>
-			<td valign='top'><input type=textfield name='cap_year' value='$cap_year' size='4' maxlength='4'></td>
-		</tr>
-               <tr>
-                        <td colspan='2'><hr></td>
+        <td valign='top'><h1 style='margin-bottom:0px;'>[lang::message::lookup "" intranet-timesheet2.Filter "Filter"]:</h1></td>
+	<td valign='top' colspan='2'></td>
+</tr>
+
+<tr>
+	<td valign='top' colspan='3'>
+                <table>
+                <tr>
+                        <td>[lang::message::lookup "" intranet-core.Month "Month"]</td>
+                        <td class=form-widget valign='top'><input type=textfield name='cap_month' value='$cap_month' size='2' maxlength='2'></td>
                 </tr>
- 
+                <tr>
+                        <td valign='top'>[lang::message::lookup "" intranet-core.Year "Year"]</td>
+                        <td valign='top'><input type=textfield name='cap_year' value='$cap_year' size='4' maxlength='4'></td>
+                </tr>
+		</table>
+	</td>
+</tr>
+
+<tr>
+		<td valign='top'><h3 style='margin-bottom:2px'>[lang::message::lookup "" intranet-core.employees "Employees"]</h3>Show only selected <br>employees.</td>
+		<td valign='top'><h3 style='margin-bottom:2px'>[lang::message::lookup "" intranet-core.intranet-core.Project_Managers "Project Managers"]</h3>Show only project with <br>selected PM's.</td>
+		<td valign='top'><h3 style='margin-bottom:2px'>[lang::message::lookup "" intranet-core.intranet-core.Project_Type "Project Type"]</h3>Show only project with <br>selected Project Type.</td>
+
+</tr>
+<tr>
+                <td class='form-widget'  valign='top'>$employee_select</td>
+                <td class='form-widget'  valign='top'>$pm_select</td>
+                <td class='form-widget'  valign='top'>$project_type_select</td>
+</tr>
+
+        <td class=form-widget valign='bottom' align='left'>
+		<input type=submit value='[lang::message::lookup "" intranet-core.BtnSaveUpdate "Filter"]' name=submit>&nbsp;
+	</td>
+	<td colspan='2' valign='top' align='right'>
+ 		[lang::message::lookup "" intranet-core.WorkdaysTotal "Total workdays"]:$sum_workdays,
+		&nbsp;[lang::message::lookup "" intranet-core.PlannedTotal "Total planned days"]:$sum_workload,
+		&nbsp;[lang::message::lookup "" intranet-core.LoadTotal "Total Load"]:$sum_workload_ratio%
+	</td>	
+</tr>
+"
+
+append filter_html "</table>\n</form>\n"
+
+append table_header_html "<td colspan='4' valign='top'>
+<!--
+		<table cellpadding='0' cellspacing='0'>
                <tr>
                         <td valign='bottom' style='border-bottom:1px dashed #666666;'><b>[lang::message::lookup "" intranet-core.WorkdaysTotal "Total workdays"]:</b></td>
                         <td valign='bottom' style='border-bottom:1px dashed #666666;'>$sum_workdays</td>
@@ -309,20 +380,8 @@ append filter_html "
                         <td valign='bottom' style='border-bottom:1px dashed #666666;'>$sum_workload_ratio%</td>
                 </tr>
 		</table>
-	</td>	
-	<td>&nbsp;&nbsp;</td>
-	<td valign='top'>$employee_select</td>
-	 <td class=form-widget valign='bottom'><input type=submit value='[lang::message::lookup "" intranet-core.BtnSaveUpdate "Filter"]' name=submit></td>
-</tr>
-"
-
-append filter_html "</table>\n</form>\n"
-
-
-append table_header_html "<td colspan='4' valign='top'>
-<div class='filter-block'>
-        <div class='filter-title'>Filter:</div>
-        $filter_html</div>
+-->
+$filter_html
 </td>"
 
 append table_header_html $table_main_html
@@ -410,6 +469,14 @@ set list_sort_order [parameter::get_from_package_key -package_key "intranet-time
     if {0 != $project_type_id && "" != $project_type_id} {
         lappend p_criteria "p.project_type_id in ([join [im_sub_categories $project_type_id] ","])"
         # No restriction on parent's project type!
+    }
+
+    if {0 != $project_lead_id_from_search && "" != $project_lead_id_from_search} {
+        lappend p_criteria "p.project_lead_id in ([join $project_lead_id_from_search ","])"
+    }
+
+    if {0 != $project_type_id_from_search && "" != $project_type_id_from_search} {
+        lappend p_criteria "p.project_type_id in ([join $project_type_id_from_search ","])"
     }
 	
     set days_current_month [db_string days_current_month "SELECT date_part('day', '$cap_year-$cap_month-01' ::date + '1 month'::interval - '1 day'::interval)" -default 0]
@@ -500,9 +567,13 @@ set list_sort_order [parameter::get_from_package_key -package_key "intranet-time
                         p.project_name
     "
 
+# ad_return_complaint 1 $sql
+
+
     set bgcolor(0) " class=roweven "
     set bgcolor(1) " class=rowodd "
     set ctr 0
+
 
     append table_body_html "<tr>\n"
     append table_body_html "<td style='background-color:#ccc;font-weight:bold'>[lang::message::lookup "" intranet-core.Project_name "Project Name"]</td>\n"
