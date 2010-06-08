@@ -355,9 +355,9 @@ append filter_html "
 </tr>
 -->
 <tr>
-		<td valign='top'><h3 style='margin-bottom:2px'>[lang::message::lookup "" intranet-core.employees "Employees"]</h3>Show only selected <br>employees.</td>
-		<td valign='top'><h3 style='margin-bottom:2px'>[lang::message::lookup "" intranet-core.intranet-core.Project_Managers "Project Managers"]</h3>Show only project with <br>selected PM's.</td>
-		<td valign='top'><h3 style='margin-bottom:2px'>[lang::message::lookup "" intranet-core.intranet-core.Project_Type "Project Type"]</h3>Show only project with <br>selected Project Type.</td>
+		<td valign='top'><h3 style='margin-bottom:2px'>[lang::message::lookup "" intranet-core.employees "Employees"]</h3><!--Show only selected <br>employees.--></td>
+		<td valign='top'><h3 style='margin-bottom:2px'>[lang::message::lookup "" intranet-core.intranet-core.Project_Managers "Project Managers"]</h3><!--Show only project with <br>selected PM's.--></td>
+		<td valign='top'><h3 style='margin-bottom:2px'>[lang::message::lookup "" intranet-core.intranet-core.Project_Type "Project Type"]</h3><!--Show only project with <br>selected Project Type.--></td>
 
 </tr>
 <tr>
