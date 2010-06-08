@@ -318,23 +318,43 @@ if { ![empty_string_p $sum_workload] && "0" != $sum_workdays } {
 
 append filter_html "
 <tr>
-        <td valign='top'><h1 style='margin-bottom:0px;'>[lang::message::lookup "" intranet-timesheet2.Filter "Filter"]:</h1></td>
-	<td valign='top' colspan='2'></td>
+        <td valign='top' colspan='3'><h1 style='margin-bottom:0px;'>[lang::message::lookup "" intranet-timesheet2.Filter "Filter"]:</h1></td>
 </tr>
 
 <tr>
-	<td valign='top' colspan='3'>
-                <table>
-                <tr>
-                        <td>[lang::message::lookup "" intranet-core.Month "Month"]</td>
-                        <td class=form-widget valign='top'><input type=textfield name='cap_month' value='$cap_month' size='2' maxlength='2'></td>
-                </tr>
-                <tr>
-                        <td valign='top'>[lang::message::lookup "" intranet-core.Year "Year"]</td>
-                        <td valign='top'><input type=textfield name='cap_year' value='$cap_year' size='4' maxlength='4'></td>
-                </tr>
-		</table>
+	<td valign='top'>
+		               <table border='0'>
+               			<tr valign='top'>
+                        		<td>[lang::message::lookup "" intranet-core.Month "Month"]</td>
+		                        <td class=form-widget valign='top'><input type=textfield name='cap_month' value='$cap_month' size='2' maxlength='2'></td>
+				</tr>
+		        	<tr>
+                			<td valign='top'>[lang::message::lookup "" intranet-core.Year "Year"]</td>
+					<td valign='top'><input type=textfield name='cap_year' value='$cap_year' size='4' maxlength='4'></td>
+				</tr>
+				</table>
 	</td>
+	<td valign='top'>		
+                               <table cellpadding='0' cellspacing='0' style='border-color:#999;border-width:1px;border-style:solid;'>
+                               <tr>
+                                        <td><b>[lang::message::lookup "" intranet-core.WorkdaysTotal "Total workdays"]:</b></td>
+                                        <td>$sum_workdays</td>
+                               </tr>
+                               <tr>
+                                        <td><b>[lang::message::lookup "" intranet-core.PlannedTotal "Total planned days"]:</b></td>
+                                        <td>$sum_workload</td>
+                               </tr>
+                                <tr>
+	                                <td><b>[lang::message::lookup "" intranet-core.LoadTotal "Total Load"]:</b></td>
+        	                        <td>$sum_workload_ratio%</td>
+                                </tr>
+                                </table>
+	</td>
+	<td>&nbsp;</td>
+
+</tr>
+<tr>
+        <td valign='top' colspan='3'>&nbsp;</td>
 </tr>
 
 <tr>
@@ -353,9 +373,11 @@ append filter_html "
 		<input type=submit value='[lang::message::lookup "" intranet-core.BtnSaveUpdate "Filter"]' name=submit>&nbsp;
 	</td>
 	<td colspan='2' valign='top' align='right'>
+		<!--
  		[lang::message::lookup "" intranet-core.WorkdaysTotal "Total workdays"]:$sum_workdays,
 		&nbsp;[lang::message::lookup "" intranet-core.PlannedTotal "Total planned days"]:$sum_workload,
 		&nbsp;[lang::message::lookup "" intranet-core.LoadTotal "Total Load"]:$sum_workload_ratio%
+		-->
 	</td>	
 </tr>
 "
@@ -363,22 +385,6 @@ append filter_html "
 append filter_html "</table>\n</form>\n"
 
 append table_header_html "<td colspan='4' valign='top'>
-<!--
-		<table cellpadding='0' cellspacing='0'>
-               <tr>
-                        <td valign='bottom' style='border-bottom:1px dashed #666666;'><b>[lang::message::lookup "" intranet-core.WorkdaysTotal "Total workdays"]:</b></td>
-                        <td valign='bottom' style='border-bottom:1px dashed #666666;'>$sum_workdays</td>
-                </tr>
-               <tr>
-                        <td valign='bottom' style='border-bottom:1px dashed #666666;'><b>[lang::message::lookup "" intranet-core.PlannedTotal "Total planned days"]:</b></td>
-                        <td valign='bottom' style='border-bottom:1px dashed #666666;'>$sum_workload</td>
-                </tr>
-                <tr>
-                        <td valign='bottom' style='border-bottom:1px dashed #666666;'><b>[lang::message::lookup "" intranet-core.LoadTotal "Total Load"]:</b></td>
-                        <td valign='bottom' style='border-bottom:1px dashed #666666;'>$sum_workload_ratio%</td>
-                </tr>
-		</table>
--->
 $filter_html
 </td>"
 
