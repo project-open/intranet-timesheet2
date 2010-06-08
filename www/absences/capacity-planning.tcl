@@ -317,25 +317,23 @@ if { ![empty_string_p $sum_workload] && "0" != $sum_workdays } {
 }
 
 append filter_html "
-<tr>
-        <td valign='top' colspan='3'><h1 style='margin-bottom:0px;'>[lang::message::lookup "" intranet-timesheet2.Filter "Filter"]:</h1></td>
-</tr>
 
 <tr>
-	<td valign='top'>
-		               <table border='0'>
-               			<tr valign='top'>
-                        		<td>[lang::message::lookup "" intranet-core.Month "Month"]</td>
-		                        <td class=form-widget valign='top'><input type=textfield name='cap_month' value='$cap_month' size='2' maxlength='2'></td>
-				</tr>
-		        	<tr>
-                			<td valign='top'>[lang::message::lookup "" intranet-core.Year "Year"]</td>
-					<td valign='top'><input type=textfield name='cap_year' value='$cap_year' size='4' maxlength='4'></td>
-				</tr>
-				</table>
-	</td>
-	<td valign='top'>		
-                               <table cellpadding='0' cellspacing='0' style='border-color:#999;border-width:1px;border-style:solid;'>
+        <td valign='top' colspan='1'>
+                <h1 style='margin-bottom:0px;'>[lang::message::lookup "" intranet-timesheet2.Filter "Filter"]:</h1>
+                               <table border='0'>
+                                <tr>
+                                        <td>[lang::message::lookup "" intranet-core.Month "Month"]</td>
+                                        <td class=form-widget valign='top'><input type=textfield name='cap_month' value='$cap_month' size='2' maxlength='2'></td>
+                                </tr>
+                                <tr>
+                                        <td valign='top'>[lang::message::lookup "" intranet-core.Year "Year"]</td>
+                                        <td valign='top'><input type=textfield name='cap_year' value='$cap_year' size='4' maxlength='4'></td>
+                                </tr>
+                                </table>
+        </td>
+        <td valign='top' colspan='2'>
+                               <table cellpadding='0' cellspacing='0' style='border-color:#999;border-width:1px; border-style:solid;' width='100%'>
                                <tr>
                                         <td><b>[lang::message::lookup "" intranet-core.WorkdaysTotal "Total workdays"]:</b></td>
                                         <td>$sum_workdays</td>
@@ -345,18 +343,17 @@ append filter_html "
                                         <td>$sum_workload</td>
                                </tr>
                                 <tr>
-	                                <td><b>[lang::message::lookup "" intranet-core.LoadTotal "Total Load"]:</b></td>
-        	                        <td>$sum_workload_ratio%</td>
+                                        <td><b>[lang::message::lookup "" intranet-core.LoadTotal "Total Load"]:</b></td>
+                                        <td>$sum_workload_ratio%</td>
                                 </tr>
                                 </table>
-	</td>
-	<td>&nbsp;</td>
-
+        </td>
 </tr>
+<!--
 <tr>
-        <td valign='top' colspan='3'>&nbsp;</td>
+                <td colspan='3'>&nbsp;</td>
 </tr>
-
+-->
 <tr>
 		<td valign='top'><h3 style='margin-bottom:2px'>[lang::message::lookup "" intranet-core.employees "Employees"]</h3>Show only selected <br>employees.</td>
 		<td valign='top'><h3 style='margin-bottom:2px'>[lang::message::lookup "" intranet-core.intranet-core.Project_Managers "Project Managers"]</h3>Show only project with <br>selected PM's.</td>
