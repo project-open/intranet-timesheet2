@@ -26,6 +26,7 @@ ad_page_contract {
 } {
     { project_id 0 }
     { julian_date "" }
+    { gregorian_date "" }
     { return_url "" }
     { show_week_p 1 }
     { user_id_from_search "" }
@@ -52,13 +53,11 @@ if {"" == $show_week_p} { set show_week_p 0 }
 if {"" == $project_id} { set project_id 0 }
 im_security_alert_check_integer -location "/intranet-timesheet2/www/hours/new" -value $project_id
 
-if { [empty_string_p $julian_date] } {
-    set julian_date [db_string sysdate_as_julian "select to_char(sysdate,'J') from dual"]
-}
+# Get the date. Accept a gregorian or julian format. Use today as default.
+if {![empty_string_p $gregorian_date]} { set julian_date [db_string sysdate_as_julian "select to_char(:gregorian_date::date, 'J')"] }
+if {[empty_string_p $julian_date]} { set julian_date [db_string sysdate_as_julian "select to_char(sysdate,'J') from dual"] }
 
 if {"" == $return_url} { set return_url [export_vars -base "/intranet-timesheet2/hours/index" {julian_date user_id_from_search}] }
-
-
 
 
 # ---------------------------------------------------------
