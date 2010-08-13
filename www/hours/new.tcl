@@ -426,8 +426,8 @@ switch $task_visibility_scope {
 			acs_rels r
 		where	
 			task.parent_id = ctrl.project_id
-			and ctrl.project_type_id != [im_project_type_task]
-			and task.project_type_id = [im_project_type_task]
+			and ctrl.project_type_id not in ( [im_project_type_task], [im_project_type_ticket])
+			and task.project_type_id in ( [im_project_type_task], [im_project_type_ticket] )
 			and ctrl.project_status_id not in ($closed_stati_list)
 			and task.project_status_id not in ($closed_stati_list)
 			and r.object_id_one = ctrl.project_id
@@ -715,6 +715,7 @@ template::multirow foreach hours_multirow {
 	    # Control is with subprojects, tasks are always considered open.
 	    set log_p [info exists member_projects_hash($project_id)]
 	    if {$project_type_id == [im_project_type_task]} { set log_p 1 }
+	    if {$project_type_id == [im_project_type_ticket]} { set log_p 1 }
 	}
 	"task" {
 	    # Control is with each task individually
@@ -748,7 +749,7 @@ template::multirow foreach hours_multirow {
     set user_is_project_member_p [info exists member_projects_hash($project_id)]
 
     # Are we dealing with a task?
-    set project_is_task_p [expr $project_type_id == [im_project_type_task]]
+    set project_is_task_p [expr $project_type_id == [im_project_type_task] || $project_type_id == [im_project_type_ticket]]
 
     # Check if this project is a "solitary" main-project
     # There are some companies that want to avoid logging hours
