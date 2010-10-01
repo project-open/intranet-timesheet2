@@ -918,7 +918,7 @@ template::multirow foreach hours_multirow {
 	    if {!$show_week_p} {
 		append results "<td><INPUT NAME=notes0.$project_id size=$external_comment_size value=\"[ns_quotehtml [value_if_exists note]]\"></td>\n"
 		if {$internal_note_exists_p} { append results "<td><INPUT NAME=internal_notes0.$project_id size=$internal_comment_size value=\"[ns_quotehtml [value_if_exists internal_note]]\"></td>\n" }
-		if {$materials_p} { append results "<td>[im_select -ad_form_option_list_style_p 1 materials0.$project_id $material_options $material_id]</td>\n" }
+		if {$materials_p} { append results "<td>[im_select -translate_p 0 -ad_form_option_list_style_p 1 materials0.$project_id $material_options $material_id]</td>\n" }
 	    }
 
 	} else {
