@@ -498,6 +498,7 @@ set bgcolor(0) " class=roweven "
 set bgcolor(1) " class=rowodd "
 set ctr 0
 set idx $start_idx
+set user_link ""
 db_foreach absences_list $selection {
 
     # Use cached TCL function to implement localization
