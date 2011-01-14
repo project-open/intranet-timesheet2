@@ -445,14 +445,14 @@ set col_sql "
 	order by category_id
 "
 append admin_html "<div class=filter-title>[lang::message::lookup "" intranet-timesheet2.Color_codes "Color Codes"]</div>\n"
-append admin_html "<table>\n"
+append admin_html "<table cellpadding='5' cellspacing='5'>\n"
 db_foreach cols $col_sql {
     set index [expr $category_id - 5000]
     set col [lindex $color_list $index]
     regsub -all " " $category "_" category_key
     set category_l10n [lang::message::lookup "" intranet-core.$category_key $category]
 
-    append admin_html "<tr><td bgcolor=\#$col>$category_l10n</td></tr>\n"
+    append admin_html "<tr><td bgcolor='\#$col'style='padding:3px'>$category_l10n</td></tr>\n"
 }
 append admin_html "</table>\n"
 
