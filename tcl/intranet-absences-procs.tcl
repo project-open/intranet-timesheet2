@@ -286,6 +286,16 @@ ad_proc im_absence_cube_color_list { } {
 	F0F000
 	808080
     }
+
+    set color_list {
+        EC9559
+        E2849B
+        53A7D8
+        A185CB
+        FFF956
+        CCCCC9
+    }
+
     return $color_list
 }
 
