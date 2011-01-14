@@ -289,7 +289,7 @@ ad_proc im_absence_cube_color_list { } {
 
     set color_list {
         EC9559
-        F5E5DA
+        E2849B
         53A7D8
         A185CB
         FFF956
