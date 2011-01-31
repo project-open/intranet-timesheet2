@@ -138,7 +138,7 @@ ad_proc -public im_timesheet2_sync_timesheet_costs {
         "
 
 	# Audit the action
-	im_audit -object_type im_cost -action after_create -object_id $cost_id -comment "Cost to represent timesheet hours."
+	im_audit -object_type im_cost -action create -object_id $cost_id -comment "Cost to represent timesheet hours."
 
     }
     return $cost_ids
