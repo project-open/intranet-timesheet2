@@ -179,8 +179,8 @@ if {[im_permission $current_user_id edit_absence_status]} {
 ad_form -extend -name absence -form $form_list
 
 ad_form -extend -name absence -form {
-    {start_date:date(date) {label "[_ intranet-timesheet2.Start_Date]"}}
-    {end_date:date(date) {label "[_ intranet-timesheet2.End_Date]"}}
+    {start_date:date(date) {label "[_ intranet-timesheet2.Start_Date]"} {format "YYYY-MM-DD"} {after_html {<input type="button" style="height:23px; width:23px; background: url('/resources/acs-templating/calendar.gif');" onclick ="return showCalendarWithDateWidget('start_date', 'y-m-d');" >}}}
+    {end_date:date(date) {label "[_ intranet-timesheet2.End_Date]"} {format "YYYY-MM-DD"} {after_html {<input type="button" style="height:23px; width:23px; background: url('/resources/acs-templating/calendar.gif');" onclick ="return showCalendarWithDateWidget('end_date', 'y-m-d');" >}}}
     {duration_days:float(text) {label "[lang::message::lookup {} intranet-timesheet2.Duration_days {Duration (Days)}]"} {help_text "[lang::message::lookup {} intranet-timesheet2.Duration_days_help {Please specify the absence duration as a number or fraction of days. Example: '1'=one day, '0.5'=half a day)}]"}}
     {description:text(textarea),optional {label "[_ intranet-timesheet2.Description]"} {html {cols 40}}}
     {contact_info:text(textarea),optional {label "[_ intranet-timesheet2.Contact_Info]"} {html {cols 40}}}
@@ -240,7 +240,9 @@ ad_form -extend -name absence -on_request {
     set start_date_sql [template::util::date get_property sql_timestamp $start_date]
     set end_date_sql [template::util::date get_property sql_timestamp $end_date]
 
+
     # Check the date range
+
     set date_range_error_p [db_string date_range "select $end_date_sql >= $start_date_sql"]
     if {"f" == $date_range_error_p} {
 	ad_return_complaint 1 "<b>Date Range Error</b>:<br>Please revise your start and end date."
@@ -259,7 +261,7 @@ ad_form -extend -name absence -on_request {
 		from	im_user_absences a
 		where	a.owner_id = :absence_owner_id and
 			a.absence_type_id = :absence_type_id and
-			a.start_date = to_timestamp(:start_date, 'YYYY MM DD HH24 MI')
+			a.start_date = $start_date_sql
 	   "]
      } {
 	ad_return_complaint 1 [lang::message::lookup "" intranet-timesheet2.Absence_Duplicate_Start "There is already an absence with exactly the same owner, type and start date."]

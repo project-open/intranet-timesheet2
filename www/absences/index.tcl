@@ -47,6 +47,7 @@ ad_page_contract {
 # ---------------------------------------------------------------
 
 set user_id [ad_maybe_redirect_for_registration]
+set admin_p [im_is_user_site_wide_or_intranet_admin $user_id]
 set current_user_id $user_id
 set subsite_id [ad_conn subsite_id]
 set add_absences_for_group_p [im_permission $user_id "add_absences_for_group"]
@@ -116,6 +117,10 @@ if {$add_hours_all_p} {
     }
 }
 
+foreach { value text } $user_selection_types {
+    lappend user_selection_type_list [list $text $value]
+}
+
 set timescale_types [list \
 			 "all" "All" \
 			 "today" "Today" \
@@ -126,6 +131,10 @@ set timescale_types [list \
 			 "last_3m" "Last_3_months" \
 			 "last_3w" "Last 3 Weeks" \
 ]
+
+foreach { value text } $timescale_types {
+    lappend timescale_type_list [list $text $value]
+}
 
 if { ![exists_and_not_null absence_type_id] } {
     # Default type is "all" == -1 - select the id once and memoize it
@@ -146,16 +155,15 @@ set date_time_format "YYYY-MM-DD HH24:MI"
 set view_id [db_string get_view_id "select view_id from im_views where view_name=:view_name"]
 set column_headers [list]
 set column_vars [list]
+set column_headers_admin [list]
 
 set column_sql "
-	select
+	select	column_id,
 		column_name,
 		column_render_tcl,
 		visible_for
-	from
-		im_view_columns
-	where
-		view_id=:view_id
+	from	im_view_columns
+	where	view_id=:view_id
 		and group_id is null
 	order by
 		sort_order
@@ -165,6 +173,13 @@ db_foreach column_list_sql $column_sql {
     if {$visible_for == "" || [eval $visible_for]} {
 	lappend column_headers "$column_name"
 	lappend column_vars "$column_render_tcl"
+
+	set admin_html ""
+	if {$admin_p} { 
+	    set url [export_vars -base "/intranet/admin/views/new-column" {column_id return_url}]
+	    set admin_html "<a href='$url'>[im_gif wrench ""]</a>" 
+	}
+	lappend column_headers_admin $admin_html
     }
 }
 
@@ -179,7 +194,10 @@ db_foreach column_list_sql $column_sql {
 set absences_types [im_memoize_list select_absences_types "select absence_type_id, absence_type from im_absence_types order by lower(ABSENCE_TYPE)"]
 set absences_types [linsert $absences_types 0 "All"]
 set absences_types [linsert $absences_types 0 -1]
-
+set absence_type_list [list]
+foreach { value text } $absences_types {
+    lappend absence_type_list [list $text $value]
+}
 
 # ---------------------------------------------------------------
 # 5. Generate SQL Query
@@ -301,8 +319,8 @@ if {"" != $end_date} {
 set order_by_clause ""
 switch $order_by {
     "Name" { set order_by_clause "order by upper(absence_name), owner_name" }
-    "User" { set order_by_clause "order by owner_name, upper(start_date)" }
-    "Date" { set order_by_clause "order by upper(start_date), owner_name" }
+    "User" { set order_by_clause "order by owner_name, start_date" }
+    "Date" { set order_by_clause "order by start_date, owner_name" }
     "Start" { set order_by_clause "order by start_date" }
     "End" { set order_by_clause "order by end_date" }
     "Type" { set order_by_clause "order by absence_type, owner_name" }
@@ -360,42 +378,30 @@ set selection "$sql $order_by_clause"
 # 6. Format the Filter
 # ---------------------------------------------------------------
 
+set form_id "absence_filter"
+set object_type "im_absence"
+set action_url "/intranet-timesheet2/absences"
+set form_mode "edit"
 
-set filter_html "
-<form method=get action='$return_url' name=filter_form>
-[export_form_vars start_idx order_by how_many view_name]
-<table border=0 cellpadding=0 cellspacing=0>
-<tr>
-  <td valign=top>[_ intranet-timesheet2.Absence_Type] </td>
-<td valign=top>[im_select absence_type_id $absences_types {}]</td>
-</tr>
-<tr>
-<td valign=top>[lang::message::lookup "" intranet-timesheet2.Show_Users {Show Users}]</td>
-<td valign=top>[im_select user_selection $user_selection_types {}]</td>
-</tr>
-<tr>
-  <td valign=top>[_ intranet-timesheet2.Timescale] </td>
-  <td valign=top>[im_select timescale $timescale_types ""]</td>
-</tr>
-<tr>
-	    <td class=form-label>[_ intranet-core.Start_Date]</td>
-	    <td class=form-widget>
-	      <input type=textfield size=10 maxsize=10 name=start_date value=$start_date>
-	    </td>
-</tr>
-<tr>
-	    <td class=form-label>[lang::message::lookup "" intranet-core.End_Date "End Date"]</td>
-	    <td class=form-widget>
-	      <input type=textfield size=10 maxsize=10 name=end_date value=$end_date>
-	    </td>
-</tr>
-<tr>
-  <td valign=top>&nbsp;</td>
-  <td valign=top><input type=submit value='[_ intranet-timesheet2.Go]' name=submit></td>
-</tr>
+ad_form \
+    -name $form_id \
+    -action $action_url \
+    -mode $form_mode \
+    -actions [list [list [lang::message::lookup {} intranet-timesheet2.Edit Edit] edit]] \
+    -method GET \
+    -export {start_idx order_by how_many view_name}\
+    -form {
+        {absence_type_id:text(select),optional {label "[_ intranet-timesheet2.Absence_Type]"} {options $absence_type_list }}
+        {user_selection:text(select),optional {label "[_ intranet-timesheet2.Show_Users]"} {options $user_selection_type_list }}
+        {timescale:text(select),optional {label "[_ intranet-timesheet2.Timescale]"} {options $timescale_type_list }}
+	{start_date:text(text) {label "[_ intranet-timesheet2.Start_Date]"} {html {size 10}} {value "$start_date"} {after_html {<input type="button" style="height:23px; width:23px; background: url('/resources/acs-templating/calendar.gif');" onclick ="return showCalendar('start_date', 'y-m-d');" >}}}
+	{end_date:text(text) {label "[_ intranet-timesheet2.End_Date]"} {html {size 10}} {value "$end_date"} {after_html {<input type="button" style="height:23px; width:23px; background: url('/resources/acs-templating/calendar.gif');" onclick ="return showCalendar('end_date', 'y-m-d');" >}}}
+    }
 
-</table>
-</form>"
+
+eval [template::adp_compile -string {<formtemplate style="tiny-plain" id="absence_filter"></formtemplate>}]
+set filter_html $__adp_output
+
 
 
 # ----------------------------------------------------------
@@ -426,18 +432,7 @@ if {[string equal "t" $read_p]} {
 }
 
 
-
-
-
-#	5000 | Vacation     - Red
-#       5001 | Personal     - Orange
-#       5002 | Sick         - Blue
-#       5003 | Travel       - Purple
-#       5004 | Training     - Yellow
-#       5005 | Bank Holiday - Grey
-
 set color_list [im_absence_cube_color_list]
-set absence_type_ids {5000 5001 5002 5003 5004 5005 }
 set col_sql "
 	select	category_id, category
 	from	im_categories
@@ -476,14 +471,17 @@ if { ![empty_string_p $query_string] } {
 }
 
 append table_header_html "<tr>\n"
+set ctr 0
 foreach col $column_headers {
+    set wrench_html [lindex $column_headers_admin $ctr]
     regsub -all " " $col "_" col_key
     set col_txt [lang::message::lookup "" intranet-core.$col_key $col]
     if { [string equal $order_by $col] } {
-	append table_header_html "  <td class=rowtitle>$col_txt</td>\n"
+	append table_header_html "  <td class=rowtitle>$col_txt$wrench_html</td>\n"
     } else {
-	append table_header_html "  <td class=rowtitle><a href=\"${url}order_by=[ns_urlencode $col]\">$col_txt</a></td>\n"
+	append table_header_html "  <td class=rowtitle><a href=\"${url}order_by=[ns_urlencode $col]\">$col_txt</a>$wrench_html</td>\n"
     }
+    incr ctr
 }
 append table_header_html "</tr>\n"
 
@@ -568,6 +566,7 @@ set table_continuation_html ""
 # ---------------------------------------------------------------
 # Left Navbar
 # ---------------------------------------------------------------
+
 
 set left_navbar_html "
             <div class=\"filter-block\">
