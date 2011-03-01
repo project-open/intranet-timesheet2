@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<message_catalog package_key="intranet-timesheet2" package_version="3.4.0.7.0" locale="en_GB" charset="ISO-8859-1">
+
+  <msg key="lt_A_total_of_total_hour">A total of %total_hours_str% hours have been spent on this project.</msg>
+  <msg key="lt_Today_you_didnt_log_y">Today, you didn't log your hours yet!</msg>
+  <msg key="lt_You_have_loged_total_">You have logged %total_hours_str% hours on this project</msg>
+</message_catalog>

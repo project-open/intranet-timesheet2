@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<message_catalog package_key="intranet-timesheet2" package_version="3.4.0.7.0" locale="ja_JP" charset="utf-8">
+
+  <msg key="A">A</msg>
+  <msg key="Admin">管理</msg>
+  <msg key="Associated_reports">関連するレポート</msg>
+  <msg key="B">B</msg>
+  <msg key="C">C</msg>
+  <msg key="D">D</msg>
+  <msg key="E">E</msg>
+  <msg key="Expense_Code">経費コード
+</msg>
+  <msg key="F">F</msg>
+  <msg key="G">G</msg>
+  <msg key="H">H</msg>
+  <msg key="I">I</msg>
+  <msg key="J">J</msg>
+  <msg key="K">K</msg>
+  <msg key="L">L</msg>
+  <msg key="Log_Absences">欠勤を記録</msg>
+  <msg key="log_dedication">貢献を記録する。</msg>
+  <msg key="log_hours">時間を集計</msg>
+  <msg key="Log_your_hours">あなたの時間を集計</msg>
+  <msg key="lt_Click_on_a_persons_na">名前をクリックして、単位ごとの詳細な集計を確認してください。</msg>
+  <msg key="lt_For_Vacation_Sickness_1">休暇、病気、休日(地域、都市) 、研修を行う人的資源を選択してください。</msg>
+  <msg key="lt_is_required_Describe_">必要。
+目的と、自身の車を使用した場合の走行キロメートル数を記載してください。
+</msg>
+  <msg key="lt_Log_hours_for_a_diffe">別の日の時間を集計</msg>
+  <msg key="lt_Log_hours_for_a_diffe_1">異なった週の時間を集計
+</msg>
+  <msg key="lt_Log_hours_on_selected">選択されたプロジェクトの時間を集計
+</msg>
+  <msg key="lt_Log_your_log_hours_li">集計：%log_hours_link% 時間</msg>
+  <msg key="lt_Log_your_log_hours_li_1">集計：%log_hours_link%単位</msg>
+  <msg key="lt_There_are_currently_n">選択された基準に適合するエントリーがありません。
+</msg>
+  <msg key="lt_Today_you_didnt_log_y">本日、あなたの単位はまだ集計されていません。
+</msg>
+  <msg key="lt_View_hours_logged_dur">先週集計した全員の時間を閲覧する。</msg>
+  <msg key="lt_View_the_hours_logged">他の人の集計時間を閲覧する。</msg>
+  <msg key="lt_View_time_spent_on_al">全てのプロジェクトにおける全員の使用時間を見る</msg>
+  <msg key="lt_View_your_hours_on_al">すべてのプロジェクトのあなたの時間を見る</msg>
+  <msg key="M">M</msg>
+  <msg key="N">N</msg>
+  <msg key="O">O</msg>
+  <msg key="P">P</msg>
+  <msg key="Q">Q</msg>
+  <msg key="R">R</msg>
+  <msg key="S">S</msg>
+  <msg key="Select_an_expense">経費を選択</msg>
+  <msg key="select_an_expense">経費を選択</msg>
+  <msg key="Show_Users">ユーザ選択</msg>
+  <msg key="T">T</msg>
+  <msg key="Timesheet">勤務時間表</msg>
+  <msg key="U">U</msg>
+  <msg key="V">V</msg>
+  <msg key="W">W</msg>
+  <msg key="X">X</msg>
+  <msg key="Y">Y</msg>
+  <msg key="You_need_to_log_hours">あなたは、過去%num_days%日間に、
+%expected_hours%稼働すべきところを、
+%absences_hours_message% %num_hours%
+しか稼働していません。
+勤務時間を記録するか、管理者に連絡してください。</msg>
+</message_catalog>

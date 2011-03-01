@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<message_catalog package_key="intranet-timesheet2" package_version="3.4.0.7.0" locale="tr_TR" charset="utf-8">
+
+  <msg key="Absence_Type">Bulunmama Nedeni:</msg>
+  <msg key="Absences">Devamsızlıklar</msg>
+  <msg key="absences">Gelinmeyen Günler</msg>
+  <msg key="Add_a_new_Absence">Yeni bir devamsızlık ekle</msg>
+  <msg key="Admin_Absences">Yönetici Yoklaması</msg>
+  <msg key="April">Nisan</msg>
+  <msg key="Associated_reports">İlgili Raporlar</msg>
+  <msg key="August">Ağustos</msg>
+  <msg key="Contact">Kontak</msg>
+  <msg key="Date">Tarih</msg>
+  <msg key="December">Aralık</msg>
+  <msg key="Description">Açıklama</msg>
+  <msg key="February">Şubat</msg>
+  <msg key="Filter_Absences">Gelinmeyenleri Süz</msg>
+  <msg key="Friday">Cuma</msg>
+  <msg key="Go">Git</msg>
+  <msg key="Hours">Saatler</msg>
+  <msg key="Hours_by_user_name">%user_name% saatleri</msg>
+  <msg key="January">Ocak</msg>
+  <msg key="July">Temmuz</msg>
+  <msg key="June">Haziran</msg>
+  <msg key="log_hours">saatleri gir</msg>
+  <msg key="lt_Log_your_log_hours_li">Saatlerini %log_hours_link% gir</msg>
+  <msg key="lt_There_are_currently_n">Bu kriterlerle eşleşen bir veri bulunamadı</msg>
+  <msg key="lt_View_your_hours_on_al">Bütün Projelerdeki Saatlerine bak</msg>
+  <msg key="March">Mart</msg>
+  <msg key="May">Mayıs</msg>
+  <msg key="Monday">Pazartesi</msg>
+  <msg key="November">Kasım</msg>
+  <msg key="October">Ekim</msg>
+  <msg key="Saturday">Cumartesi</msg>
+  <msg key="September">Eylül</msg>
+  <msg key="Show_Users">Kullanıcıları Göster</msg>
+  <msg key="Sunday">Pazar</msg>
+  <msg key="Thursday">Perşembe</msg>
+  <msg key="Timescale">Zaman aralığı:</msg>
+  <msg key="Timesheet">Saat Girişi</msg>
+  <msg key="Tuesday">Salı</msg>
+  <msg key="Type">Tür</msg>
+  <msg key="User">Kullanıcı</msg>
+  <msg key="Wednesday">Çarşamba</msg>
+  <msg key="Week_total_1">Hafta Toplamı:</msg>
+  <msg key="You_need_to_log_hours">  Şimdiye Kadar %num_hours% iş saati girdinizi
+  %absences_hours_message% bulunmadığınız %expected_hours% saat  %num_days% gün. Lütfen Saatlerinizi girin yada yöneticiniz ile görüşün.  </msg>
+</message_catalog>

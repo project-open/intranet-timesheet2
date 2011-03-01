@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<message_catalog package_key="intranet-timesheet2" package_version="3.4.0.7.0" locale="no_NO" charset="ISO-8859-1">
+
+  <msg key="1_Euro_equals">1 Euro tilsvarer</msg>
+  <msg key="A">A</msg>
+  <msg key="Absence">Fravær</msg>
+  <msg key="Absence_Type">Fraværstype:</msg>
+  <msg key="Absence_Type_1">Fraværstype</msg>
+  <msg key="Absences">Fravær</msg>
+  <msg key="absences">fravær</msg>
+  <msg key="Absent">Borte</msg>
+  <msg key="Absent_1">Borte:</msg>
+  <msg key="Add_a_new_Absence">Legg til nytt fravær</msg>
+  <msg key="Add_hours">Legg til timer</msg>
+  <msg key="April">April</msg>
+  <msg key="Associated_reports">Tilknyttede rapporter</msg>
+  <msg key="Delete">Slett</msg>
+  <msg key="End_Date">Slutt Dato</msg>
+  <msg key="Friday">Fredag</msg>
+  <msg key="Go">Vis</msg>
+  <msg key="Hours">Timer</msg>
+  <msg key="Hours_by_user_name">Timer av %user_name%</msg>
+  <msg key="June">Juni</msg>
+  <msg key="Log_Absences">Legg til fravær</msg>
+  <msg key="log_hours">legg til timer</msg>
+  <msg key="lt_A_total_of_total_hour">Totalt %total_hours_str% timer har blitt brukt på dette prosjektet.</msg>
+  <msg key="lt_Add_hours_on_other_pr">Legg til timer for et annet prosjekt</msg>
+  <msg key="lt_Hours_for_pretty_date">Timer for %pretty_date%</msg>
+  <msg key="lt_Log_hours_for_a_diffe">Legg til timer for en annen dag</msg>
+  <msg key="lt_Log_your_log_hours_li">Legg til dine %log_hours_link% timer</msg>
+  <msg key="lt_Return_to_previous_pa">Tilbake til forrige side</msg>
+  <msg key="lt_See_the_breakdown_by_">Se personfordeling</msg>
+  <msg key="lt_Today_you_didnt_log_y">Idag, du har ikke lagt til noen timer enda!</msg>
+  <msg key="lt_View_hours_logged_dur">Se alles timer forrige uke</msg>
+  <msg key="lt_View_the_hours_logged">Vis timer lagt til av andre</msg>
+  <msg key="lt_View_time_spent_on_al">Vis alle sin tid på alle prosjekt</msg>
+  <msg key="lt_View_your_hours_on_al">Vis dine timer på alle prosjekt</msg>
+  <msg key="lt_You_have_loged_total_">Du har lagt til %total_hours_str% timer på dette prosjektet</msg>
+  <msg key="May">Mai</msg>
+  <msg key="Monday">Mandag</msg>
+  <msg key="New_Absence">Nytt fravær</msg>
+  <msg key="Other_Options">Andre valg</msg>
+  <msg key="Project_name">Prosjektnavn</msg>
+  <msg key="Saturday">Lørdag</msg>
+  <msg key="Save">Lagre</msg>
+  <msg key="Start_Date">Start Dato</msg>
+  <msg key="Sunday">Søndag</msg>
+  <msg key="Thursday">Torsdag</msg>
+  <msg key="Timesheet">Timeliste</msg>
+  <msg key="Tuesday">Tirsdag</msg>
+  <msg key="User">Bruker</msg>
+  <msg key="Wednesday">Onsdag</msg>
+  <msg key="Week_total_1">Uketotal:</msg>
+  <msg key="Work_done">Arbeid utført</msg>
+  <msg key="You_need_to_log_hours">  Du har så langt lagt inn %num_hours% timer arbeid %absences_hours_message% av de totalt %expected_hours% kreved timene de siste 
+  %num_days% dagene. Vennligst legg inn timer nå eller ta kontakt med din sjef nå.
+  </msg>
+</message_catalog>

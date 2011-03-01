@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<message_catalog package_key="intranet-timesheet2" package_version="3.4.0.7.0" locale="pl_PL" charset="utf-8">
+
+  <msg key="absences">nieobecności</msg>
+  <msg key="Associated_reports">Zbiorcze raporty</msg>
+  <msg key="lt_Log_your_log_hours_li">Zarejestruj swoje %log_hours_link% godziny</msg>
+  <msg key="lt_View_hours_logged_dur">Obejrzyj godziny zarejestrowane w zeszłym tygodniu przez wszystkich</msg>
+  <msg key="lt_View_the_hours_logged">Obejrzyj godziny rejestrowane przez kogoś innego</msg>
+  <msg key="lt_View_time_spent_on_al">Obejrzyj czas spędzony na wszystkich projektach przez wszystkich</msg>
+  <msg key="lt_View_your_hours_on_al">Przejrzyj swoje godziny na wszystkich projektach</msg>
+  <msg key="You_need_to_log_hours">  Masz do tej pory zarejestrowanych %num_hours% godzin czasu pracy z
+  %absences_hours_message% wymaganych %expected_hours% godzin w ostatnich
+  %num_days% dniach. Proszę o zarejestrowanie swoich godzin teraz lub skontaktowanie się z menedżerem.
+  </msg>
+</message_catalog>
