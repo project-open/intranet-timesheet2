@@ -160,7 +160,7 @@ if { $start_at == "" } {
     set start_at [db_string get_today "select to_char(next_day(to_date(to_char(sysdate,:date_format),:date_format)+1, 'sun'), :date_format) from dual"]
 #    ad_return_complaint 1 "start_at=$start_at"
 } else {
-    set start_at [db_string get_today "select to_char(next_day(to_date($start_at, :date_format), 'sun'), :date_format) from dual"]
+    set start_at [db_string get_today "select to_char(next_day(to_date(:start_at, :date_format), 'sun'), :date_format) from dual"]
 #    ad_return_complaint 1 "start_at=$start_at"
 }
 
@@ -238,16 +238,14 @@ set sql_from [list]
 set sql_from2 [list]
 
 for { set i [expr $duration - 1]  } { $i >= 0 } { incr i -1 } {
-	set col_sql "
-    select 
-	to_char(sysdate, :date_format) as today_date,
-	to_char(to_date('$start_at', :date_format)-$i, :date_format) as i_date, 
-	to_char((to_date('$start_at', :date_format)-$i), 'Day') as f_date_day,
-	to_char((to_date('$start_at', :date_format)-$i), 'dd') as f_date_dd,
-	to_char((to_date('$start_at', :date_format)-$i), 'Mon') as f_date_mon,
-	to_char((to_date('$start_at', :date_format)-$i), 'yyyy') as f_date_yyyy,    
-	to_char(to_date('$start_at', :date_format)-$i, 'DY') as h_date 
-    from dual"
+    set col_sql " select to_char(sysdate, :date_format) as today_date,
+        to_char(to_date(:start_at, :date_format)-$i, :date_format) as i_date,
+	to_char((to_date(:start_at, :date_format)-$i), 'Day') as f_date_day,
+	to_char((to_date(:start_at, :date_format)-$i), 'dd') as f_date_dd,
+	to_char((to_date(:start_at, :date_format)-$i), 'Mon') as f_date_mon,
+	to_char((to_date(:start_at, :date_format)-$i), 'yyyy') as f_date_yyyy,
+        to_char(to_date(:start_at, :date_format)-$i, 'DY') as h_date
+	from dual"
 
     db_1row get_date $col_sql
     lappend days $i_date
@@ -256,20 +254,19 @@ for { set i [expr $duration - 1]  } { $i >= 0 } { incr i -1 } {
     }
     #prepare the data to UNION
     lappend sql_from "
-    	select 
-    		to_date($i_date, :date_format) as day, 
-    		owner_id, 
-    		absence_id, 
-    		'a' as type, 
-    		im_category_from_id(absence_type_id) as descr 
+	select to_date('$i_date', :date_format) as day,
+	owner_id,
+	absence_id,
+	'a' as type,
+	im_category_from_id(absence_type_id) as descr
     	from
-    		im_user_absences
+	im_user_absences
     	where
-    		to_date($i_date, :date_format) between 
-    			trunc(to_date(to_char(start_date,:date_format),:date_format),'Day') and 
-    			trunc(to_date(to_char(end_date,:date_format),:date_format),'Day')
+	to_date('$i_date', :date_format) between
+	trunc(to_date(to_char(start_date,:date_format),:date_format),'Day') and
+	trunc(to_date(to_char(end_date,:date_format),:date_format),'Day')
     "
-    lappend sql_from2 "select to_date($i_date, :date_format) as day from dual\n"
+    lappend sql_from2 "select to_date('$i_date', :date_format) as day from dual\n"
     set f_date "[_ intranet-timesheet2.[string trim $f_date_day]], $f_date_dd. [_ intranet-timesheet2.$f_date_mon] $f_date_yyyy" 
     append table_header_html "<td class=rowtitle>$f_date</td>"
 }
@@ -407,11 +404,11 @@ if { [array size user_days] > 0 } {
 # ---------------------------------------------------------------
 
 set navig_sql "
-    select 
-    	to_char(to_date('$start_at', :date_format) - 7, :date_format) as past_date,
-	to_char(to_date('$start_at', :date_format) + 7, :date_format) as future_date 
-    from 
-    	dual"
+    select
+    to_char(to_date(:start_at, :date_format) - 7, :date_format) as past_date,
+    to_char(to_date(:start_at, :date_format) + 7, :date_format) as future_date
+    from
+    dual"
 db_1row get_navig_dates $navig_sql
 
 set switch_link_html "<a href=\"weekly_report?[export_url_vars owner_id project_id duration display]"

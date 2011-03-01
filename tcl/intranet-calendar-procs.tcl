@@ -104,7 +104,8 @@ proc_doc calendar_convert_julian_to_ansi {
 } {
     Return an ANSI date for a Julian date
 } {
-    set output [util_memoize [list db_string julian_date_trunc "select to_char(to_date($julian_date, 'J'), 'YYYY-MM-DD')"]]
+    im_security_alert_check_integer -location "calendar_convert_julian_to_ansi" -value $julian_date
+    set output [util_memoize [list db_string julian_date_trunc "select to_char(to_date('$julian_date', 'J'), 'YYYY-MM-DD')"]]
     return $output
 }
 
