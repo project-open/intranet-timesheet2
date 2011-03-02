@@ -970,7 +970,7 @@ foreach i $weekly_logging_days {
 
     set julian_day_offset [expr $julian_week_start + $i]
 
-    im_security_alert_check_integer -location "intranet-timesheet2/hours/new.tcl" -value $julian_date_offset
+    im_security_alert_check_integer -location "intranet-timesheet2/hours/new.tcl" -value $julian_day_offset
     set header_day_of_week [util_memoize [list db_string day_of_week "select to_char(to_date('$julian_day_offset', 'J'), 'Dy')"]]
     set header_day_of_week_l10n [lang::message::lookup "" intranet-timesheet2.Day_of_week_$header_day_of_week $header_day_of_week]
     set header_date [util_memoize [list db_string header "select to_char(to_date('$julian_day_offset', 'J'), '$weekly_column_date_format')"]]
