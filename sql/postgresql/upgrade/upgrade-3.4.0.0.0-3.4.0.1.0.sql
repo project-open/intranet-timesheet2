@@ -59,7 +59,8 @@ begin
 
 	-- Add a duration field to specify how many days the absence will take.
 	alter table im_user_absences
-	add duration_days numeric(12,1);
+	add duration_days numeric(12,1) default 1
+	constraint im_user_absences_duration_days_nn not null;
 
         return 0;
 end;' language 'plpgsql';
