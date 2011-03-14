@@ -352,6 +352,9 @@ if {![empty_string_p $return_url]} {
     "
 }
 
+# Append user-defined menus
+append left_navbar_html [im_menu_ul_list -no_uls 1 "timesheet2_timesheet" {}]
+
 append left_navbar_html "
 	    $menu_links_html
          </ul>
