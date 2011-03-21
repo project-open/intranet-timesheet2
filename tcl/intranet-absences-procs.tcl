@@ -657,7 +657,7 @@ ad_proc -public im_get_next_absence_link { { user_id } } {
 	where
 		owner_id = :user_id and
 		group_id is null and
-		start_date >= to_date(sysdate,'yyyy-mm-dd')
+		start_date >= sysdate
 	order by
 		start_date, end_date
     "
