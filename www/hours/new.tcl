@@ -32,6 +32,13 @@ ad_page_contract {
     { user_id_from_search "" }
 }
 
+# Redirect to custom new page if necessary
+callback im_timesheet_hours_new_redirect \
+    -object_id $project_id -status_id "" -type_id "" \
+    -project_id $project_id -julian_date $julian_date \
+    -gregorian_date $gregorian_date -show_week_p $show_week_p \
+    -user_id_from_search $user_id_from_search  -return_url $return_url
+
 
 # ---------------------------------------------------------
 # Default & Security
