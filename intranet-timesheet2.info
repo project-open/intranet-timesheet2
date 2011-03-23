@@ -8,7 +8,7 @@
     <singleton-p>t</singleton-p>
     <auto-mount>intranet-timesheet2</auto-mount>
 
-    <version name="4.0.1.0.0" url="http://www.project-open.org/download/apm/intranet-timesheet2-4.0.1.0.0.apm">
+    <version name="4.0.1.0.1" url="http://www.project-open.org/download/apm/intranet-timesheet2-4.0.1.0.1.apm">
         <owner url="mailto:frank.bergmann@project-open.com">Frank Bergmann</owner>
         <release-date>2004-02-07</release-date>
         <vendor url="http://www.project-open.com/">]project-open[</vendor>
@@ -46,6 +46,8 @@
             <parameter datatype="number"  min_n_values="1"  max_n_values="1"  name="TimesheetRedirectProjectIfEmptyHoursP"  default="0" description="Redirect the user from the project pages to the timesheet if there are not enough hours logged?"/>
             <parameter datatype="string"  min_n_values="1"  max_n_values="1"  name="TimesheetTaskVisibilityScope"  default="sub_project" description="Does an employee need to be a member of a subproject in order to log hours? Option 'main_project': It's sufficient for the employee to be member of the main project in order to log hours on all subprojects. That's comfortable, but permissive, and the list of tasks may get long. Option 'sub_project': The employee needs to be a member of the subprojects in order to see the subproject's tasks. Option 'task': The employee needs to be assigned expressively to each task in order to log his hours. May incur a considerable admin overhead to assign all employees to all tasks..."/>
             <parameter datatype="string"  min_n_values="1"  max_n_values="1"  name="TimesheetWeeklyLoggingDays"  default="0 1 2 3 4 5 6" description="What are the days of the week for which we want to log hours in the weekly view? Default is '0 1 2 3 4 5 6' for all 7 days per week. The alternative is '1 2 3 4 5' for Monday to Friday. '0' refers to Sunday, '1' is Monday and '6' is Saturday. "/>
+            <parameter datatype="number"  min_n_values="1"  max_n_values="1"  name="ForceAllTimesheetEntriesWithCommentP"  default="0" description="Should a the comment for a time sheet entry be mandatory?"/>
+
         </parameters>
 
     </version>
