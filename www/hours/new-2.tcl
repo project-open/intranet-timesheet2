@@ -72,6 +72,9 @@ set limit_to_one_day_per_main_project_p [parameter::get_from_package_key -packag
 
 set sync_cost_item_p [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter "SyncHoursImmediatelyAfterEntryP" -default 1]
 
+set check_all_hours_with_comment [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter "ForceAllTimesheetEntriesWithCommentP" -default 1]
+
+
 if {![im_column_exists im_hours internal_note]} {
     ad_return_complaint 1 "Internal error in intranet-timesheet2:<br>
 	The field im_hours.internal_note is missing.<br>
@@ -80,6 +83,29 @@ if {![im_column_exists im_hours internal_note]} {
     "
     ad_script_abort
 }
+
+# ----------------------------------------------------------
+# Check that the comment has been specified for all hours
+# if necessary
+# ----------------------------------------------------------
+
+if {!$show_week_p && $check_all_hours_with_comment} {
+    foreach key [array names hours0] {
+	set h $hours0($key)
+	set c $notes0($key)
+	if {"" == $h} { continue }
+
+	if {"" == $c} {
+	    ad_return_complaint 1 "
+		<b>[lang::message::lookup "" intranet-timesheet2.You_have_to_provide_a_comment_for_every_entry "
+			You have to provide a comment for every timesheet entry
+		"]</b>:
+	    "
+	    ad_script_abort
+	}
+    }
+}
+
 
 # ----------------------------------------------------------
 # Billing Rate & Currency
@@ -156,7 +182,6 @@ foreach i $weekly_logging_days {
     	set database_notes_hash($key) $note
     	set database_internal_notes_hash($key) [value_if_exists internal_note]
     	set database_materials_hash($key) $material_name
-#	ns_log Notice "hours/new2: day=$i, database_hours_hash($key) = '$hours'"
 
 	# Setup (project x day) => cost_id relationship
 	if {"" != $hour_cost_id} {
@@ -302,7 +327,7 @@ foreach i $weekly_logging_days {
 	}
 
 	set action $action_hash($project_id)
-	ns_log Notice "hours/new-2: action=$action, project_id=$project_id"
+	# ns_log Notice "hours/new-2: action=$action, project_id=$project_id"
 	switch $action {
 
 	    insert {

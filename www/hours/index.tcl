@@ -57,7 +57,7 @@ if {$current_user_id == $user_id_from_search} {
 
 set page_title [lang::message::lookup "" intranet-timesheet2.Timesheet_for_user_name "Timesheet for %user_name%"]
 set context_bar [im_context_bar "[_ intranet-timesheet2.Hours]"]
-
+set show_link_weekly_timesheet_p [parameter::get_from_package_key -package_key "intranet-timesheet2" -parameter "ShowLinkToWeeklyTimesheetP" -default 1]
 
 # ---------------------------------
 # Date Logic: We are working with "YYYY-MM-DD" dates in this page.
@@ -197,7 +197,7 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
     set unconfirmed_hours_for_this_week [expr $unconfirmed_hours_for_this_week + $unconfirmed_hours($current_date)]
 
     # Render the "Sunday" link to log "hours for the week"
-    if {$day_of_week == 1 } {
+    if { 1==$day_of_week && 1==$show_link_weekly_timesheet_p } {
 	append hours "<br>
 		<a href=[export_vars -base "new" {user_id_from_search {julian_date $current_date} {show_week_p 1} return_url}]
 		><span class='log_hours'>[lang::message::lookup "" intranet-timesheet2.Log_hours_for_the_week "Log hours for the week"]</span></a>
