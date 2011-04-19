@@ -224,28 +224,25 @@ if { $project_id != 0 } {
 
 	set filter_form_html "
 	<form method=post action='$return_url' name=filter_form>
-	 <table border=0 cellpadding=5 cellspacing=5>
-        <tr>
-          <td colspan='2' class='rowtitle' align='left'>
-        [_ intranet-timesheet2.Filter]
-         </td>
-        </tr>
-	<tr>
-        <td valign=top>[_ intranet-core.Cost_Center] </td>
-        <td valign=top>$im_cc_select</td>
-        </tr>
-        <tr>
-        <td valign=top>[_ intranet-core.Department] </td>
-        <td valign=top>$im_department_select</td>
-        </tr>
-
-        <tr>
-          <td></td>
-          <td valign=top>
-	        <input type=submit value='[_ intranet-timesheet2.Apply]' name=submit>
-          </td>
-        </tr>
-	</table>
+	<div class='filter-block'>
+		<div class='filter-title'>[_ intranet-timesheet2.Filter]</div>
+		<table border=0 cellpadding=5 cellspacing=5>
+		<tr>
+	        <td valign=top>[_ intranet-core.Cost_Center] </td>
+        	<td valign=top>$im_cc_select</td>
+	        </tr>
+        	<tr>
+	        <td valign=top>[_ intranet-core.Department] </td>
+        	<td valign=top>$im_department_select</td>
+	        </tr>
+	        <tr>
+        	  <td></td>
+	          <td valign=top>
+		        <input type=submit value='[_ intranet-timesheet2.Apply]' name=submit>
+	          </td>
+        	</tr>
+		</table>
+	</div>
 	</form>	
 "
 }
@@ -421,7 +418,7 @@ set bgcolor(1) " class=rowodd "
 set ctr 0
 
 
-ns_log NOTICE "KHD $sql"
+ns_log NOTICE $sql
 
 db_foreach get_hours $sql {
 
