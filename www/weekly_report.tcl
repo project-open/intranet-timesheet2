@@ -24,6 +24,7 @@ ad_proc im_do_row {
     { holydays }
     { today_date }
     { descrl }
+
 } {
     Returns a row with the hours loged of one user
 } {
@@ -52,21 +53,25 @@ ad_proc im_do_row {
 	}
 	set cell_text [list]
 	set cell_param [list]
+
 	set absent_p "f"
+
 	if { [info exists absence([lindex $days $i])] } {
 	    set abs_id $absence([lindex $days $i])
 	    lappend cell_text "<a href=\"$absence_view_page?absence_id=$abs_id\" style=\"color:\\\#FF0000;\">[_ intranet-timesheet2.Absent]</a> ($descr($abs_id))"
 	    set absent_p "t"
 	}
+
 	if { [info exists user_days([lindex $days $i])] } {
 	    lappend cell_text "$user_days([lindex $days $i]) [_ intranet-timesheet2.hours]"
-	} elseif { [lindex $days $i] < $today_date && $holy_html == "" && [im_permission $curr_owner_id "add_hours"] } {
-	    if { $absent_p == "f" } {
-		lappend cell_text "[_ intranet-timesheet2.No_hours_logged]"
-		lappend cell_param "class=rowyellow"
-	    }
+	    set absent_p "t"	
+		#	} elseif { [lindex $days $i] < $today_date && $holy_html == "" && [im_permission $curr_owner_id "add_hours"] } {
 	} 
-		if { [lsearch -exact $holydays [lindex $days $i]] >= 0 } {
+        if { $absent_p == "f" } {
+             lappend cell_text "[_ intranet-timesheet2.No_hours_logged]"
+             lappend cell_param "class=rowyellow"
+        }
+	if { [lsearch -exact $holydays [lindex $days $i]] >= 0 } {
 	    set cell_param "style=\"background-color=\\\#DDDDDD;\""
 	}
 	append html "<td [join $cell_param " "]>[join $cell_text "<br>"]</td>\n"
@@ -101,6 +106,8 @@ ad_page_contract {
     { duration:integer "7" }
     { start_at:integer "" }
     { display "project" }
+    { cost_center_id:integer 0 }
+    { department_id:integer 0 }
 }
 
 
@@ -156,18 +163,19 @@ if { $start_at == "" && $project_id != 0 } {
     return
 }
 
+
+
 if { $start_at == "" } {
     set start_at [db_string get_today "select to_char(next_day(to_date(to_char(sysdate,:date_format),:date_format)+1, 'sun'), :date_format) from dual"]
-#    ad_return_complaint 1 "start_at=$start_at"
 } else {
     set start_at [db_string get_today "select to_char(next_day(to_date(:start_at, :date_format), 'sun'), :date_format) from dual"]
-#    ad_return_complaint 1 "start_at=$start_at"
 }
 
 if { $project_id != 0 } {
     set error_msg [lang::message::lookup "" intranet-core.No_name_for_project_id "No Name for project %project_id%"]
     set project_name [db_string get_project_name "select project_name from im_projects where project_id = :project_id" -default $error_msg]
 }
+
 
 # ---------------------------------------------------------------
 # Format the Filter and admin Links
@@ -181,34 +189,66 @@ if { $display == "project" } { set sel_pro "selected" }
 
 if { $project_id != 0 } {
     set filter_form_html "
-<form method=get action='$return_url' name=filter_form>
-[export_form_vars start_at duration owner_id project_id]
-<table border=0 cellpadding=0 cellspacing=0>
-<tr>
-  <td colspan='2' class=rowtitle align=center>
-[_ intranet-timesheet2.Filter]
-  </td>
-</tr>
-<tr>
-  <td valign=top>[_ intranet-timesheet2.Display] </td>
-<td valign=top><select name=display size=1>
-<option value=\"project\" $sel_pro>[_ intranet-timesheet2.lt_hours_spend_on_projec]</option>
-<option value=\"all\" $sel_all>[_ intranet-timesheet2.hours_spend_overall]</option>
-</select></td>
-</tr>
-  <td></td>
-  <td valign=top>
-    <input type=submit value='[_ intranet-timesheet2.Apply]' name=submit>
-  </td>
-</tr>
-</table>
-<!-- <a href=\"$return_url?\">[_ intranet-timesheet2.lt_Display_all_hours_on_]</a> -->
-</form>"
+	<form method=get action='$return_url' name=filter_form>
+	[export_form_vars start_at duration owner_id project_id]
+	<table border=0 cellpadding=0 cellspacing=0>
+	<tr>
+	  <td colspan='2' class=rowtitle align=center>
+	[_ intranet-timesheet2.Filter]
+	  </td>
+	</tr>
+	<tr>
+	  <td valign=top>[_ intranet-timesheet2.Display] </td>
+	<td valign=top><select name=display size=1>
+	<option value=\"project\" $sel_pro>[_ intranet-timesheet2.lt_hours_spend_on_projec]</option>
+	<option value=\"all\" $sel_all>[_ intranet-timesheet2.hours_spend_overall]</option>
+	</select></td>
+	</tr>
+	  <td></td>
+	  <td valign=top>
+	    <input type=submit value='[_ intranet-timesheet2.Apply]' name=submit>
+	  </td>
+	</tr>
+	</table>
+	<!-- <a href=\"$return_url?\">[_ intranet-timesheet2.lt_Display_all_hours_on_]</a> -->
+	</form>"
 } else {
-     set filter_form_html ""
-}
 
-set admin_html ""
+	set include_empty 1
+	set department_only_p 1
+	set im_department_select [im_cost_center_select -include_empty $include_empty  -department_only_p $department_only_p  department_id $department_id [im_cost_type_timesheet]]
+
+        set include_empty 1
+        set department_only_p 
+        set im_cc_select [im_cost_center_select -include_empty $include_empty  -department_only_p $department_only_p  cost_center_id $cost_center_id [im_cost_type_timesheet]]
+
+	set filter_form_html "
+	<form method=post action='$return_url' name=filter_form>
+	 <table border=0 cellpadding=5 cellspacing=5>
+        <tr>
+          <td colspan='2' class='rowtitle' align='left'>
+        [_ intranet-timesheet2.Filter]
+         </td>
+        </tr>
+	<tr>
+        <td valign=top>[_ intranet-core.Cost_Center] </td>
+        <td valign=top>$im_cc_select</td>
+        </tr>
+        <tr>
+        <td valign=top>[_ intranet-core.Department] </td>
+        <td valign=top>$im_department_select</td>
+        </tr>
+
+        <tr>
+          <td></td>
+          <td valign=top>
+	        <input type=submit value='[_ intranet-timesheet2.Apply]' name=submit>
+          </td>
+        </tr>
+	</table>
+	</form>	
+"
+}
 
 if { [im_permission $user_id "add_absences"] } {
     append admin_html "<li><a href=/intranet-timesheet2/absences/new>[_ intranet-timesheet2.Add_a_new_Absence]</a></li>\n"
@@ -220,12 +260,14 @@ if { [im_permission $user_id "add_hours"] } {
     append admin_html "<li><a href=/intranet-timesheet2/hours>[_ intranet-timesheet2.Log_your_hours]</a></li>\n"
 }
 
-if { $admin_html != "" } {
-    set filter_html "<ul>$admin_html</ul>"
-} else {
-    set filter_html $filter_form_html
-}
 
+# 2010-12-10: Links should no more appear on this report, moved to /intranet-timesheet2/absences/index 
+# 
+# if { $admin_html != "" } {
+#     set filter_html [append filter_form_html "<ul>$admin_html</ul>"]
+# } else {
+    set filter_html $filter_form_html
+# }
 
 # ---------------------------------------------------------------
 # Get the Column Headers and prepare some SQL
@@ -238,14 +280,16 @@ set sql_from [list]
 set sql_from2 [list]
 
 for { set i [expr $duration - 1]  } { $i >= 0 } { incr i -1 } {
-    set col_sql " select to_char(sysdate, :date_format) as today_date,
-        to_char(to_date(:start_at, :date_format)-$i, :date_format) as i_date,
+	set col_sql "
+    select 
+	to_char(sysdate, :date_format) as today_date,
+	to_char(to_date(:start_at, :date_format)-$i, :date_format) as i_date, 
 	to_char((to_date(:start_at, :date_format)-$i), 'Day') as f_date_day,
 	to_char((to_date(:start_at, :date_format)-$i), 'dd') as f_date_dd,
 	to_char((to_date(:start_at, :date_format)-$i), 'Mon') as f_date_mon,
-	to_char((to_date(:start_at, :date_format)-$i), 'yyyy') as f_date_yyyy,
-        to_char(to_date(:start_at, :date_format)-$i, 'DY') as h_date
-	from dual"
+	to_char((to_date(:start_at, :date_format)-$i), 'yyyy') as f_date_yyyy,    
+	to_char(to_date(:start_at, :date_format)-$i, 'DY') as h_date 
+    from dual"
 
     db_1row get_date $col_sql
     lappend days $i_date
@@ -254,17 +298,18 @@ for { set i [expr $duration - 1]  } { $i >= 0 } { incr i -1 } {
     }
     #prepare the data to UNION
     lappend sql_from "
-	select to_date('$i_date', :date_format) as day,
-	owner_id,
-	absence_id,
-	'a' as type,
-	im_category_from_id(absence_type_id) as descr
+    	select 
+    		to_date('$i_date', :date_format) as day, 
+    		owner_id, 
+    		absence_id, 
+    		'a' as type, 
+    		im_category_from_id(absence_type_id) as descr 
     	from
-	im_user_absences
+    		im_user_absences
     	where
-	to_date('$i_date', :date_format) between
-	trunc(to_date(to_char(start_date,:date_format),:date_format),'Day') and
-	trunc(to_date(to_char(end_date,:date_format),:date_format),'Day')
+    		to_date('$i_date', :date_format) between 
+    			trunc(to_date(to_char(start_date,:date_format),:date_format),'Day') and 
+    			trunc(to_date(to_char(end_date,:date_format),:date_format),'Day')
     "
     lappend sql_from2 "select to_date('$i_date', :date_format) as day from dual\n"
     set f_date "[_ intranet-timesheet2.[string trim $f_date_day]], $f_date_dd. [_ intranet-timesheet2.$f_date_mon] $f_date_yyyy" 
@@ -325,9 +370,19 @@ select distinct
 from	im_user_absences
 "
 
+set cc_filter_where ""
+if { "0" != $cost_center_id &&  "" != $cost_center_id } {
+        set cc_filter_where "
+        and u.user_id in (select employee_id from im_employees where department_id in (select object_id from acs_object_context_index where ancestor_id = $cost_center_id))
+"
+}
 
-
-
+set department_filter_where ""
+if { "0" != $department_id &&  "" != $department_id } {
+	set department_filter_where " 
+	and u.user_id in (select employee_id from im_employees where department_id = $department_id)
+"
+}
 
 set sql "
 select
@@ -352,6 +407,8 @@ where
 	and u.user_id=i.user_id and trunc(to_date(to_char(d.day,:date_format),:date_format),'Day')=trunc(to_date(to_char(i.day,:date_format),:date_format),'Day')
 	and u.user_id = active_users.party_id
 	$sql_where
+	$department_filter_where
+	$cc_filter_where
 order by
 	owner_name, curr_day
 "
@@ -363,19 +420,23 @@ set bgcolor(0) " class=roweven "
 set bgcolor(1) " class=rowodd "
 set ctr 0
 
-ns_log notice $sql
+
+ns_log NOTICE "KHD $sql"
 
 db_foreach get_hours $sql {
+
     if { $do_user_init == 1 } {
 	set old_owner [list $curr_owner_id $owner_name]
 	set do_user_init 0
     }
+
     if { [lindex $old_owner 0] != $curr_owner_id } {
 	append table_body_html [im_do_row [array get bgcolor] $ctr [lindex $old_owner 0] [lindex $old_owner 1] $days [array get user_days] [array get user_absences] $holydays $today_date [array get user_ab_descr]]
 	set old_owner [list $curr_owner_id $owner_name]
 	array unset user_days
 	array unset user_absences
     }
+
     if { $type == "h" } {
 	set user_days($curr_day) $val
     }
@@ -404,17 +465,17 @@ if { [array size user_days] > 0 } {
 # ---------------------------------------------------------------
 
 set navig_sql "
-    select
-    to_char(to_date(:start_at, :date_format) - 7, :date_format) as past_date,
-    to_char(to_date(:start_at, :date_format) + 7, :date_format) as future_date
-    from
-    dual"
+    select 
+    	to_char(to_date(:start_at, :date_format) - 7, :date_format) as past_date,
+	to_char(to_date(:start_at, :date_format) + 7, :date_format) as future_date 
+    from 
+    	dual"
 db_1row get_navig_dates $navig_sql
 
 set switch_link_html "<a href=\"weekly_report?[export_url_vars owner_id project_id duration display]"
 
-set switch_past_html "$switch_link_html&start_at=$past_date\">&laquo;</a>"
-set switch_future_html "$switch_link_html&start_at=$future_date\">&raquo;</a>"
+set switch_past_html "$switch_link_html&start_at=$past_date&cost_center_id=$cost_center_id&department_id=$department_id\">&laquo;</a>"
+set switch_future_html "$switch_link_html&start_at=$future_date&cost_center_id=$cost_center_id&department_id=$department_id\">&raquo;</a>"
 
 # ---------------------------------------------------------------
 # Format Table Continuation and title
@@ -445,13 +506,13 @@ if { $project_id != 0 && [info exists project_name] } {
 # 
 # ---------------------------------------------------------------
 
-set left_navbar "
+
+set left_navbar_html "
             <div class=\"filter-block\">
                 <div class=\"filter-title\">
                 [lang::message::lookup "" intranet-timesheet2.Admin "Admin Links"]
                 </div>
-		$admin_html
+                $filter_html
             </div>
-            <hr/>
 "
 
