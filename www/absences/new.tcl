@@ -322,7 +322,7 @@ ad_form -extend -name absence -on_request {
 	}
 
 	# Audit the action
-	im_audit -object_type im_user_absence -action after_create -object_id $absence_id -status_id $absence_status_id -type_id $absence_type_id
+	im_audit -object_type im_user_absence -action create -object_id $absence_id -status_id $absence_status_id -type_id $absence_type_id
 
     }
 
