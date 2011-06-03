@@ -300,7 +300,7 @@ set month_options [db_list_of_lists month_options $month_options_sql]
 set left_navbar_html "
       <div class='filter-block'>
         <div class='filter-title'>
-	    Timesheet Filters
+	    #intranet-timesheet2.Timesheet_Filters#
         </div>
 
 	<form action=index method=GET>
@@ -322,7 +322,7 @@ if {$add_hours_all_p} {
 }
 
 append left_navbar_html "
-	<tr><td></td><td><input type=submit value='Go'></td></tr>
+	<tr><td></td><td><input type=submit value='#acs-kernel.common_Go#'></td></tr>
 	</table>
 	</form>
       </div>

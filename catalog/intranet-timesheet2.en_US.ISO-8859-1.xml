@@ -314,6 +314,7 @@ of those units were billed hourly, for a total amount of</msg>
   <msg key="Thursday">Thursday</msg>
   <msg key="Timescale">Timescale:</msg>
   <msg key="Timesheet">Timesheet</msg>
+  <msg key="Timesheet_Filters">Timesheet Filters</msg>
   <msg key="Timesheet_for_user_name">Timesheet for %user_name%</msg>
   <msg key="Timesheet_Summary">Timesheet Summary</msg>
   <msg key="to">to:</msg>

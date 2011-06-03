@@ -306,6 +306,7 @@ name</msg>
   <msg key="Thursday">Donnerstag</msg>
   <msg key="Timescale">Zeitskala</msg>
   <msg key="Timesheet">Zeiterfassung</msg>
+  <msg key="Timesheet_Filters">Filter für Zeiterfassung</msg>
   <msg key="Timesheet_for_user_name">Zeiterfassung für %user_name%</msg>
   <msg key="Timesheet_Summary">Zusammenfassung Stunden</msg>
   <msg key="to">an</msg>
@@ -327,6 +328,7 @@ name</msg>
   <msg key="user_not_logged_in">Benutzer nicht angemeldet</msg>
   <msg key="Users">Benutzer</msg>
   <msg key="V">V</msg>
+  <msg key="Valid_for_Group">Gültig für Gruppe</msg>
   <msg key="View">Sicht</msg>
   <msg key="View_Absence">Abwesehnheiten zeigen</msg>
   <msg key="View_all_Absences">Alle Abwesenheiten anzeigen</msg>
