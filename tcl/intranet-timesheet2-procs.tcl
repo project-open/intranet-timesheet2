@@ -669,3 +669,49 @@ ad_proc -public im_hours_verify_user_id { { user_id "" } } {
     return -code return
 }
 
+ad_proc -public calculate_absence_days {
+     days
+     hours
+     number_quarters
+     hours_per_day
+} {
+    Calculates the days considering
+    Returns absence as UOM 'hours'
+} {
+
+    if { ![string is double -strict $days] && ![string is integer -strict $days] } \
+        {ad_return_complaint 1 [lang::message::lookup "" intranet-timesheet2.numeric-validate_numeric_days "Invalid numeric value: Days"]}
+
+    if { ![string is double -strict $hours] && ![string is integer -strict $hours] } \
+        {ad_return_complaint 1 [lang::message::lookup "" intranet-timesheet2.numeric-validate_numeric_hours "Invalid numeric value: Hours"]}
+
+    if { ![string is double -strict $number_quarters]  && ![string is integer -strict $number_quarters] } \
+        {ad_return_complaint 1 [lang::message::lookup "" intranet-timesheet2.numeric-validate_numeric_minutes "Invalid numeric value: Minutes"]}
+
+    set minutes_in_days [expr $number_quarters / ($hours_per_day*4.0) ]
+    set hours_in_days [expr ($hours+0.0)/($hours_per_day+0.0)]
+    return [expr $days + $hours_in_days + $minutes_in_days]
+}
+
+
+ad_proc -public calculate_dd_hh_mm_from_day {
+     days
+     hours_per_day
+} {
+    Returns list {dd hh mm }
+} {
+
+    if { ![string is double -strict $days] } {ad_return_complaint 1 [lang::message::lookup "" intranet-timesheet2.numeric-validate_numeric_days "Invalid numeric value: Days"]}
+    if { ![string is double -strict $hours_per_day] && ![string is integer -strict $hours_per_day] } \
+        {ad_return_complaint 1 [lang::message::lookup "" intranet-timesheet2.numeric-validate_numeric_hours "Invalid numeric value: Hours"]}
+
+    set number_days [expr int ($days)]
+    set number_hours [expr int ([expr ($days-$number_days+0.0)/(1.0/$hours_per_day)])]
+    set number_quarters [expr int ([expr [expr $days-$number_days-((1.0/$hours_per_day+0.0)*$number_hours)]/(1.0/($hours_per_day*4.0))])]
+
+    set return_list [list]
+    lappend return_list $number_days
+    lappend return_list $number_hours
+    lappend return_list $number_quarters
+    return $return_list
+}
