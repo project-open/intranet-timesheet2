@@ -120,8 +120,14 @@ set subsite_id [ad_conn subsite_id]
 set site_url "/intranet-timesheet2"
 set return_url "$site_url/weekly_report"
 set date_format "YYYYMMDD"
-    
-if { $owner_id != $user_id && ![im_permission $user_id "view_hours_all"] } {
+
+set project_lead_p [db_string project_lead "select 1 from acs_rels r, im_biz_object_members bom 
+       where object_id_one = :project_id 
+         and object_id_two = :user_id
+         and r.rel_id = bom.rel_id 
+         and bom.object_role_id = 1301" -default 0]
+
+if { $owner_id != $user_id && ![im_permission $user_id "view_hours_all"] && !$project_lead_p } {
     ad_return_complaint 1 "<li>[_ intranet-timesheet2.lt_You_have_no_rights_to]"
     return
 
