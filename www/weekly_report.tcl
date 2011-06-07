@@ -194,6 +194,10 @@ if { $display == "all" } { set sel_all "selected" }
 if { $display == "project" } { set sel_pro "selected" }
 
 if { $project_id != 0 } {
+
+    # As we allow Project Managers to view the timesheet, do not allow them to change the view to all 
+    # users if they don't have the permission view_hours_all
+    if {[im_permission $user_id "view_hours_all"]} {
     set filter_form_html "
 	<form method=get action='$return_url' name=filter_form>
 	[export_form_vars start_at duration owner_id project_id]
@@ -218,6 +222,11 @@ if { $project_id != 0 } {
 	</table>
 	<!-- <a href=\"$return_url?\">[_ intranet-timesheet2.lt_Display_all_hours_on_]</a> -->
 	</form>"
+    } else {
+	set filter_form_html ""
+	set sel_pro "selected"
+	set display "project"
+    }
 } else {
 
 	set include_empty 1
