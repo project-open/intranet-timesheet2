@@ -95,8 +95,8 @@ declare
         v_number_days_month     integer;
         v_first_day_month       INTEGER NOT NULL := 1;
         v_seperator             CHAR DEFAULT ''/'';
-        v_date_first_day        varchar(10) DEFAULT v_month || v_seperator || v_first_day_month || v_seperator || v_year;
-        v_date_last_day         varchar(10);
+        v_date_first_day        date;
+        v_date_last_day         date;
         v_date_weekday          date;
         v_dow                   integer;
         sql_result              record;
@@ -104,22 +104,25 @@ declare
         v_r_varchar             varchar(2);
 begin
 
+	-- Get the number of days in this month
         SELECT
-                date_part(''day'', (date_part(''year'', v_date_first_day :: date) || ''-'' || date_part(''month'', v_date_first_day :: date) || ''-01'') ::date + ''1 month''::interval - ''1 day''::interval) AS days
+                date_part(''day'', (v_year || ''-'' || v_month || ''-01'') ::date + ''1 month''::interval - ''1 day''::interval) AS days
         INTO
                 v_number_days_month;
-
+		
+	-- Get the first day in the next month
         SELECT
-                to_date( v_month || ''/'' || v_number_days_month || ''/'' || v_year ,''mm/dd/yyyy'')+1
+                to_date( v_month || ''/'' || v_number_days_month || ''/'' || v_year ,''mm/dd/yyyy'')
         INTO
                 v_date_last_day
         FROM
                 dual;
+
 	FOR r in
 	
-	SELECT
+   	  SELECT
         	result.all_days_in_month as working_day
-	FROM
+ 	  FROM
 		(
 		        (SELECT
                 		all_days_in_month
@@ -129,18 +132,18 @@ begin
         	        	all_days_in_month
 	        ) series
 
-        LEFT JOIN
+          LEFT JOIN
 
 	        (SELECT
         	        date_part(''day'',d) as absence_day
 	        from
         	        im_user_absences a,
                 	users u,
-	                (select im_day_enumerator as d from im_day_enumerator(to_date(v_date_first_day,''mm/dd/yyyy''), to_date(v_date_last_day,''yyyy-mm-dd''))) d
+	                (select im_day_enumerator as d from im_day_enumerator(v_date_first_day, v_date_last_day)) d
 	        where
         	        a.owner_id = u.user_id and
-                	a.start_date <=  to_date(v_date_last_day,''yyyy-mm-dd'')::date and
-	                a.end_date >= to_date(v_date_first_day,''mm/dd/yyyy'')::date and
+                	a.start_date <=  v_date_last_day and
+	                a.end_date >= v_date_first_day and
         	        d.d between a.start_date and a.end_date and
                 	u.user_id = v_user_id
 	        UNION
@@ -148,18 +151,18 @@ begin
                 	        date_part(''day'',d) as absence_day
 	                FROM
         	                im_user_absences a,
-                	        (select im_day_enumerator as d from im_day_enumerator(to_date(v_date_first_day,''mm/dd/yyyy''), to_date(v_date_last_day,''yyyy-mm-dd''))) d
+                	        (select im_day_enumerator as d from im_day_enumerator(v_date_first_day,v_date_last_day)) d
 	                WHERE
-        	                a.start_date <=  to_date(v_date_last_day,''yyyy-mm-dd'')::date and
-                	        a.end_date >= to_date(v_date_first_day,''mm/dd/yyyy'')::date and
+        	                a.start_date <= v_date_last_day and
+                	        a.end_date >= v_date_first_day and
                         	d.d between a.start_date and a.end_date and
 	                        a.absence_type_id = 5005
                 ) absence_days_month
-        ON
+          ON
                 series.all_days_in_month = absence_days_month.absence_day
-	) result
+	  ) result
 
-	WHERE
+	  WHERE
         	result.absence_day IS NULL
 	LOOP
         	v_date_weekday = v_year || v_seperator || v_month || v_seperator || r.working_day;
