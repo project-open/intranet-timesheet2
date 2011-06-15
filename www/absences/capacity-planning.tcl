@@ -215,7 +215,8 @@ set title_sql "
 				c.user_id= p.person_id and 
 				c.project_id = proj.project_id and 
 				proj.project_status_id not in ([join $exclude_status_id ","]) and
-				c.month = $cap_month
+				c.month = $cap_month and
+ 				c.year = $cap_year
 				) as 
 		workload  
 	from 
