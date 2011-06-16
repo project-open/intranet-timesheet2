@@ -9,6 +9,7 @@
   <msg key="Absence_Type_1">Abwesenheitstyp</msg>
   <msg key="Absences">Abwesenheiten</msg>
   <msg key="absences">Abwesenheiten</msg>
+  <msg key="Absences_for_user">Abwesenheiten der Benutzer</msg>
   <msg key="Absent">Abwesend</msg>
   <msg key="Absent_1">Abwesend</msg>
   <msg key="Add_a_new_Absence">Neue Abwesenheit</msg>
@@ -25,7 +26,7 @@
   <msg key="Amount_EUR">Betrag (EUR)</msg>
   <msg key="Amount_in_Euros">Betrag (EUR)</msg>
   <msg key="AMOUNTS">Beträge</msg>
-  <msg key="and_absences_hours">und %absences_hours% Stunden Absenzen</msg>
+  <msg key="and_absences_hours">und %absences_hours% Stunden Abwesenheit</msg>
   <msg key="Apply">Bestätigen</msg>
   <msg key="April">April</msg>
   <msg key="Associated_reports">Beteiligte Berichte</msg>
@@ -94,6 +95,7 @@
   <msg key="Filter">Filter</msg>
   <msg key="Filter_Absences">Filter Abwesenheiten</msg>
   <msg key="Filter_Tasks">Aufgaben filtern</msg>
+  <msg key="for_username"> für %user_from_search_name%</msg>
   <msg key="For_which_project">Für Projekt</msg>
   <msg key="Friday">Freitag</msg>
   <msg key="From">Von</msg>
@@ -232,7 +234,7 @@
   <msg key="N">N</msg>
   <msg key="Name">Name</msg>
   <msg key="New_Absence">Neue Abwesenheit</msg>
-  <msg key="New_Absence_Type">Neue %absence_type% </msg>
+  <msg key="New_Absence_Type">Neue(r) %absence_type% </msg>
   <msg key="New_Bank_Holiday">Neuer Feiertag</msg>
   <msg key="New_Personal_Absence">Neue Abwesenheit (privat)</msg>
   <msg key="New_Sick_Leave">Neue Abwesenheit (Krankheit)</msg>
@@ -328,6 +330,7 @@ name</msg>
   <msg key="user_not_logged_in">Benutzer nicht angemeldet</msg>
   <msg key="Users">Benutzer</msg>
   <msg key="V">V</msg>
+  <msg key="Vacation_Days_Taken">genommener Urlaub</msg>
   <msg key="Valid_for_Group">Gültig für Gruppe</msg>
   <msg key="View">Sicht</msg>
   <msg key="View_Absence">Abwesehnheiten zeigen</msg>

@@ -94,6 +94,7 @@
   <msg key="Filter">Filter</msg>
   <msg key="Filter_Absences">Filter Absences</msg>
   <msg key="Filter_Tasks">Filter Tasks</msg>
+  <msg key="for_username"> for %user_from_search_name%</msg>
   <msg key="For_which_project">For which project:</msg>
   <msg key="Friday">Friday</msg>
   <msg key="From">From:</msg>
