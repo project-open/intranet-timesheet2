@@ -13,77 +13,6 @@
 # FITNESS FOR A PARTICULAR PURPOSE.
 # See the GNU General Public License for more details.
 
-ad_proc im_do_row {
-    { bgcolorl }
-    { ctr }
-    { curr_owner_id }
-    { owner_name }
-    { days }
-    { user_daysl }
-    { absencel }
-    { holydays }
-    { today_date }
-    { descrl }
-
-} {
-    Returns a row with the hours loged of one user
-} {
-    set user_view_page "/intranet/users/view"
-    set absence_view_page "/intranet-timesheet2/absences/view"
-
-    set date_format "YYYY-MM-DD"
-
-    array set bgcolor $bgcolorl
-    array set user_days $user_daysl
-    array set absence $absencel
-    array set descr $descrl
-    set html ""
-    append html "
-    	<tr$bgcolor([expr $ctr % 2])>
-    	    <td>
-    	        <a href=\"$user_view_page?user_id=$curr_owner_id\">$owner_name</a>
-    	    </td>
-    "
-
-    for { set i 0 } { $i < [llength $days] } { incr i } {
-	if { [lsearch -exact $holydays [lindex $days $i]] >= 0 } {
-	    set holy_html " style=\"background-color=\#DDDDDD;\" "
-	} else {
-	    set holy_html ""
-	}
-	set cell_text [list]
-	set cell_param [list]
-
-	set absent_p "f"
-
-	if { [info exists absence([lindex $days $i])] } {
-	    set abs_id $absence([lindex $days $i])
-	    lappend cell_text "<a href=\"$absence_view_page?absence_id=$abs_id\" style=\"color:\\\#FF0000;\">[_ intranet-timesheet2.Absent]</a> ($descr($abs_id))"
-	    set absent_p "t"
-	}
-
-	if { [info exists user_days([lindex $days $i])] } {
-	    lappend cell_text "$user_days([lindex $days $i]) [_ intranet-timesheet2.hours]"
-	    set absent_p "t"	
-		#	} elseif { [lindex $days $i] < $today_date && $holy_html == "" && [im_permission $curr_owner_id "add_hours"] } {
-	} 
-        if { $absent_p == "f" } {
-             lappend cell_text "[_ intranet-timesheet2.No_hours_logged]"
-             lappend cell_param "class=rowyellow"
-        }
-	if { [lsearch -exact $holydays [lindex $days $i]] >= 0 } {
-	    set cell_param "style=\"background-color=\\\#DDDDDD;\""
-	}
-	append html "<td [join $cell_param " "]>[join $cell_text "<br>"]</td>\n"
-    }
-    append html "</tr>\n"
-    return $html
-}
-
-# ---------------------------------------------------------------
-# Page Contract
-# ---------------------------------------------------------------
-
 ad_page_contract {
     Shows a summary of the loged hours by all team members of a project (1 week).
     Only those users are shown that:
@@ -105,7 +34,7 @@ ad_page_contract {
     { project_id:integer 0 }
     { duration:integer "7" }
     { start_at:integer "" }
-    { display "project" }
+    { display "subproject" }
     { cost_center_id:integer 0 }
     { department_id:integer 0 }
 }
@@ -133,46 +62,10 @@ if { $owner_id != $user_id && ![im_permission $user_id "view_hours_all"] && !$pr
 
 }
 
-if { $start_at == "" && $project_id != 0 } {
-
-    set hours_start_date [db_string get_new_start_at "
-	select	to_char(max(day), :date_format) 
-	from	im_hours 
-	where	project_id = :project_id
-    " -default ""]
-
-    set project_start_date [db_string get_project_start "
-	select	to_char(start_date, :date_format) 
-	from	im_projects
-	where	project_id = :project_id
-    " -default ""]
-
-    set todays_date [db_string todays_date "
-	select	to_char(now(), :date_format) 
-	from	dual
-    " -default ""]
-
-    set start_at $hours_start_date
-    if {"" == $start_at} { 
-	set start_at $project_start_date 
-    }
-    if {"" == $start_at} { 
-	set start_at $todays_date 
-    }
-    if {"" == $start_at} {
-	ad_return_complaint 1 "Unable to determine start date for project \#$project_id:<br>
-        please set the 'Start Date' of the project"
-	return
-    }
-
-    ad_returnredirect "$return_url?[export_url_vars start_at duration project_id owner_id]"
-    return
-}
-
-
 
 if { $start_at == "" } {
     set start_at [db_string get_today "select to_char(next_day(to_date(to_char(sysdate,:date_format),:date_format)+1, 'sun'), :date_format) from dual"]
+    ad_returnredirect "$return_url?[export_url_vars start_at duration project_id owner_id]"
 } else {
     set start_at [db_string get_today "select to_char(next_day(to_date(:start_at, :date_format), 'sun'), :date_format) from dual"]
 }
@@ -211,6 +104,7 @@ if { $project_id != 0 } {
 	  <td valign=top>[_ intranet-timesheet2.Display] </td>
 	<td valign=top><select name=display size=1>
 	<option value=\"project\" $sel_pro>[_ intranet-timesheet2.lt_hours_spend_on_projec]</option>
+	<option value=\"subproject\" $sel_pro>[_ intranet-timesheet2.lt_hours_spend_on_projec_and_sub]</option>
 	<option value=\"all\" $sel_all>[_ intranet-timesheet2.hours_spend_overall]</option>
 	</select></td>
 	</tr>
@@ -353,8 +247,20 @@ if { $owner_id == "" && $project_id == 0 } {
 set sql_from_joined [join $sql_from " UNION "]
 set sql_from2_joined [join $sql_from2 " UNION "]
 
-if { $project_id != 0 && $display == "project"} {
-    set sql_from_imhours "select day, user_id, sum(hours) as val, 'h' as type, '' as descr from im_hours where project_id = :project_id group by user_id, day"
+if { $project_id != 0 && $display ne "all"} {
+    if {$display eq "project"} {
+	set sql_from_imhours "select day, user_id, sum(hours) as val, 'h' as type, '' as descr from im_hours where project_id = :project_id group by user_id, day"
+	append sql_from_im_hours "UNION select day, user_id, sum(hours) as val, 'h' as type, '' as desc from im_hours where project_id in (select project_id from im_projects where project_type_id in (100,101) and parent_id = :project_id)"
+    } else {
+	set sql_from_imhours "select day, user_id, sum(hours) as val, 'h' as type, '' as descr 
+                              from im_hours where project_id in (
+                                select p.project_id
+                                from im_projects p, im_projects parent_p
+                                where parent_p.project_id = :project_id
+                                and p.tree_sortkey between parent_p.tree_sortkey and tree_right(parent_p.tree_sortkey)
+                                and p.project_status_id not in (82)) group by user_id, day
+"
+    }
 } else {
     set sql_from_imhours "select day, user_id, sum(hours) as val, 'h' as type, '' as descr from im_hours group by user_id, day"
 }
@@ -363,23 +269,23 @@ if { $project_id != 0 && $display == "project"} {
 # Select the list 
 set active_users_sql "
 -- Users who have the permission to add hours
-select distinct
-	party_id
-from	acs_object_party_privilege_map m
-where	m.object_id = :subsite_id
-	and m.privilege = 'add_hours'
+select distinct party_id
+from acs_object_party_privilege_map m
+where m.object_id = :subsite_id
+ and m.privilege = 'add_hours'
 UNION
 -- Users with the permissions to add absences
-select distinct
-	party_id
-from	acs_object_party_privilege_map m
-where	m.object_id = :subsite_id
-	and m.privilege = 'add_absences'
+select distinct party_id
+from acs_object_party_privilege_map m
+where m.object_id = :subsite_id
+and m.privilege = 'add_absences'
 UNION
 -- Users who have actually logged absences
-select distinct
-	owner_id as party_id
-from	im_user_absences
+select distinct owner_id as party_id
+from im_user_absences
+UNION
+-- Users who have actually logged hours
+select distinct user_id as party_id from im_hours 
 "
 
 set cc_filter_where ""
@@ -442,6 +348,7 @@ db_foreach get_hours $sql {
 	set do_user_init 0
     }
 
+    # if the old_owner is not the current_owner we switched a row, so print out this row
     if { [lindex $old_owner 0] != $curr_owner_id } {
 	append table_body_html [im_do_row [array get bgcolor] $ctr [lindex $old_owner 0] [lindex $old_owner 1] $days [array get user_days] [array get user_absences] $holydays $today_date [array get user_ab_descr]]
 	set old_owner [list $curr_owner_id $owner_name]
@@ -459,6 +366,8 @@ db_foreach get_hours $sql {
     set val ""
     incr ctr
 }
+
+append table_body_html [im_do_row [array get bgcolor] $ctr $curr_owner_id $owner_name $days [array get user_days] [array get user_absences] $holydays $today_date [array get user_ab_descr]]
 
 set colspan [expr [llength $days]+1]
 

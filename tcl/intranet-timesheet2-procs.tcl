@@ -715,3 +715,70 @@ ad_proc -public calculate_dd_hh_mm_from_day {
     lappend return_list $number_quarters
     return $return_list
 }
+
+ad_proc im_do_row {
+    { bgcolorl }
+    { ctr }
+    { curr_owner_id }
+    { owner_name }
+    { days }
+    { user_daysl }
+    { absencel }
+    { holydays }
+    { today_date }
+    { descrl }
+
+} {
+    Returns a row with the hours loged of one user
+} {
+    set user_view_page "/intranet/users/view"
+    set absence_view_page "/intranet-timesheet2/absences/view"
+
+    set date_format "YYYY-MM-DD"
+
+    array set bgcolor $bgcolorl
+    array set user_days $user_daysl
+    array set absence $absencel
+    array set descr $descrl
+    set html ""
+    append html "
+    	<tr$bgcolor([expr $ctr % 2])>
+    	    <td>
+    	        <a href=\"$user_view_page?user_id=$curr_owner_id\">$owner_name</a>
+    	    </td>
+    "
+
+    for { set i 0 } { $i < [llength $days] } { incr i } {
+	if { [lsearch -exact $holydays [lindex $days $i]] >= 0 } {
+	    set holy_html " style=\"background-color=\#DDDDDD;\" "
+	} else {
+	    set holy_html ""
+	}
+	set cell_text [list]
+	set cell_param [list]
+
+	set absent_p "f"
+
+	if { [info exists absence([lindex $days $i])] } {
+	    set abs_id $absence([lindex $days $i])
+	    lappend cell_text "<a href=\"$absence_view_page?absence_id=$abs_id\" style=\"color:\\\#FF0000;\">[_ intranet-timesheet2.Absent]</a> ($descr($abs_id))"
+	    set absent_p "t"
+	}
+
+	if { [info exists user_days([lindex $days $i])] } {
+	    lappend cell_text "$user_days([lindex $days $i]) [_ intranet-timesheet2.hours]"
+	    set absent_p "t"	
+		#	} elseif { [lindex $days $i] < $today_date && $holy_html == "" && [im_permission $curr_owner_id "add_hours"] } {
+	} 
+        if { $absent_p == "f" } {
+             lappend cell_text "[_ intranet-timesheet2.No_hours_logged]"
+             lappend cell_param "class=rowyellow"
+        }
+	if { [lsearch -exact $holydays [lindex $days $i]] >= 0 } {
+	    set cell_param "style=\"background-color=\\\#DDDDDD;\""
+	}
+	append html "<td [join $cell_param " "]>[join $cell_text "<br>"]</td>\n"
+    }
+    append html "</tr>\n"
+    return $html
+}
