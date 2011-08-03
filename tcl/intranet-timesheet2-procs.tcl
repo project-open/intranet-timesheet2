@@ -505,7 +505,7 @@ ad_proc im_timesheet_update_timesheet_cache {
 	"
 
 	# Audit the action
-	im_project_audit -project_id $project_id -action update
+	im_project_audit -project_id $project_id -action after_update
 
     }
     return $num_hours

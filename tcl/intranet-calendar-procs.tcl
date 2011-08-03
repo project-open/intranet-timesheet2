@@ -182,7 +182,7 @@ represents the details.
     }
 
     # Write out the header and the days of the week
-    append output "<table id='calendar_table' class='calendar_table' bgcolor=$master_bgcolor cellpadding=3 cellspacing=1  border=0 width=$calendar_width>
+    append output "<table id='calendar_table' class='calendar_table' bgcolor=$master_bgcolor cellpadding=3 cellspacing=1 border=0>
     <tr class='month_heading' bgcolor=$header_bgcolor>
     $title
     </tr>
