@@ -159,7 +159,6 @@ ad_proc im_timesheet_absences_sum {
 			and a.end_date >= d.d
     " -default 0]
     if {"" == $num_absences} { set num_absences 0}
-
     return [expr $num_absences * $hours_per_absence]
 }
 
