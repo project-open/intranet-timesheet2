@@ -281,6 +281,10 @@ ad_proc im_absence_cube_color_list { } {
         A185CB
         FFF956
         CCCCC9
+        CCCCC9
+        CCCCC9
+        CCCCC9
+        CCCCC9
     }
 
     # Overwrite in case there's a custom color defined 
@@ -295,6 +299,7 @@ ad_proc im_absence_cube_color_list { } {
 	if { "" != $aux_string1 } {
 	    lset color_list $ctr $aux_string1
 	}
+	incr ctr
     }
     return $color_list
 }
