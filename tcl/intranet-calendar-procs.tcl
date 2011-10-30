@@ -244,13 +244,18 @@ represents the details.
 
             ns_log Notice "calendar_basic_month: '$todays_date', '$day_ansi'"
 
+	    set weekend ""
+	    if { "1" == $day_of_week || "7" == $day_of_week } {
+		set weekend "_weekend" 
+	    }  
+
             if {[string equal $todays_date $day_ansi]} {
                
-	        append output "<td class='todays_date' bgcolor=#6699CC align=right valign=top>[subst $day_number_template]&nbsp;"
+	        append output "<td class='todays_date$weekend' bgcolor=#6699CC align=right valign=top>[subst $day_number_template]&nbsp;"
 
             } else {
 
-	        append output "<td class='not_todays_date' bgcolor=$day_bgcolor align=right valign=top>[subst $day_number_template]&nbsp;"
+	        append output "<td class='not_todays_date$weekend' bgcolor=$day_bgcolor align=right valign=top>[subst $day_number_template]&nbsp;"
 
             }
 
