@@ -184,11 +184,12 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
 		select 	count(*) 
 		from 	im_hours 
 		where 	conf_object_id is not null 
-			and day like '%[string range $current_date_ansi 0 7]%' 
+			and day like '%[string range $current_date_ansi 0 9]%' 
 			and user_id = :current_user_id
     	"
 	set no_ts_approval_wf [db_string workflow_started_p $no_ts_approval_wf_sql -default "0"]
 	if { $confirm_timesheet_hours_p && ("monthly" == $confirmation_period || "weekly" == $confirmation_period) && 0 != $no_ts_approval_wf } { 
+	    ns_log NOTICE "KHD: Blocked: Date: $current_date_ansi; Number: $no_ts_approval_wf; $no_ts_approval_wf_sql"
 		set timesheet_entry_blocked_p 1 
     	}
     }
@@ -196,13 +197,14 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
     # User's hours for the day
     set hours ""
     if { [info exists users_hours($current_date)] && ![empty_string_p $users_hours($current_date)] } {
- 	set hours "$users_hours($current_date) hours"
+ 	set hours "$users_hours($current_date)  [lang::message::lookup "" intranet-timesheet2.hours "hours"]"
 	set hours_for_this_week [expr $hours_for_this_week + $users_hours($current_date)]
 	set hours_for_this_month [expr $hours_for_this_month + $users_hours($current_date)]
     } else {
 	if { $timesheet_entry_blocked_p } {
 		set hours "<span class='log_hours'>[lang::message::lookup "" intranet-timesheet2.Nolog_Workflow_In_Progress "0 hours"]</span>"
 	} else {
+	        ns_log NOTICE "KHD: Not Blocked: $current_date"
 		set hours "<span class='log_hours'>[_ intranet-timesheet2.log_hours]</span>"
 	}	
     }
@@ -330,7 +332,7 @@ set month_options [db_list_of_lists month_options $month_options_sql]
 set left_navbar_html "
       <div class='filter-block'>
         <div class='filter-title'>
-	    Timesheet Filters
+	     [lang::message::lookup "" intranet-timesheet2.TimesheetFilters "Timesheet Filters"]
         </div>
 
 	<form action=index method=GET>
