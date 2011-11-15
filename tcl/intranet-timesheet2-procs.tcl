@@ -171,7 +171,7 @@ ad_proc -public im_timesheet_costs_delete {
 	"
 
 	# Audit the action
-	# im_audit -object_id $cost_id -action nuke -comment "im_timesheet_costs_delete -project_id $project_id -user_id $user_id -day_julian $day_julian"
+	# im_audit -object_id $cost_id -action before_nuke -comment "im_timesheet_costs_delete -project_id $project_id -user_id $user_id -day_julian $day_julian"
 
 	db_string del_ts_costs "select im_cost__delete(:cost_id)"
 	incr ctr
