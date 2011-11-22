@@ -183,11 +183,21 @@ db_foreach column_list_sql $column_sql {
     }
 }
 
+
+
 # ---------------------------------------------------------------
 # 4. Define Filter Categories
 # ---------------------------------------------------------------
 
-# removed  
+# absences_types
+
+set absences_types [im_memoize_list select_absences_types "select absence_type_id, absence_type from im_absence_types order by lower(ABSENCE_TYPE)"]
+set absences_types [linsert $absences_types 0 "All"]
+set absences_types [linsert $absences_types 0 -1]
+set absence_type_list [list]
+foreach { value text } $absences_types {
+    lappend absence_type_list [list $text $value]
+}
 
 # ---------------------------------------------------------------
 # 5. Generate SQL Query
@@ -250,7 +260,7 @@ if { ![empty_string_p $user_selection] } {
     }
 }
 
-if { ![empty_string_p $absence_type_id] } {
+if { ![empty_string_p $absence_type_id] &&  $absence_type_id != -1 } {
      #ns_set put $bind_vars absence_type_id $absence_type_id
      lappend criteria "a.absence_type_id = :absence_type_id"
 }
@@ -345,7 +355,6 @@ where
 	$perm_clause
 "
 
-
 # ---------------------------------------------------------------
 # 5a. Limit the SQL query to MAX rows and provide << and >>
 # ---------------------------------------------------------------
@@ -382,7 +391,7 @@ ad_form \
     -method GET \
     -export {start_idx order_by how_many view_name}\
     -form {
-        {absence_type_id:text(im_category_tree),optional {label "[_ intranet-timesheet2.Absence_Type]"} {value $absence_type_id} {custom {category_type "Intranet Absence Type" translate_p 1} } }
+        {absence_type_id:text(select),optional {label "[_ intranet-timesheet2.Absence_Type]"} {options $absence_type_list }}
         {user_selection:text(select),optional {label "[_ intranet-timesheet2.Show_Users]"} {options $user_selection_type_list }}
         {timescale:text(select),optional {label "[_ intranet-timesheet2.Timescale]"} {options $timescale_type_list }}
 	{start_date:text(text) {label "[_ intranet-timesheet2.Start_Date]"} {html {size 10}} {value "$start_date"} {after_html {<input type="button" style="height:23px; width:23px; background: url('/resources/acs-templating/calendar.gif');" onclick ="return showCalendar('start_date', 'y-m-d');" >}}}
@@ -392,6 +401,7 @@ ad_form \
 
 eval [template::adp_compile -string {<formtemplate style="tiny-plain" id="absence_filter"></formtemplate>}]
 set filter_html $__adp_output
+
 
 
 # ----------------------------------------------------------
@@ -421,6 +431,7 @@ if {[string equal "t" $read_p]} {
     append admin_html "</ul>"
 }
 
+
 set color_list [im_absence_cube_color_list]
 set col_sql "
 	select	category_id, category
@@ -428,10 +439,8 @@ set col_sql "
 	where	category_type = 'Intranet Absence Type'
 	order by category_id
 "
-
 append admin_html "<div class=filter-title>[lang::message::lookup "" intranet-timesheet2.Color_codes "Color Codes"]</div>\n"
 append admin_html "<table cellpadding='5' cellspacing='5'>\n"
-
 db_foreach cols $col_sql {
     set index [expr $category_id - 5000]
     set col [lindex $color_list $index]
@@ -441,6 +450,7 @@ db_foreach cols $col_sql {
     append admin_html "<tr><td bgcolor='\#$col' style='padding:3px'>$category_l10n</td></tr>\n"
 }
 append admin_html "</table>\n"
+
 
 
 # ---------------------------------------------------------------
@@ -487,8 +497,6 @@ set bgcolor(1) " class=rowodd "
 set ctr 0
 set idx $start_idx
 set user_link ""
-
-
 db_foreach absences_list $selection {
 
     # Use cached TCL function to implement localization
@@ -518,8 +526,6 @@ db_foreach absences_list $selection {
     incr idx
 } 
 
-
-
 # Show a reasonable message when there are no result rows:
 if { [empty_string_p $table_body_html] } {
     set table_body_html "
@@ -547,7 +553,6 @@ if { $start_idx > 0 } {
 } else {
     set previous_page_url ""
 }
-
 
 
 # ---------------------------------------------------------------
