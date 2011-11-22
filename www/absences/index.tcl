@@ -345,6 +345,7 @@ where
 	$perm_clause
 "
 
+
 # ---------------------------------------------------------------
 # 5a. Limit the SQL query to MAX rows and provide << and >>
 # ---------------------------------------------------------------
@@ -391,7 +392,6 @@ ad_form \
 
 eval [template::adp_compile -string {<formtemplate style="tiny-plain" id="absence_filter"></formtemplate>}]
 set filter_html $__adp_output
-
 
 
 # ----------------------------------------------------------
@@ -443,7 +443,6 @@ db_foreach cols $col_sql {
 append admin_html "</table>\n"
 
 
-
 # ---------------------------------------------------------------
 # 7. Format the List Table Header
 # ---------------------------------------------------------------
@@ -488,6 +487,8 @@ set bgcolor(1) " class=rowodd "
 set ctr 0
 set idx $start_idx
 set user_link ""
+
+
 db_foreach absences_list $selection {
 
     # Use cached TCL function to implement localization
@@ -517,6 +518,8 @@ db_foreach absences_list $selection {
     incr idx
 } 
 
+
+
 # Show a reasonable message when there are no result rows:
 if { [empty_string_p $table_body_html] } {
     set table_body_html "
@@ -544,6 +547,7 @@ if { $start_idx > 0 } {
 } else {
     set previous_page_url ""
 }
+
 
 
 # ---------------------------------------------------------------
