@@ -196,6 +196,8 @@ set absences_types [linsert $absences_types 0 "All"]
 set absences_types [linsert $absences_types 0 -1]
 set absence_type_list [list]
 foreach { value text } $absences_types {
+    regsub -all " " $text "_" category_key
+    set text [lang::message::lookup "" intranet-core.$category_key $text]
     lappend absence_type_list [list $text $value]
 }
 
@@ -431,7 +433,6 @@ if {[string equal "t" $read_p]} {
     append admin_html "</ul>"
 }
 
-
 set color_list [im_absence_cube_color_list]
 set col_sql "
 	select	category_id, category
@@ -446,7 +447,6 @@ db_foreach cols $col_sql {
     set col [lindex $color_list $index]
     regsub -all " " $category "_" category_key
     set category_l10n [lang::message::lookup "" intranet-core.$category_key $category]
-
     append admin_html "<tr><td bgcolor='\#$col' style='padding:3px'>$category_l10n</td></tr>\n"
 }
 append admin_html "</table>\n"
