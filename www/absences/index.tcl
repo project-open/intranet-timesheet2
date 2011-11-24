@@ -434,14 +434,19 @@ if {[string equal "t" $read_p]} {
 }
 
 set color_list [im_absence_cube_color_list]
+
 set col_sql "
 	select	category_id, category
 	from	im_categories
-	where	category_type = 'Intranet Absence Type'
+	where	
+			category_type = 'Intranet Absence Type'
+			and enabled_p = 't'
 	order by category_id
 "
+
 append admin_html "<div class=filter-title>[lang::message::lookup "" intranet-timesheet2.Color_codes "Color Codes"]</div>\n"
 append admin_html "<table cellpadding='5' cellspacing='5'>\n"
+
 db_foreach cols $col_sql {
     set index [expr $category_id - 5000]
     set col [lindex $color_list $index]
@@ -449,6 +454,7 @@ db_foreach cols $col_sql {
     set category_l10n [lang::message::lookup "" intranet-core.$category_key $category]
     append admin_html "<tr><td bgcolor='\#$col' style='padding:3px'>$category_l10n</td></tr>\n"
 }
+
 append admin_html "</table>\n"
 
 
