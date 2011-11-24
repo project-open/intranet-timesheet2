@@ -296,8 +296,8 @@ ad_proc im_absence_cube_color_list { } {
     "
     set ctr 0 
     db_foreach cols $col_sql {
-	if { "" != $aux_string1 } {
-	    lset color_list $ctr $aux_string1
+	if { "" != $aux_string2 } {
+	    lset color_list $ctr $aux_string2
 	}
 	incr ctr
     }
