@@ -291,7 +291,9 @@ ad_proc im_absence_cube_color_list { } {
     set col_sql "
         select category_id, aux_string2
         from    im_categories
-        where   category_type = 'Intranet Absence Type'
+        where   
+				category_type = 'Intranet Absence Type'
+				and enabled_p = 't'
         order by category_id
     "
     set ctr 0 
