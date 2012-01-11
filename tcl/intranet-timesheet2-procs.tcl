@@ -504,8 +504,10 @@ ad_proc im_timesheet_update_timesheet_cache {
 		where project_id = :project_id
 	"
 
-	# Audit the action
-	im_project_audit -project_id $project_id -action after_update
+	# DON'T audit this action:
+	# - The change is excluded from audit trail anyway and
+	# - The audit won't work when called from within the cost cache sweeper.
+	# im_project_audit -project_id $project_id -action after_update
 
     }
     return $num_hours
