@@ -78,8 +78,13 @@ from dual
 "
 
 # set default value for month/year
-if {"" == $cap_month} {
-    set cap_month "$todays_month"
+if { "" == $cap_month } {
+    if { 12 == $todays_month} {
+        set cap_month 1
+        set todays_year [expr $todays_year + 1]
+    } else {
+        set cap_month "[lindex [split [expr $todays_month$floating_point_helper + 1] "." ] 0 ]"
+    }
 }
 
 if {"" == $cap_year} {
