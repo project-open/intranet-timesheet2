@@ -34,12 +34,7 @@ set package_key "intranet-timesheet2"
 set view_absences_p [im_permission $current_user_id "view_absences"]
 set view_absences_all_p [im_permission $current_user_id "view_absences_all"]
 set add_absences_p [im_permission $current_user_id "add_absences"]
-
 set today [db_string today "select now()::date"]
-
-if {!$view_absences_p && !$view_absences_all_p} { 
-    return ""
-}
 
 set page_title [lang::message::lookup "" intranet-timesheet2.Vacation_Balance "Vacation Balance"]
 set absence_base_url "/intranet-timesheet2/absences"
@@ -61,10 +56,11 @@ db_0or1row user_info "
 	select	u.user_id,
 		e.*,
 		im_name_from_user_id(u.user_id) as user_name
-	from	cc_users u
+	from	users u
 		LEFT OUTER JOIN im_employees e ON e.employee_id = u.user_id
 	where	u.user_id = :user_id_from_search
 "
+
 
 # ------------------------------------------------------------------
 # 
@@ -162,7 +158,3 @@ db_multirow -extend { absence_url absence_type } vacation_balance_multirow vacat
 # Calculate the number of vacation days
 # ------------------------------------------------------------------
 
-
-
-
-ad_return_template
