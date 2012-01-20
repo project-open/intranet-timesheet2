@@ -184,7 +184,7 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
 		select 	count(*) 
 		from 	im_hours 
 		where 	conf_object_id is not null 
-			and day like '%[string range $current_date_ansi 0 9]%' 
+			and day::text like '%[string range $current_date_ansi 0 9]%' 
 			and user_id = :current_user_id
     	"
 	set no_ts_approval_wf [db_string workflow_started_p $no_ts_approval_wf_sql -default "0"]
