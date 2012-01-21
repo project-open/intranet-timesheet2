@@ -1,3 +1,7 @@
+
+<if @view_absences_p@ or @view_absences_all_p@>
+
+
 <table>
 <tr class=rowtitle>
 	<td colspan=2 class=rowtitle><%= [lang::message::lookup "" intranet-timesheet2.Vacation_Balance "Vacation Balance"] %></td>
@@ -30,4 +34,7 @@
 
 <br>
 <listtemplate name="vacation_balance"></listtemplate>
+
+
+</if>
 
