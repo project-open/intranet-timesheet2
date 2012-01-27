@@ -576,6 +576,13 @@ set sql "
 		) not in (
 			select * from im_sub_categories([im_ticket_status_closed])
 		)
+		and coalesce(
+			(select task_status_id from im_timesheet_tasks t where t.task_id = children.project_id),
+			0
+		) not in (
+			select * from im_sub_categories([im_timesheet_task_status_closed])
+		)
+
 	order by
 		lower(parent.project_name),
 		children.tree_sortkey
