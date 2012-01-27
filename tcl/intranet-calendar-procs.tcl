@@ -60,19 +60,22 @@ ad_proc calendar_get_info_from_db {
     # of the first of the month, the day of the week of the first day of the
     # month, the day number of the last day (28, 29, 30 ,31) and
     # a month string of the next and previous months
-    set month_info_query "select to_char(trunc(to_date(:the_date, 'yyyy-mm-dd'), 'Month'), 'fmMonth') as month, 
-    to_char(trunc(to_date(:the_date, 'yyyy-mm-dd'), 'Month'), 'YYYY') as year, 
-    to_char(trunc(to_date(:the_date, 'yyyy-mm-dd'), 'Month'), 'J') as first_julian_date_of_month, 
-    to_char(last_day(to_date(:the_date, 'yyyy-mm-dd')), 'DD') as num_days_in_month,
-    $query_first_day_of_month
-    to_char(last_day(to_date(:the_date, 'yyyy-mm-dd')), 'DD') as last_day,
-    trunc(add_months(to_date(:the_date, 'yyyy-mm-dd'), 1),'Day') as next_month,
-    trunc(add_months(to_date(:the_date, 'yyyy-mm-dd'), -1),'Day') as prev_month,
-    trunc(to_date(:the_date, 'yyyy-mm-dd'), 'year') as beginning_of_year,
-    to_char(last_day(add_months(to_date(:the_date, 'yyyy-mm-dd'), -1)), 'DD') as days_in_last_month,
-    to_char(add_months(to_date(:the_date, 'yyyy-mm-dd'), 1), 'fmMonth') as next_month_name,
-    to_char(add_months(to_date(:the_date, 'yyyy-mm-dd'), -1), 'fmMonth') as prev_month_name
-    from dual"
+
+    set month_info_query "
+	select	to_char(trunc(to_date(:the_date, 'yyyy-mm-dd'), 'Month'), 'fmMonth') as month, 
+		to_char(trunc(to_date(:the_date, 'yyyy-mm-dd'), 'Month'), 'YYYY') as year, 
+		to_char(trunc(to_date(:the_date, 'yyyy-mm-dd'), 'Month'), 'J') as first_julian_date_of_month, 
+		to_char(last_day(to_date(:the_date, 'yyyy-mm-dd')), 'DD') as num_days_in_month,
+                $query_first_day_of_month
+		to_char(last_day(to_date(:the_date, 'yyyy-mm-dd')), 'DD') as last_day,
+		trunc(add_months(to_date(:the_date, 'yyyy-mm-dd'), 1),'Day') as next_month,
+    		trunc(add_months(to_date(:the_date, 'yyyy-mm-dd'), -1),'Day') as prev_month,
+    		trunc(to_date(:the_date, 'yyyy-mm-dd'), 'year') as beginning_of_year,
+    		to_char(last_day(add_months(to_date(:the_date, 'yyyy-mm-dd'), -1)), 'DD') as days_in_last_month,
+    		to_char(add_months(to_date(:the_date, 'yyyy-mm-dd'), 1), 'fmMonth') as next_month_name,
+    		to_char(add_months(to_date(:the_date, 'yyyy-mm-dd'), -1), 'fmMonth') as prev_month_name
+    	from dual
+    "
 
     # We put all the columns into calendar_info_set and return it later
     set calendar_info_set [ns_set create]

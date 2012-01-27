@@ -192,7 +192,7 @@ for { set i [expr $duration - 1]  } { $i >= 0 } { incr i -1 } {
 	to_char(to_date(:start_at, :date_format)-$i, :date_format) as i_date, 
 	to_char((to_date(:start_at, :date_format)-$i), 'Day') as f_date_day,
 	to_char((to_date(:start_at, :date_format)-$i), 'dd') as f_date_dd,
-	to_char((to_date(:start_at, :date_format)-$i), 'Mon') as f_date_mon,
+	to_char((to_date(:start_at, :date_format)-$i), 'MM') as f_date_mon,
 	to_char((to_date(:start_at, :date_format)-$i), 'yyyy') as f_date_yyyy,    
 	to_char(to_date(:start_at, :date_format)-$i, 'DY') as h_date 
     from dual"
@@ -218,7 +218,7 @@ for { set i [expr $duration - 1]  } { $i >= 0 } { incr i -1 } {
     			trunc(to_date(to_char(end_date,:date_format),:date_format),'Day')
     "
     lappend sql_from2 "select to_date('$i_date', :date_format) as day from dual\n"
-    set f_date "[_ intranet-timesheet2.[string trim $f_date_day]], $f_date_dd. [_ intranet-timesheet2.$f_date_mon] $f_date_yyyy" 
+    set f_date "[_ intranet-timesheet2.[string trim $f_date_day]], $f_date_dd. [lindex [_ acs-lang.localization-mon] $f_date_mon] $f_date_yyyy" 
     append table_header_html "<td class=rowtitle>$f_date</td>"
 }
 
