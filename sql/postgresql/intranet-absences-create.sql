@@ -72,7 +72,8 @@ create table im_user_absences (
                                 constraint im_user_absences_start_const not null,
         end_date                timestamptz
                                 constraint im_user_absences_end_const not null,
-	duration_days		numeric(12,1),			
+	duration_days		numeric(12,1) default 1
+				constraint im_user_absences_duration_days_nn not null,
         description             text,
         contact_info            text,
 	-- should this user receive email during the absence?

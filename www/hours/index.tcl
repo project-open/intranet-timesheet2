@@ -28,6 +28,7 @@ ad_page_contract {
  
     @author Michael Bryzek (mbryzek@arsdigita.com)
     @author Frank Bergmann (frank.bergmann@project-open.com)
+    @author Klaus Hofeditz (klaus.hofeditz@project-open.com)
 } {
     { date "" }
     { julian_date "" }
@@ -37,6 +38,32 @@ ad_page_contract {
     { message:allhtml "" }
     { show_week_p "" }
     { user_id_from_search "" }
+}
+
+# ---------------------------------------------------------------
+# Local procedures
+# ---------------------------------------------------------------
+
+ad_proc -private get_unconfirmed_hours_for_period {user_id start_date end_date} {
+    set sum_hours 0 
+    set sql "
+	select 
+		sum(hours) as unconfirmed_hours
+	from (
+	        select
+        	        to_char(day, 'J') as julian_date,
+                	sum(hours) as hours
+	        from
+        	        im_hours
+	        where	
+        	        user_id = $user_id
+                	and day between to_date($start_date, 'J') and to_date($end_date, 'J')
+	                and conf_object_id is null
+        	group by
+                	to_char(day, 'J')
+	) i	
+    "
+    return [db_string get_unconfirmed_hours $sql -default 0]
 }
 
 # ---------------------------------------------------------------
@@ -57,12 +84,10 @@ if {$current_user_id == $user_id_from_search} {
 
 set page_title [lang::message::lookup "" intranet-timesheet2.Timesheet_for_user_name "Timesheet for %user_name%"]
 set context_bar [im_context_bar "[_ intranet-timesheet2.Hours]"]
-set show_link_weekly_timesheet_p [parameter::get_from_package_key -package_key "intranet-timesheet2" -parameter "ShowLinkToWeeklyTimesheetP" -default 1]
+set confirmation_period [parameter::get -package_id [apm_package_id_from_key intranet-timesheet2-workflow] -parameter "ConfirmationPeriod" -default "monthly"]
 
 # ---------------------------------
 # Date Logic: We are working with "YYYY-MM-DD" dates in this page.
-
-# ad_return_complaint 1 $date
 
 if {"" ==  $date } {
     if {"" != $julian_date} {
@@ -78,7 +103,6 @@ ns_log Notice "/intranet-timesheet2/index: date=$date, julian_date=$julian_date"
 
 set project_id_for_default [lindex $project_id 0]
 
-
 set show_left_functional_menu_p [parameter::get_from_package_key -package_key "intranet-core" -parameter "ShowLeftFunctionalMenupP" -default 0]
 
 # Get the project name restriction in case project_id is set
@@ -93,15 +117,12 @@ if {[string is integer $project_id] && "" != $project_id && 0 != $project_id} {
 set bind_vars [list user_id $current_user_id user_id_from_search $user_id_from_search julian_date $julian_date return_url $return_url show_week_p $show_week_p]
 set menu_links_html [im_menu_ul_list -no_uls 1 "timesheet_hours_new_admin" $bind_vars]
 
-
-
 # Enable the functionality to confirm timesheet hours?
 set confirm_timesheet_hours_p [util_memoize [list db_string ts_wf_exists {
         select count(*) from apm_packages
         where package_key = 'intranet-timesheet2-workflow'
 } -default 0]]
 if {![im_column_exists im_hours conf_object_id]} { set confirm_timesheet_hours_p 0 }
-
 
 # ---------------------------------------------------------------
 # Render the Calendar widget
@@ -113,8 +134,6 @@ set calendar_details [ns_set create calendar_details]
 # This call defines a whole set of variables in our environment
 
 calendar_get_info_from_db $date
-# ad_return_complaint 1 $first_julian_date
-
 
 # --------------------------------------------------------------
 # Grab all the hours from im_hours
@@ -136,39 +155,15 @@ db_foreach hours_logged $sql {
     set users_hours($julian_date) $hours
 }
 
-# ad_return_complaint 1 $julian_date
-# ad_return_complaint 1 $users_hours(2455024)
-
-
-# --------------------------------------------------------------
-# Get the unconfirmed hours for the week
-if {$confirm_timesheet_hours_p} {
-    set sql "
-	select 
-		to_char(day, 'J') as julian_date, 
-		sum(hours) as hours
-	from
-		im_hours
-	where
-		user_id = :user_id_from_search
-		and day between to_date(:first_julian_date, 'J') and to_date(:last_julian_date, 'J') 
-		and conf_object_id is null
-		$project_restriction
-	group by 
-		to_char(day, 'J')
-    "
-    db_foreach hours_logged $sql {
-	set unconfirmed_hours($julian_date) $hours
-    }
-}
-
-
-
 # --------------------------------------------------------------
 # Render the calendar
 
 set hours_for_this_week 0.0
+set hours_for_this_month 0.0
+
 set unconfirmed_hours_for_this_week 0.0
+set unconfirmed_hours_for_this_month 0.0
+
 set absence_list [absence_list_for_user_and_time_period $user_id_from_search $first_julian_date $last_julian_date]
 set absence_index 0
 set curr_absence ""
@@ -176,28 +171,53 @@ set curr_absence ""
 # Day of week: 1=Sunday, 2=Mon, ..., 7=Sat.
 set day_of_week 1
 
-
+set confirm_monthly 0
+set timesheet_entry_blocked_p 0
 
 # And now fill in information for every day of the month
 for { set current_date $first_julian_date} { $current_date <= $last_julian_date } { incr current_date } {
 
+    set current_date_ansi [db_string julian_date_select "select to_char( to_date(:current_date,'J'), 'YYYY-MM-DD') from dual"]
+
+    if { $confirm_timesheet_hours_p } {
+	set no_ts_approval_wf_sql "
+		select 	count(*) 
+		from 	im_hours 
+		where 	conf_object_id is not null 
+			and day::text like '%[string range $current_date_ansi 0 9]%' 
+			and user_id = :current_user_id
+    	"
+	set no_ts_approval_wf [db_string workflow_started_p $no_ts_approval_wf_sql -default "0"]
+	if { $confirm_timesheet_hours_p && ("monthly" == $confirmation_period || "weekly" == $confirmation_period) && 0 != $no_ts_approval_wf } { 
+	    ns_log NOTICE "KHD: Blocked: Date: $current_date_ansi; Number: $no_ts_approval_wf; $no_ts_approval_wf_sql"
+		set timesheet_entry_blocked_p 1 
+    	}
+    }
+
     # User's hours for the day
     set hours ""
     if { [info exists users_hours($current_date)] && ![empty_string_p $users_hours($current_date)] } {
- 	set hours "$users_hours($current_date) hours"
+ 	set hours "$users_hours($current_date)  [lang::message::lookup "" intranet-timesheet2.hours "hours"]"
 	set hours_for_this_week [expr $hours_for_this_week + $users_hours($current_date)]
+	set hours_for_this_month [expr $hours_for_this_month + $users_hours($current_date)]
     } else {
-	set hours "<span class='log_hours'>[_ intranet-timesheet2.log_hours]</span>"
+	if { $timesheet_entry_blocked_p } {
+		set hours "<span class='log_hours'>[lang::message::lookup "" intranet-timesheet2.Nolog_Workflow_In_Progress "0 hours"]</span>"
+	} else {
+	        ns_log NOTICE "KHD: Not Blocked: $current_date"
+		set hours "<span class='log_hours'>[_ intranet-timesheet2.log_hours]</span>"
+	}	
     }
-
 
     # Sum up unconfirmed_hours
     if {![info exists unconfirmed_hours($current_date)]} { set unconfirmed_hours($current_date) "" }
     if {"" == $unconfirmed_hours($current_date)} { set unconfirmed_hours($current_date) 0 }
+
     set unconfirmed_hours_for_this_week [expr $unconfirmed_hours_for_this_week + $unconfirmed_hours($current_date)]
+    set unconfirmed_hours_for_this_month [expr $unconfirmed_hours_for_this_month + $unconfirmed_hours($current_date)]
 
     # Render the "Sunday" link to log "hours for the week"
-    if { 1==$day_of_week && 1==$show_link_weekly_timesheet_p } {
+    if {$day_of_week == 1 && !$timesheet_entry_blocked_p } {
 	append hours "<br>
 		<a href=[export_vars -base "new" {user_id_from_search {julian_date $current_date} {show_week_p 1} return_url}]
 		><span class='log_hours'>[lang::message::lookup "" intranet-timesheet2.Log_hours_for_the_week "Log hours for the week"]</span></a>
@@ -208,10 +228,13 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
     set curr_absence [lindex $absence_list $absence_index]
     if {"" != $curr_absence} { set curr_absence "<br>$curr_absence" }
 
-    if {$write_p} {
+    if {$write_p } {
         set hours_url [export_vars -base "new" {user_id_from_search {julian_date $current_date} show_week_p return_url project_id project_id}]
-
-	set html "<a href=$hours_url>$hours</a>$curr_absence"
+	if  { $timesheet_entry_blocked_p } {
+		set html "$hours&nbsp;$curr_absence"
+	} else {
+		set html "<a href=$hours_url>$hours</a>$curr_absence"
+	}
     } else {
 	set html "$curr_absence"
     }
@@ -220,17 +243,25 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
     if {$day_of_week == 7 } {
 	append html "<br>
 		<a href=[export_vars -base "week" {{julian_date $current_date} user_id_from_search}]
-		>[_ intranet-timesheet2.Week_total_1] $hours_for_this_week</a>
+		>[_ intranet-timesheet2.Week_total_1] $hours_for_this_week</a><br>
 	"
-
-	if {$confirm_timesheet_hours_p && 0 != $unconfirmed_hours_for_this_week} {
-	    set start_date_julian [expr $current_date - 6]
-	    set end_date_julian $current_date
-
-	    set unconf_url [export_vars -base "/intranet-timesheet2-workflow/conf-objects/new-timesheet-workflow" { {user_id $user_id_from_search} start_date_julian end_date_julian return_url}]
-	    set button_txt [lang::message::lookup "" intranet-timesheet2.Confirm_weekly_hours "Confirm %unconfirmed_hours_for_this_week% Hours"]
-	    append html "<p>&nbsp;</p><a href='$unconf_url' class=button>$button_txt</a>"
+	if { $current_date > $last_julian_date } {
+	    set confirm_monthly 0
 	}
+
+	# Include link for weekly TS confirmation
+	if { [string equal $confirmation_period "weekly"] && $confirm_timesheet_hours_p } {
+	    set start_date_julian_wf [expr $current_date - 6]
+	    set end_date_julian_wf $current_date    
+	    set no_unconfirmed_hours [get_unconfirmed_hours_for_period $current_user_id $start_date_julian_wf $end_date_julian_wf]
+	    # ns_log NOTICE "Create weekly CONFIRM button: start: $start_date_julian_wf, end: $start_date_julian_wf, No. unconfirmed Hours $no_unconfirmed_hours, confirm: $confirm_timesheet_hours_p" 
+	    if {$confirm_timesheet_hours_p && (0 < $no_unconfirmed_hours || "" != $no_unconfirmed_hours) } {
+		set base_url_confirm_wf "/intranet-timesheet2-workflow/conf-objects/new-timesheet-workflow"  
+		set conf_url [export_vars -base $base_url_confirm_wf { {user_id $user_id_from_search} {start_date_julian $start_date_julian_wf} {end_date_julian $end_date_julian_wf } return_url}]
+		set button_txt [lang::message::lookup "" intranet-timesheet2.Confirm_weekly_hours "Confirm hours for this week"]
+		append html "<p>&nbsp;</p><a href='$conf_url' class=button>$button_txt</a>"
+	    }
+        }
     }
 
     ns_set put $calendar_details $current_date "$html<br>&nbsp;"
@@ -244,6 +275,7 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
     }
     set curr_absence ""
     incr absence_index
+    set timesheet_entry_blocked_p 0
 }
 
 set prev_month_template "
@@ -300,7 +332,7 @@ set month_options [db_list_of_lists month_options $month_options_sql]
 set left_navbar_html "
       <div class='filter-block'>
         <div class='filter-title'>
-	    #intranet-timesheet2.Timesheet_Filters#
+	     [lang::message::lookup "" intranet-timesheet2.TimesheetFilters "Timesheet Filters"]
         </div>
 
 	<form action=index method=GET>
@@ -352,11 +384,15 @@ if {![empty_string_p $return_url]} {
     "
 }
 
+
 # Append user-defined menus
-append left_navbar_html [im_menu_ul_list -no_uls 1 "timesheet2_timesheet" {}]
+eval "set ul_links \[im_menu_ul_list -no_uls 1 \"timesheet2_timesheet\" \{user_id $current_user_id start_date_julian $first_julian_date end_date_julian $last_julian_date return_url \/intranet-timesheet2\/hours\/index\} \]"
 
 append left_navbar_html "
+	    $ul_links
 	    $menu_links_html
          </ul>
       </div>
 "
+
+

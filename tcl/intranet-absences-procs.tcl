@@ -274,15 +274,8 @@ ad_proc im_absence_new_page_wf_perm_delete_button {
 ad_proc im_absence_cube_color_list { } {
     Returns the list of colors for the various types of absences
 } {
-    set color_list {	
-	F00000
-	F08000
-	0000F0
-	9900F0
-	F0F000
-	808080
-    }
 
+    # define default color set 
     set color_list {
         EC9559
         E2849B
@@ -290,8 +283,28 @@ ad_proc im_absence_cube_color_list { } {
         A185CB
         FFF956
         CCCCC9
+        CCCCC9
+        CCCCC9
+        CCCCC9
+        CCCCC9
     }
 
+    # Overwrite in case there's a custom color defined 
+    set col_sql "
+        select category_id, aux_string2
+        from    im_categories
+        where   
+				category_type = 'Intranet Absence Type'
+				and enabled_p = 't'
+        order by category_id
+    "
+    set ctr 0 
+    db_foreach cols $col_sql {
+	if { "" != $aux_string2 } {
+	    lset color_list $ctr $aux_string2
+	}
+	incr ctr
+    }
     return $color_list
 }
 
