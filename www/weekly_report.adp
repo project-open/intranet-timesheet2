@@ -5,6 +5,7 @@
 <property name="left_navbar">@left_navbar_html;noquote@</property>
 
 <table>
+            <%= $table_continuation_html %>
             <%= $table_header_html %>
             <%= $table_body_html %>
             <%= $table_continuation_html %>
