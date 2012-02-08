@@ -13,6 +13,101 @@
 # FITNESS FOR A PARTICULAR PURPOSE.
 # See the GNU General Public License for more details.
 
+
+proc stripzeros {value} {
+    set retval [string trimleft $value 0]
+    if { ![string length $retval] } { return 0 } 
+    return $retval
+}
+
+ad_proc wf_status_list  {
+    { user_id }
+    { days  }
+    { workflow_key }
+} {
+    Returns a row with the hours loged of one user
+} {
+
+    set first_day_of_week [clock format [clock scan [lindex $days 0]] -format {%Y-%m-%d}]
+    set last_day_of_week [clock format [clock scan [lindex $days 6]] -format {%Y-%m-%d}]
+
+    set sql "
+        select
+                to_char(h.day,'YYYYMMDD') as day,
+                wf.state,
+                h.hours
+        from
+                im_hours h,
+                wf_cases wf
+        where
+                h.day <= :last_day_of_week and
+                h.day >= :first_day_of_week and
+                wf.workflow_key = :workflow_key and
+                wf.object_id = h.conf_object_id and
+                h.user_id = :user_id
+        
+	UNION
+
+	select
+                to_char(h.day,'YYYYMMDD') as day,
+                '' as state,
+                h.hours
+        from
+                im_hours h
+        where
+                h.day <= :last_day_of_week and
+                h.day >= :first_day_of_week and
+                h.user_id = :user_id and 
+		h.conf_object_id is null
+	order by
+		day
+
+    "
+
+    db_foreach col $sql {
+	# Handle multiple cases 
+	if { ![info exists wf_state_array($day)] } {
+		# no value yet, just set it .... 
+		set wf_state_array($day) $state
+	} else {
+		# status != "finished" will always overwrite current status  
+		if { "finished" != $state } {
+			set wf_state_array($day) $state				
+		}
+	}
+	set logged_array($day) $hours
+    }    
+
+    # if { $user_id == 61127 } { ad_return_complaint 1 [array get wf_state_array] }
+
+    set wf_status_list [list]
+
+    foreach list_day $days {
+
+	# set default to '0' -> bgcolor NOT green  
+	set return_array($list_day) 0
+
+	if { ![info exists wf_state_array($list_day)]  } {
+		# No WF for this day 
+		if { [info exists logged_array($list_day)] } {
+			# No hours logged for this day 
+			set return_array($list_day) 1 	
+		}
+	} else {
+		# We have a WF case for this day  
+		if { "finished" == $wf_state_array($list_day) } {
+			set return_array($list_day) 1	
+		}
+	}
+    }
+
+    foreach i [array names return_array] {
+	lappend wf_status_list "$i $return_array($i)" 
+    }
+    # if { $user_id == 61127 } { ad_return_complaint 1 $wf_status_list }
+    return $wf_status_list
+}
+
 ad_proc im_do_row {
     { bgcolorl }
     { ctr }
@@ -24,10 +119,17 @@ ad_proc im_do_row {
     { holydays }
     { today_date }
     { descrl }
-
+    { workflow_key }
 } {
     Returns a row with the hours loged of one user
+    'days' is a list of dates in format 'YYYYMMDD' with seven elements, first day 
+
 } {
+
+    if { $user_daysl != ""  } {
+	# ad_return_complaint 1 $user_daysl
+    }
+
     set user_view_page "/intranet/users/view"
     set absence_view_page "/intranet-timesheet2/absences/view"
 
@@ -45,34 +147,53 @@ ad_proc im_do_row {
     	    </td>
     "
 
+    # Adding feature: Set bg of cell to green when all logged hours have been confirmed 
+    if {  "" != $workflow_key } {
+	set wf_status_list [wf_status_list $curr_owner_id $days $workflow_key]
+	foreach rec $wf_status_list {
+		set wf_status_array([lindex [split $rec " "] 0]) [lindex [split $rec " "] 1]
+    	}
+    }
+
     for { set i 0 } { $i < [llength $days] } { incr i } {
-	if { [lsearch -exact $holydays [lindex $days $i]] >= 0 } {
-	    set holy_html " style=\"background-color=\#DDDDDD;\" "
-	} else {
-	    set holy_html ""
-	}
+	# Defaults 
 	set cell_text [list]
 	set cell_param [list]
-
 	set absent_p "f"
 
+	# if { [lsearch -exact $holydays [lindex $days $i]] >= 0 } {
+	#    set holy_html " style=\"background-color=\#DDDDDD;\" "
+	# } else {
+	#    set holy_html ""
+	# }
+
+	# Check for Absence and write absence information to cell (if applicable) 
 	if { [info exists absence([lindex $days $i])] } {
 	    set abs_id $absence([lindex $days $i])
 	    lappend cell_text "<a href=\"$absence_view_page?absence_id=$abs_id\" style=\"color:\\\#FF0000;\">[_ intranet-timesheet2.Absent]</a> ($descr($abs_id))"
 	    set absent_p "t"
 	}
 
+	# Check for hours logged and write hours logged for this day (if applicable) 
 	if { [info exists user_days([lindex $days $i])] } {
 	    lappend cell_text "$user_days([lindex $days $i]) [_ intranet-timesheet2.hours]"
 	    set absent_p "t"	
-		#	} elseif { [lindex $days $i] < $today_date && $holy_html == "" && [im_permission $curr_owner_id "add_hours"] } {
+	    # Set bg color to green when all logged hours have been confirmed
+	    if { "" != $workflow_key } {
+	    	if { 1 == $wf_status_array([lindex $days $i]) } {
+			set cell_param "style='background-color:#99CC33;'"
+	    	}
+	   }
 	} 
+	
+	# If no hours are logged and no absence is registered, set bg color of cell to yellow 
         if { $absent_p == "f" } {
              lappend cell_text "[_ intranet-timesheet2.No_hours_logged]"
-             lappend cell_param "class=rowyellow"
+             lappend cell_param "style=\"background-color: #ffcc66;\""
         }
+
 	if { [lsearch -exact $holydays [lindex $days $i]] >= 0 } {
-	    set cell_param "style=\"background-color=\\\#DDDDDD;\""
+	    set cell_param "style=\"background-color: #DDDDDD;\""
 	}
 	append html "<td [join $cell_param " "]>[join $cell_text "<br>"]</td>\n"
     }
@@ -108,6 +229,7 @@ ad_page_contract {
     { display "project" }
     { cost_center_id:integer 0 }
     { department_id:integer 0 }
+    { workflow_key ""}
 }
 
 
@@ -162,7 +284,6 @@ if { $start_at == "" && $project_id != 0 } {
     ad_returnredirect "$return_url?[export_url_vars start_at duration project_id owner_id]"
     return
 }
-
 
 
 if { $start_at == "" } {
@@ -309,7 +430,14 @@ for { set i [expr $duration - 1]  } { $i >= 0 } { incr i -1 } {
     			trunc(to_date(to_char(end_date,:date_format),:date_format),'Day')
     "
     lappend sql_from2 "select to_date('$i_date', :date_format) as day from dual\n"
-    set f_date "[_ intranet-timesheet2.[string trim $f_date_day]], $f_date_dd. [lindex [_ acs-lang.localization-mon] $f_date_mon] $f_date_yyyy" 
+
+    if { 1 == [stripzeros $f_date_mon] } {
+	set f_date_mon_index 0
+    } else {
+	set f_date_mon_index [expr [stripzeros $f_date_mon]-1]	
+    }
+
+    set f_date "[_ intranet-timesheet2.[string trim $f_date_day]], $f_date_dd. [lindex [_ acs-lang.localization-mon] $f_date_mon_index] $f_date_yyyy" 
     append table_header_html "<td class=rowtitle>$f_date</td>"
 }
 
@@ -428,7 +556,7 @@ db_foreach get_hours $sql {
     }
 
     if { [lindex $old_owner 0] != $curr_owner_id } {
-	append table_body_html [im_do_row [array get bgcolor] $ctr [lindex $old_owner 0] [lindex $old_owner 1] $days [array get user_days] [array get user_absences] $holydays $today_date [array get user_ab_descr]]
+	append table_body_html [im_do_row [array get bgcolor] $ctr [lindex $old_owner 0] [lindex $old_owner 1] $days [array get user_days] [array get user_absences] $holydays $today_date [array get user_ab_descr] $workflow_key]
 	set old_owner [list $curr_owner_id $owner_name]
 	array unset user_days
 	array unset user_absences
@@ -449,7 +577,8 @@ set colspan [expr [llength $days]+1]
 
 # Show a reasonable message when there are no result rows:
 if { [array size user_days] > 0 } {
-    append table_body_html [im_do_row [array get bgcolor] $ctr $curr_owner_id $owner_name $days [array get user_days] [array get user_absences] $holydays $today_date [array get user_ab_descr]]
+    append table_body_html [im_do_row [array get bgcolor] $ctr $curr_owner_id $owner_name $days [array get user_days] [array get user_absences] $holydays $today_date [array get user_ab_descr] $workflow_key ]
+
 } elseif { [empty_string_p $table_body_html] } {
     set table_body_html "
 	 <tr><td colspan=$colspan><ul><li><b>
@@ -471,8 +600,8 @@ db_1row get_navig_dates $navig_sql
 
 set switch_link_html "<a href=\"weekly_report?[export_url_vars owner_id project_id duration display]"
 
-set switch_past_html "$switch_link_html&start_at=$past_date&cost_center_id=$cost_center_id&department_id=$department_id\">&laquo;</a>"
-set switch_future_html "$switch_link_html&start_at=$future_date&cost_center_id=$cost_center_id&department_id=$department_id\">&raquo;</a>"
+set switch_past_html "$switch_link_html&start_at=$past_date&cost_center_id=$cost_center_id&department_id=$department_id&workflow_key=$workflow_key\">&laquo;</a>"
+set switch_future_html "$switch_link_html&start_at=$future_date&cost_center_id=$cost_center_id&department_id=$department_id&workflow_key=$workflow_key\">&raquo;"
 
 # ---------------------------------------------------------------
 # Format Table Continuation and title
@@ -480,12 +609,12 @@ set switch_future_html "$switch_link_html&start_at=$future_date&cost_center_id=$
 
 set table_continuation_html "
 <tr>
-  <td align=center>
-     $switch_past_html
+  <td align='left'>
+     <span class='backward_smaller_than'>$switch_past_html</span>
   </td>
   <td colspan=[expr $colspan - 2]></td>
-  <td align=center>
-    $switch_future_html
+  <td align='right'>
+    <span class='forward_greater_than'>$switch_future_html</span>
   </td>
 </tr>\n"
 
@@ -506,9 +635,6 @@ if { $project_id != 0 && [info exists project_name] } {
 
 set left_navbar_html "
             <div class=\"filter-block\">
-                <div class=\"filter-title\">
-                [lang::message::lookup "" intranet-timesheet2.Admin "Admin Links"]
-                </div>
                 $filter_html
             </div>
 "
