@@ -183,8 +183,6 @@ db_foreach column_list_sql $column_sql {
     }
 }
 
-
-
 # ---------------------------------------------------------------
 # 4. Define Filter Categories
 # ---------------------------------------------------------------
@@ -436,28 +434,33 @@ if {[string equal "t" $read_p]} {
 set color_list [im_absence_cube_color_list]
 
 set col_sql "
-	select	category_id, category
+	select	category_id, category, enabled_p, aux_string2
 	from	im_categories
 	where	
 			category_type = 'Intranet Absence Type'
-			and enabled_p = 't'
 	order by category_id
 "
 
 append admin_html "<div class=filter-title>[lang::message::lookup "" intranet-timesheet2.Color_codes "Color Codes"]</div>\n"
 append admin_html "<table cellpadding='5' cellspacing='5'>\n"
 
+set index 0
 db_foreach cols $col_sql {
-    set index [expr $category_id - 5000]
-    set col [lindex $color_list $index]
-    regsub -all " " $category "_" category_key
-    set category_l10n [lang::message::lookup "" intranet-core.$category_key $category]
-    append admin_html "<tr><td bgcolor='\#$col' style='padding:3px'>$category_l10n</td></tr>\n"
+    if { "" == $aux_string2 } {
+	# set index [expr $category_id - 5000]
+	set col [lindex $color_list $index]
+	incr index
+    } else {
+	set col $aux_string2
+    }
+    if { "t" == $enabled_p  } {
+	regsub -all " " $category "_" category_key
+	set category_l10n [lang::message::lookup "" intranet-core.$category_key $category]
+	append admin_html "<tr><td bgcolor='\#$col' style='padding:3px'>$category_l10n</td></tr>\n"
+    }
 }
 
 append admin_html "</table>\n"
-
-
 
 # ---------------------------------------------------------------
 # 7. Format the List Table Header

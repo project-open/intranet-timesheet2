@@ -13,6 +13,11 @@
 # FITNESS FOR A PARTICULAR PURPOSE.
 # See the GNU General Public License for more details.
 
+
+# ---------------------------------------------------------------
+# Page Contract
+# ---------------------------------------------------------------
+
 ad_page_contract {
     Shows a summary of the loged hours by all team members of a project (1 week).
     Only those users are shown that:
@@ -37,6 +42,7 @@ ad_page_contract {
     { display "subproject" }
     { cost_center_id:integer 0 }
     { department_id:integer 0 }
+    { workflow_key ""}
 }
 
 
@@ -61,7 +67,6 @@ if { $owner_id != $user_id && ![im_permission $user_id "view_hours_all"] && !$pr
     return
 
 }
-
 
 if { $start_at == "" } {
     set start_at [db_string get_today "select to_char(next_day(to_date(to_char(sysdate,:date_format),:date_format)+1, 'sun'), :date_format) from dual"]
@@ -218,7 +223,14 @@ for { set i [expr $duration - 1]  } { $i >= 0 } { incr i -1 } {
     			trunc(to_date(to_char(end_date,:date_format),:date_format),'Day')
     "
     lappend sql_from2 "select to_date('$i_date', :date_format) as day from dual\n"
-    set f_date "[_ intranet-timesheet2.[string trim $f_date_day]], $f_date_dd. [lindex [_ acs-lang.localization-mon] $f_date_mon] $f_date_yyyy" 
+
+    if { 1 == [stripzeros $f_date_mon] } {
+	set f_date_mon_index 0
+    } else {
+	set f_date_mon_index [expr [stripzeros $f_date_mon]-1]	
+    }
+
+    set f_date "[_ intranet-timesheet2.[string trim $f_date_day]], $f_date_dd. [lindex [_ acs-lang.localization-mon] $f_date_mon_index] $f_date_yyyy" 
     append table_header_html "<td class=rowtitle>$f_date</td>"
 }
 
@@ -350,7 +362,7 @@ db_foreach get_hours $sql {
 
     # if the old_owner is not the current_owner we switched a row, so print out this row
     if { [lindex $old_owner 0] != $curr_owner_id } {
-	append table_body_html [im_do_row [array get bgcolor] $ctr [lindex $old_owner 0] [lindex $old_owner 1] $days [array get user_days] [array get user_absences] $holydays $today_date [array get user_ab_descr]]
+	append table_body_html [im_do_row [array get bgcolor] $ctr [lindex $old_owner 0] [lindex $old_owner 1] $days [array get user_days] [array get user_absences] $holydays $today_date [array get user_ab_descr] $workflow_key]
 	set old_owner [list $curr_owner_id $owner_name]
 	array unset user_days
 	array unset user_absences
@@ -373,7 +385,8 @@ set colspan [expr [llength $days]+1]
 
 # Show a reasonable message when there are no result rows:
 if { [array size user_days] > 0 } {
-    append table_body_html [im_do_row [array get bgcolor] $ctr $curr_owner_id $owner_name $days [array get user_days] [array get user_absences] $holydays $today_date [array get user_ab_descr]]
+    append table_body_html [im_do_row [array get bgcolor] $ctr $curr_owner_id $owner_name $days [array get user_days] [array get user_absences] $holydays $today_date [array get user_ab_descr] $workflow_key ]
+
 } elseif { [empty_string_p $table_body_html] } {
     set table_body_html "
 	 <tr><td colspan=$colspan><ul><li><b>
@@ -395,8 +408,8 @@ db_1row get_navig_dates $navig_sql
 
 set switch_link_html "<a href=\"weekly_report?[export_url_vars owner_id project_id duration display]"
 
-set switch_past_html "$switch_link_html&start_at=$past_date&cost_center_id=$cost_center_id&department_id=$department_id\">&laquo;</a>"
-set switch_future_html "$switch_link_html&start_at=$future_date&cost_center_id=$cost_center_id&department_id=$department_id\">&raquo;</a>"
+set switch_past_html "$switch_link_html&start_at=$past_date&cost_center_id=$cost_center_id&department_id=$department_id&workflow_key=$workflow_key\">&laquo;</a>"
+set switch_future_html "$switch_link_html&start_at=$future_date&cost_center_id=$cost_center_id&department_id=$department_id&workflow_key=$workflow_key\">&raquo;"
 
 # ---------------------------------------------------------------
 # Format Table Continuation and title
@@ -404,12 +417,12 @@ set switch_future_html "$switch_link_html&start_at=$future_date&cost_center_id=$
 
 set table_continuation_html "
 <tr>
-  <td align=center>
-     $switch_past_html
+  <td align='left'>
+     <span class='backward_smaller_than'>$switch_past_html</span>
   </td>
   <td colspan=[expr $colspan - 2]></td>
-  <td align=center>
-    $switch_future_html
+  <td align='right'>
+    <span class='forward_greater_than'>$switch_future_html</span>
   </td>
 </tr>\n"
 
@@ -430,9 +443,6 @@ if { $project_id != 0 && [info exists project_name] } {
 
 set left_navbar_html "
             <div class=\"filter-block\">
-                <div class=\"filter-title\">
-                [lang::message::lookup "" intranet-timesheet2.Admin "Admin Links"]
-                </div>
                 $filter_html
             </div>
 "

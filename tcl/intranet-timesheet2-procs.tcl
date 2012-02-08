@@ -729,10 +729,17 @@ ad_proc im_do_row {
     { holydays }
     { today_date }
     { descrl }
-
+    { workflow_key }
 } {
     Returns a row with the hours loged of one user
+    'days' is a list of dates in format 'YYYYMMDD' with seven elements, first day 
+
 } {
+
+    if { $user_daysl != ""  } {
+	# ad_return_complaint 1 $user_daysl
+    }
+
     set user_view_page "/intranet/users/view"
     set absence_view_page "/intranet-timesheet2/absences/view"
 
@@ -750,37 +757,151 @@ ad_proc im_do_row {
     	    </td>
     "
 
+    # Adding feature: Set bg of cell to green when all logged hours have been confirmed 
+    if {  "" != $workflow_key } {
+	set wf_status_list [wf_status_list $curr_owner_id $days $workflow_key]
+	foreach rec $wf_status_list {
+		set wf_status_array([lindex [split $rec " "] 0]) [lindex [split $rec " "] 1]
+    	}
+    }
+
     for { set i 0 } { $i < [llength $days] } { incr i } {
-	if { [lsearch -exact $holydays [lindex $days $i]] >= 0 } {
-	    set holy_html " style=\"background-color=\#DDDDDD;\" "
-	} else {
-	    set holy_html ""
-	}
+	# Defaults 
 	set cell_text [list]
 	set cell_param [list]
-
 	set absent_p "f"
 
+	# if { [lsearch -exact $holydays [lindex $days $i]] >= 0 } {
+	#    set holy_html " style=\"background-color=\#DDDDDD;\" "
+	# } else {
+	#    set holy_html ""
+	# }
+
+	# Check for Absence and write absence information to cell (if applicable) 
 	if { [info exists absence([lindex $days $i])] } {
 	    set abs_id $absence([lindex $days $i])
 	    lappend cell_text "<a href=\"$absence_view_page?absence_id=$abs_id\" style=\"color:\\\#FF0000;\">[_ intranet-timesheet2.Absent]</a> ($descr($abs_id))"
 	    set absent_p "t"
 	}
 
+	# Check for hours logged and write hours logged for this day (if applicable) 
 	if { [info exists user_days([lindex $days $i])] } {
 	    lappend cell_text "$user_days([lindex $days $i]) [_ intranet-timesheet2.hours]"
 	    set absent_p "t"	
-		#	} elseif { [lindex $days $i] < $today_date && $holy_html == "" && [im_permission $curr_owner_id "add_hours"] } {
+	    # Set bg color to green when all logged hours have been confirmed
+	    if { "" != $workflow_key } {
+	    	if { 1 == $wf_status_array([lindex $days $i]) } {
+			set cell_param "style='background-color:#99CC33;'"
+	    	}
+	   }
 	} 
+	
+	# If no hours are logged and no absence is registered, set bg color of cell to yellow 
         if { $absent_p == "f" } {
              lappend cell_text "[_ intranet-timesheet2.No_hours_logged]"
-             lappend cell_param "class=rowyellow"
+             lappend cell_param "style=\"background-color: #ffcc66;\""
         }
+
 	if { [lsearch -exact $holydays [lindex $days $i]] >= 0 } {
-	    set cell_param "style=\"background-color=\\\#DDDDDD;\""
+	    set cell_param "style=\"background-color: #DDDDDD;\""
 	}
 	append html "<td [join $cell_param " "]>[join $cell_text "<br>"]</td>\n"
     }
     append html "</tr>\n"
     return $html
+}
+
+
+proc stripzeros {value} {
+    set retval [string trimleft $value 0]
+    if { ![string length $retval] } { return 0 } 
+    return $retval
+}
+
+ad_proc wf_status_list  {
+    { user_id }
+    { days  }
+    { workflow_key }
+} {
+    Returns a row with the hours loged of one user
+} {
+
+    set first_day_of_week [clock format [clock scan [lindex $days 0]] -format {%Y-%m-%d}]
+    set last_day_of_week [clock format [clock scan [lindex $days 6]] -format {%Y-%m-%d}]
+
+    set sql "
+        select
+                to_char(h.day,'YYYYMMDD') as day,
+                wf.state,
+                h.hours
+        from
+                im_hours h,
+                wf_cases wf
+        where
+                h.day <= :last_day_of_week and
+                h.day >= :first_day_of_week and
+                wf.workflow_key = :workflow_key and
+                wf.object_id = h.conf_object_id and
+                h.user_id = :user_id
+        
+	UNION
+
+	select
+                to_char(h.day,'YYYYMMDD') as day,
+                '' as state,
+                h.hours
+        from
+                im_hours h
+        where
+                h.day <= :last_day_of_week and
+                h.day >= :first_day_of_week and
+                h.user_id = :user_id and 
+		h.conf_object_id is null
+	order by
+		day
+
+    "
+
+    db_foreach col $sql {
+	# Handle multiple cases 
+	if { ![info exists wf_state_array($day)] } {
+		# no value yet, just set it .... 
+		set wf_state_array($day) $state
+	} else {
+		# status != "finished" will always overwrite current status  
+		if { "finished" != $state } {
+			set wf_state_array($day) $state				
+		}
+	}
+	set logged_array($day) $hours
+    }    
+
+    # if { $user_id == 61127 } { ad_return_complaint 1 [array get wf_state_array] }
+
+    set wf_status_list [list]
+
+    foreach list_day $days {
+
+	# set default to '0' -> bgcolor NOT green  
+	set return_array($list_day) 0
+
+	if { ![info exists wf_state_array($list_day)]  } {
+		# No WF for this day 
+		if { [info exists logged_array($list_day)] } {
+			# No hours logged for this day 
+			set return_array($list_day) 1 	
+		}
+	} else {
+		# We have a WF case for this day  
+		if { "finished" == $wf_state_array($list_day) } {
+			set return_array($list_day) 1	
+		}
+	}
+    }
+
+    foreach i [array names return_array] {
+	lappend wf_status_list "$i $return_array($i)" 
+    }
+    # if { $user_id == 61127 } { ad_return_complaint 1 $wf_status_list }
+    return $wf_status_list
 }

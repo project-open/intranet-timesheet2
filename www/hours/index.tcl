@@ -74,7 +74,15 @@ set current_user_id [ad_maybe_redirect_for_registration]
 set add_hours_all_p [im_permission $current_user_id "add_hours_all"]
 if {"" == $user_id_from_search || !$add_hours_all_p} { set user_id_from_search $current_user_id }
 set user_name [im_name_from_user_id $user_id_from_search]
-if {"" == $return_url} { set return_url [im_url_with_query] }
+
+# Eliminate "message" from return_url, which causes trouble in some places
+if {"" == $return_url} {
+    set return_url [ns_conn url]
+    set query [export_ns_set_vars url {header message}]
+    if {![empty_string_p $query]} {
+        append return_url "?$query"
+    }
+}
 
 set write_p [im_is_user_site_wide_or_intranet_admin $current_user_id]
 if {$current_user_id == $user_id_from_search} {
