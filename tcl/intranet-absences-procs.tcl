@@ -75,8 +75,8 @@ ad_proc absence_list_for_user_and_time_period {user_id first_julian_date last_ju
     set sql "
 	-- Direct absences owner_id = user_id
 	select
-		to_char(start_date,'J') as start_date,
-		to_char(end_date,'J') as end_date,
+                to_char(start_date::text,'yyyy-mm-dd') as start_date,
+                to_char(end_date::text, 'yyyy-mm-dd') as end_date,
 		im_category_from_id(absence_type_id) as absence_type,
 		im_category_from_id(absence_status_id) as absence_status,
 		absence_id
@@ -657,14 +657,14 @@ ad_proc -public im_get_next_absence_link { { user_id } } {
 } {
     set sql "
 	select	absence_id,
-		to_char(start_date,'yyyy-mm-dd') as start_date,
-		to_char(end_date, 'yyyy-mm-dd') as end_date
+		to_char(start_date::text,'yyyy-mm-dd') as start_date,
+		to_char(end_date::text, 'yyyy-mm-dd') as end_date
 	from
 		im_user_absences, dual
 	where
 		owner_id = :user_id and
 		group_id is null and
-		start_date >= to_date(sysdate,'yyyy-mm-dd')
+		start_date >= to_date(sysdate::text,'yyyy-mm-dd')
 	order by
 		start_date, end_date
     "
