@@ -39,6 +39,7 @@ if {"" == $return_url} { set return_url "/intranet-timesheet2/absences/index" }
 set focus "absence.var_name"
 set date_format "YYYY-MM-DD"
 set date_time_format "YYYY MM DD"
+if {![exists_and_not_null absence_type_id]} {set absence_type_id 0}
 if {$absence_type_id eq 0} {
     set absence_type "Absence"
 } else {
