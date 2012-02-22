@@ -55,7 +55,7 @@ set user_id [ad_maybe_redirect_for_registration]
 if {"" == $user_id_from_search || ![im_permission $user_id "add_hours_all"]} { set user_id_from_search $user_id }
 set date_format "YYYY-MM-DD"
 set default_currency [ad_parameter -package_id [im_package_cost_id] "DefaultCurrency" "" "EUR"]
-set wf_installed_p [util_memoize "db_string timesheet_wf \"select count(*) from apm_packages where package_key = 'intranet-timesheet2-workflow'\""]
+set wf_installed_p [util_memoize "db_string timesheet_wf \"select count(*) from apm_enabled_package_versions where package_key = 'intranet-timesheet2-workflow'\""]
 
 set materials_p [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter HourLoggingWithMaterialsP -default 0]
 set material_name ""
