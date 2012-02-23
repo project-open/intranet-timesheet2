@@ -118,7 +118,9 @@ set project_restriction ""
 if {[string is integer $project_id] && "" != $project_id && 0 != $project_id} {
     set project_name [db_string project_name "select project_name from im_projects where project_id = :project_id"]
     append page_title " on $project_name"
-    set project_restriction "and project_id = :project_id"
+    set task_ids [im_project_subproject_ids -project_id $project_id -type "task"]
+    lappend task_ids $project_id
+    set project_restriction "and project_id in ([template::util::tcl_to_sql_list $task_ids])"
 }
 
 # Append user-defined menus
@@ -162,6 +164,7 @@ set sql "
 db_foreach hours_logged $sql {
     set users_hours($julian_date) $hours
 }
+
 
 # --------------------------------------------------------------
 # Render the calendar
