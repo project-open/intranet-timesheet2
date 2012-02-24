@@ -235,9 +235,7 @@ ad_form -extend -name absence -on_request {
 } -select_query {
 
 	select	a.*,
-		a.owner_id as absence_owner_id,
-		to_char(start_date, 'YYYY MM DD HH24 MI') as start_date,
-		to_char(end_date, 'YYYY MM DD HH24 MI') as end_date
+		a.owner_id as absence_owner_id
 	from	im_user_absences a
 	where	absence_id = :absence_id
 
