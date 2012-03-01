@@ -57,7 +57,7 @@ ad_proc -private get_unconfirmed_hours_for_period {user_id start_date end_date} 
         	        im_hours
 	        where	
         	        user_id = $user_id
-                	and day between to_date($start_date, 'J') and to_date($end_date, 'J')
+                	and day between to_date(:start_date::text, 'J'::text) and to_date(:end_date::text, 'J'::text)
 	                and conf_object_id is null
         	group by
                 	to_char(day, 'J')
