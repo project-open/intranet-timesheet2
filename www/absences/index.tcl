@@ -27,7 +27,10 @@ ad_page_contract {
 
     @author mbryzek@arsdigita.com
     @author Frank Bergmann (frank.bergmann@project-open.com)
+    @author Klaus Hofeditz (klaus.hofeditz@project-open.com)
     @author Alwin Egger (alwin.egger@gmx.net)
+    @author Marc Fleischer (marc.fleischer@leinhaeuser-solutions.de)
+
 } {
     { status_id:integer "" }
     { start_idx:integer 0 }
@@ -55,7 +58,7 @@ set add_hours_all_p [im_permission $user_id "add_hours_all"]
 set view_absences_all_p [im_permission $user_id "view_absences_all"]
 set add_absences_p [im_permission $user_id "add_absences"]
 set org_absence_type_id $absence_type_id
-
+set show_context_help_p 1
 
 set today [db_string today "select now()::date"]
 
@@ -188,7 +191,6 @@ db_foreach column_list_sql $column_sql {
 # ---------------------------------------------------------------
 
 # absences_types
-
 set absences_types [im_memoize_list select_absences_types "select absence_type_id, absence_type from im_absence_types order by lower(ABSENCE_TYPE)"]
 set absences_types [linsert $absences_types 0 "All"]
 set absences_types [linsert $absences_types 0 -1]
@@ -453,11 +455,34 @@ db_foreach cols $col_sql {
     } else {
 	set col $aux_string2
     }
-    if { "t" == $enabled_p  } {
+
+    if { "t" == $enabled_p } {
 	regsub -all " " $category "_" category_key
 	set category_l10n [lang::message::lookup "" intranet-core.$category_key $category]
-	append admin_html "<tr><td bgcolor='\#$col' style='padding:3px'>$category_l10n</td></tr>\n"
-    }
+	if { [string length $col] == 6} {
+	    # Transform RGB Hex-Values (e.g. #a3b2c4) into Dec-Values
+	    set r_bg [expr 0x[string range $col 0 1]]
+	    set g_bg [expr 0x[string range $col 2 3]]
+	    set b_bg [expr 0x[string range $col 4 5]]
+	} elseif { [string length $col] == 3 } {
+	    # Transform RGB Hex-Values (e.g. #a3b) into Dec-Values
+	    set r_bg [expr 0x[string range $col 0 0]]
+	    set g_bg [expr 0x[string range $col 1 1]]
+	    set b_bg [expr 0x[string range $col 2 2]]
+	} else {
+		# color codes can't be parsed -> set a middle value
+		set r_bg 127
+		set g_bg 127
+		set b_Bg 127
+	}
+	# calculate a brightness-value for the color
+	# if brightness > 127 the foreground color is black, if < 127 the foreground color is white
+        set brightness [expr $r_bg * 0.2126 + $g_bg * 0.7152 + $b_bg * 0.0722]
+	set col_fg "fff"
+        if {$brightness >= 127} {set col_fg "000"}
+        set category_l10n [lang::message::lookup "" intranet-core.$category_key $category]
+        append admin_html "<tr><td style='padding:3px; background-color:\#$col; color:\#$col_fg'>$category_l10n</td></tr>\n"
+   }
 }
 
 append admin_html "</table>\n"
@@ -481,6 +506,7 @@ if { ![empty_string_p $query_string] } {
 
 append table_header_html "<tr>\n"
 set ctr 0
+
 foreach col $column_headers {
     set wrench_html [lindex $column_headers_admin $ctr]
     regsub -all " " $col "_" col_key
