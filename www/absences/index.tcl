@@ -103,16 +103,29 @@ if {!$view_absences_all_p} {
     set user_selection_types [list "mine" "Mine"]
 }
 
+set name_order [parameter::get -package_id [apm_package_id_from_key intranet-core] -parameter "NameOrder" -default 1]
+
 if {$add_hours_all_p} {
     # Add employees to user_selection
     set emp_sql "
-	select	im_name_from_user_id(user_id) as name,
-		user_id
-	from	cc_users u,
-		group_approved_member_map gamm
-	where	u.user_id = gamm.member_id
-		and gamm.group_id = [im_employee_group_id]
-	order by lower(im_name_from_user_id(user_id))
+	SELECT
+        	im_name_from_user_id(cc.user_id, $name_order) as name,
+	        cc.user_id
+	FROM
+        	group_member_map gm,
+	        membership_rels mr,
+        	acs_rels r,
+	        cc_users cc
+	WHERE
+        	gm.rel_id = mr.rel_id
+	        AND r.rel_id = mr.rel_id
+        	AND r.rel_type = 'membership_rel'
+	        AND cc.user_id = gm.member_id
+        	AND cc.member_state = 'approved'
+	        AND cc.user_id = gm.member_id
+        	AND gm.group_id = [im_employee_group_id]
+	order by
+		name
     "
     db_foreach emps $emp_sql {
 	lappend user_selection_types $user_id
@@ -401,7 +414,7 @@ ad_form \
     }
 
 
-eval [template::adp_compile -string {<formtemplate style="tiny-plain" id="absence_filter"></formtemplate>}]
+eval [template::adp_compile -string {<formtemplate style="tiny-plain-po" id="absence_filter"></formtemplate>}]
 set filter_html $__adp_output
 
 
