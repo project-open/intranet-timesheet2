@@ -717,3 +717,30 @@ ad_proc -public calculate_dd_hh_mm_from_day {
     lappend return_list $number_quarters
     return $return_list
 }
+
+
+ad_proc get_unconfirmed_hours_for_period {
+    user_id
+    start_date
+    end_date
+} {
+    set sum_hours 0
+    set sql "
+        select
+                sum(hours) as unconfirmed_hours
+        from (
+                select
+                        to_char(day, 'J') as julian_date,
+                        sum(hours) as hours
+                from
+                        im_hours
+                where
+                        user_id = $user_id
+                        and day between to_date(:start_date::text, 'J'::text) and to_date(:end_date::text, 'J'::text)
+                        and conf_object_id is null
+                group by
+                        to_char(day, 'J')
+        ) i
+    "
+    return [db_string get_unconfirmed_hours $sql -default 0]
+}
