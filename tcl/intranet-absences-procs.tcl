@@ -289,16 +289,18 @@ ad_proc im_absence_cube_color_list { } {
 
     # Overwrite in case there's a custom color defined 
     set col_sql "
-        select category_id, aux_string2
+        select  category_id, category, enabled_p, aux_string2
         from    im_categories
-        where   
-				category_type = 'Intranet Absence Type'
-				and enabled_p = 't'
+        where
+                category_type = 'Intranet Absence Type'
         order by category_id
-    "
+     "
+
     set ctr 0 
     db_foreach cols $col_sql {
-	if { "" != $aux_string2 } {
+	if { "" == $aux_string2 } {
+	    lset color_list $ctr [lindex $color_list $ctr]
+	} else {
 	    lset color_list $ctr $aux_string2
 	}
 	incr ctr
