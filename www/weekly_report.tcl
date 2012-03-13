@@ -13,7 +13,6 @@
 # FITNESS FOR A PARTICULAR PURPOSE.
 # See the GNU General Public License for more details.
 
-
 proc stripzeros {value} {
     set retval [string trimleft $value 0]
     if { ![string length $retval] } { return 0 } 
@@ -148,7 +147,7 @@ ad_proc im_do_row {
     "
 
     # Adding feature: Set bg of cell to green when all logged hours have been confirmed 
-    if {  "" != $workflow_key } {
+    if { "" != $workflow_key } {
 	set wf_status_list [wf_status_list $curr_owner_id $days $workflow_key]
 	foreach rec $wf_status_list {
 		set wf_status_array([lindex [split $rec " "] 0]) [lindex [split $rec " "] 1]
@@ -201,6 +200,7 @@ ad_proc im_do_row {
     return $html
 }
 
+
 # ---------------------------------------------------------------
 # Page Contract
 # ---------------------------------------------------------------
@@ -216,7 +216,8 @@ ad_page_contract {
     @param project_id	can be specified
     @param duration	numbers of days shown on report. Default is 7
     @param start_at	start the report at this day
-    @param display	 if project_id, choose to display all hours or project hours
+    @param display	if project_id, choose to display all hours or project hours
+    @param workflow_key workflow_key to indicate if hours have been confirmed      
 
     @author mbryzek@arsdigita.com
     @author Frank Bergmann (frank.bergmann@project-open.com)
@@ -232,7 +233,6 @@ ad_page_contract {
     { workflow_key ""}
 }
 
-
 # ---------------------------------------------------------------
 # Defaults & Security
 # ---------------------------------------------------------------
@@ -242,7 +242,7 @@ set subsite_id [ad_conn subsite_id]
 set site_url "/intranet-timesheet2"
 set return_url "$site_url/weekly_report"
 set date_format "YYYYMMDD"
-    
+ 
 if { $owner_id != $user_id && ![im_permission $user_id "view_hours_all"] } {
     ad_return_complaint 1 "<li>[_ intranet-timesheet2.lt_You_have_no_rights_to]"
     return
@@ -281,7 +281,7 @@ if { $start_at == "" && $project_id != 0 } {
 	return
     }
 
-    ad_returnredirect "$return_url?[export_url_vars start_at duration project_id owner_id]"
+    ad_returnredirect "$return_url?[export_url_vars start_at duration project_id owner_id workflow_key]"
     return
 }
 
@@ -311,7 +311,7 @@ if { $display == "project" } { set sel_pro "selected" }
 if { $project_id != 0 } {
     set filter_form_html "
 	<form method=get action='$return_url' name=filter_form>
-	[export_form_vars start_at duration owner_id project_id]
+	[export_vars -form {start_at duration project_id owner_id workflow_key}]
 	<table border=0 cellpadding=0 cellspacing=0>
 	<tr>
 	  <td colspan='2' class=rowtitle align=center>
@@ -335,6 +335,8 @@ if { $project_id != 0 } {
 	</form>"
 } else {
 
+        # ad_return_complaint 1 $workflow_key
+
 	set include_empty 1
 	set department_only_p 1
 	set im_department_select [im_cost_center_select -include_empty $include_empty  -department_only_p $department_only_p  department_id $department_id [im_cost_type_timesheet]]
@@ -345,6 +347,7 @@ if { $project_id != 0 } {
 
 	set filter_form_html "
 	<form method=post action='$return_url' name=filter_form>
+	[export_vars -form {start_at duration project_id owner_id workflow_key}]	
 	<div class='filter-block'>
 		<div class='filter-title'>[_ intranet-timesheet2.Filter]</div>
 		<table border=0 cellpadding=5 cellspacing=5>
@@ -509,10 +512,12 @@ if { "0" != $department_id &&  "" != $department_id } {
 "
 }
 
+set name_order [parameter::get -package_id [apm_package_id_from_key intranet-core] -parameter "NameOrder" -default 1]
+
 set sql "
 select
 	u.user_id as curr_owner_id,
-	im_name_from_user_id(u.user_id) as owner_name,
+	im_name_from_user_id(u.user_id, $name_order) as owner_name,
 	i.val,
 	i.type,
 	i.descr,
@@ -598,7 +603,7 @@ set navig_sql "
     	dual"
 db_1row get_navig_dates $navig_sql
 
-set switch_link_html "<a href=\"weekly_report?[export_url_vars owner_id project_id duration display]"
+set switch_link_html "<a href=\"weekly_report?[export_url_vars owner_id project_id duration display workflow_key]"
 
 set switch_past_html "$switch_link_html&start_at=$past_date&cost_center_id=$cost_center_id&department_id=$department_id&workflow_key=$workflow_key\">&laquo;</a>"
 set switch_future_html "$switch_link_html&start_at=$future_date&cost_center_id=$cost_center_id&department_id=$department_id&workflow_key=$workflow_key\">&raquo;"
