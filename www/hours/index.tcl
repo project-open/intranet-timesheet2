@@ -41,32 +41,6 @@ ad_page_contract {
 }
 
 # ---------------------------------------------------------------
-# Local procedures
-# ---------------------------------------------------------------
-
-ad_proc -private get_unconfirmed_hours_for_period {user_id start_date end_date} {
-    set sum_hours 0 
-    set sql "
-	select 
-		sum(hours) as unconfirmed_hours
-	from (
-	        select
-        	        to_char(day, 'J') as julian_date,
-                	sum(hours) as hours
-	        from
-        	        im_hours
-	        where	
-        	        user_id = $user_id
-                	and day between to_date(:start_date::text, 'J'::text) and to_date(:end_date::text, 'J'::text)
-	                and conf_object_id is null
-        	group by
-                	to_char(day, 'J')
-	) i	
-    "
-    return [db_string get_unconfirmed_hours $sql -default 0]
-}
-
-# ---------------------------------------------------------------
 # Security & Defaults
 # ---------------------------------------------------------------
 
@@ -236,15 +210,38 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
     set curr_absence [lindex $absence_list $absence_index]
     if {"" != $curr_absence} { set curr_absence "<br>$curr_absence" }
 
-    if {$write_p } {
+    if {$write_p} {
         set hours_url [export_vars -base "new" {user_id_from_search {julian_date $current_date} show_week_p return_url project_id project_id}]
-	if  { $timesheet_entry_blocked_p } {
-		set html "$hours&nbsp;$curr_absence"
-	} else {
-		set html "<a href=$hours_url>$hours</a>$curr_absence"
-	}
+        if { [info exists users_hours($current_date)] } {
+	    if { [info exists unconfirmed_hours($current_date)] } {
+                set html "<a href=$hours_url>$hours</a>$curr_absence"
+		set no_unconfirmed_hours [get_unconfirmed_hours_for_period $current_user_id $current_date $current_date]  
+                if { 0 == $no_unconfirmed_hours || "" == $no_unconfirmed_hours } {
+		    # ns_log notice "There are no unconfirmed hours: [info exists hash_conf_object_id($julian_date)]"
+                        set wf_actice_case_sql "
+                                select count(*)
+                                from im_hours h, wf_cases c
+                                where   c.object_id = h.conf_object_id and
+                                        h.day like '%[string range [im_date_julian_to_ansi $current_date] 0 9]%' and
+                                        c.state <> 'finished' and
+                                        h.user_id = $user_id_from_search
+                        "
+                        set no_wf_cases [db_string no_wf_cases $wf_actice_case_sql]
+                        if { $no_wf_cases > 0 } {
+                                set html "<span id='hours_confirmed_yellow'>$html</span>"
+                        } else {
+                                set html "<span id='hours_confirmed_green'>$html</span>"
+                        }
+                 } else {
+                        set html "$html<br><br> [lang::message::lookup "" intranet-timesheet2.ToConfirm "To confirm"]:&nbsp;<span id='hours_confirmed_red'>${no_unconfirmed_hours}&nbsp;[_ intranet-timesheet2.hours]</span>"
+
+                 }
+	    }
+        } else {
+                set html "<a href=$hours_url>$hours</a>$curr_absence"
+        }
     } else {
-	set html "$curr_absence"
+        set html "$curr_absence"
     }
 
     # Render the "Saturday" sum of the weekly hours
