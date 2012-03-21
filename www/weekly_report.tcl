@@ -354,16 +354,16 @@ if { $project_id != 0 } {
 		<div class='filter-title'>[_ intranet-timesheet2.Filter]</div>
 		<table border=0 cellpadding=5 cellspacing=5>
 		<tr>
-	        <td valign=top>[_ intranet-core.Cost_Center] </td>
-        	<td valign=top>$im_cc_select</td>
+	        <td valign=top><strong>[_ intranet-core.Cost_Center]:</strong><br>$im_cc_select </td>
 	        </tr>
+                <tr>
+                <td valign=top>&nbsp;</td>
+                </tr>
         	<tr>
-	        <td valign=top>[_ intranet-core.Department] </td>
-        	<td valign=top>$im_department_select</td>
+	        <td valign=top><strong>[_ intranet-core.Department]:</strong><br>$im_department_select</td>
 	        </tr>
 	        <tr>
-        	  <td></td>
-	          <td valign=top>
+	          <td valign=top colspan='2'>
 		        <input type=submit value='[_ intranet-timesheet2.Apply]' name=submit>
 	          </td>
         	</tr>
@@ -442,7 +442,7 @@ for { set i [expr $duration - 1]  } { $i >= 0 } { incr i -1 } {
 	set f_date_mon_index [expr [stripzeros $f_date_mon]-1]	
     }
 
-    set f_date "[_ intranet-timesheet2.[string trim $f_date_day]], $f_date_dd. [lindex [_ acs-lang.localization-mon] $f_date_mon_index] $f_date_yyyy" 
+    set f_date "[_ intranet-timesheet2.[string trim $f_date_day]] <br> $f_date_dd. [lindex [_ acs-lang.localization-mon] $f_date_mon_index] <br>$f_date_yyyy" 
     append table_header_html "<td class=rowtitle>$f_date</td>"
 }
 
