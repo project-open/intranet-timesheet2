@@ -174,8 +174,10 @@ ad_proc im_do_row {
 	}
 
 	# Check for hours logged and write hours logged for this day (if applicable) 
+
 	if { [info exists user_days([lindex $days $i])] } {
-	    lappend cell_text "$user_days([lindex $days $i]) [_ intranet-timesheet2.hours]"
+	    set label_hours_weekly_report [lang::message::lookup "" intranet-timesheet2.hours_weekly_report "h"]
+	    lappend cell_text "$user_days([lindex $days $i]) $label_hours_weekly_report"
 	    set absent_p "t"	
 	    # Set bg color to green when all logged hours have been confirmed
 	    if { "" != $workflow_key } {
@@ -603,7 +605,7 @@ set navig_sql "
     	dual"
 db_1row get_navig_dates $navig_sql
 
-set switch_link_html "<a href=\"weekly_report?[export_url_vars owner_id project_id duration display workflow_key]"
+set switch_link_html "<a href=\"weekly_report?[export_url_vars owner_id project_id duration display]"
 
 set switch_past_html "$switch_link_html&start_at=$past_date&cost_center_id=$cost_center_id&department_id=$department_id&workflow_key=$workflow_key\">&laquo;</a>"
 set switch_future_html "$switch_link_html&start_at=$future_date&cost_center_id=$cost_center_id&department_id=$department_id&workflow_key=$workflow_key\">&raquo;"
