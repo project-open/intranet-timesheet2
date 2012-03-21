@@ -123,7 +123,10 @@ ad_proc absence_list_for_user_and_time_period {user_id first_julian_date last_ju
 	regsub " " $absence_type "_" absence_type_key
 	set absence_type_l10n [lang::message::lookup "" intranet-core.$absence_type_key $absence_type]
 
-	for {set i [max $start_date $first_julian_date]} {$i<=[min $end_date $last_julian_date]} {incr i } {
+	set start_date_julian [db_string get_data "select to_char('$start_date'::date,'J')" -default 0]
+	set end_date_julian [db_string get_data "select to_char('$end_date'::date,'J')" -default 0]
+
+	for {set i [max $start_date_julian $first_julian_date]} {$i<=[min $end_date_julian $last_julian_date]} {incr i } {
 	   set vacation($i) "
 		<a href=\"/intranet-timesheet2/absences/new?form_mode=display&absence_id=$absence_id\"
 		>[_ intranet-timesheet2.Absent_1]</a> 
