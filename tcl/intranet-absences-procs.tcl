@@ -90,8 +90,8 @@ ad_proc absence_list_for_user_and_time_period {user_id first_julian_date last_ju
     UNION
 	-- Absences via groups - Check if the user is a member of group_id
 	select
-		to_char(start_date,'J') as start_date,
-		to_char(end_date,'J') as end_date,
+		to_char(start_date,'yyyy-mm-dd') as start_date,
+		to_char(end_date,'yyyy-mm-dd') as end_date,
 		im_category_from_id(absence_type_id) as absence_type,
 		im_category_from_id(absence_status_id) as absence_status,
 		absence_id
