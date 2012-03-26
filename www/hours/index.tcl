@@ -213,7 +213,7 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
     if {$write_p} {
         set hours_url [export_vars -base "new" {user_id_from_search {julian_date $current_date} show_week_p return_url project_id project_id}]
         if { [info exists users_hours($current_date)] } {
-	    if { [info exists unconfirmed_hours($current_date)] } {
+	    if { [info exists unconfirmed_hours($current_date)] && $confirm_timesheet_hours_p } {
                 set html "<a href=$hours_url>$hours</a>$curr_absence"
 		set no_unconfirmed_hours [get_unconfirmed_hours_for_period $current_user_id $current_date $current_date]  
                 if { 0 == $no_unconfirmed_hours || "" == $no_unconfirmed_hours } {
