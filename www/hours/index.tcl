@@ -236,6 +236,8 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
                         set html "$html<br><br> [lang::message::lookup "" intranet-timesheet2.ToConfirm "To confirm"]:&nbsp;<span id='hours_confirmed_red'>${no_unconfirmed_hours}&nbsp;[_ intranet-timesheet2.hours]</span>"
 
                  }
+	    } else {
+		set html "<a href=$hours_url>$hours</a>$curr_absence"
 	    }
         } else {
                 set html "<a href=$hours_url>$hours</a>$curr_absence"
