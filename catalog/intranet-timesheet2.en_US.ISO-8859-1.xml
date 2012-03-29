@@ -258,6 +258,10 @@ of those units were billed hourly, for a total amount of</msg>
   <msg key="Not_Member_of_Projects">You are not a member of any open project.</msg>
   <msg key="Notes">Notes:</msg>
   <msg key="Notice">Notice</msg>
+  <msg key="Notification_Subject_Notify_Applicant_Absence_Approved">Your application for an absence</msg>
+  <msg key="Notification_Body_Notify_Applicant_Absence_Approved">Your application for an absence has been approved:</msg>
+  <msg key="Notification_Subject_Notify_Applicant_Absence_Not_Approved">Your application for an absence</msg>
+  <msg key="Notification_Body_Notify_Applicant_Absence_Not_Approved">Your application for an absence has not been approved:</msg>
   <msg key="Nov">Nov</msg>
   <msg key="November">November</msg>
   <msg key="O">O</msg>
