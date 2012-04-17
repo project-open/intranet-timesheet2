@@ -46,6 +46,8 @@ ad_page_contract {
 
 set current_user_id [ad_maybe_redirect_for_registration]
 set add_hours_all_p [im_permission $current_user_id "add_hours_all"]
+set add_hours_for_subordinates_p [im_permission $current_user_id "add_hours_for_subordinates"]
+
 if {"" == $user_id_from_search || !$add_hours_all_p} { set user_id_from_search $current_user_id }
 set user_name [im_name_from_user_id $user_id_from_search]
 
@@ -353,10 +355,17 @@ set left_navbar_html "
 
 if {$add_hours_all_p} {
     append left_navbar_html "
-	<tr>
-	    <td>[lang::message::lookup "" intranet-timesheet2.Log_hours_for_user "Log Hours<br>for User"]</td>
-	    <td>[im_user_select -include_empty_p 1 -include_empty_name "" user_id_from_search $user_id_from_search]</td>
-	</tr>
+        <tr>
+            <td>[lang::message::lookup "" intranet-timesheet2.Log_hours_for_user "Log Hours<br>for User"]</td>
+            <td>[im_user_select -include_empty_p 1 -include_empty_name "" user_id_from_search $user_id_from_search]</td>
+        </tr>
+    "
+} elseif { $add_hours_for_subordinates_p } {
+    append left_navbar_html "
+        <tr>
+            <td>[lang::message::lookup "" intranet-timesheet2.Log_hours_for_user "Log Hours<br>for User"]</td>
+            <td>[im_subordinates_select -include_empty_p 1 -include_empty_name "" user_id_from_search $user_id_from_search]</td>
+        </tr>
     "
 }
 
