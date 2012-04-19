@@ -364,7 +364,7 @@ if {$add_hours_all_p} {
     append left_navbar_html "
         <tr>
             <td>[lang::message::lookup "" intranet-timesheet2.Log_hours_for_user "Log Hours<br>for User"]</td>
-            <td>[im_subordinates_select -include_empty_p 1 -include_empty_name "" user_id_from_search $user_id_from_search]</td>
+	    <td>[im_subordinates_select -include_empty_p 1 -include_empty_name "" -user_id $user_id_from_search user_id_from_search ""]</td>
         </tr>
     "
 }
