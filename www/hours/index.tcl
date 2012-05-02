@@ -265,16 +265,19 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
 
 	# Include link for weekly TS confirmation
 	if { [string equal $confirmation_period "weekly"] && $confirm_timesheet_hours_p } {
-	    set start_date_julian_wf [expr $current_date - 6]
-	    set end_date_julian_wf $current_date    
+
+	    if { !$fill_up_first_last_row_p } {
+		set start_date_julian_wf [eval_wf_start_date $current_date $day_of_week]
+		set end_date_julian_wf $current_date
+	    } else {
+		set start_date_julian_wf [expr $current_date - 6]
+		set end_date_julian_wf $current_date    
+	    }
+
 	    set no_unconfirmed_hours [get_unconfirmed_hours_for_period $current_user_id $start_date_julian_wf $end_date_julian_wf]
 
 	    # ns_log NOTICE "Create weekly CONFIRM button: start: $start_date_julian_wf, end: $start_date_julian_wf, No. unconfirmed Hours $no_unconfirmed_hours, confirm: $confirm_timesheet_hours_p" 
 	    if {$confirm_timesheet_hours_p && (0 < $no_unconfirmed_hours || "" != $no_unconfirmed_hours) } {
-		if { !$fill_up_first_last_row_p } {
-		    set start_date_julian_wf [eval_wf_start_date $current_date $day_of_week]
-		    set end_date_julian_wf $current_date
-		}
 		set base_url_confirm_wf "/intranet-timesheet2-workflow/conf-objects/new-timesheet-workflow"  
 		set conf_url [export_vars -base $base_url_confirm_wf { {user_id $user_id_from_search} {start_date_julian $start_date_julian_wf} {end_date_julian $end_date_julian_wf } return_url}]
 		set button_txt [lang::message::lookup "" intranet-timesheet2.Confirm_weekly_hours "Confirm hours for this week"]
