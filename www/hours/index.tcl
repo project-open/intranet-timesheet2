@@ -87,7 +87,7 @@ set julian_date [db_string conv "select to_char(:date::date, 'J')"]
 ns_log Notice "/intranet-timesheet2/index: date=$date, julian_date=$julian_date"
 
 # Set last day of month: 
-set last_day_of_month_ansi [db_string get_last_day_month "select to_date(date_trunc('month',add_months(:date,1)),'YYYY-MM-DD') - 1" -default 0]
+set last_day_of_month_ansi [db_string get_last_day_month "select date_trunc('month',add_months(:date,1))::date - 1" -default 0]
 
 set project_id_for_default [lindex $project_id 0]
 set show_left_functional_menu_p [parameter::get_from_package_key -package_key "intranet-core" -parameter "ShowLeftFunctionalMenupP" -default 0]
