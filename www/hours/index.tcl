@@ -70,8 +70,7 @@ set page_title [lang::message::lookup "" intranet-timesheet2.Timesheet_for_user_
 set context_bar [im_context_bar "[_ intranet-timesheet2.Hours]"]
 set confirmation_period [parameter::get -package_id [apm_package_id_from_key intranet-timesheet2-workflow] -parameter "ConfirmationPeriod" -default "monthly"]
 set fill_up_first_last_row_p [parameter::get -package_id [apm_package_id_from_key intranet-timesheet2] -parameter "FillFirstAndLastRowInTSCalendarP" -default 1]
-
-set start_day [parameter::get -package_id [apm_package_id_from_key intranet-timesheet2] -parameter "WeekStartDay" -default 1]
+set start_day [parameter::get -package_id [apm_package_id_from_key intranet-timesheet2] -parameter "WeekStartDay" -default 0]
 
 set header_days_of_week "";
 
