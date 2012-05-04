@@ -71,6 +71,29 @@ set context_bar [im_context_bar "[_ intranet-timesheet2.Hours]"]
 set confirmation_period [parameter::get -package_id [apm_package_id_from_key intranet-timesheet2-workflow] -parameter "ConfirmationPeriod" -default "monthly"]
 set fill_up_first_last_row_p [parameter::get -package_id [apm_package_id_from_key intranet-timesheet2] -parameter "FillFirstAndLastRowInTSCalendarP" -default 1]
 
+set start_day [parameter::get -package_id [apm_package_id_from_key intranet-timesheet2] -parameter "WeekStartDay" -default 1]
+
+set header_days_of_week "";
+
+# Patch: http://sourceforge.net/projects/project-open/forums/forum/295937/topic/3324310
+for { set i $start_day } { $i < 7 } { incr i } {
+    if { $i ==0 } { append header_days_of_week "[_ intranet-timesheet2.Sunday] " }
+    if { $i ==1 } { append header_days_of_week "[_ intranet-timesheet2.Monday] " }
+    if { $i ==2 } { append header_days_of_week "[_ intranet-timesheet2.Tuesday] " }
+    if { $i ==3 } { append header_days_of_week "[_ intranet-timesheet2.Wednesday] " }
+    if { $i ==4 } { append header_days_of_week "[_ intranet-timesheet2.Thursday] " }
+    if { $i ==5 } { append header_days_of_week "[_ intranet-timesheet2.Friday] " }
+    if { $i ==6 } { append header_days_of_week "[_ intranet-timesheet2.Saturday] " }
+}
+for { set i 0 } { $i < $start_day } { incr i } {
+    if { $i ==0 } { append header_days_of_week "[_ intranet-timesheet2.Sunday] " }
+    if { $i ==1 } { append header_days_of_week "[_ intranet-timesheet2.Monday] " }
+    if { $i ==2 } { append header_days_of_week "[_ intranet-timesheet2.Tuesday] " }
+    if { $i ==3 } { append header_days_of_week "[_ intranet-timesheet2.Wednesday] " }
+    if { $i ==4 } { append header_days_of_week "[_ intranet-timesheet2.Thursday] " }
+    if { $i ==5 } { append header_days_of_week "[_ intranet-timesheet2.Friday] " }
+    if { $i ==6 } { append header_days_of_week "[_ intranet-timesheet2.Saturday] " }
+}
 
 # ---------------------------------
 # Date Logic: We are working with "YYYY-MM-DD" dates in this page.
@@ -159,10 +182,11 @@ set curr_absence ""
 # Day of week: 1=Sunday, 2=Mon, ..., 7=Sat.
 set day_of_week 1
 
+# Helper to determine location of last WF confirm button -> last day shown or last day of month  
 set show_last_confirm_button_p 1
+
 set timesheet_entry_blocked_p 0
 set loop_ctr 0 
-
 
 
 # And now fill in information for every day of the month
@@ -207,8 +231,13 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
     set unconfirmed_hours_for_this_week [expr $unconfirmed_hours_for_this_week + $unconfirmed_hours($current_date)]
     set unconfirmed_hours_for_this_month [expr $unconfirmed_hours_for_this_month + $unconfirmed_hours($current_date)]
 
-    # Render the "Sunday" link to log "hours for the week"
-    if {$day_of_week == 1 && !$timesheet_entry_blocked_p } {
+    # Render link "Hours for the week"
+    if { "0" == $start_day } {
+	set day_to_show_link_log_hours_for_week 1
+    } else {
+	set day_to_show_link_log_hours_for_week 7
+    }
+    if {$day_of_week == $day_to_show_link_log_hours_for_week && !$timesheet_entry_blocked_p } {
 	append hours "<br>
 		<a href=[export_vars -base "new" {user_id_from_search {julian_date $current_date} {show_week_p 1} return_url}]
 		><span class='log_hours'>[lang::message::lookup "" intranet-timesheet2.Log_hours_for_the_week "Log hours for the week"]</span></a>
@@ -318,16 +347,16 @@ set day_number_template "<!--\$julian_date--><span class='day_number'>\$day_numb
 ns_log Notice "/intranet-timesheet2/index: calendar_details=$calendar_details"
 
 set page_body [calendar_basic_month \
-	-calendar_details $calendar_details \
-	-days_of_week "[_ intranet-timesheet2.Sunday] [_ intranet-timesheet2.Monday] [_ intranet-timesheet2.Tuesday] [_ intranet-timesheet2.Wednesday] [_ intranet-timesheet2.Thursday] [_ intranet-timesheet2.Friday] [_ intranet-timesheet2.Saturday]" \
-	-next_month_template $next_month_template \
-	-prev_month_template $prev_month_template \
-	-day_number_template $day_number_template \
-	-day_bgcolor $day_bgcolor \
-	-date $date \
-	-prev_next_links_in_title 1 \
-	-fill_all_days $fill_up_first_last_row_p \
-	-empty_bgcolor "#cccccc"]
+		   -calendar_details $calendar_details \
+		   -days_of_week $header_days_of_week \
+		   -next_month_template $next_month_template \
+		   -prev_month_template $prev_month_template \
+		   -day_number_template $day_number_template \
+		   -day_bgcolor $day_bgcolor \
+		   -date $date \
+		   -prev_next_links_in_title 1 \
+		   -fill_all_days 1 \
+		   -empty_bgcolor "\#cccccc"]
 
 # ---------------------------------------------------------------
 # Render the Calendar widget
