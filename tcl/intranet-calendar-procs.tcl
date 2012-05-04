@@ -40,6 +40,15 @@ ad_proc calendar_get_info_from_db {
     
 } {
 
+    # Start week on Monday or Sunday? 
+    set start_day [parameter::get -package_id [apm_package_id_from_key intranet-timesheet2] -parameter "WeekStartDay" -default 0]
+
+    set query_first_day_of_month "to_char(trunc(to_date(:the_date, 'yyyy-mm-dd'), 'Month'), 'D') as first_day_of_month,"
+    if {$start_day > 0 && $start_day < 7} {
+	set add [expr 7 - $start_day]
+	set query_first_day_of_month "mod(cast(extract(dow from trunc(to_date(:the_date, 'yyyy-mm-dd'), 'Month')) as numeric)+$add,7)+1 as first_day_of_month,"
+    }
+
     # If no date was passed in, let's set it to today
     if { $the_date == "" } {
 	set the_date [db_string sysdate_from_dual "select trunc(sysdate) from dual"]
@@ -50,20 +59,22 @@ ad_proc calendar_get_info_from_db {
     # of the first of the month, the day of the week of the first day of the
     # month, the day number of the last day (28, 29, 30 ,31) and
     # a month string of the next and previous months
+
     set month_info_query "
-	select	to_char(trunc(to_date(:the_date, 'yyyy-mm-dd'), 'Month'), 'fmMonth') as month, 
-		to_char(trunc(to_date(:the_date, 'yyyy-mm-dd'), 'Month'), 'YYYY') as year, 
-		to_char(trunc(to_date(:the_date, 'yyyy-mm-dd'), 'Month'), 'J') as first_julian_date_of_month, 
-		to_char(last_day(to_date(:the_date, 'yyyy-mm-dd')), 'DD') as num_days_in_month,
-		to_char(trunc(to_date(:the_date, 'yyyy-mm-dd'), 'Month'), 'D') as first_day_of_month, 
-		to_char(last_day(to_date(:the_date, 'yyyy-mm-dd')), 'DD') as last_day,
-		trunc(add_months(to_date(:the_date, 'yyyy-mm-dd'), 1),'Day') as next_month,
-    		trunc(add_months(to_date(:the_date, 'yyyy-mm-dd'), -1),'Day') as prev_month,
-    		trunc(to_date(:the_date, 'yyyy-mm-dd'), 'year') as beginning_of_year,
-    		to_char(last_day(add_months(to_date(:the_date, 'yyyy-mm-dd'), -1)), 'DD') as days_in_last_month,
-    		to_char(add_months(to_date(:the_date, 'yyyy-mm-dd'), 1), 'fmMonth') as next_month_name,
-    		to_char(add_months(to_date(:the_date, 'yyyy-mm-dd'), -1), 'fmMonth') as prev_month_name
-    	from dual
+		select
+			to_char(trunc(to_date(:the_date, 'yyyy-mm-dd'), 'Month'), 'fmMonth') as month,
+			to_char(trunc(to_date(:the_date, 'yyyy-mm-dd'), 'Month'), 'YYYY') as year,
+			to_char(trunc(to_date(:the_date, 'yyyy-mm-dd'), 'Month'), 'J') as first_julian_date_of_month,
+			to_char(last_day(to_date(:the_date, 'yyyy-mm-dd')), 'DD') as num_days_in_month,
+			$query_first_day_of_month
+			to_char(last_day(to_date(:the_date, 'yyyy-mm-dd')), 'DD') as last_day,
+			trunc(add_months(to_date(:the_date, 'yyyy-mm-dd'), 1),'Day') as next_month,
+			trunc(add_months(to_date(:the_date, 'yyyy-mm-dd'), -1),'Day') as prev_month,
+			trunc(to_date(:the_date, 'yyyy-mm-dd'), 'year') as beginning_of_year,
+			to_char(last_day(add_months(to_date(:the_date, 'yyyy-mm-dd'), -1)), 'DD') as days_in_last_month,
+			to_char(add_months(to_date(:the_date, 'yyyy-mm-dd'), 1), 'fmMonth') as next_month_name,
+			to_char(add_months(to_date(:the_date, 'yyyy-mm-dd'), -1), 'fmMonth') as prev_month_name
+		from dual
     "
 
     # We put all the columns into calendar_info_set and return it later
@@ -134,13 +145,16 @@ ad_proc calendar_basic_month {
 	-prev_next_links_in_title 0
 	-fill_all_days 0 } 
 } "
-Returns a calendar for a specific month, with details supplied 
-by Julian date. Defaults to this month.
-To specify details for the individual days (if large_calendar_p is set) 
-put data in an ns_set calendar_details.  The key is the Julian date of 
-the day, and the value is a string (possibly with HTML formatting) that 
-represents the details.
+	Returns a calendar for a specific month, with details supplied 
+	by Julian date. Defaults to this month.
+	To specify details for the individual days (if large_calendar_p is set) 
+	put data in an ns_set calendar_details.  The key is the Julian date of 
+	the day, and the value is a string (possibly with HTML formatting) that 
+	represents the details.
 " {
+
+    set start_day [parameter::get -package_id [im_package_timesheet2_id] -parameter "TimesheetStartDay" -default 1]
+
     calendar_get_info_from_db $date
     set todays_date [lindex [split [ns_localsqltimestamp] " "] 0]
 
@@ -246,21 +260,19 @@ represents the details.
 
             ns_log Notice "calendar_basic_month: '$todays_date', '$day_ansi'"
 
+	    # Set BG color for weekend 
 	    set weekend ""
-	    if { "1" == $day_of_week || "7" == $day_of_week } {
-		set weekend "_weekend" 
-	    }  
+	    if { "1" == $start_day  } {
+		    if { "6" == $day_of_week || "7" == $day_of_week } {	set weekend "_weekend" }  	
+	    } else {
+		    if { "1" == $day_of_week || "7" == $day_of_week } {	set weekend "_weekend" }  	
+	    }
 
             if {[string equal $todays_date $day_ansi]} {
-               
 	        append output "<td class='todays_date$weekend' bgcolor=#6699CC align=right valign=top>[subst $day_number_template]&nbsp;"
-
             } else {
-
 	        append output "<td class='not_todays_date$weekend' bgcolor=$day_bgcolor align=right valign=top>[subst $day_number_template]&nbsp;"
-
             }
-
 	}
 
 	if { (! $skip_day) && $large_calendar_p == 1 } {
