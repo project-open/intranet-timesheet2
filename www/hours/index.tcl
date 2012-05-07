@@ -94,6 +94,8 @@ for { set i 0 } { $i < $start_day } { incr i } {
     if { $i ==6 } { append header_days_of_week "[_ intranet-timesheet2.Saturday] " }
 }
 
+set weekly_logging_days [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter TimesheetWeeklyLoggingDays -default "0 1 2 3 4 5 6"]
+
 # ---------------------------------
 # Date Logic: We are working with "YYYY-MM-DD" dates in this page.
 
@@ -248,10 +250,15 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
     if {"" != $curr_absence} { set curr_absence "<br>$curr_absence" }
 
     if {$write_p} {
-        set hours_url [export_vars -base "new" {user_id_from_search {julian_date $current_date} show_week_p return_url project_id project_id}]
+	set hours_url [export_vars -base "new" {user_id_from_search {julian_date $current_date} show_week_p return_url project_id project_id}]
+	if { [string first $day_of_week $weekly_logging_days] != -1 } {
+		set hours "<a href=$hours_url>$hours</a>"
+	} else {
+		set hours ""
+	}
         if { [info exists users_hours($current_date)] } {
 	    if { [info exists unconfirmed_hours($current_date)] && $confirm_timesheet_hours_p } {
-                set html "<a href=$hours_url>$hours</a>$curr_absence"
+		set html "${hours}${curr_absence}"
 		set no_unconfirmed_hours [get_unconfirmed_hours_for_period $current_user_id $current_date $current_date]  
                 if { 0 == $no_unconfirmed_hours || "" == $no_unconfirmed_hours } {
 		    # ns_log notice "There are no unconfirmed hours: [info exists hash_conf_object_id($julian_date)]"
@@ -274,10 +281,10 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
 
                  }
 	    } else {
-		set html "<a href=$hours_url>$hours</a>$curr_absence"
+		set html "${hours}${curr_absence}"
 	    }
         } else {
-                set html "<a href=$hours_url>$hours</a>$curr_absence"
+		set html "${hours}${curr_absence}"
         }
     } else {
         set html "$curr_absence"
