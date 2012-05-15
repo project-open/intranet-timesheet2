@@ -180,19 +180,26 @@ set absence_list [absence_list_for_user_and_time_period $user_id_from_search $fi
 set absence_index 0
 set curr_absence ""
 
-# Day of week: 1=Sunday, 2=Mon, ..., 7=Sat.
-set day_of_week 1
+# Column counter runs from 1 to 7 
+set column_ctr 1
+
+# Counter for weekday -> need to correspond with weekly_logging_days
+if { 1 == $start_day } {
+	# Week starts with Monday 
+	set week_day 1  	
+} else {
+	# Week starts with Sunday 
+	set week_day 0
+}
 
 # Helper to determine location of last WF confirm button -> last day shown or last day of month  
 set show_last_confirm_button_p 1
 
 set timesheet_entry_blocked_p 0
-set loop_ctr 0 
-
 
 # And now fill in information for every day of the month
 for { set current_date $first_julian_date} { $current_date <= $last_julian_date } { incr current_date } {
-    
+   
     set current_date_ansi [dt_julian_to_ansi $current_date] 
 
     if { $confirm_timesheet_hours_p } {
@@ -238,13 +245,14 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
 
     if {$write_p} {
 	set hours_url [export_vars -base "new" {user_id_from_search {julian_date $current_date} show_week_p return_url project_id project_id}]
-	if { [string first $day_of_week $weekly_logging_days] != -1 } {
+
+	if { [string first $week_day $weekly_logging_days] != -1 } {
 		set hours "<a href=$hours_url>$hours</a>"
 	} else {
 		set hours ""
 	}
 
-	if {$day_of_week == 1 && !$timesheet_entry_blocked_p } {
+	if {$column_ctr == 1 && !$timesheet_entry_blocked_p } {
 	    append hours "<br>
                 <a href=[export_vars -base "new" {user_id_from_search {julian_date $current_date} {show_week_p 1} return_url}]
                 ><span class='log_hours'>[lang::message::lookup "" intranet-timesheet2.Log_hours_for_the_week "Log hours for the week"]</span></a>
@@ -286,7 +294,7 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
     }
 
     # Render 
-    if {($day_of_week == 7 || $current_date_ansi == $last_day_of_month_ansi) && $show_last_confirm_button_p } {
+    if {($column_ctr == 7 || $current_date_ansi == $last_day_of_month_ansi) && $show_last_confirm_button_p } {
 	append html "<br>
 		<a href=[export_vars -base "week" {{julian_date $current_date} user_id_from_search}]
 		>[_ intranet-timesheet2.Week_total_1] $hours_for_this_week</a><br>
@@ -297,7 +305,7 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
 	if { [string equal $confirmation_period "weekly"] && $confirm_timesheet_hours_p } {
 
 	    if { !$fill_up_first_last_row_p } {
-		set start_date_julian_wf [eval_wf_start_date $current_date $day_of_week]
+		set start_date_julian_wf [eval_wf_start_date $current_date $column_ctr]
 		set end_date_julian_wf $current_date
 	    } else {
 		set start_date_julian_wf [expr $current_date - 6]
@@ -319,15 +327,22 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
     ns_set put $calendar_details $current_date "$html<br>&nbsp;"
     
     # we keep track of the day of the week we are on
-    incr day_of_week
-    if { $day_of_week > 7 } {
-	set day_of_week 1
+    incr column_ctr
+    incr week_day  
+
+    if { $column_ctr > 7 } {
+	set column_ctr 1
 	set hours_for_this_week 0.0
 	set unconfirmed_hours_for_this_week 0.0
     }
+    
+    # Weekday needs to be in range [0..6]
+    if { $week_day > 6 } {
+	set week_day 0  
+    }
+
     set curr_absence ""
     incr absence_index
-    incr loop_ctr
     set timesheet_entry_blocked_p 0
 }
 
