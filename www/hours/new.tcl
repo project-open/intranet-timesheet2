@@ -15,6 +15,7 @@
 
 ad_page_contract {
     Displays form to let user enter hours
+    In weekly view, week would start with julian_date which is usually a Sunday or Monday   
 
     @param project_id
     @param julian_date 
@@ -72,16 +73,21 @@ if { !$show_week_p && [string first [db_string dow "select to_char(to_date(:juli
 set julian_week_start $julian_date
 set julian_week_end $julian_date
 set h_day_in_dayweek "h.day::date = to_date(:julian_date, 'J')"
-if {$show_week_p} {
 
+if {$show_week_p} {
     # Find Sunday (=American week start) and Saturday (=American week end)
     # for the current week by adding or subtracting days depending on the weekday (to_char(.., 'D'))
-    set day_of_week [db_string dow "select to_char(to_date(:julian_date, 'J'), 'D')"]
-    set julian_week_start [expr $julian_date + 1 - $day_of_week]
-    set julian_week_end [expr $julian_date + (7-$day_of_week)]
 
-    # Reset the day to the start of the week.
-    set julian_date $julian_week_start
+    ## set day_of_week [db_string dow "select to_char(to_date(:julian_date, 'J'), 'D')"]
+    # set julian_week_start [expr $julian_date + 1 - $day_of_week]
+    # set julian_week_end [expr $julian_date + (7-$day_of_week)]
+
+    ## Reset the day to the start of the week.
+    # set julian_date $julian_week_start
+
+    # 1st day shown should be julian_date passed to this page
+    set julian_week_start $julian_date
+    set julian_week_end [expr $julian_date +7]
 
     # Condition to check for hours this week:
     set h_day_in_dayweek "h.day between to_date(:julian_week_start, 'J') and to_date(:julian_week_end, 'J')"
@@ -277,7 +283,6 @@ if {0 != $last_month_closing_day && "" != $last_month_closing_day && !$add_hours
 }
 
 set edit_hours_closed_message [lang::message::lookup "" intranet-timesheet2.Logging_hours_has_been_closed "Logging hours for this date has already been closed. <br>Please contact your supervisor or the HR department."]
-
 
 
 # ---------------------------------------------------------
@@ -919,6 +924,7 @@ template::multirow foreach hours_multirow {
 	set material_id $default_material_id
 	set material "Default"
 	set key "$project_id-$julian_day_offset"
+
 	if {[info exists hours_hours($key)]} { set hours $hours_hours($key) }
 	if {[info exists hours_note($key)]} { set note $hours_note($key) }
 	if {[info exists hours_internal_note($key)]} { set internal_note $hours_internal_note($key) }
