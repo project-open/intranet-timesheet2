@@ -32,7 +32,6 @@ ad_page_contract {
     { user_id_from_search "" }
 }
 
-
 # ---------------------------------------------------------
 # Default & Security
 # ---------------------------------------------------------
@@ -58,6 +57,12 @@ if {![empty_string_p $gregorian_date]} { set julian_date [db_string sysdate_as_j
 if {[empty_string_p $julian_date]} { set julian_date [db_string sysdate_as_julian "select to_char(sysdate,'J') from dual"] }
 
 if {"" == $return_url} { set return_url [export_vars -base "/intranet-timesheet2/hours/index" {julian_date user_id_from_search}] }
+
+# Check if user is allowed to log hours for this day
+set weekly_logging_days [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter TimesheetWeeklyLoggingDays -default "0 1 2 3 4 5 6"]
+if { !$show_week_p && [string first [db_string dow "select to_char(to_date(:julian_date, 'J'), 'D')"] $weekly_logging_days] == -1} {
+    ad_return_complaint 1  [lang::message::lookup "" intranet-timesheet2.Not_Allowed "You are not allowed to log hours for this day due to configuration restrictions. (Parameter: 'TimesheetWeeklyLoggingDays') "]
+}
 
 
 # ---------------------------------------------------------
@@ -225,8 +230,6 @@ set closed_stati_list [join $closed_stati ","]
 # ---------------------------------------------------------
 # Select the list of days for the weekly view
 # ---------------------------------------------------------
-
-set weekly_logging_days [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter TimesheetWeeklyLoggingDays -default "0 1 2 3 4 5 6"]
 
 # Only show day '0' if we log for a single day
 if {!$show_week_p} { set weekly_logging_days [list 0] }
