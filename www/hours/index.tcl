@@ -238,12 +238,6 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
     } else {
 	set day_to_show_link_log_hours_for_week 7
     }
-    if {$day_of_week == $day_to_show_link_log_hours_for_week && !$timesheet_entry_blocked_p } {
-	append hours "<br>
-		<a href=[export_vars -base "new" {user_id_from_search {julian_date $current_date} {show_week_p 1} return_url}]
-		><span class='log_hours'>[lang::message::lookup "" intranet-timesheet2.Log_hours_for_the_week "Log hours for the week"]</span></a>
-	"
-    }
 
     # User's Absences for the day
     set curr_absence [lindex $absence_list $absence_index]
@@ -256,12 +250,20 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
 	} else {
 		set hours ""
 	}
+
+	if {$day_of_week == $day_to_show_link_log_hours_for_week && !$timesheet_entry_blocked_p } {
+	    append hours "<br>
+                <a href=[export_vars -base "new" {user_id_from_search {julian_date $current_date} {show_week_p 1} return_url}]
+                ><span class='log_hours'>[lang::message::lookup "" intranet-timesheet2.Log_hours_for_the_week "Log hours for the week"]</span></a>
+ 	    "
+	}
+
         if { [info exists users_hours($current_date)] } {
 	    if { [info exists unconfirmed_hours($current_date)] && $confirm_timesheet_hours_p } {
 		set html "${hours}${curr_absence}"
 		set no_unconfirmed_hours [get_unconfirmed_hours_for_period $current_user_id $current_date $current_date]  
                 if { 0 == $no_unconfirmed_hours || "" == $no_unconfirmed_hours } {
-		    # ns_log notice "There are no unconfirmed hours: [info exists hash_conf_object_id($julian_date)]"
+		    	# ns_log notice "There are no unconfirmed hours: [info exists hash_conf_object_id($julian_date)]"
                         set wf_actice_case_sql "
                                 select count(*)
                                 from im_hours h, wf_cases c
