@@ -232,13 +232,6 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
     set unconfirmed_hours_for_this_week [expr $unconfirmed_hours_for_this_week + $unconfirmed_hours($current_date)]
     set unconfirmed_hours_for_this_month [expr $unconfirmed_hours_for_this_month + $unconfirmed_hours($current_date)]
 
-    # Render link "Hours for the week"
-    if { "0" == $start_day } {
-	set day_to_show_link_log_hours_for_week 1
-    } else {
-	set day_to_show_link_log_hours_for_week 7
-    }
-
     # User's Absences for the day
     set curr_absence [lindex $absence_list $absence_index]
     if {"" != $curr_absence} { set curr_absence "<br>$curr_absence" }
@@ -251,7 +244,7 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
 		set hours ""
 	}
 
-	if {$day_of_week == $day_to_show_link_log_hours_for_week && !$timesheet_entry_blocked_p } {
+	if {$day_of_week == 1 && !$timesheet_entry_blocked_p } {
 	    append hours "<br>
                 <a href=[export_vars -base "new" {user_id_from_search {julian_date $current_date} {show_week_p 1} return_url}]
                 ><span class='log_hours'>[lang::message::lookup "" intranet-timesheet2.Log_hours_for_the_week "Log hours for the week"]</span></a>
