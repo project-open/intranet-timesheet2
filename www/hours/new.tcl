@@ -87,7 +87,7 @@ if {$show_week_p} {
 
     # 1st day shown should be julian_date passed to this page
     set julian_week_start $julian_date
-    set julian_week_end [expr $julian_date +7]
+    set julian_week_end [expr $julian_date +6]
 
     # Condition to check for hours this week:
     set h_day_in_dayweek "h.day between to_date(:julian_week_start, 'J') and to_date(:julian_week_end, 'J')"
