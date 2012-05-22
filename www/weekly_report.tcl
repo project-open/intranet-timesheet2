@@ -130,8 +130,9 @@ ad_proc im_do_row {
     }
 
     set user_view_page "/intranet/users/view"
-    set absence_view_page "/intranet-timesheet2/absences/view"
-
+    #set absence_view_page "/intranet-timesheet2/absences/view"
+    set absence_view_page "/intranet-timesheet2/absences/new?form_mode=display"
+ 	
     set date_format "YYYY-MM-DD"
 
     array set bgcolor $bgcolorl
@@ -169,7 +170,7 @@ ad_proc im_do_row {
 	# Check for Absence and write absence information to cell (if applicable) 
 	if { [info exists absence([lindex $days $i])] } {
 	    set abs_id $absence([lindex $days $i])
-	    lappend cell_text "<a href=\"$absence_view_page?absence_id=$abs_id\" style=\"color:\\\#FF0000;\">[_ intranet-timesheet2.Absent]</a> ($descr($abs_id))"
+	    lappend cell_text "<a href=\"$absence_view_page&absence_id=$abs_id\" style=\"color:\\\#FF0000;\">[_ intranet-timesheet2.Absent]</a> ($descr($abs_id))"
 	    set absent_p "t"
 	}
 
@@ -508,10 +509,22 @@ if { "0" != $cost_center_id &&  "" != $cost_center_id } {
 }
 
 set department_filter_where ""
+set cost_center_code [db_string get_cc_code "select cost_center_code from im_cost_centers where cost_center_id = :department_id" -default ""]
+
 if { "0" != $department_id &&  "" != $department_id } {
-	set department_filter_where " 
-	and u.user_id in (select employee_id from im_employees where department_id = $department_id)
-"
+	set department_filter_where "
+	   and 
+		u.user_id in (
+			select employee_id from im_employees where department_id in (
+				select 
+					object_id 
+				from 
+					acs_object_context_index 
+				where 
+					ancestor_id = $department_id  
+		) 
+	   )
+        "
 }
 
 set name_order [parameter::get -package_id [apm_package_id_from_key intranet-core] -parameter "NameOrder" -default 1]
@@ -536,7 +549,8 @@ from
 where
 	u.user_id > 0
 	and u.member_state in ('approved')
-	and u.user_id=i.user_id and trunc(to_date(to_char(d.day,:date_format),:date_format),'Day')=trunc(to_date(to_char(i.day,:date_format),:date_format),'Day')
+	and u.user_id=i.user_id 
+	and trunc(to_date(to_char(d.day,:date_format),:date_format),'Day')=trunc(to_date(to_char(i.day,:date_format),:date_format),'Day')
 	and u.user_id = active_users.party_id
 	$sql_where
 	$department_filter_where
@@ -545,25 +559,42 @@ order by
 	owner_name, curr_day
 "
 
+# ad_return_complaint 1 $sql
+
 set old_owner [list]
-set do_user_init 1
 set table_body_html ""
 set bgcolor(0) " class=roweven "
 set bgcolor(1) " class=rowodd "
 set ctr 0
 
-
 ns_log NOTICE $sql
 
 db_foreach get_hours $sql {
 
-    if { $do_user_init == 1 } {
+    ns_log NOTICE "weekly_report: loop: owner name: $owner_name"
+
+    if { $ctr == 0 } {
 	set old_owner [list $curr_owner_id $owner_name]
-	set do_user_init 0
     }
 
+    ns_log NOTICE "weekly_report: loop: id old owner: [lindex $old_owner 0], id current owner: $curr_owner_id"
+   
     if { [lindex $old_owner 0] != $curr_owner_id } {
-	append table_body_html [im_do_row [array get bgcolor] $ctr [lindex $old_owner 0] [lindex $old_owner 1] $days [array get user_days] [array get user_absences] $holydays $today_date [array get user_ab_descr] $workflow_key]
+	ns_log NOTICE "weekly_report: loop: Writing out line for id: [lindex $old_owner 0]"	
+	# append table_body_html [im_do_row [array get bgcolor] $ctr [lindex $old_owner 0] [lindex $old_owner 1] $days [array get user_days] [array get user_absences] $holydays $today_date [array get user_ab_descr] $workflow_key]
+	append table_body_html [im_do_row \
+				    [array get bgcolor] \
+				    $ctr \
+				    [lindex $old_owner 0] \
+				    [lindex "$old_owner" 1] \
+				    $days \
+				    [array get user_days] \
+				    [array get user_absences] \
+				    $holydays \
+				    $today_date \
+				    [array get user_ab_descr] \
+				    $workflow_key \
+			       ]
 	set old_owner [list $curr_owner_id $owner_name]
 	array unset user_days
 	array unset user_absences
@@ -579,6 +610,22 @@ db_foreach get_hours $sql {
     set val ""
     incr ctr
 }
+
+# Write last record 
+# KH: looks to me that this report requires re-factoring  
+append table_body_html [im_do_row \
+			    [array get bgcolor] \
+                            $ctr \
+			    [lindex $old_owner 0] \
+			    [lindex "$old_owner" 1] \
+                            $days \
+			    [array get user_days] \
+			    [array get user_absences] \
+                            $holydays \
+                            $today_date \
+			    [array get user_ab_descr] \
+                            $workflow_key \
+			    ]
 
 set colspan [expr [llength $days]+1]
 
