@@ -269,7 +269,7 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
                                 select count(*)
                                 from im_hours h, wf_cases c
                                 where   c.object_id = h.conf_object_id and
-                                        h.day like '%[string range [im_date_julian_to_ansi $current_date] 0 9]%' and
+                                        h.day::text like '%[string range [im_date_julian_to_ansi $current_date] 0 9]%' and
                                         c.state <> 'finished' and
                                         h.user_id = $user_id_from_search
                         "
