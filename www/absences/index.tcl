@@ -418,36 +418,43 @@ eval [template::adp_compile -string {<formtemplate style="tiny-plain-po" id="abs
 set filter_html $__adp_output
 
 
+# ---------------------------------------------------------------
+# Create Links from Menus 
+# ---------------------------------------------------------------
+
+set admin_html "<ul>"
+
+set parent_menu_id [db_string parent_admin_menu "select menu_id from im_menus where label='timesheet2_absences'" -default ""]
+set menu_select_sql "
+        select  *
+        from    im_menus
+        where   parent_menu_id = :parent_menu_id
+                and im_object_permission_p(menu_id, :user_id, 'read') = 't'
+        order by sort_order
+"
+db_foreach menu_select $menu_select_sql {
+    regsub -all " " $name "_" name_key
+    append admin_html "<li><a href=\"$url\"> [lang::message::lookup "" intranet-timesheet2.$name_key $name]</a></li>\n"
+}
 
 # ----------------------------------------------------------
-# Do we have to show administration links?
+# Create Admin Links 
+# ----------------------------------------------------------
 
-set admin_html ""
 if {$add_absences_p} {
     set for_user_id ""
     if {[string is integer $user_selection]} { set for_user_id $user_selection }
     
-set admin_html "
-	<ul>
+append admin_html "
 	<li><a href=[export_vars -base "$absences_url/new" {{user_id_from_search $for_user_id} {return_url}}]>[_ intranet-timesheet2.Add_a_new_Absence]</a></li>
     "
 }
 
-set read_p [db_string report_perms "
-        select  im_object_permission_p(m.menu_id, :current_user_id, 'read')
-        from    im_menus m
-        where   m.label = 'capacity-planning'
-" -default 'f']
-
-if {[string equal "t" $read_p]} {
-    set cap_link [lang::message::lookup "" intranet-core.CapacityPlanning "Capacity Planning"]
-    append admin_html "<li><a href='/intranet-timesheet2/absences/capacity-planning'>$cap_link</a></li></ul>"
-} else {
-    append admin_html "</ul>"
-}
+# ----------------------------------------------------------
+# Set color scheme 
+# ----------------------------------------------------------
 
 set color_list [im_absence_cube_color_list]
-
 set col_sql "
 	select	category_id, category, enabled_p, aux_string2
 	from	im_categories
