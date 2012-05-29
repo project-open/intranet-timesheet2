@@ -426,31 +426,16 @@ set filter_html $__adp_output
 # ---------------------------------------------------------------
 # Create Links from Menus 
 # ---------------------------------------------------------------
+set for_user_id ""
 
-set admin_html "<ul>"
-
-set parent_menu_id [db_string parent_admin_menu "select menu_id from im_menus where label='timesheet2_absences'" -default ""]
-set menu_select_sql "
-        select  *
-        from    im_menus
-        where   parent_menu_id = :parent_menu_id
-                and im_object_permission_p(menu_id, :user_id, 'read') = 't'
-        order by sort_order
-"
-db_foreach menu_select $menu_select_sql {
-    regsub -all " " $name "_" name_key
-    append admin_html "<li><a href=\"$url\"> [lang::message::lookup "" intranet-timesheet2.$name_key $name]</a></li>\n"
+if {[string is integer $user_selection] && $add_absences_for_group_p && $user_selection != $user_id} { 
+	# Log for other user "than current user" requires 
+	set for_user_id $user_selection
+} else {
+	set for_user_id $user_id 
 }
 
-# ----------------------------------------------------------
-# Create Admin Links 
-# ----------------------------------------------------------
-
-if {$add_absences_p} {
-    set for_user_id ""
-    if {[string is integer $user_selection]} { set for_user_id $user_selection }
-    append admin_html "<li><a href=[export_vars -base "$absences_url/new" {{user_id_from_search $for_user_id} {return_url}}]>[_ intranet-timesheet2.Add_a_new_Absence]</a></li>"
-}
+set admin_html [im_menu_ul_list -package_key "intranet-timesheet2" "timesheet2_absences" "{user_id_from_search} {$for_user_id} {return_url} {$return_url}"]
 
 # ----------------------------------------------------------
 # Set color scheme 
