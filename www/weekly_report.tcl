@@ -213,7 +213,7 @@ ad_proc im_do_row {
 
         # Color code weekends?
         set color_code_we_p [parameter::get -package_id [apm_package_id_from_key intranet-timesheet2] -parameter "WeeklyReportColorCodeWeekendsP" -default 1]
-        if { [lsearch -exact $holydays [lindex $days $i]] >= 0 && $color_code_we_p } {
+        if { [lsearch -exact $holydays [lindex $days $i]] >= 0 && !$color_code_we_p } {
             set cell_param "style=\"background-color: \#DDDDDD;\""
         }
 	append html "<td [join $cell_param " "]>[join $cell_text "<br>"]</td>\n"
