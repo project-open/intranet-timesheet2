@@ -96,6 +96,9 @@ ad_proc wf_status_list  {
 		# We have a WF case for this day  
 		if { "finished" == $wf_state_array($list_day) } {
 			set return_array($list_day) 1	
+		} else {
+			# WF is active			
+			set return_array($list_day) 2
 		}
 	}
     }
@@ -103,7 +106,6 @@ ad_proc wf_status_list  {
     foreach i [array names return_array] {
 	lappend wf_status_list "$i $return_array($i)" 
     }
-    # if { $user_id == 61127 } { ad_return_complaint 1 $wf_status_list }
     return $wf_status_list
 }
 
@@ -125,21 +127,39 @@ ad_proc im_do_row {
 
 } {
 
-    if { $user_daysl != ""  } {
-	# ad_return_complaint 1 $user_daysl
-    }
-
     set user_view_page "/intranet/users/view"
-    #set absence_view_page "/intranet-timesheet2/absences/view"
     set absence_view_page "/intranet-timesheet2/absences/new?form_mode=display"
- 	
     set date_format "YYYY-MM-DD"
 
     array set bgcolor $bgcolorl
     array set user_days $user_daysl
     array set absence $absencel
     array set descr $descrl
+    array set absence_arr {}
     set html ""
+
+    # get 'new' absence array
+    set first_day_absence_arr [clock format [clock scan [lindex $days 0]] -format {%Y-%m-%d}]
+    set last_day_absence_arr [clock format [clock scan [lindex $days 6]] -format {%Y-%m-%d} ]
+    set sql "select * from im_absences_get_absences_for_user(:curr_owner_id, :first_day_absence_arr::date, :last_day_absence_arr::date, null) AS (absence_date date, absence_type_id int)"
+
+    db_foreach absence_arr $sql {
+        # Find index of $days
+        set day_idx [lsearch -exact $days [clock format [clock scan $absence_date] -format {%Y%m%d}] ]
+        if { "-1" == $day_idx } {
+            ns_log NOTICE "weekly_report: ERROR: day index not found in list 'days'"
+            continue
+        }
+        # Set array
+        if { [info exists absence_arr($day_idx)] } {
+            append absence_arr($day_idx) "<br><a href=\"$absence_view_page?absence_id=$absence_type_id\" style=\"color:\\\\\\#FF0000;\">[_ intranet-timesheet2.Absent]</a> ([im_category_from_id $absence_type_id])"
+        } else {
+            set absence_arr($day_idx) "<a href=\"$absence_view_page?absence_id=$absence_type_id\" style=\"color:\\\\\\\#FF0000;\">[_ intranet-timesheet2.Absent]</a> ([im_category_from_id $absence_type_id])"
+        }
+    }
+    ns_log NOTICE "weekly_report: New Absence Array for user_id: $curr_owner_id ($first_day_absence_arr/$last_day_absence_arr) [array get absence_arr]"
+
+    # Write HEADER 
     append html "
     	<tr$bgcolor([expr $ctr % 2])>
     	    <td>
@@ -147,11 +167,12 @@ ad_proc im_do_row {
     	    </td>
     "
 
-    # Adding feature: Set bg of cell to green when all logged hours have been confirmed 
+    # Adding feature: Set background of cell indicating WF status 
     if { "" != $workflow_key } {
 	set wf_status_list [wf_status_list $curr_owner_id $days $workflow_key]
 	foreach rec $wf_status_list {
-		set wf_status_array([lindex [split $rec " "] 0]) [lindex [split $rec " "] 1]
+	    set wf_status_array([lindex [split $rec " "] 0]) [lindex [split $rec " "] 1]
+	    ns_log NOTICE "weekly_report - WF status list - wf_status_array([lindex [split $rec " "] 0]) [lindex [split $rec " "] 1]"
     	}
     }
 
@@ -161,30 +182,26 @@ ad_proc im_do_row {
 	set cell_param [list]
 	set absent_p "f"
 
-	# if { [lsearch -exact $holydays [lindex $days $i]] >= 0 } {
-	#    set holy_html " style=\"background-color=\#DDDDDD;\" "
-	# } else {
-	#    set holy_html ""
-	# }
-
-	# Check for Absence and write absence information to cell (if applicable) 
-	if { [info exists absence([lindex $days $i])] } {
-	    set abs_id $absence([lindex $days $i])
-	    lappend cell_text "<a href=\"$absence_view_page&absence_id=$abs_id\" style=\"color:\\\#FF0000;\">[_ intranet-timesheet2.Absent]</a> ($descr($abs_id))"
-	    set absent_p "t"
-	}
+        # Write absences
+        if { [info exists absence_arr($i)] } {
+            lappend cell_text $absence_arr($i)
+            set absent_p "t"
+        }
 
 	# Check for hours logged and write hours logged for this day (if applicable) 
-
 	if { [info exists user_days([lindex $days $i])] } {
 	    set label_hours_weekly_report [lang::message::lookup "" intranet-timesheet2.hours_weekly_report "h"]
 	    lappend cell_text "$user_days([lindex $days $i]) $label_hours_weekly_report"
 	    set absent_p "t"	
-	    # Set bg color to green when all logged hours have been confirmed
 	    if { "" != $workflow_key } {
+		# Set bg color to green when all logged hours have been confirmed
 	    	if { 1 == $wf_status_array([lindex $days $i]) } {
 			set cell_param "style='background-color:#99CC33;'"
 	    	}
+                # Set bg color to blue when a WF is in progress
+                if { 2 == $wf_status_array([lindex $days $i]) } {
+		    set cell_param "style='background-color:\#99ffff;'"
+                }
 	   }
 	} 
 	
@@ -194,9 +211,11 @@ ad_proc im_do_row {
              lappend cell_param "style=\"background-color: #ffcc66;\""
         }
 
-	if { [lsearch -exact $holydays [lindex $days $i]] >= 0 } {
-	    set cell_param "style=\"background-color: #DDDDDD;\""
-	}
+        # Color code weekends?
+        set color_code_we_p [parameter::get -package_id [apm_package_id_from_key intranet-timesheet2] -parameter "WeeklyReportColorCodeWeekendsP" -default 1]
+        if { [lsearch -exact $holydays [lindex $days $i]] >= 0 && $color_code_we_p } {
+            set cell_param "style=\"background-color: \#DDDDDD;\""
+        }
 	append html "<td [join $cell_param " "]>[join $cell_text "<br>"]</td>\n"
     }
     append html "</tr>\n"
@@ -559,8 +578,6 @@ order by
 	owner_name, curr_day
 "
 
-# ad_return_complaint 1 $sql
-
 set old_owner [list]
 set table_body_html ""
 set bgcolor(0) " class=roweven "
@@ -581,7 +598,6 @@ db_foreach get_hours $sql {
    
     if { [lindex $old_owner 0] != $curr_owner_id } {
 	ns_log NOTICE "weekly_report: loop: Writing out line for id: [lindex $old_owner 0]"	
-	# append table_body_html [im_do_row [array get bgcolor] $ctr [lindex $old_owner 0] [lindex $old_owner 1] $days [array get user_days] [array get user_absences] $holydays $today_date [array get user_ab_descr] $workflow_key]
 	append table_body_html [im_do_row \
 				    [array get bgcolor] \
 				    $ctr \
@@ -611,8 +627,7 @@ db_foreach get_hours $sql {
     incr ctr
 }
 
-# Write last record 
-# KH: looks to me that this report requires re-factoring  
+# Write last record -> KH: This report requires re-factoring  
 append table_body_html [im_do_row \
 			    [array get bgcolor] \
                             $ctr \
