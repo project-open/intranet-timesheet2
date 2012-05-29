@@ -90,7 +90,12 @@ set page_title "[lang::message::lookup "" intranet-timesheet2.Absences_for_user 
 set context [list $page_title]
 set context_bar [im_context_bar $page_title]
 set page_focus "im_header_form.keywords"
-set absences_url "/intranet-timesheet2/absences"
+
+# Link "New absence" can't become easily a dynamic link manageable 
+# with ADMIN->MENUS due to feature "logging absences for other users" 
+# So let's make it configurable  
+set absences_url [parameter::get -package_id [apm_package_id_from_key intranet-timesheet2] -parameter "AbsenceURL" -default "/intranet-timesheet2/absences"]
+
 set return_url [im_url_with_query]
 
 set user_view_page "/intranet/users/view"
@@ -444,10 +449,7 @@ db_foreach menu_select $menu_select_sql {
 if {$add_absences_p} {
     set for_user_id ""
     if {[string is integer $user_selection]} { set for_user_id $user_selection }
-    
-append admin_html "
-	<li><a href=[export_vars -base "$absences_url/new" {{user_id_from_search $for_user_id} {return_url}}]>[_ intranet-timesheet2.Add_a_new_Absence]</a></li>
-    "
+    append admin_html "<li><a href=[export_vars -base "$absences_url/new" {{user_id_from_search $for_user_id} {return_url}}]>[_ intranet-timesheet2.Add_a_new_Absence]</a></li>"
 }
 
 # ----------------------------------------------------------
@@ -539,7 +541,6 @@ foreach col $column_headers {
     incr ctr
 }
 append table_header_html "</tr>\n"
-
 
 
 # ---------------------------------------------------------------
