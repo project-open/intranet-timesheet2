@@ -24,7 +24,7 @@ ad_proc wf_status_list  {
     { days  }
     { workflow_key }
 } {
-    Returns a row with the hours loged of one user
+    Returns a row with the hours logged of one user
 } {
 
     set first_day_of_week [clock format [clock scan [lindex $days 0]] -format {%Y-%m-%d}]
@@ -62,43 +62,31 @@ ad_proc wf_status_list  {
 		day
 
     "
-
+   
     db_foreach col $sql {
-	# Handle multiple cases 
-	if { ![info exists wf_state_array($day)] } {
-		# no value yet, just set it .... 
-		set wf_state_array($day) $state
-	} else {
-		# status != "finished" will always overwrite current status  
-		if { "finished" != $state } {
-			set wf_state_array($day) $state				
-		}
-	}
-	set logged_array($day) $hours
+	set wf_hour_status_list [list]
+	set logged_array($day) [lappend wf_hour_status_list $hours $state]
     }    
-
-    # if { $user_id == 61127 } { ad_return_complaint 1 [array get wf_state_array] }
 
     set wf_status_list [list]
 
     foreach list_day $days {
-
-	# set default to '0' -> bgcolor NOT green  
-	set return_array($list_day) 0
-
-	if { ![info exists wf_state_array($list_day)]  } {
-		# No WF for this day 
-		if { [info exists logged_array($list_day)] } {
-			# No hours logged for this day 
-			set return_array($list_day) 1 	
-		}
-	} else {
-		# We have a WF case for this day  
-		if { "finished" == $wf_state_array($list_day) } {
-			set return_array($list_day) 1	
+	if { [info exists logged_array($list_day)] } {
+		set return_array($list_day) 0
+		if { "" == [lindex $logged_array($list_day) 1] } {
+			# No WF for this day 
+			set return_array($list_day) 0 	
+			ns_log NOTICE "weekly_report-wf_status_list: NO WF found for user: $user_id for day: $list_day"
 		} else {
-			# WF is active			
-			set return_array($list_day) 2
+			# We have a WF case for this day  
+			if { "finished" == [lindex $logged_array($list_day) 1] } {
+				set return_array($list_day) 2	
+    				ns_log NOTICE "weekly_report-wf_status_list: FINISHED WF found for user: $user_id for day: $list_day"
+			} else {
+				# WF is active			
+				set return_array($list_day) 1
+    				ns_log NOTICE "weekly_report-wf_status_list: ACTIVE WF found for user: $user_id for day: $list_day"
+			}
 		}
 	}
     }
@@ -106,6 +94,7 @@ ad_proc wf_status_list  {
     foreach i [array names return_array] {
 	lappend wf_status_list "$i $return_array($i)" 
     }
+    ns_log NOTICE "weekly_report-wf_status_list: WF Status List for user $user_id: $wf_status_list"
     return $wf_status_list
 }
 
@@ -194,18 +183,22 @@ ad_proc im_do_row {
 	    lappend cell_text "$user_days([lindex $days $i]) $label_hours_weekly_report"
 	    set absent_p "t"	
 	    if { "" != $workflow_key } {
-		# Set bg color to green when all logged hours have been confirmed
-	    	if { 1 == $wf_status_array([lindex $days $i]) } {
-			set cell_param "style='background-color:#99CC33;'"
-	    	}
-                # Set bg color to blue when a WF is in progress
-                if { 2 == $wf_status_array([lindex $days $i]) } {
-		    set cell_param "style='background-color:\#99ffff;'"
-                }
+		switch $wf_status_array([lindex $days $i]) {
+		    "1" {
+			# WF in progress - blue
+			set cell_param "style='background-color:\#99ffff;'"
+		    }
+		    "2" {
+			# Finished WF - green
+			set cell_param "style='background-color:\#99CC33;'"			
+		    }
+		    default {
+		    }
+		}
 	   }
 	} 
 	
-	# If no hours are logged and no absence is registered, set bg color of cell to yellow 
+	# If no hours are logged and no absences are registered, set bg color of cell to yellow 
         if { $absent_p == "f" } {
              lappend cell_text "[_ intranet-timesheet2.No_hours_logged]"
              lappend cell_param "style=\"background-color: #ffcc66;\""
