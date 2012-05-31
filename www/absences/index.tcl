@@ -271,8 +271,8 @@ if { ![empty_string_p $user_selection] } {
     }
     switch $user_selection {
 	"mine" {
-	    #ns_set put $bind_vars user_selection $user_selection
-	    lappend criteria "a.owner_id=:user_id"
+	    # ns_set put $bind_vars user_selection $user_selection
+	    # lappend criteria "a.owner_id=:user_id"
 	}
 	"all" {
 	    ns_set put $bind_vars user_selection $user_selection
