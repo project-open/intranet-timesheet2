@@ -249,7 +249,7 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
 	if { [string first $week_day $weekly_logging_days] != -1 } {
 		set hours "<a href=$hours_url>$hours</a>"
 	} else {
-		set hours ""
+		set hours "$hours"
 	}
 
 	if {$column_ctr == 1 && !$timesheet_entry_blocked_p } {
