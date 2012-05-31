@@ -352,9 +352,10 @@ if { ![empty_string_p $where_clause] } {
     set where_clause " and $where_clause"
 }
 
-
 set perm_clause "and owner_id = :user_id"
-if {$view_absences_all_p} { set perm_clause "" }
+if {$view_absences_all_p || "mine" == $user_selection } {
+    set perm_clause ""
+}
 
 set sql "
 select
