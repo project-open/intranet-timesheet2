@@ -918,7 +918,8 @@ template::multirow foreach hours_multirow {
     # -----------------------------------------------
     # Write out logging INPUT fields - either for Daily View (1 field) or Weekly View (7 fields)
 
-    foreach i $weekly_logging_days {
+    set i 0 
+    foreach j $weekly_logging_days {
 	set julian_day_offset [expr $julian_date + $i]
 	set hours ""
 	set note ""
@@ -940,7 +941,6 @@ template::multirow foreach hours_multirow {
 	if {[info exists hours_invoice_hash($invoice_key)]} { set invoice_id $hours_invoice_hash($invoice_key) }
 
 	if {"t" == $edit_hours_p && $log_on_parent_p && !$invoice_id && !$solitary_main_project_p && !$closed_p} {
-
 	    # Write editable entries.
 	    append results "<td><INPUT NAME=hours${i}.$project_id size=5 MAXLENGTH=5 value=\"$hours\"></td>\n"
 
@@ -951,7 +951,6 @@ template::multirow foreach hours_multirow {
 	    }
 
 	} else {
-
 	    # Write Disabled because we can't log hours on this one
 	    append results "<td>$hours <INPUT type=hidden NAME=hours${i}.$project_id value=\"$hours\"></td>\n"
 
@@ -959,9 +958,9 @@ template::multirow foreach hours_multirow {
 		append results "<td>[ns_quotehtml [value_if_exists note]] <INPUT type=hidden NAME=notes0.$project_id value=\"[ns_quotehtml [value_if_exists note]]\"></td>\n"
 		if {$internal_note_exists_p} { append results "<td>[ns_quotehtml [value_if_exists internal_note]] <INPUT TYPE=HIDDEN NAME=internal_notes0.$project_id value=\"[ns_quotehtml [value_if_exists internal_note]]\"></td>\n" }
 		if {$materials_p} { append results "<td>$material <input type=hidden name=materials0.$project_id value=$material_id></td>\n" }
-	    }
-	    
+	    }   
 	}
+	incr i 
     }
     append results "</tr>\n"
     incr ctr
@@ -986,18 +985,18 @@ set export_form_vars [export_form_vars return_url julian_date user_id_from_searc
 
 # Date format for formatting
 set weekly_column_date_format "YYYY<br>MM-DD"
-
 set week_header_html ""
-foreach i $weekly_logging_days {
 
+
+set i 0 
+foreach j $weekly_logging_days {
     set julian_day_offset [expr $julian_week_start + $i]
-
     im_security_alert_check_integer -location "intranet-timesheet2/hours/new.tcl" -value $julian_day_offset
     set header_day_of_week [util_memoize [list db_string day_of_week "select to_char(to_date('$julian_day_offset', 'J'), 'Dy')"]]
     set header_day_of_week_l10n [lang::message::lookup "" intranet-timesheet2.Day_of_week_$header_day_of_week $header_day_of_week]
     set header_date [util_memoize [list db_string header "select to_char(to_date('$julian_day_offset', 'J'), '$weekly_column_date_format')"]]
-
     append week_header_html "<th>$header_day_of_week_l10n<br>$header_date</th>\n"
+    incr i
 }
 
 # ---------------------------------------------------------
