@@ -61,7 +61,9 @@ if {"" == $return_url} { set return_url [export_vars -base "/intranet-timesheet2
 
 # Check if user is allowed to log hours for this day
 set weekly_logging_days [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter TimesheetWeeklyLoggingDays -default "0 1 2 3 4 5 6"]
-if { !$show_week_p && [string first [db_string dow "select to_char(to_date(:julian_date, 'J'), 'D')"] $weekly_logging_days] == -1} {
+
+# PG to_start starts with Sunday - index (1)
+if { !$show_week_p && [string first [expr [db_string dow "select to_char(to_date(:julian_date, 'J'), 'D')"] -1] $weekly_logging_days] == -1} {
     ad_return_complaint 1  [lang::message::lookup "" intranet-timesheet2.Not_Allowed "You are not allowed to log hours for this day due to configuration restrictions. (Parameter: 'TimesheetWeeklyLoggingDays') "]
 }
 
