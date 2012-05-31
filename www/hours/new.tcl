@@ -89,11 +89,12 @@ if {$show_week_p} {
 
     # 1st day shown should be julian_date passed to this page
     set julian_week_start $julian_date
-    set julian_week_end [expr $julian_date +6]
+    set julian_week_end [expr $julian_date + [expr [llength $weekly_logging_days]-1]]
 
     # Condition to check for hours this week:
     set h_day_in_dayweek "h.day between to_date(:julian_week_start, 'J') and to_date(:julian_week_end, 'J')"
 }
+
 
 # Materials
 set materials_p [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter HourLoggingWithMaterialsP -default 0]
@@ -242,27 +243,28 @@ set closed_stati_list [join $closed_stati ","]
 # Only show day '0' if we log for a single day
 if {!$show_week_p} { set weekly_logging_days [list 0] }
 
+# This check is necessary anymore: 
 
-# Bug from Genedata: Hours logged on Sa or Su could get deleted by the weekly
-# view if the parameter is set to "1 2 3 4 5". So we need to make sure all
-# days with logged hours are included in the list
-if {$show_week_p} {
+# if {$show_week_p} {
+    # Bug from Genedata: Hours logged on Sa or Su could get deleted by the weekly
+    # view if the parameter is set to "1 2 3 4 5". So we need to make sure all
+    # days with logged hours are included in the list
 
     # Take the list of days in this week where the user has already logged hours...
-    set day_sql "
-	select  distinct to_char(h.day,'J')::integer - :julian_week_start::integer
-	from    im_hours h
-	where   h.user_id = :user_id_from_search and
-		h.day between to_date(:julian_week_start,'J') and to_date(:julian_week_end,'J')
-    "
+    # set day_sql "
+    #	select  distinct 
+    #		to_char(h.day,'J')::integer - :julian_week_start::integer
+    #	from    im_hours h
+    #	where   h.user_id = :user_id_from_search and
+    #		h.day between to_date(:julian_week_start,'J') and to_date(:julian_week_end,'J')
+    # "
     # ... and append the days specified in the parameter
-    foreach d $weekly_logging_days {
-	append day_sql "\tUNION select $d\n"
-    }
-
+    # foreach d $weekly_logging_days {
+    #	append day_sql "\tUNION select $d\n"
+    # }
     # Retreive the list and make sure it's sorted
-    set weekly_logging_days [lsort [db_list extended_weeky_days $day_sql]]
-}
+    # set weekly_logging_days [lsort [db_list extended_weeky_days $day_sql]] 
+# }
 
 # ---------------------------------------------------------
 # Logic to check if the user is allowed to log hours
