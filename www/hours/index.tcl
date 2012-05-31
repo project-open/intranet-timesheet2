@@ -228,7 +228,9 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
 		set hours "<span class='log_hours'>[lang::message::lookup "" intranet-timesheet2.Nolog_Workflow_In_Progress "0 hours"]</span>"
 	} else {
 	        ns_log NOTICE "TS: Not Blocked: $current_date"
-		set hours "<span class='log_hours'>[_ intranet-timesheet2.log_hours]</span>"
+	        if { [string first $week_day $weekly_logging_days] != -1 } {
+		    set hours "<span class='log_hours'>[_ intranet-timesheet2.log_hours]</span>"
+		}
 	}	
     }
 
