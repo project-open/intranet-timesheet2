@@ -79,11 +79,13 @@ set sql "
 		h.billing_rate,
 		h.hours * h.billing_rate as amount_earned, 
 		h.note,
-		h.project_id as hours_project_id
+		h.project_id as hours_project_id,
+		c.currency
 	from
-		im_hours h
+		im_hours h,
+		im_costs c
 	where
-		project_id in (
+		h.project_id in (
 			select	children.project_id
 			from	im_projects parent,
 				im_projects children
@@ -95,8 +97,9 @@ set sql "
 			    UNION
 				select :project_id as project_id
 		)
-		and user_id = :user_id
-		and hours is not null
+		and h.user_id = :user_id
+		and h.hours is not null
+		and h.cost_id = c.cost_id
 	order by day
 "
 
@@ -118,7 +121,7 @@ db_foreach hours_on_project $sql {
     set total_hours_on_project [expr $total_hours_on_project + $hours]
 
     if {$view_finance_p && ![empty_string_p $amount_earned]} {
-        append page_body " (@ \$[format %4.2f $billing_rate]/hour = \$[format %4.2f $amount_earned])"
+        append page_body " (${currency} [format %4.2f $billing_rate]/hour = ${currency} [format %4.2f $amount_earned])"
         set hourly_bill [expr $hourly_bill + $amount_earned]
         set total_hours_billed_hourly [expr $total_hours_billed_hourly + $hours]
     }
@@ -132,12 +135,11 @@ db_foreach hours_on_project $sql {
     }
 }
 
-append page_body "\n<p><b>[_ intranet-timesheet2.Total_1]</b> [util_commify_number $total_hours_on_project] [_ intranet-timesheet2.hours]"
+append page_body "\n<br><br><b>[_ intranet-timesheet2.Total_1]</b> [util_commify_number $total_hours_on_project] [_ intranet-timesheet2.hours]"
 
 if {$hourly_bill > 0} {
     set hours_var "[util_commify_number $total_hours_billed_hourly]"
-    append page_body "<BR><FONT SIZE=-1>[_ intranet-timesheet2.lt_hours_varof_those_uni]
-\$[util_commify_number [format %4.2f $hourly_bill]]</FONT>"
+    append page_body "<!--<br><br>[_ intranet-timesheet2.lt_hours_varof_those_uni] $[util_commify_number [format %4.2f $hourly_bill]]-->"
 }
 
 append page_body "</ul>\n"

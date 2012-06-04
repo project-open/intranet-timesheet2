@@ -15,6 +15,7 @@
 
 ad_page_contract {
     Displays form to let user enter hours
+    In weekly view, week would start with julian_date which is usually a Sunday or Monday   
 
     @param project_id
     @param julian_date 
@@ -31,7 +32,6 @@ ad_page_contract {
     { show_week_p 1 }
     { user_id_from_search "" }
 }
-
 
 # ---------------------------------------------------------
 # Default & Security
@@ -59,6 +59,14 @@ if {[empty_string_p $julian_date]} { set julian_date [db_string sysdate_as_julia
 
 if {"" == $return_url} { set return_url [export_vars -base "/intranet-timesheet2/hours/index" {julian_date user_id_from_search}] }
 
+# Check if user is allowed to log hours for this day
+set weekly_logging_days [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter TimesheetWeeklyLoggingDays -default "0 1 2 3 4 5 6"]
+
+# PG to_start starts with Sunday - index (1)
+if { !$show_week_p && [string first [expr [db_string dow "select to_char(to_date(:julian_date, 'J'), 'D')"] -1] $weekly_logging_days] == -1} {
+    ad_return_complaint 1  [lang::message::lookup "" intranet-timesheet2.Not_Allowed "You are not allowed to log hours for this day due to configuration restrictions. (Parameter: 'TimesheetWeeklyLoggingDays') "]
+}
+
 
 # ---------------------------------------------------------
 # Calculate the start and end of the week.
@@ -67,20 +75,26 @@ if {"" == $return_url} { set return_url [export_vars -base "/intranet-timesheet2
 set julian_week_start $julian_date
 set julian_week_end $julian_date
 set h_day_in_dayweek "h.day::date = to_date(:julian_date, 'J')"
-if {$show_week_p} {
 
+if {$show_week_p} {
     # Find Sunday (=American week start) and Saturday (=American week end)
     # for the current week by adding or subtracting days depending on the weekday (to_char(.., 'D'))
-    set day_of_week [db_string dow "select to_char(to_date(:julian_date, 'J'), 'D')"]
-    set julian_week_start [expr $julian_date + 1 - $day_of_week]
-    set julian_week_end [expr $julian_date + (7-$day_of_week)]
 
-    # Reset the day to the start of the week.
-    set julian_date $julian_week_start
+    ## set day_of_week [db_string dow "select to_char(to_date(:julian_date, 'J'), 'D')"]
+    # set julian_week_start [expr $julian_date + 1 - $day_of_week]
+    # set julian_week_end [expr $julian_date + (7-$day_of_week)]
+
+    ## Reset the day to the start of the week.
+    # set julian_date $julian_week_start
+
+    # 1st day shown should be julian_date passed to this page
+    set julian_week_start $julian_date
+    set julian_week_end [expr $julian_date + [expr [llength $weekly_logging_days]-1]]
 
     # Condition to check for hours this week:
     set h_day_in_dayweek "h.day between to_date(:julian_week_start, 'J') and to_date(:julian_week_end, 'J')"
 }
+
 
 # Materials
 set materials_p [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter HourLoggingWithMaterialsP -default 0]
@@ -226,32 +240,31 @@ set closed_stati_list [join $closed_stati ","]
 # Select the list of days for the weekly view
 # ---------------------------------------------------------
 
-set weekly_logging_days [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter TimesheetWeeklyLoggingDays -default "0 1 2 3 4 5 6"]
-
 # Only show day '0' if we log for a single day
 if {!$show_week_p} { set weekly_logging_days [list 0] }
 
+# This check is necessary anymore: 
 
-# Bug from Genedata: Hours logged on Sa or Su could get deleted by the weekly
-# view if the parameter is set to "1 2 3 4 5". So we need to make sure all
-# days with logged hours are included in the list
-if {$show_week_p} {
+# if {$show_week_p} {
+    # Bug from Genedata: Hours logged on Sa or Su could get deleted by the weekly
+    # view if the parameter is set to "1 2 3 4 5". So we need to make sure all
+    # days with logged hours are included in the list
 
     # Take the list of days in this week where the user has already logged hours...
-    set day_sql "
-	select  distinct to_char(h.day,'J')::integer - :julian_week_start::integer
-	from    im_hours h
-	where   h.user_id = :user_id_from_search and
-		h.day between to_date(:julian_week_start,'J') and to_date(:julian_week_end,'J')
-    "
+    # set day_sql "
+    #	select  distinct 
+    #		to_char(h.day,'J')::integer - :julian_week_start::integer
+    #	from    im_hours h
+    #	where   h.user_id = :user_id_from_search and
+    #		h.day between to_date(:julian_week_start,'J') and to_date(:julian_week_end,'J')
+    # "
     # ... and append the days specified in the parameter
-    foreach d $weekly_logging_days {
-	append day_sql "\tUNION select $d\n"
-    }
-
+    # foreach d $weekly_logging_days {
+    #	append day_sql "\tUNION select $d\n"
+    # }
     # Retreive the list and make sure it's sorted
-    set weekly_logging_days [lsort [db_list extended_weeky_days $day_sql]]
-}
+    # set weekly_logging_days [lsort [db_list extended_weeky_days $day_sql]] 
+# }
 
 # ---------------------------------------------------------
 # Logic to check if the user is allowed to log hours
@@ -274,7 +287,6 @@ if {0 != $last_month_closing_day && "" != $last_month_closing_day && !$add_hours
 }
 
 set edit_hours_closed_message [lang::message::lookup "" intranet-timesheet2.Logging_hours_has_been_closed "Logging hours for this date has already been closed. <br>Please contact your supervisor or the HR department."]
-
 
 
 # ---------------------------------------------------------
@@ -908,7 +920,8 @@ template::multirow foreach hours_multirow {
     # -----------------------------------------------
     # Write out logging INPUT fields - either for Daily View (1 field) or Weekly View (7 fields)
 
-    foreach i $weekly_logging_days {
+    set i 0 
+    foreach j $weekly_logging_days {
 	set julian_day_offset [expr $julian_date + $i]
 	set hours ""
 	set note ""
@@ -916,6 +929,7 @@ template::multirow foreach hours_multirow {
 	set material_id $default_material_id
 	set material "Default"
 	set key "$project_id-$julian_day_offset"
+
 	if {[info exists hours_hours($key)]} { set hours $hours_hours($key) }
 	if {[info exists hours_note($key)]} { set note $hours_note($key) }
 	if {[info exists hours_internal_note($key)]} { set internal_note $hours_internal_note($key) }
@@ -929,7 +943,6 @@ template::multirow foreach hours_multirow {
 	if {[info exists hours_invoice_hash($invoice_key)]} { set invoice_id $hours_invoice_hash($invoice_key) }
 
 	if {"t" == $edit_hours_p && $log_on_parent_p && !$invoice_id && !$solitary_main_project_p && !$closed_p} {
-
 	    # Write editable entries.
 	    append results "<td><INPUT NAME=hours${i}.$project_id size=5 MAXLENGTH=5 value=\"$hours\"></td>\n"
 
@@ -940,7 +953,6 @@ template::multirow foreach hours_multirow {
 	    }
 
 	} else {
-
 	    # Write Disabled because we can't log hours on this one
 	    append results "<td>$hours <INPUT type=hidden NAME=hours${i}.$project_id value=\"$hours\"></td>\n"
 
@@ -948,9 +960,9 @@ template::multirow foreach hours_multirow {
 		append results "<td>[ns_quotehtml [value_if_exists note]] <INPUT type=hidden NAME=notes0.$project_id value=\"[ns_quotehtml [value_if_exists note]]\"></td>\n"
 		if {$internal_note_exists_p} { append results "<td>[ns_quotehtml [value_if_exists internal_note]] <INPUT TYPE=HIDDEN NAME=internal_notes0.$project_id value=\"[ns_quotehtml [value_if_exists internal_note]]\"></td>\n" }
 		if {$materials_p} { append results "<td>$material <input type=hidden name=materials0.$project_id value=$material_id></td>\n" }
-	    }
-	    
+	    }   
 	}
+	incr i 
     }
     append results "</tr>\n"
     incr ctr
@@ -975,18 +987,18 @@ set export_form_vars [export_form_vars return_url julian_date user_id_from_searc
 
 # Date format for formatting
 set weekly_column_date_format "YYYY<br>MM-DD"
-
 set week_header_html ""
-foreach i $weekly_logging_days {
 
+
+set i 0 
+foreach j $weekly_logging_days {
     set julian_day_offset [expr $julian_week_start + $i]
-
     im_security_alert_check_integer -location "intranet-timesheet2/hours/new.tcl" -value $julian_day_offset
     set header_day_of_week [util_memoize [list db_string day_of_week "select to_char(to_date('$julian_day_offset', 'J'), 'Dy')"]]
     set header_day_of_week_l10n [lang::message::lookup "" intranet-timesheet2.Day_of_week_$header_day_of_week $header_day_of_week]
     set header_date [util_memoize [list db_string header "select to_char(to_date('$julian_day_offset', 'J'), '$weekly_column_date_format')"]]
-
     append week_header_html "<th>$header_day_of_week_l10n<br>$header_date</th>\n"
+    incr i
 }
 
 # ---------------------------------------------------------

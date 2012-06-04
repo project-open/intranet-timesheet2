@@ -137,7 +137,8 @@ if {!$show_week_p} { set weekly_logging_days [list 0]}
 
 
 # Go through all days of the week (or just a single one in case of single-day logging
-foreach i $weekly_logging_days {
+set i 0 
+foreach j $weekly_logging_days {
 
     set day_julian [expr $julian_date+$i]
     ns_log Notice "hours/new2: day=$i: ----------- day_julian=$day_julian -----------"
@@ -449,7 +450,7 @@ foreach i $weekly_logging_days {
 
 	}
     }
-
+incr i
 }
 
 

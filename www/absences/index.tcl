@@ -27,7 +27,10 @@ ad_page_contract {
 
     @author mbryzek@arsdigita.com
     @author Frank Bergmann (frank.bergmann@project-open.com)
+    @author Klaus Hofeditz (klaus.hofeditz@project-open.com)
     @author Alwin Egger (alwin.egger@gmx.net)
+    @author Marc Fleischer (marc.fleischer@leinhaeuser-solutions.de)
+
 } {
     { status_id:integer "" }
     { start_idx:integer 0 }
@@ -55,7 +58,7 @@ set add_hours_all_p [im_permission $user_id "add_hours_all"]
 set view_absences_all_p [im_permission $user_id "view_absences_all"]
 set add_absences_p [im_permission $user_id "add_absences"]
 set org_absence_type_id $absence_type_id
-
+set show_context_help_p 1
 
 set today [db_string today "select now()::date"]
 
@@ -87,7 +90,12 @@ set page_title "[lang::message::lookup "" intranet-timesheet2.Absences_for_user 
 set context [list $page_title]
 set context_bar [im_context_bar $page_title]
 set page_focus "im_header_form.keywords"
-set absences_url "/intranet-timesheet2/absences"
+
+# Link "New absence" can't become easily a dynamic link manageable 
+# with ADMIN->MENUS due to feature "logging absences for other users" 
+# So let's make it configurable  
+set absences_url [parameter::get -package_id [apm_package_id_from_key intranet-timesheet2] -parameter "AbsenceURL" -default "/intranet-timesheet2/absences"]
+
 set return_url [im_url_with_query]
 
 set user_view_page "/intranet/users/view"
@@ -100,16 +108,29 @@ if {!$view_absences_all_p} {
     set user_selection_types [list "mine" "Mine"]
 }
 
+set name_order [parameter::get -package_id [apm_package_id_from_key intranet-core] -parameter "NameOrder" -default 1]
+
 if {$add_hours_all_p} {
     # Add employees to user_selection
     set emp_sql "
-	select	im_name_from_user_id(user_id) as name,
-		user_id
-	from	cc_users u,
-		group_approved_member_map gamm
-	where	u.user_id = gamm.member_id
-		and gamm.group_id = [im_employee_group_id]
-	order by lower(im_name_from_user_id(user_id))
+	SELECT
+        	im_name_from_user_id(cc.user_id, $name_order) as name,
+	        cc.user_id
+	FROM
+        	group_member_map gm,
+	        membership_rels mr,
+        	acs_rels r,
+	        cc_users cc
+	WHERE
+        	gm.rel_id = mr.rel_id
+	        AND r.rel_id = mr.rel_id
+        	AND r.rel_type = 'membership_rel'
+	        AND cc.user_id = gm.member_id
+        	AND cc.member_state = 'approved'
+	        AND cc.user_id = gm.member_id
+        	AND gm.group_id = [im_employee_group_id]
+	order by
+		name
     "
     db_foreach emps $emp_sql {
 	lappend user_selection_types $user_id
@@ -188,7 +209,6 @@ db_foreach column_list_sql $column_sql {
 # ---------------------------------------------------------------
 
 # absences_types
-
 set absences_types [im_memoize_list select_absences_types "select absence_type_id, absence_type from im_absence_types order by lower(ABSENCE_TYPE)"]
 set absences_types [linsert $absences_types 0 "All"]
 set absences_types [linsert $absences_types 0 -1]
@@ -251,8 +271,8 @@ if { ![empty_string_p $user_selection] } {
     }
     switch $user_selection {
 	"mine" {
-	    #ns_set put $bind_vars user_selection $user_selection
-	    lappend criteria "a.owner_id=:user_id"
+	    # ns_set put $bind_vars user_selection $user_selection
+	    # lappend criteria "a.owner_id=:user_id"
 	}
 	"all" {
 	    ns_set put $bind_vars user_selection $user_selection
@@ -332,9 +352,10 @@ if { ![empty_string_p $where_clause] } {
     set where_clause " and $where_clause"
 }
 
-
 set perm_clause "and owner_id = :user_id"
-if {$view_absences_all_p} { set perm_clause "" }
+if {$view_absences_all_p || "mine" == $user_selection } {
+    set perm_clause ""
+}
 
 set sql "
 select
@@ -399,40 +420,29 @@ ad_form \
     }
 
 
-eval [template::adp_compile -string {<formtemplate style="tiny-plain" id="absence_filter"></formtemplate>}]
+eval [template::adp_compile -string {<formtemplate style="tiny-plain-po" id="absence_filter"></formtemplate>}]
 set filter_html $__adp_output
 
 
+# ---------------------------------------------------------------
+# Create Links from Menus 
+# ---------------------------------------------------------------
+set for_user_id ""
+
+if {[string is integer $user_selection] && $add_absences_for_group_p && $user_selection != $user_id} { 
+	# Log for other user "than current user" requires 
+	set for_user_id $user_selection
+} else {
+	set for_user_id $user_id 
+}
+
+set admin_html [im_menu_ul_list -package_key "intranet-timesheet2" "timesheet2_absences" "{user_id_from_search} {$for_user_id} {return_url} {$return_url}"]
 
 # ----------------------------------------------------------
-# Do we have to show administration links?
-
-set admin_html ""
-if {$add_absences_p} {
-    set for_user_id ""
-    if {[string is integer $user_selection]} { set for_user_id $user_selection }
-    
-set admin_html "
-	<ul>
-	<li><a href=[export_vars -base "$absences_url/new" {{user_id_from_search $for_user_id} {return_url}}]>[_ intranet-timesheet2.Add_a_new_Absence]</a></li>
-    "
-}
-
-set read_p [db_string report_perms "
-        select  im_object_permission_p(m.menu_id, :current_user_id, 'read')
-        from    im_menus m
-        where   m.label = 'capacity-planning'
-" -default 'f']
-
-if {[string equal "t" $read_p]} {
-    set cap_link [lang::message::lookup "" intranet-core.CapacityPlanning "Capacity Planning"]
-    append admin_html "<li><a href='/intranet-timesheet2/absences/capacity-planning'>$cap_link</a></li></ul>"
-} else {
-    append admin_html "</ul>"
-}
+# Set color scheme 
+# ----------------------------------------------------------
 
 set color_list [im_absence_cube_color_list]
-
 set col_sql "
 	select	category_id, category, enabled_p, aux_string2
 	from	im_categories
@@ -453,11 +463,34 @@ db_foreach cols $col_sql {
     } else {
 	set col $aux_string2
     }
-    if { "t" == $enabled_p  } {
+
+    if { "t" == $enabled_p } {
 	regsub -all " " $category "_" category_key
 	set category_l10n [lang::message::lookup "" intranet-core.$category_key $category]
-	append admin_html "<tr><td bgcolor='\#$col' style='padding:3px'>$category_l10n</td></tr>\n"
-    }
+	if { [string length $col] == 6} {
+	    # Transform RGB Hex-Values (e.g. #a3b2c4) into Dec-Values
+	    set r_bg [expr 0x[string range $col 0 1]]
+	    set g_bg [expr 0x[string range $col 2 3]]
+	    set b_bg [expr 0x[string range $col 4 5]]
+	} elseif { [string length $col] == 3 } {
+	    # Transform RGB Hex-Values (e.g. #a3b) into Dec-Values
+	    set r_bg [expr 0x[string range $col 0 0]]
+	    set g_bg [expr 0x[string range $col 1 1]]
+	    set b_bg [expr 0x[string range $col 2 2]]
+	} else {
+		# color codes can't be parsed -> set a middle value
+		set r_bg 127
+		set g_bg 127
+		set b_Bg 127
+	}
+	# calculate a brightness-value for the color
+	# if brightness > 127 the foreground color is black, if < 127 the foreground color is white
+        set brightness [expr $r_bg * 0.2126 + $g_bg * 0.7152 + $b_bg * 0.0722]
+	set col_fg "fff"
+        if {$brightness >= 127} {set col_fg "000"}
+        set category_l10n [lang::message::lookup "" intranet-core.$category_key $category]
+        append admin_html "<tr><td style='padding:3px; background-color:\#$col; color:\#$col_fg'>$category_l10n</td></tr>\n"
+   }
 }
 
 append admin_html "</table>\n"
@@ -481,6 +514,7 @@ if { ![empty_string_p $query_string] } {
 
 append table_header_html "<tr>\n"
 set ctr 0
+
 foreach col $column_headers {
     set wrench_html [lindex $column_headers_admin $ctr]
     regsub -all " " $col "_" col_key
@@ -493,7 +527,6 @@ foreach col $column_headers {
     incr ctr
 }
 append table_header_html "</tr>\n"
-
 
 
 # ---------------------------------------------------------------
