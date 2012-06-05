@@ -579,23 +579,38 @@ set ctr 0
 
 ns_log NOTICE $sql
 
+
+
 db_foreach get_hours $sql {
 
-    ns_log NOTICE "weekly_report: loop: owner name: $owner_name"
+    # This loop handles absence and hour records, to be distinguished by field '$type'
+    # Example: 
+    # 
+    #    35327 | Peter GUDENBURG         | 66944 | a    | Vacation | 20120525
+    #    35327 | Peter GUDENBURG         |     0 |      |          | 20120527
+    #    35609 | Peter GERLAND           |  8.00 | h    |          | 20120521
+    #    35609 | Peter GERLAND           |  8.00 | h    |          | 20120522
+    #    35609 | Peter GERLAND           |  8.00 | h    |          | 20120523
+    #    35609 | Peter GERLAND           |  8.00 | h    |          | 20120524
+    #    35609 | Peter GERLAND           |  8.00 | h    |          | 20120525
+    #    35609 | Peter GERLAND           |     0 |      |          | 20120527
 
-    if { $ctr == 0 } {
-	set old_owner [list $curr_owner_id $owner_name]
-    }
+    # Only when absence and hour arrays are set for user, the line will be written 
 
-    ns_log NOTICE "weekly_report: loop: id old owner: [lindex $old_owner 0], id current owner: $curr_owner_id"
+    ns_log NOTICE "weekly_report: Next in loop: owner name: $owner_name ($curr_owner_id)"
+
+    # Skip first record for first loop 
+    if { $ctr == 0 } { set old_owner [list $curr_owner_id $owner_name]}
+
+    ns_log NOTICE "weekly_report: Checking: Do we write row? Old owner: [lindex $old_owner 1] ([lindex $old_owner 0]), current owner: $owner_name ($curr_owner_id)"
    
     if { [lindex $old_owner 0] != $curr_owner_id } {
-	ns_log NOTICE "weekly_report: loop: Writing out line for id: [lindex $old_owner 0]"	
+	ns_log NOTICE "weekly_report: loop: Writing row user: [lindex $old_owner 1] ([lindex $old_owner 0])"	
 	append table_body_html [im_do_row \
 				    [array get bgcolor] \
 				    $ctr \
 				    [lindex $old_owner 0] \
-				    [lindex "$old_owner" 1] \
+				    [lindex $old_owner 1] \
 				    $days \
 				    [array get user_days] \
 				    [array get user_absences] \
@@ -609,9 +624,12 @@ db_foreach get_hours $sql {
 	array unset user_absences
     }
 
+    # Set hours 
     if { $type == "h" } {
 	set user_days($curr_day) $val
     }
+    
+    # Set absences 
     if { $type == "a" } {
 	set user_absences($curr_day) $val
 	set user_ab_descr($val) $descr
@@ -620,28 +638,15 @@ db_foreach get_hours $sql {
     incr ctr
 }
 
-# Write last record -> KH: This report requires re-factoring  
-append table_body_html [im_do_row \
-			    [array get bgcolor] \
-                            $ctr \
-			    [lindex $old_owner 0] \
-			    [lindex "$old_owner" 1] \
-                            $days \
-			    [array get user_days] \
-			    [array get user_absences] \
-                            $holydays \
-                            $today_date \
-			    [array get user_ab_descr] \
-                            $workflow_key \
-			    ]
-
 set colspan [expr [llength $days]+1]
 
-# Show a reasonable message when there are no result rows:
-if { [array size user_days] > 0 } {
-    append table_body_html [im_do_row [array get bgcolor] $ctr $curr_owner_id $owner_name $days [array get user_days] [array get user_absences] $holydays $today_date [array get user_ab_descr] $workflow_key ]
 
+if { $ctr > 0 } {
+    # Writing last record 
+    ns_log NOTICE "weekly_report: left loop, now writing last record" 
+    append table_body_html [im_do_row [array get bgcolor] $ctr $curr_owner_id $owner_name $days [array get user_days] [array get user_absences] $holydays $today_date [array get user_ab_descr] $workflow_key ]
 } elseif { [empty_string_p $table_body_html] } {
+    # Show a reasonable message when there are no result rows:
     set table_body_html "
 	 <tr><td colspan=$colspan><ul><li><b>
 	[_ intranet-timesheet2.No_Users_found]
