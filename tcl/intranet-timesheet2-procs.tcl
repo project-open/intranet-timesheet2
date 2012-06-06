@@ -865,45 +865,46 @@ ad_proc wf_status_list  {
     db_foreach col $sql {
 	# Handle multiple cases 
 	if { ![info exists wf_state_array($day)] } {
-		# no value yet, just set it .... 
-		set wf_state_array($day) $state
+	    # no value yet, just set it .... 
+	    set wf_state_array($day) $state
 	} else {
-		# status != "finished" will always overwrite current status  
-		if { "finished" != $state } {
-			set wf_state_array($day) $state				
-		}
+	    # status != "finished" will always overwrite current status  
+	    if { "finished" != $state } {
+		set wf_state_array($day) $state				
+	    }
 	}
 	set logged_array($day) $hours
     }    
-
+    
     # if { $user_id == 61127 } { ad_return_complaint 1 [array get wf_state_array] }
-
+    
     set wf_status_list [list]
-
+    
     foreach list_day $days {
-
+	
 	# set default to '0' -> bgcolor NOT green  
 	set return_array($list_day) 0
-
+	
 	if { ![info exists wf_state_array($list_day)]  } {
-		# No WF for this day 
-		if { [info exists logged_array($list_day)] } {
-			# No hours logged for this day 
-			set return_array($list_day) 1 	
-		}
+	    # No WF for this day 
+	    if { [info exists logged_array($list_day)] } {
+		# No hours logged for this day 
+		set return_array($list_day) 1 	
+	    }
 	} else {
-		# We have a WF case for this day  
+	    # We have a WF case for this day  
 		if { "finished" == $wf_state_array($list_day) } {
-			set return_array($list_day) 1	
+		    set return_array($list_day) 1	
 		}
-	}
+	    }
     }
-
+    
     foreach i [array names return_array] {
 	lappend wf_status_list "$i $return_array($i)" 
     }
     # if { $user_id == 61127 } { ad_return_complaint 1 $wf_status_list }
-    return $wf_status_list
+    return $wf_status_list   
+}
 
 ad_proc get_unconfirmed_hours_for_period {
     user_id

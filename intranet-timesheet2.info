@@ -49,8 +49,8 @@
             <parameter datatype="number"  min_n_values="1"  max_n_values="1"  name="ForceAllTimesheetEntriesWithCommentP"  default="0" description="Should a the comment for a time sheet entry be mandatory?"/>
 	    <parameter datatype="number"  min_n_values="1"  max_n_values="1"  name="ShowLinkToWeeklyTimesheetP"  default="1" description="You want to deactivate this link when comments to time sheet entries are mandatory. The weekly time capture form does not contain a comment field."/>
 	    <parameter datatype="number"  min_n_values="1"  max_n_values="1"  name="FillFirstAndLastRowInTSCalendarP" default="1" description="If true, first and last row in calendar will be completed with days of previous/next month."/>
-	    <parameter datatype="number"  min_n_values="1"  max_n_values="1"  name="WeekStartDay" default="0" description="Set first day of week in timesheet monthly view. Currently supported are 0 (Sunday) and 1 (Monday)"/></parameters>
-	    <parameter datatype="number"  min_n_values="1"  max_n_values="1"  name="WeeklyReportColorCodeWeekendsP" default="0" description="Set background color for weekends in weekly report? (weekly_report.tcl)"/></parameters>
+	    <parameter datatype="number"  min_n_values="1"  max_n_values="1"  name="WeekStartDay" default="0" description="Set first day of week in timesheet monthly view. Currently supported are 0 (Sunday) and 1 (Monday)"/>
+	    <parameter datatype="number"  min_n_values="1"  max_n_values="1"  name="WeeklyReportColorCodeWeekendsP" default="0" description="Set background color for weekends in weekly report? (weekly_report.tcl)"/>
 	    <parameter datatype="string"  min_n_values="1"  max_n_values="1"  name="AbsenceURL" default="/intranet-timesheet2/absences" description="Provide option to fork to different than default page when registering absences."/></parameters>
     </version>
 </package>
