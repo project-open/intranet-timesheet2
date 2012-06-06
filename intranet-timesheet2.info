@@ -8,7 +8,7 @@
     <singleton-p>t</singleton-p>
     <auto-mount>intranet-timesheet2</auto-mount>
 
-    <version name="4.0.3.0.0" url="http://www.project-open.org/download/apm/intranet-timesheet2-4.0.3.0.0.apm">
+    <version name="4.0.3.1.4" url="http://www.project-open.org/download/apm/intranet-timesheet2-4.0.3.1.4.apm">
         <owner url="mailto:frank.bergmann@project-open.com">Frank Bergmann</owner>
         <release-date>2004-02-07</release-date>
         <vendor url="http://www.project-open.com/">]project-open[</vendor>
@@ -48,6 +48,9 @@
             <parameter datatype="string"  min_n_values="1"  max_n_values="1"  name="TimesheetWeeklyLoggingDays"  default="0 1 2 3 4 5 6" description="What are the days of the week for which we want to log hours in the weekly view? Default is '0 1 2 3 4 5 6' for all 7 days per week. The alternative is '1 2 3 4 5' for Monday to Friday. '0' refers to Sunday, '1' is Monday and '6' is Saturday. "/>
             <parameter datatype="number"  min_n_values="1"  max_n_values="1"  name="ForceAllTimesheetEntriesWithCommentP"  default="0" description="Should a the comment for a time sheet entry be mandatory?"/>
 	    <parameter datatype="number"  min_n_values="1"  max_n_values="1"  name="ShowLinkToWeeklyTimesheetP"  default="1" description="You want to deactivate this link when comments to time sheet entries are mandatory. The weekly time capture form does not contain a comment field."/>
-        </parameters>
+	    <parameter datatype="number"  min_n_values="1"  max_n_values="1"  name="FillFirstAndLastRowInTSCalendarP" default="1" description="If true, first and last row in calendar will be completed with days of previous/next month."/>
+	    <parameter datatype="number"  min_n_values="1"  max_n_values="1"  name="WeekStartDay" default="0" description="Set first day of week in timesheet monthly view. Currently supported are 0 (Sunday) and 1 (Monday)"/></parameters>
+	    <parameter datatype="number"  min_n_values="1"  max_n_values="1"  name="WeeklyReportColorCodeWeekendsP" default="0" description="Set background color for weekends in weekly report? (weekly_report.tcl)"/></parameters>
+	    <parameter datatype="string"  min_n_values="1"  max_n_values="1"  name="AbsenceURL" default="/intranet-timesheet2/absences" description="Provide option to fork to different than default page when registering absences."/></parameters>
     </version>
 </package>

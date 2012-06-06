@@ -90,8 +90,8 @@ ad_proc absence_list_for_user_and_time_period {user_id first_julian_date last_ju
     UNION
 	-- Absences via groups - Check if the user is a member of group_id
 	select
-		to_char(start_date,'J') as start_date,
-		to_char(end_date,'J') as end_date,
+		to_char(start_date,'yyyy-mm-dd') as start_date,
+		to_char(end_date,'yyyy-mm-dd') as end_date,
 		im_category_from_id(absence_type_id) as absence_type,
 		im_category_from_id(absence_status_id) as absence_status,
 		absence_id
@@ -123,7 +123,10 @@ ad_proc absence_list_for_user_and_time_period {user_id first_julian_date last_ju
 	regsub " " $absence_type "_" absence_type_key
 	set absence_type_l10n [lang::message::lookup "" intranet-core.$absence_type_key $absence_type]
 
-	for {set i [max $start_date $first_julian_date]} {$i<=[min $end_date $last_julian_date]} {incr i } {
+	set start_date_julian [db_string get_data "select to_char('$start_date'::date,'J')" -default 0]
+	set end_date_julian [db_string get_data "select to_char('$end_date'::date,'J')" -default 0]
+
+	for {set i [max $start_date_julian $first_julian_date]} {$i<=[min $end_date_julian $last_julian_date]} {incr i } {
 	   set vacation($i) "
 		<a href=\"/intranet-timesheet2/absences/new?form_mode=display&absence_id=$absence_id\"
 		>[_ intranet-timesheet2.Absent_1]</a> 
@@ -291,16 +294,18 @@ ad_proc im_absence_cube_color_list { } {
 
     # Overwrite in case there's a custom color defined 
     set col_sql "
-        select category_id, aux_string2
+        select  category_id, category, enabled_p, aux_string2
         from    im_categories
-        where   
-				category_type = 'Intranet Absence Type'
-				and enabled_p = 't'
+        where
+                category_type = 'Intranet Absence Type'
         order by category_id
-    "
+     "
+
     set ctr 0 
     db_foreach cols $col_sql {
-	if { "" != $aux_string2 } {
+	if { "" == $aux_string2 } {
+	    lset color_list $ctr [lindex $color_list $ctr]
+	} else {
 	    lset color_list $ctr $aux_string2
 	}
 	incr ctr
