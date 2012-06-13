@@ -130,7 +130,7 @@ ad_proc im_do_row {
     # get 'new' absence array
     set first_day_absence_arr [clock format [clock scan [lindex $days 0]] -format {%Y-%m-%d}]
     set last_day_absence_arr [clock format [clock scan [lindex $days 6]] -format {%Y-%m-%d} ]
-    set sql "select * from im_absences_get_absences_for_user(:curr_owner_id, :first_day_absence_arr::date, :last_day_absence_arr::date, null) AS (absence_date date, absence_type_id int)"
+    set sql "select * from im_absences_get_absences_for_user(:curr_owner_id, :first_day_absence_arr::date, :last_day_absence_arr::date, null) AS (absence_date date, absence_type_id int, absence_id int)"
 
     db_foreach absence_arr $sql {
         # Find index of $days
@@ -141,9 +141,9 @@ ad_proc im_do_row {
         }
         # Set array
         if { [info exists absence_arr($day_idx)] } {
-            append absence_arr($day_idx) "<br><a href=\"$absence_view_page?absence_id=$absence_type_id\" style=\"color:\\\\\\#FF0000;\">[_ intranet-timesheet2.Absent]</a> ([im_category_from_id $absence_type_id])"
+            append absence_arr($day_idx) "<br><a href=\"$absence_view_page&absence_id=$absence_id\" style=\"color:\\\\\\#FF0000;\">[_ intranet-timesheet2.Absent]</a> ([im_category_from_id $absence_type_id])"
         } else {
-            set absence_arr($day_idx) "<a href=\"$absence_view_page?absence_id=$absence_type_id\" style=\"color:\\\\\\\#FF0000;\">[_ intranet-timesheet2.Absent]</a> ([im_category_from_id $absence_type_id])"
+            set absence_arr($day_idx) "<a href=\"$absence_view_page&absence_id=$absence_id\" style=\"color:\\\\\\\#FF0000;\">[_ intranet-timesheet2.Absent]</a> ([im_category_from_id $absence_type_id])"
         }
     }
     ns_log NOTICE "weekly_report: New Absence Array for user_id: $curr_owner_id ($first_day_absence_arr/$last_day_absence_arr) [array get absence_arr]"
