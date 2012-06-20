@@ -373,7 +373,7 @@ set page_body [calendar_basic_month \
 		   -day_bgcolor $day_bgcolor \
 		   -date $date \
 		   -prev_next_links_in_title 1 \
-		   -fill_all_days 1 \
+		   -fill_all_days $fill_up_first_last_row_p \
 		   -empty_bgcolor "\#cccccc"]
 
 # ---------------------------------------------------------------
