@@ -216,6 +216,9 @@ foreach j $weekly_logging_days {
     # Create the "action_hash" with a mapping (pid) => action for all lines where we
     # have to take an action. We construct this hash by iterating through all entries 
     # (both db and screen) and comparing their content.
+
+
+    set total_screen_hours 0 
     foreach pid $all_project_ids {
 	# Extract the hours and notes from the database hashes
 	set db_hours ""
@@ -246,14 +249,7 @@ foreach j $weekly_logging_days {
 	         "]"
 		ad_script_abort
 	    }
-	    if {$screen_hours > $max_hours_per_day} {
-		ad_return_complaint 1 "<b>[lang::message::lookup "" intranet-timesheet2.Number_too_big_for_param "Number is larger then allowed"]</b>:<br>
-	         [lang::message::lookup "" intranet-timesheet2.Number_too_big_help "
-	   		The number '%screen_hours%' is larger then allowed.<br>
-			Please enter a number between '0' and '%max_hours_per_day%'. 
-	         "]"
-		ad_script_abort
-	    }
+	    set total_screen_hours [expr $total_screen_hours + $screen_hours]
 	}
 
 	# Determine the action to take on the database items from comparing database vs. screen
@@ -272,6 +268,15 @@ foreach j $weekly_logging_days {
 	ns_log Notice "hours/new-2: pid=$pid, day=$day_julian, db:'$db_hours', screen:'$screen_hours' => action=$action"
 
 	if {"skip" != $action} { set action_hash($pid) $action }
+    }
+
+    if {$total_screen_hours > $max_hours_per_day} {
+	ad_return_complaint 1 "<b>[lang::message::lookup "" intranet-timesheet2.Number_too_big_for_param "Number is larger then allowed"]</b>:<br>
+            [lang::message::lookup "" intranet-timesheet2.Number_too_big_help "
+                   You have logged more hours (%total_screen_hours%) then allowed.<br>
+                   Please log no more than '%max_hours_per_day%' hours for one day.
+	    "]"
+            ad_script_abort
     }
 
     ns_log Notice "hours/new2: day=$i, database_hours_hash=[array get database_hours_hash]"
