@@ -129,10 +129,10 @@ set bind_vars [list user_id $current_user_id user_id_from_search $user_id_from_s
 set menu_links_html [im_menu_ul_list -no_uls 1 "timesheet_hours_new_admin" $bind_vars]
 
 # Enable the functionality to confirm timesheet hours?
-set confirm_timesheet_hours_p [util_memoize [list db_string ts_wf_exists {
-        select count(*) from apm_packages
-        where package_key = 'intranet-timesheet2-workflow'
-} -default 0]]
+set confirm_timesheet_hours_p 0
+if { "" != [parameter::get -package_id [apm_package_id_from_key intranet-timesheet2-workflow] -parameter "DefaultWorkflowKey" -default ""] }  {
+    set confirm_timesheet_hours_p 1
+}
 
 if {![im_column_exists im_hours conf_object_id]} { set confirm_timesheet_hours_p 0 }
 
