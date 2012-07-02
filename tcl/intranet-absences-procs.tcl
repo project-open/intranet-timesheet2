@@ -99,9 +99,15 @@ ad_proc absence_list_for_user_and_time_period {user_id first_julian_date last_ju
 		im_user_absences
 	where 
 		group_id in (
-			select group_id
-			from group_element_index gei, membership_rels mr 
-			where gei.rel_id = mr.rel_id and mr.member_state = 'approved'
+                        select
+                                group_id
+                        from
+                                group_element_index gei,
+                                membership_rels mr
+                        where
+                                gei.rel_id = mr.rel_id and
+                                mr.member_state = 'approved' and
+                                gei.element_id = :user_id
 		) and
 		start_date <= to_date(:last_julian_date,'J') and
 		end_date   >= to_date(:first_julian_date,'J')
@@ -343,11 +349,13 @@ ad_proc im_absence_mix_colors {
 } {
     # Show empty cells according to even/odd row formatting
     if {"" == $value} { return "" }
+    set value [string toupper $value]
 
     # Define a list of colours to pick from
     set color_list [im_absence_cube_color_list]
 
     set hex_list {0 1 2 3 4 5 6 7 8 9 A B C D E F}
+
     set len [string length $value]
     set r 0
     set g 0
