@@ -392,7 +392,6 @@ append parent_project_sql "
 "
 
 
-
 # Determine how to show the tasks of projects.
 switch $task_visibility_scope {
     "main_project" {
@@ -465,6 +464,17 @@ switch $task_visibility_scope {
 			and r.object_id_two = :user_id_from_search
 	"
 
+        if { "restrictive" == $permissive_logging } {
+            set restrictive_sql "and sub.project_id in (
+                                        select  r.object_id_one
+                                        from    acs_rels r
+                                        where   r.object_id_two = :user_id_from_search
+                                )
+            "
+        } else {
+	    set restrictive_sql ""
+	}
+
 	set children_sql "
 				-- Select any subprojects of control projects
 				select	sub.project_id
@@ -477,6 +487,7 @@ switch $task_visibility_scope {
 					and sub.tree_sortkey between
 						main.tree_sortkey and
 						tree_right(main.tree_sortkey)
+                                        $restrictive_sql
 			UNION
 				-- Select any project or task with explicit membership
 				select  r.object_id_one
