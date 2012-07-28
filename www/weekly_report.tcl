@@ -24,7 +24,8 @@ ad_proc wf_status_list  {
     { days  }
     { workflow_key }
 } {
-    Returns a row with the hours logged of one user
+    Returns list of lists of format {[ansi-date] [wf-status]}
+    Example: {20120720 2} {20120719 2} {20120721 1}
 } {
 
     set first_day_of_week [clock format [clock scan [lindex $days 0]] -format {%Y-%m-%d}]
@@ -65,7 +66,14 @@ ad_proc wf_status_list  {
    
     db_foreach col $sql {
 	set wf_hour_status_list [list]
-	set logged_array($day) [lappend wf_hour_status_list $hours $state]
+	if { ![info exists logged_array($day)] } {
+		set logged_array($day) [lappend wf_hour_status_list $hours $state]
+	} else {
+		# There's a value for this day, always overwrite if state = "finish"
+		if { "finished" == [lindex $logged_array($day) 1] } {
+	 		set logged_array($day) [lappend wf_hour_status_list $hours $state]
+		}	
+	}
     }    
 
     set wf_status_list [list]
@@ -159,6 +167,10 @@ ad_proc im_do_row {
     # Adding feature: Set background of cell indicating WF status 
     if { "" != $workflow_key } {
 	set wf_status_list [wf_status_list $curr_owner_id $days $workflow_key]
+	# wf_status_list list of lists {ansi-date status} 
+	# Example: {20120720 2} {20120719 2} {20120721 1}
+	ns_log NOTICE "KHD: wf_status_list: $wf_status_list"
+
 	foreach rec $wf_status_list {
 	    set wf_status_array([lindex [split $rec " "] 0]) [lindex [split $rec " "] 1]
 	    ns_log NOTICE "weekly_report - WF status list - wf_status_array([lindex [split $rec " "] 0]) [lindex [split $rec " "] 1]"
