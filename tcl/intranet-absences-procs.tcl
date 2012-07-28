@@ -296,8 +296,6 @@ ad_proc im_absence_cube_color_list { } {
         CCCCC9
         CCCCC9
         CCCCC9
-<<<<<<< HEAD
-=======
         CCCCC9
         CCCCC9
         CCCCC9
@@ -308,7 +306,6 @@ ad_proc im_absence_cube_color_list { } {
         CCCCC9
         CCCCC9
         CCCCC9
->>>>>>> intranet-timesheet2/master
     }
 
     # Overwrite in case there's a custom color defined 
