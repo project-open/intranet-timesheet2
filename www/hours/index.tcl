@@ -282,8 +282,11 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
                                 set html "<span id='hours_confirmed_green'>$html</span>"
                         }
                  } else {
-                        set html "$html<br><br> [lang::message::lookup "" intranet-timesheet2.ToConfirm "To confirm"]:&nbsp;<span id='hours_confirmed_red'>${no_unconfirmed_hours}&nbsp;[_ intranet-timesheet2.hours]</span>"
-
+                        set html "$html<br><br>" 
+			if { $confirm_timesheet_hours_p } {
+				append html "[lang::message::lookup "" intranet-timesheet2.ToConfirm "To confirm"]:&nbsp;"
+				append html "<span id='hours_confirmed_red'>${no_unconfirmed_hours}&nbsp;[_ intranet-timesheet2.hours]</span>"
+			}	
                  }
 	    } else {
 		set html "${hours}${curr_absence}"
