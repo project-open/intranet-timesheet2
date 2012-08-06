@@ -3,6 +3,7 @@
 <property name="context">#intranet-timesheet2.context#</property>
 <property name="main_navbar_label">timesheet2_timesheet</property>
 <property name="left_navbar">@left_navbar_html;noquote@</property>
+<property name="show_context_help_p">@show_context_help_p;noquote@</property>
 
 <%= [im_box_header $page_title] %>
 

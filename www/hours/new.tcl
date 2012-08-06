@@ -37,6 +37,8 @@ ad_page_contract {
 # Default & Security
 # ---------------------------------------------------------
 
+set show_context_help_p 1
+
 # Should we show debugging information for each project?
 set debug 0
 
