@@ -371,9 +371,20 @@ select
 	to_char(a.end_date, :date_format) as end_date_pretty,
 	im_name_from_user_id(a.owner_id) as owner_name
 from
-	im_user_absences a
+	im_user_absences a,
+        group_member_map gm,
+        membership_rels mr,
+        acs_rels r,
+        cc_users cc
 where
-	1=1 
+        gm.rel_id = mr.rel_id
+        and r.rel_id = mr.rel_id
+        and r.rel_type = 'membership_rel'
+        and cc.object_id = gm.member_id
+        and cc.member_state = 'approved'
+        and cc.object_id = gm.member_id
+        and gm.group_id = [im_employee_group_id]
+	and a.owner_id = cc.object_id
 	$where_clause
 	$perm_clause
 "
