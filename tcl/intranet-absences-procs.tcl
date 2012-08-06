@@ -534,10 +534,11 @@ ad_proc im_absence_cube {
     # ---------------------------------------------------------------
     
     set user_list [db_list_of_lists user_list "
-	select	user_id as user_id,
-		im_name_from_user_id(user_id) as user_name
-	from	users u
-	where	user_id in (
+	select	u.user_id as user_id,
+		im_name_from_user_id(u.user_id) as user_name
+	from	users u,
+		cc_users cc
+	where	u.user_id in (
 			-- Individual Absences per user
 			select	a.owner_id
 			from	im_user_absences a,
@@ -558,8 +559,10 @@ ad_proc im_absence_cube {
 				mm.group_id = a.group_id
 				$where_clause
 		)
+		and cc.member_state = 'approved'
+		and cc.user_id = u.user_id
 	order by
-		lower(im_name_from_user_id(user_id))
+		lower(im_name_from_user_id(u.user_id))
     "]
 
 
@@ -575,8 +578,11 @@ ad_proc im_absence_cube {
 		d.d
 	from	im_user_absences a,
 		users u,
-		(select im_day_enumerator as d from im_day_enumerator(:report_start_date, :report_end_date)) d
+		(select im_day_enumerator as d from im_day_enumerator(:report_start_date, :report_end_date)) d,
+		cc_users cc
 	where	a.owner_id = u.user_id and
+		cc.user_id = u.user_id and 
+		cc.member_state = 'approved' and
 		a.start_date <= :report_end_date::date and
 		a.end_date >= :report_start_date::date and
 		d.d between a.start_date and a.end_date
