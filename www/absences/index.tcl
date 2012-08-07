@@ -204,6 +204,8 @@ db_foreach column_list_sql $column_sql {
     }
 }
 
+
+
 # ---------------------------------------------------------------
 # 4. Define Filter Categories
 # ---------------------------------------------------------------
@@ -369,9 +371,20 @@ select
 	to_char(a.end_date, :date_format) as end_date_pretty,
 	im_name_from_user_id(a.owner_id) as owner_name
 from
-	im_user_absences a
+	im_user_absences a,
+        group_member_map gm,
+        membership_rels mr,
+        acs_rels r,
+        cc_users cc
 where
-	1=1 
+        gm.rel_id = mr.rel_id
+        and r.rel_id = mr.rel_id
+        and r.rel_type = 'membership_rel'
+        and cc.object_id = gm.member_id
+        and cc.member_state = 'approved'
+        and cc.object_id = gm.member_id
+        and gm.group_id = [im_employee_group_id]
+	and a.owner_id = cc.object_id
 	$where_clause
 	$perm_clause
 "
@@ -433,7 +446,7 @@ if {[string is integer $user_selection] && $add_absences_for_group_p && $user_se
 	# Log for other user "than current user" requires 
 	set for_user_id $user_selection
 } else {
-	set for_user_id $user_id 
+	set for_user_id $current_user_id 
 }
 
 set admin_html [im_menu_ul_list -package_key "intranet-timesheet2" "timesheet2_absences" "{user_id_from_search} {$for_user_id} {return_url} {$return_url}"]
