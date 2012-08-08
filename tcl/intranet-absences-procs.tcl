@@ -444,6 +444,7 @@ ad_proc im_absence_cube {
     set current_user_id [ad_get_user_id]
     set bgcolor(0) " class=roweven "
     set bgcolor(1) " class=rowodd "
+    set name_order [parameter::get -package_id [apm_package_id_from_key intranet-core] -parameter "NameOrder" -default 1]
 
     if {"" == $report_start_date || "2000-01-01" == $report_start_date} {
 	set report_start_date [db_string start_date "select now()::date"]
@@ -535,7 +536,7 @@ ad_proc im_absence_cube {
     
     set user_list [db_list_of_lists user_list "
 	select	u.user_id as user_id,
-		im_name_from_user_id(u.user_id) as user_name
+		im_name_from_user_id(u.user_id, $name_order) as user_name
 	from	users u,
 		cc_users cc
 	where	u.user_id in (
@@ -562,7 +563,7 @@ ad_proc im_absence_cube {
 		and cc.member_state = 'approved'
 		and cc.user_id = u.user_id
 	order by
-		lower(im_name_from_user_id(u.user_id))
+		lower(im_name_from_user_id(u.user_id, $name_order))
     "]
 
 
