@@ -59,6 +59,7 @@ set view_absences_all_p [im_permission $user_id "view_absences_all"]
 set add_absences_p [im_permission $user_id "add_absences"]
 set org_absence_type_id $absence_type_id
 set show_context_help_p 1
+set name_order [parameter::get -package_id [apm_package_id_from_key intranet-core] -parameter "NameOrder" -default 1]
 
 set today [db_string today "select now()::date"]
 
@@ -107,8 +108,6 @@ set user_selection_types [list "all" "All" "mine" "Mine" "employees" "Employees"
 if {!$view_absences_all_p} {
     set user_selection_types [list "mine" "Mine"]
 }
-
-set name_order [parameter::get -package_id [apm_package_id_from_key intranet-core] -parameter "NameOrder" -default 1]
 
 if {$add_hours_all_p} {
     # Add employees to user_selection
@@ -369,7 +368,7 @@ select
 	im_category_from_id(absence_type_id) as absence_type,
 	to_char(a.start_date, :date_format) as start_date_pretty,
 	to_char(a.end_date, :date_format) as end_date_pretty,
-	im_name_from_user_id(a.owner_id) as owner_name
+	im_name_from_user_id(a.owner_id, $name_order) as owner_name
 from
 	im_user_absences a,
         group_member_map gm,
