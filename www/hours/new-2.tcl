@@ -64,6 +64,32 @@ set material_id ""
 # should we limit the max number of hours logged per day?
 set max_hours_per_day [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter TimesheetMaxHoursPerDay -default 999]
 
+# Is employee at least member of an office  
+# in which employees have no restrictions in regards to 
+# maximum hours logged per day 
+
+set sql "
+	select 
+		count(*)
+	from 
+		acs_rels r,
+		acs_objects o,
+		im_offices of
+	where 
+		o.object_id = r.object_id_one and
+		of.office_id = r.object_id_one and
+		o.object_type = 'im_office' and
+		rel_type = 'im_biz_object_member' and 
+		object_id_two = :user_id_from_search and 
+		of.ignore_max_hours_per_day_p = 't'
+"
+
+set count_ignore_max_hours_per_day [db_string get_data $sql -default 0]
+
+if { $count_ignore_max_hours_per_day > 0  } {
+	set max_hours_per_day 999 
+}
+
 # Conversion factor to calculate days from hours. Make sure it's a float number.
 set hours_per_day [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter TimesheetHoursPerDay -default 10]
 set hours_per_day [expr $hours_per_day * 1.0]
