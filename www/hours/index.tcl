@@ -71,6 +71,7 @@ set context_bar [im_context_bar "[_ intranet-timesheet2.Hours]"]
 set confirmation_period [parameter::get -package_id [apm_package_id_from_key intranet-timesheet2-workflow] -parameter "ConfirmationPeriod" -default "monthly"]
 set fill_up_first_last_row_p [parameter::get -package_id [apm_package_id_from_key intranet-timesheet2] -parameter "FillFirstAndLastRowInTSCalendarP" -default 1]
 set start_day [parameter::get -package_id [apm_package_id_from_key intranet-timesheet2] -parameter "WeekStartDay" -default 0]
+set show_link_log_hours_for_week_p [parameter::get -package_id [apm_package_id_from_key intranet-timesheet2] -parameter "ShowLinkToWeeklyTimesheetP" -default 0]
 
 set header_days_of_week "";
 
@@ -254,7 +255,7 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
 		set hours "$hours"
 	}
 
-	if {$column_ctr == 1 && !$timesheet_entry_blocked_p } {
+	if {$column_ctr == 1 && !$timesheet_entry_blocked_p && $show_link_log_hours_for_week_p } {
 	    append hours "<br>
                 <a href=[export_vars -base "new" {user_id_from_search {julian_date $current_date} {show_week_p 1} return_url}]
                 ><span class='log_hours'>[lang::message::lookup "" intranet-timesheet2.Log_hours_for_the_week "Log hours for the week"]</span></a>
