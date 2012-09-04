@@ -45,6 +45,8 @@ callback im_timesheet_hours_new_redirect \
 # Default & Security
 # ---------------------------------------------------------
 
+set show_context_help_p 1
+
 # Should we show debugging information for each project?
 set debug 0
 

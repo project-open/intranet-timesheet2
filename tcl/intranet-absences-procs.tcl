@@ -446,6 +446,7 @@ ad_proc im_absence_cube {
     set current_user_id [ad_get_user_id]
     set bgcolor(0) " class=roweven "
     set bgcolor(1) " class=rowodd "
+    set name_order [parameter::get -package_id [apm_package_id_from_key intranet-core] -parameter "NameOrder" -default 1]
 
     if {"" == $report_start_date || "2000-01-01" == $report_start_date} {
 	set report_start_date [db_string start_date "select now()::date"]
@@ -536,10 +537,11 @@ ad_proc im_absence_cube {
     # ---------------------------------------------------------------
     
     set user_list [db_list_of_lists user_list "
-	select	user_id as user_id,
-		im_name_from_user_id(user_id) as user_name
-	from	users u
-	where	user_id in (
+	select	u.user_id as user_id,
+		im_name_from_user_id(u.user_id, $name_order) as user_name
+	from	users u,
+		cc_users cc
+	where	u.user_id in (
 			-- Individual Absences per user
 			select	a.owner_id
 			from	im_user_absences a,
@@ -560,8 +562,10 @@ ad_proc im_absence_cube {
 				mm.group_id = a.group_id
 				$where_clause
 		)
+		and cc.member_state = 'approved'
+		and cc.user_id = u.user_id
 	order by
-		lower(im_name_from_user_id(user_id))
+		lower(im_name_from_user_id(u.user_id, $name_order))
     "]
 
 
@@ -577,8 +581,11 @@ ad_proc im_absence_cube {
 		d.d
 	from	im_user_absences a,
 		users u,
-		(select im_day_enumerator as d from im_day_enumerator(:report_start_date, :report_end_date)) d
+		(select im_day_enumerator as d from im_day_enumerator(:report_start_date, :report_end_date)) d,
+		cc_users cc
 	where	a.owner_id = u.user_id and
+		cc.user_id = u.user_id and 
+		cc.member_state = 'approved' and
 		a.start_date <= :report_end_date::date and
 		a.end_date >= :report_start_date::date and
 		d.d between a.start_date and a.end_date
