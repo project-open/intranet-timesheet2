@@ -23,6 +23,24 @@ ad_page_contract {
 
 }
 
+
+# ---------------------------------------------------------------
+# Security & Defaults
+# ---------------------------------------------------------------
+
+set current_user_id [ad_maybe_redirect_for_registration]
+if {![im_permission $current_user_id "view_hours_all"]} {
+    ad_return_complaint 1 [lang::message::lookup "" intranet-timesheet2.Not_Allowed_to_see_hours "
+    You are not allowed to see all timesheet hours in the system"]
+    ad_script_abort
+}
+
+
+# ---------------------------------------------------------------
+#
+# ---------------------------------------------------------------
+
+
 set page_title "[_ intranet-timesheet2.lt_Units_on_all_projects]"
 set context_bar [im_context_bar "[_ intranet-timesheet2.lt_Units_on_all_projects]"]
 
