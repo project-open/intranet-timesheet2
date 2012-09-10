@@ -27,6 +27,24 @@ ad_page_contract {
     { user_id:integer "" }
 }
 
+
+
+# ---------------------------------------------------------------
+# Security & Defaults
+# ---------------------------------------------------------------
+
+set current_user_id [ad_maybe_redirect_for_registration]
+if {![im_permission $current_user_id "view_hours_all"]} {
+    ad_return_complaint 1 [lang::message::lookup "" intranet-timesheet2.Not_Allowed_to_see_hours "
+    You are not allowed to see all timesheet hours in the system"]
+    ad_script_abort
+}
+
+# ---------------------------------------------------------------
+#
+# ---------------------------------------------------------------
+
+
 if { [empty_string_p $user_id] } {
     # send them a list of users
     set page_title "[_ intranet-timesheet2.View_employees_hours]"
