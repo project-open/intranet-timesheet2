@@ -68,7 +68,7 @@ if {$current_user_id == $user_id_from_search} {
 
 set page_title [lang::message::lookup "" intranet-timesheet2.Timesheet_for_user_name "Timesheet for %user_name%"]
 set context_bar [im_context_bar "[_ intranet-timesheet2.Hours]"]
-set confirmation_period [parameter::get -package_id [apm_package_id_from_key intranet-timesheet2-workflow] -parameter "ConfirmationPeriod" -default "monthly"]
+set confirmation_period [parameter::get -package_id [apm_package_id_from_key intranet-timesheet2-workflow] -parameter "ConfirmationPeriod" -default "weekly"]
 set fill_up_first_last_row_p [parameter::get -package_id [apm_package_id_from_key intranet-timesheet2] -parameter "FillFirstAndLastRowInTSCalendarP" -default 1]
 set start_day [parameter::get -package_id [apm_package_id_from_key intranet-timesheet2] -parameter "WeekStartDay" -default 0]
 set show_link_log_hours_for_week_p [parameter::get -package_id [apm_package_id_from_key intranet-timesheet2] -parameter "ShowLinkToWeeklyTimesheetP" -default 0]
@@ -136,6 +136,7 @@ if { "" != [parameter::get -package_id [apm_package_id_from_key intranet-timeshe
 }
 
 if {![im_column_exists im_hours conf_object_id]} { set confirm_timesheet_hours_p 0 }
+
 
 # ---------------------------------------------------------------
 # Render the Calendar widget
@@ -308,8 +309,9 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
 	if { $current_date_ansi == $last_day_of_month_ansi} { set show_last_confirm_button_p 0 }
 
 	# Include link for weekly TS confirmation
-	if { [string equal $confirmation_period "weekly"] && $confirm_timesheet_hours_p } {
-
+	# Monthly confirmation_period not supported yet, always assume weekly
+	# if { [string equal $confirmation_period "weekly"] && $confirm_timesheet_hours_p } {}
+	if {$confirm_timesheet_hours_p} {
 	    if { !$fill_up_first_last_row_p } {
 		set start_date_julian_wf [eval_wf_start_date $current_date $column_ctr]
 		set end_date_julian_wf $current_date
