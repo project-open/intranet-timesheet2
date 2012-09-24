@@ -467,40 +467,45 @@ ad_proc im_timesheet_update_timesheet_cache {
 } {
     Returns the total hours registered for the specified table and id.
 } {
-    # Determine all hours and days in the project and its children
-    db_1row timesheet_sum "
-	select	sum(h.hours) as num_hours,
-		sum(h.days) as num_days
-	from	im_hours h
-	where	h.project_id in (
-			select	children.project_id
-			from	im_projects parent,
-				im_projects children
-			where	parent.project_id = :project_id and
-				children.tree_sortkey between 
-					parent.tree_sortkey 
-					and tree_right(parent.tree_sortkey)
-		    UNION
-			select	:project_id as project_id
-		) and
-		h.day::date <= now()::date
-    "
+    set automatic_task_advance_p [parameter::get_from_package_key -package_key intranet-timesheet2-tasks -parameter AutomaticTaskAdvanceP -default 0]
 
-    set reported_hours_cache 0
-    set reported_days_cache 0
-    db_0or1row cached_hours "
-	select	p.reported_hours_cache,
-		p.reported_days_cache
-	from	im_projects p
-	where	p.project_id = :project_id
+    db_1row timesheet_sum "
+	select	t.*,
+		(select reported_hours_cache from im_projects where project_id = :project_id) as reported_hours_cache,
+		(select reported_days_cache from im_projects where project_id = :project_id) as reported_days_cache,
+		CASE
+			WHEN planned_units > 0.0 
+			THEN least(100.0, 100.0 * num_hours / planned_units)
+			ELSE NULL
+		END as percent_completed
+	from
+		(select	sum(h.hours) as num_hours,
+			sum(h.days) as num_days,
+			sum(coalesce(t.planned_units, t.billable_units)) as planned_units
+		from	im_projects parent,
+			im_projects children
+			LEFT OUTER JOIN im_timesheet_tasks t ON (children.project_id = t.task_id)
+			LEFT OUTER JOIN im_hours h ON (h.project_id = children.project_id)
+		where	parent.project_id = :project_id and
+			children.tree_sortkey between parent.tree_sortkey and tree_right(parent.tree_sortkey) and
+			h.day::date <= now()::date
+		) t
     "
 
     # Update im_project reported_hours_cache
     if {$num_hours != $reported_hours_cache || $num_days != $reported_days_cache} {
+
+        # ns_log Notice "im_timesheet_update_timesheet_cache: num_hours=$num_hours, planned_units=$planned_units, percent_completed=$percent_completed, automatic_task_advance_p=$automatic_task_advance_p"
+
+	set percentage_sql ""
+	if {"" != $percent_completed && $automatic_task_advance_p} {
+	    set percentage_sql ",percent_completed = :percent_completed"
+	}
 	db_dml update_project_reported_hours "
 		update im_projects set 
 			reported_hours_cache = :num_hours,
 			reported_days_cache = :num_days
+			$percentage_sql
 		where project_id = :project_id
 	"
 
