@@ -730,7 +730,6 @@ set old_parent_project_nr ""
 
 set showing_child_elements_p 0
 set top_project_id_saved -1
-set parent_project_id_saved -1
 set last_level_shown -1
 set level_entered_in_showing_child_elements -1
 
@@ -739,7 +738,7 @@ template::multirow foreach hours_multirow {
 
    if { "" != $search_task } {
        set search_task [string trim $search_task]
-       ns_log NOTICE "/intranet-timesheet2/www/hours/new::project_name: $project_name, search_task: $search_task, top_project_id: $top_project_id"
+       # ns_log NOTICE "/intranet-timesheet2/www/hours/new::project_name: $project_name, search_task: $search_task, top_project_id: $top_project_id"
        if { !$showing_child_elements_p || $ctr==0 } {
 	   if { [string first [string tolower $search_task] [string tolower $project_name]] == -1 } {
 	       # ns_log NOTICE "/intranet-timesheet2/www/hours/new::String not found continuing ... "
@@ -750,21 +749,19 @@ template::multirow foreach hours_multirow {
 	       # Set mode
 	       set showing_child_elements_p 1
 	       # Save vars
-	       set parent_project_id_saved $parent_project_id
 	       set last_level_shown $subproject_level
 	       set level_entered_in_showing_child_elements $subproject_level
 	       set top_project_id_saved $top_project_id
 	   }
 	} else {
 	    # We are in mode "Show child elements"
-            #ns_log NOTICE "/intranet-timesheet2/www/hours/new::In showing_child_elements_p"
+            ## ns_log NOTICE "/intranet-timesheet2/www/hours/new::In showing_child_elements_p"
             if { $top_project_id_saved != $top_project_id } {
                 # We are in a new top parent project
                 # ns_log NOTICE "/intranet-timesheet2/www/hours/new:: top_project_id_saved: $top_project_id_saved != top_project_id:$top_project_id"
                 # Reset
                 set showing_child_elements_p 0
                 # Save vars
-                set parent_project_id_saved $parent_project_id
                 set top_project_id_saved $top_project_id
 
                 if { [string first [string tolower $search_task] [string tolower $project_name]] == -1 } {
@@ -786,7 +783,7 @@ template::multirow foreach hours_multirow {
 			# ns_log NOTICE "/intranet-timesheet2/www/hours/new:: level_entered_in_showing_child_elements: $level_entered_in_showing_child_elements >= subproject_level:$subproject_level -> resetting, check for searchstring"
 			# Check for searchstring
 			if { [string first [string tolower $search_task] [string tolower $project_name]] == -1 } {
-                            ns_log NOTICE "/intranet-timesheet2/www/hours/new:: String not found continuing ... "
+                            # ns_log NOTICE "/intranet-timesheet2/www/hours/new:: String not found continuing ... "
                             continue
 			} else {
                             # ns_log NOTICE "/intranet-timesheet2/www/hours/new:: ------- String found -------"
@@ -805,6 +802,7 @@ template::multirow foreach hours_multirow {
 			# ns_log NOTICE "/intranet-timesheet2/www/hours/new:: Check for searchstring"
 			if { [string first [string tolower $search_task] [string tolower $project_name]] == -1 } {
 			    # ns_log NOTICE "/intranet-timesheet2/www/hours/new::String not found, continuing ... "
+			    set showing_child_elements_p 0
 			    continue
 			} else {
 			    # ns_log NOTICE "/intranet-timesheet2/www/hours/new:: ------- String found -------"
@@ -819,7 +817,6 @@ template::multirow foreach hours_multirow {
         # ns_log NOTICE "/intranet-timesheet2/www/hours/new:: ----------------------------------------------------------------------------"
         # set vars
         set top_project_id_saved $top_project_id
-        set parent_project_id_saved $parent_project_id
     }
 
     # --------------------------------------------- 
