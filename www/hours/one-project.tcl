@@ -86,7 +86,7 @@ set sql "
 db_foreach hours_on_one_projects $sql {
     set first_day_str "[util_AnsiDatetoPrettyDate $first_day]"
     set last_day_str "[util_AnsiDatetoPrettyDate $last_day]"
-    append page_body "<li>$user_name, <a href=full?[export_url_vars project_id user_id]&date=$last_day>[_ intranet-timesheet2.lt_total_hours_units_bet]</a>\n"
+    append page_body "<li><a href='/intranet/users/view?user_id=$user_id'>$user_name</a>,<a href=full?[export_url_vars project_id user_id]&date=$last_day>[_ intranet-timesheet2.lt_total_hours_units_bet]</a>\n"
 } if_no_rows {
 	append page_body "<li>[_ intranet-timesheet2.lt_No_units_have_been_lo]\n"
 }
