@@ -733,6 +733,7 @@ set top_project_id_saved -1
 set last_level_shown -1
 set level_entered_in_showing_child_elements -1
 
+set surpress_output_p 0
 
 template::multirow foreach hours_multirow {
 
@@ -742,7 +743,7 @@ template::multirow foreach hours_multirow {
        if { !$showing_child_elements_p || $ctr==0 } {
 	   if { [string first [string tolower $search_task] [string tolower $project_name]] == -1 } {
 	       # ns_log NOTICE "/intranet-timesheet2/www/hours/new::String not found continuing ... "
-	       continue
+	       set surpress_output_p 1
 	   } else {
 	       # ns_log NOTICE "/intranet-timesheet2/www/hours/new:: ------- String found -------"
 	       # ns_log NOTICE "/intranet-timesheet2/www/hours/new:: Setting showing_child_elements_p = 1, setting top_project_id_saved: $top_project_id"
@@ -766,7 +767,7 @@ template::multirow foreach hours_multirow {
 
                 if { [string first [string tolower $search_task] [string tolower $project_name]] == -1 } {
                     # ns_log NOTICE "/intranet-timesheet2/www/hours/new::String not found continuing ... "
-                    continue
+		    set surpress_output_p 1
                 } else {
                     # ns_log NOTICE "/intranet-timesheet2/www/hours/new:: ------- String found -------"
                     # Set mode & last_level_shown
@@ -784,7 +785,7 @@ template::multirow foreach hours_multirow {
 			# Check for searchstring
 			if { [string first [string tolower $search_task] [string tolower $project_name]] == -1 } {
                             # ns_log NOTICE "/intranet-timesheet2/www/hours/new:: String not found continuing ... "
-                            continue
+			    set surpress_output_p 1
 			} else {
                             # ns_log NOTICE "/intranet-timesheet2/www/hours/new:: ------- String found -------"
                             set last_level_shown $subproject_level
@@ -803,7 +804,7 @@ template::multirow foreach hours_multirow {
 			if { [string first [string tolower $search_task] [string tolower $project_name]] == -1 } {
 			    # ns_log NOTICE "/intranet-timesheet2/www/hours/new::String not found, continuing ... "
 			    set showing_child_elements_p 0
-			    continue
+			    set surpress_output_p 1
 			} else {
 			    # ns_log NOTICE "/intranet-timesheet2/www/hours/new:: ------- String found -------"
 			    set last_level_shown $subproject_level
@@ -944,7 +945,7 @@ template::multirow foreach hours_multirow {
 	    if { "" != $search_task } {	    
 		append results "<tr class=rowplain><td colspan=99>$dots_for_filter</td></tr>\n"
 	    } else {
-		append results "<tr class=rowplain><td colspan=99>&nbsp;</td></tr>\n"
+		if { !$surpress_output_p } { append results "<tr class=rowplain><td colspan=99>&nbsp;</td></tr>\n" }
 	    }	
 	}
 	set old_parent_project_nr $parent_project_nr
@@ -953,7 +954,7 @@ template::multirow foreach hours_multirow {
     # ---------------------------------------------
     # Start the HTML column
     set project_url [export_vars -base "/intranet/projects/view?" {project_id return_url}]
-    append results "<tr $bgcolor([expr $ctr % 2])>\n"
+    if { !$surpress_output_p } { append results "<tr $bgcolor([expr $ctr % 2])>\n" }
 
     # ---------------------------------------------
     # Write out the project title
@@ -961,8 +962,7 @@ template::multirow foreach hours_multirow {
     if {$show_project_nr_p} { set ptitle "$project_nr - $project_name" } else { set ptitle $project_name }
 
     # Write out the name of the project nicely indented
-    append results "<td><nobr>$indent <A href=\"$project_url\">$ptitle</A></nobr></td>\n"
-
+    if { !$surpress_output_p } { append results "<td><nobr>$indent <A href=\"$project_url\">$ptitle</A></nobr></td>\n" }
 
     # -----------------------------------------------
     # Create help texts to explain the user why certain projects aren't shown
@@ -1012,7 +1012,8 @@ template::multirow foreach hours_multirow {
 	</nobr>
 	"
     }
-    append results "<td>$help_gif $debug_html</td>\n"
+
+    if { !$surpress_output_p } { append results "<td>$help_gif $debug_html</td>\n" }
 
     set ttt {
 	chi=$project_has_children_p,
@@ -1044,7 +1045,7 @@ template::multirow foreach hours_multirow {
 	set invoice_key "$project_id-$julian_day_offset"
 	if {[info exists hours_invoice_hash($invoice_key)]} { set invoice_id $hours_invoice_hash($invoice_key) }
 
-	if {"t" == $edit_hours_p && $log_on_parent_p && !$invoice_id && !$solitary_main_project_p && !$closed_p} {
+	if { "t" == $edit_hours_p && $log_on_parent_p && !$invoice_id && !$solitary_main_project_p && !$closed_p && !$surpress_output_p } {
 	    # Write editable entries.
 	    append results "<td><INPUT NAME=hours${i}.$project_id size=5 MAXLENGTH=5 value=\"$hours\"></td>\n"
 
@@ -1055,19 +1056,33 @@ template::multirow foreach hours_multirow {
 	    }
 
 	} else {
-	    # Write Disabled because we can't log hours on this one
-	    append results "<td>$hours <INPUT type=hidden NAME=hours${i}.$project_id value=\"$hours\"></td>\n"
-
-	    if {!$show_week_p} {
-		append results "<td>[ns_quotehtml [value_if_exists note]] <INPUT type=hidden NAME=notes0.$project_id value=\"[ns_quotehtml [value_if_exists note]]\"></td>\n"
-		if {$internal_note_exists_p} { append results "<td>[ns_quotehtml [value_if_exists internal_note]] <INPUT TYPE=HIDDEN NAME=internal_notes0.$project_id value=\"[ns_quotehtml [value_if_exists internal_note]]\"></td>\n" }
-		if {$materials_p} { append results "<td>$material <input type=hidden name=materials0.$project_id value=$material_id></td>\n" }
-	    }   
-	}
+	    if { $surpress_output_p } {
+		# Filter in use - write only hidden fields 
+		append results "<INPUT type=hidden NAME=hours${i}.$project_id value=\"$hours\">\n"
+		if {!$show_week_p} {
+		    append results "<INPUT type=hidden NAME=notes0.$project_id value=\"[ns_quotehtml [value_if_exists note]]\">\n"
+		    if {$internal_note_exists_p} { 
+			append results "<INPUT TYPE=HIDDEN NAME=internal_notes0.$project_id value=\"[ns_quotehtml [value_if_exists internal_note]]\">\n" 
+		    }
+		    if {$materials_p} { append results "<input type=hidden name=materials0.$project_id value=$material_id>\n" }
+		}   
+	    } else {
+		# Write Disabled because we can't log hours on this one
+		append results "<td>$hours <INPUT type=hidden NAME=hours${i}.$project_id value=\"$hours\"></td>\n"
+		if {!$show_week_p} {
+		    append results "<td>[ns_quotehtml [value_if_exists note]] <INPUT type=hidden NAME=notes0.$project_id value=\"[ns_quotehtml [value_if_exists note]]\"></td>\n"
+		    if {$internal_note_exists_p} { 
+			append results "<td>[ns_quotehtml [value_if_exists internal_note]] <INPUT TYPE=HIDDEN NAME=internal_notes0.$project_id value=\"[ns_quotehtml [value_if_exists internal_note]]\"></td>\n" 
+		    }
+		    if {$materials_p} { append results "<td>$material <input type=hidden name=materials0.$project_id value=$material_id></td>\n" }
+		}   
+	    }
 	incr i 
-    }
-    append results "</tr>\n"
+	}
+	if { !$surpress_output_p } { append results "</tr>\n" }
     incr ctr
+    set surpress_output_p 0
+    }
 }
 
 if { [empty_string_p results] } {
