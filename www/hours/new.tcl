@@ -1077,12 +1077,12 @@ template::multirow foreach hours_multirow {
 		    if {$materials_p} { append results "<td>$material <input type=hidden name=materials0.$project_id value=$material_id></td>\n" }
 		}   
 	    }
-	incr i 
 	}
-	if { !$surpress_output_p } { append results "</tr>\n" }
+	incr i
+    }; # For each weekday
+    if { !$surpress_output_p } { append results "</tr>\n" }
     incr ctr
     set surpress_output_p 0
-    }
 }
 
 if { [empty_string_p results] } {
