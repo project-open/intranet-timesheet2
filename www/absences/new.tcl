@@ -333,7 +333,7 @@ ad_form -extend -name absence -on_request {
 	}
 	
 	# Callback 
-    ns_log NOTICE "Callback: Calling callback 'absence_on_change' "
+    ns_log Notice "Callback: Calling callback 'absence_on_change' "
 
 	callback absence_on_change \
 	    -absence_id $absence_id \
