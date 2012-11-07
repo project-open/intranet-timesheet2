@@ -84,16 +84,16 @@ ad_proc wf_status_list  {
 		if { "" == [lindex $logged_array($list_day) 1] } {
 			# No WF for this day 
 			set return_array($list_day) 0 	
-			ns_log NOTICE "weekly_report-wf_status_list: NO WF found for user: $user_id for day: $list_day"
+			ns_log notice "weekly_report-wf_status_list: NO WF found for user: $user_id for day: $list_day"
 		} else {
 			# We have a WF case for this day  
 			if { "finished" == [lindex $logged_array($list_day) 1] } {
 				set return_array($list_day) 2	
-    				ns_log NOTICE "weekly_report-wf_status_list: FINISHED WF found for user: $user_id for day: $list_day"
+    				ns_log notice  "weekly_report-wf_status_list: FINISHED WF found for user: $user_id for day: $list_day"
 			} else {
 				# WF is active			
 				set return_array($list_day) 1
-    				ns_log NOTICE "weekly_report-wf_status_list: ACTIVE WF found for user: $user_id for day: $list_day"
+    				ns_log notice  "weekly_report-wf_status_list: ACTIVE WF found for user: $user_id for day: $list_day"
 			}
 		}
 	}
@@ -102,7 +102,7 @@ ad_proc wf_status_list  {
     foreach i [array names return_array] {
 	lappend wf_status_list "$i $return_array($i)" 
     }
-    ns_log NOTICE "weekly_report-wf_status_list: WF Status List for user $user_id: $wf_status_list"
+    ns_log notice  "weekly_report-wf_status_list: WF Status List for user $user_id: $wf_status_list"
     return $wf_status_list
 }
 
@@ -144,7 +144,7 @@ ad_proc im_do_row {
         # Find index of $days
         set day_idx [lsearch -exact $days [clock format [clock scan $absence_date] -format {%Y%m%d}] ]
         if { "-1" == $day_idx } {
-            ns_log NOTICE "weekly_report: ERROR: day index not found in list 'days'"
+            ns_log notice  "weekly_report: ERROR: day index not found in list 'days'"
             continue
         }
         # Set array
@@ -154,7 +154,7 @@ ad_proc im_do_row {
             set absence_arr($day_idx) "<a href=\"$absence_view_page&absence_id=$absence_id\" style=\"color:\\\\\\\#FF0000;\">[_ intranet-timesheet2.Absent]</a> ([im_category_from_id $absence_type_id])"
         }
     }
-    ns_log NOTICE "weekly_report: New Absence Array for user_id: $curr_owner_id ($first_day_absence_arr/$last_day_absence_arr) [array get absence_arr]"
+    ns_log notice  "weekly_report: New Absence Array for user_id: $curr_owner_id ($first_day_absence_arr/$last_day_absence_arr) [array get absence_arr]"
 
     # Write HEADER 
     append html "
@@ -173,7 +173,7 @@ ad_proc im_do_row {
 
 	foreach rec $wf_status_list {
 	    set wf_status_array([lindex [split $rec " "] 0]) [lindex [split $rec " "] 1]
-	    ns_log NOTICE "weekly_report - WF status list - wf_status_array([lindex [split $rec " "] 0]) [lindex [split $rec " "] 1]"
+	    ns_log notice  "weekly_report - WF status list - wf_status_array([lindex [split $rec " "] 0]) [lindex [split $rec " "] 1]"
     	}
     }
 
@@ -611,7 +611,7 @@ set bgcolor(0) " class=roweven "
 set bgcolor(1) " class=rowodd "
 set ctr 0
 
-ns_log NOTICE $sql
+ns_log notice  $sql
 
 
 
@@ -631,15 +631,15 @@ db_foreach get_hours $sql {
 
     # Only when absence and hour arrays are set for user, the line will be written 
 
-    ns_log NOTICE "weekly_report: Next in loop: owner name: $owner_name ($curr_owner_id)"
+    ns_log notice  "weekly_report: Next in loop: owner name: $owner_name ($curr_owner_id)"
 
     # Skip first record for first loop 
     if { $ctr == 0 } { set old_owner [list $curr_owner_id $owner_name]}
 
-    ns_log NOTICE "weekly_report: Checking: Do we write row? Old owner: [lindex $old_owner 1] ([lindex $old_owner 0]), current owner: $owner_name ($curr_owner_id)"
+    ns_log notice  "weekly_report: Checking: Do we write row? Old owner: [lindex $old_owner 1] ([lindex $old_owner 0]), current owner: $owner_name ($curr_owner_id)"
    
     if { [lindex $old_owner 0] != $curr_owner_id } {
-	ns_log NOTICE "weekly_report: loop: Writing row user: [lindex $old_owner 1] ([lindex $old_owner 0])"	
+	ns_log notice  "weekly_report: loop: Writing row user: [lindex $old_owner 1] ([lindex $old_owner 0])"	
 	append table_body_html [im_do_row \
 				    [array get bgcolor] \
 				    $ctr \
@@ -679,7 +679,7 @@ set colspan [expr [llength $days]+1]
 
 if { $ctr > 0 } {
     # Writing last record 
-    ns_log NOTICE "weekly_report: left loop, now writing last record" 
+    ns_log notice  "weekly_report: left loop, now writing last record" 
     append table_body_html [im_do_row [array get bgcolor] $ctr $curr_owner_id $owner_name $days [array get user_days] [array get user_absences] $holydays $today_date [array get user_ab_descr] $workflow_key ]
 } elseif { [empty_string_p $table_body_html] } {
     # Show a reasonable message when there are no result rows:

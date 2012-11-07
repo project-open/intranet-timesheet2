@@ -68,6 +68,8 @@ set max_hours_per_day [parameter::get_from_package_key -package_key intranet-tim
 # in which employees have no restrictions in regards to 
 # maximum hours logged per day 
 
+# fraber 121030: What is this???
+set ttt {
 set sql "
 	select 
 		count(*)
@@ -88,6 +90,7 @@ set count_ignore_max_hours_per_day [db_string get_data $sql -default 0]
 
 if { $count_ignore_max_hours_per_day > 0  } {
 	set max_hours_per_day 999 
+}
 }
 
 # Conversion factor to calculate days from hours. Make sure it's a float number.

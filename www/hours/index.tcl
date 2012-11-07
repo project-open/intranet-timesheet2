@@ -307,7 +307,7 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
     if {($column_ctr == 7 || $current_date_ansi == $last_day_of_month_ansi) && $show_last_confirm_button_p } {
 	append html "<br>
 		<a href=[export_vars -base "week" {{julian_date $current_date} user_id_from_search}]
-		>[_ intranet-timesheet2.Week_total_1] $hours_for_this_week</a><br>
+		>[_ intranet-timesheet2.Week_total_1] [expr round($hours_for_this_week * 10.0) / 10.0]</a><br>
 	"
 	if { $current_date_ansi == $last_day_of_month_ansi} { set show_last_confirm_button_p 0 }
 
