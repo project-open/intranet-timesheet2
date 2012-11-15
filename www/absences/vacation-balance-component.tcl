@@ -115,6 +115,7 @@ set vacation_sql "
 	order by
 		a.start_date
 "
+
 if {![info exists vacation_balance] || "" == $vacation_balance} { set vacation_balance 0 }
 if {"" == $vacation_days_per_year} { set vacation_days_per_year 0 }
 
@@ -158,6 +159,25 @@ db_multirow -extend { absence_url absence_type } vacation_balance_multirow vacat
 
 
 # ------------------------------------------------------------------
-# Calculate the number of vacation days
+# Calculate the number of vacation days for next year 
 # ------------------------------------------------------------------
+
+set start_of_next_year "[expr $current_year + 1]-01-01"
+set end_of_next_year "[expr $current_year + 1]-12-31"
+
+set vacation_days_next_year_sql "
+        select
+                count(*)
+        from
+                im_user_absences a
+        where
+                a.owner_id = :user_id_from_search and
+                a.start_date <= :end_of_next_year and
+                a.end_date >= :start_of_next_year and
+                a.absence_type_id = 5000 and
+                a.absence_status_id <> 16006 and
+                a.absence_status_id <> 16002
+"
+
+set vacation_days_planned_next_year [db_string get_vacation_days_next_year $vacation_days_next_year_sql -default 0]
 
