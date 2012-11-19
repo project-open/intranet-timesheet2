@@ -30,14 +30,15 @@
 		<td><%= [lang::message::lookup "" intranet-timesheet2.Vacation_Left_for_Period "Vacation Days left for Period"] %></td>
 		<td>@vacation_days_left@</td>
 	</tr>
-	<tr class=rowodd>
-		<td><%= [lang::message::lookup "" intranet-timesheet2.Vacation_Planned_For_Next_Year "Vacation Days planned for next Year"] %></td>
-		<td>@vacation_days_planned_next_year@</td>
-	</tr>
 	</table>
 
 	<br>
+
+	<h2><%=[lang::message::lookup "" intranet-timesheet2.Absences_This_Year "Current Year"]%></h2>
 	<listtemplate name="vacation_balance"></listtemplate>
+	<br>
+        <h2><%=[lang::message::lookup "" intranet-timesheet2.Absences_Next_Year "Next Year"]%></h2>
+	<listtemplate name="vacation_days_next_year"></listtemplate>
 
 </if>
 
