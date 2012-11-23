@@ -298,8 +298,8 @@ ad_proc im_absence_cube_color_list_helper { } {
         53A7D8
         A185CB
         FFF956
-        CCCCC9
-        CCCCC9
+        006666
+        FFCC99
         CCCCC9
         CCCCC9
         CCCCC9
