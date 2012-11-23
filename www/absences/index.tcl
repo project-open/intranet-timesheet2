@@ -287,7 +287,10 @@ if { ![empty_string_p $absence_type_id] &&  $absence_type_id != -1 } {
 }
 
 switch $timescale {
-    "all" { }
+    "all" { 
+	set start_date "2000-01-01"
+	set end_date "2099-12-31"
+    }
     "today" { 
 	set start_date $today
 	set end_date $today
@@ -371,18 +374,9 @@ select
 	im_name_from_user_id(a.owner_id, $name_order) as owner_name
 from
 	im_user_absences a,
-        group_member_map gm,
-        membership_rels mr,
-        acs_rels r,
         cc_users cc
 where
-        gm.rel_id = mr.rel_id
-        and r.rel_id = mr.rel_id
-        and r.rel_type = 'membership_rel'
-        and cc.object_id = gm.member_id
-        and cc.member_state = 'approved'
-        and cc.object_id = gm.member_id
-        and gm.group_id = [im_employee_group_id]
+        cc.member_state = 'approved'
 	and a.owner_id = cc.object_id
 	$where_clause
 	$perm_clause
@@ -407,6 +401,10 @@ set total_in_limited [db_string projects_total_in_limited "
    "]
 set selection "$sql $order_by_clause"
 
+
+
+# ad_return_complaint 1 "<pre>$selection</pre>"
+
 # ---------------------------------------------------------------
 # 6. Format the Filter
 # ---------------------------------------------------------------
@@ -427,9 +425,16 @@ ad_form \
         {absence_type_id:text(select),optional {label "[_ intranet-timesheet2.Absence_Type]"} {options $absence_type_list }}
         {user_selection:text(select),optional {label "[_ intranet-timesheet2.Show_Users]"} {options $user_selection_type_list }}
         {timescale:text(select),optional {label "[_ intranet-timesheet2.Timescale]"} {options $timescale_type_list }}
+    }
+
+set ttt {
 	{start_date:text(text) {label "[_ intranet-timesheet2.Start_Date]"} {html {size 10}} {value "$start_date"} {after_html {<input type="button" style="height:23px; width:23px; background: url('/resources/acs-templating/calendar.gif');" onclick ="return showCalendar('start_date', 'y-m-d');" >}}}
 	{end_date:text(text) {label "[_ intranet-timesheet2.End_Date]"} {html {size 10}} {value "$end_date"} {after_html {<input type="button" style="height:23px; width:23px; background: url('/resources/acs-templating/calendar.gif');" onclick ="return showCalendar('end_date', 'y-m-d');" >}}}
-    }
+}
+
+# template::element::set_value $form_id start_date $start_date
+# template::element::set_value $form_id end_date $end_date
+template::element::set_value $form_id timescale $timescale
 
 
 eval [template::adp_compile -string {<formtemplate style="tiny-plain-po" id="absence_filter"></formtemplate>}]
@@ -646,6 +651,7 @@ set left_navbar_html "
 # ---------------------------------------------------------------
 
 # Calendar display for vacation days
+set absence_cube_html ""
 set absence_cube_html [im_absence_cube \
 			   -absence_status_id $status_id \
 			   -absence_type_id $org_absence_type_id \

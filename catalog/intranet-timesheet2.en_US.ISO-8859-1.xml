@@ -10,6 +10,8 @@
   <msg key="Absences">Absences</msg>
   <msg key="absences">absences</msg>
   <msg key="Absence_Name">Name</msg>
+  <msg key="Absences_Next_Year"></msg>
+  <msg key="Absences_This_Year"></msg>
   <msg key="Absent">Absent</msg>
   <msg key="Absent_1">Absent (%absent_status_3letter_l10n%):</msg>
   <msg key="Add_a_new_Absence">Add a new Absence</msg>
