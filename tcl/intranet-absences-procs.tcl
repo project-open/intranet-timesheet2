@@ -283,6 +283,13 @@ ad_proc im_absence_new_page_wf_perm_delete_button {
 ad_proc im_absence_cube_color_list { } {
     Returns the list of colors for the various types of absences
 } {
+    return [util_memoize im_absence_cube_color_list_helper]
+}
+
+ad_proc im_absence_cube_color_list_helper { } {
+    Returns the list of colors for the various types of absences
+} {
+
 
     # define default color set 
     set color_list {

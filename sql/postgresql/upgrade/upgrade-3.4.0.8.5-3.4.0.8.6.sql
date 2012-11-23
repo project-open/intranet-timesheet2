@@ -232,7 +232,7 @@ begin
         ''intranet-timesheet2'', -- package_name
         ''capacity-planning'',  -- label
         ''Capacity Planning'',  -- name
-        ''/intranet-timesheet2/capacity-planning'', -- url
+        ''/intranet-timesheet2/absences/capacity-planning'', -- url
         500,                    -- sort_order
         v_parent_menu,           -- parent_menu_id
         null                    -- p_visible_tcl
