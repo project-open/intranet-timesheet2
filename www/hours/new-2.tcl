@@ -30,6 +30,8 @@ ad_page_contract {
     @author dvr@arsdigita.com
     @author mbryzek@arsdigita.com
     @author frank.bergmann@project-open.com
+    @author klaus.hofeditz@project-open.com
+
 } {
     hours0:array,optional
     hours1:array,optional
@@ -47,12 +49,20 @@ ad_page_contract {
     { user_id_from_search "" }
 }
 
+# ns_eval [source "[acs_root_dir]/packages/intranet-cust-bv/tcl/intranet-cust-bv-procs.tcl"]
+
 # ----------------------------------------------------------
-# Default & Security
+# Security / setting user
 # ----------------------------------------------------------
 
 set user_id [ad_maybe_redirect_for_registration]
 if {"" == $user_id_from_search || ![im_permission $user_id "add_hours_all"]} { set user_id_from_search $user_id }
+
+
+# ----------------------------------------------------------
+# Default
+# ----------------------------------------------------------
+
 set date_format "YYYY-MM-DD"
 set default_currency [ad_parameter -package_id [im_package_cost_id] "DefaultCurrency" "" "EUR"]
 set wf_installed_p [util_memoize "db_string timesheet_wf \"select count(*) from apm_enabled_package_versions where package_key = 'intranet-timesheet2-workflow'\""]
@@ -64,45 +74,46 @@ set material_id ""
 # should we limit the max number of hours logged per day?
 set max_hours_per_day [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter TimesheetMaxHoursPerDay -default 999]
 
-# Is employee at least member of an office  
-# in which employees have no restrictions in regards to 
-# maximum hours logged per day 
-
-# fraber 121030: What is this???
-set ttt {
-set sql "
-	select 
-		count(*)
-	from 
-		acs_rels r,
-		acs_objects o,
-		im_offices of
-	where 
-		o.object_id = r.object_id_one and
-		of.office_id = r.object_id_one and
-		o.object_type = 'im_office' and
-		rel_type = 'im_biz_object_member' and 
-		object_id_two = :user_id_from_search and 
-		of.ignore_max_hours_per_day_p = 't'
-"
-
-set count_ignore_max_hours_per_day [db_string get_data $sql -default 0]
-
-if { $count_ignore_max_hours_per_day > 0  } {
-	set max_hours_per_day 999 
-}
-}
-
 # Conversion factor to calculate days from hours. Make sure it's a float number.
 set hours_per_day [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter TimesheetHoursPerDay -default 10]
 set hours_per_day [expr $hours_per_day * 1.0]
 
+# Other
 set limit_to_one_day_per_main_project_p [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter TimesheetLimitToOneDayPerUserAndMainProjectP -default 1]
-
 set sync_cost_item_p [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter "SyncHoursImmediatelyAfterEntryP" -default 1]
-
 set check_all_hours_with_comment [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter "ForceAllTimesheetEntriesWithCommentP" -default 1]
 
+# ----------------------------------------------------------
+# Simple 'Callback' for custom validation 
+# ----------------------------------------------------------
+
+# Callback placed after defaults to allow that variables get overwritten under certain 
+# conditions by custom procedure using 'upvar'. 
+# 
+# Example: 
+# $max_hours_per_day might be ignored under certain conditions. In this case 
+# Custom validation function can overwrite the existing parameter  and set 
+# variable max_hours_per_day used in script to '999'.      
+
+set cust_validation_function [parameter::get -package_id [apm_package_id_from_key intranet-timesheet2] -parameter "CustomHoursEntryValidationFunction" -default ""]
+if { "" != $cust_validation_function } {
+		eval $cust_validation_function \
+    			{[array get hours0]} \
+			{[array get hours1]} \
+			{[array get hours2]} \
+			{[array get hours3]} \
+			{[array get hours4]} \
+			{[array get hours5]} \
+			{[array get hours6]} \
+			{[array get notes0]} \
+			{[array get internal_notes0]} \
+			{[array get materials_0]} \
+			$julian_date \
+			$return_url \
+			$show_week_p \
+			$user_id_from_search \
+			$max_hours_per_day
+}	
 
 if {![im_column_exists im_hours internal_note]} {
     ad_return_complaint 1 "Internal error in intranet-timesheet2:<br>
