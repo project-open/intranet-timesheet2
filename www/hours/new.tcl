@@ -586,10 +586,11 @@ set sql "
 		tree_level(children.tree_sortkey) -1 as subproject_level,
 		substring(parent.tree_sortkey from 17) as parent_tree_sortkey,
 		substring(children.tree_sortkey from 17) as child_tree_sortkey,
+                material_id,
 		$sort_order as sort_order
 	from
 		im_projects parent,
-		im_projects children
+		im_projects children left outer join im_timesheet_tasks tt on (children.project_id = tt.task_id)
 	where
 		parent.parent_id is null
 		and children.tree_sortkey between 
@@ -999,6 +1000,7 @@ template::multirow foreach hours_multirow {
     if {!$log_on_parent_p} { append help_text [lang::message::lookup "" intranet-timesheet2.Nolog_log_on_parent_p "This project has sub-projects or tasks. "] }
     if {$solitary_main_project_p} { append help_text [lang::message::lookup "" intranet-timesheet2.Nolog_solitary_main_project_p "This is a 'solitary' main project. Your system is configured in such a way, that you can't log hours on it. "] }
 
+   # 
     # Not a member: This isn't relevant in all modes:
     switch $task_visibility_scope {
         "main_project" - "specified" {
@@ -1055,7 +1057,9 @@ template::multirow foreach hours_multirow {
 	set hours ""
 	set note ""
 	set internal_note ""
-	set material_id $default_material_id
+	if {"" == $material_id} {
+	    set material_id $default_material_id
+	}
 	set material "Default"
 	set key "$project_id-$julian_day_offset"
 
