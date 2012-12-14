@@ -280,6 +280,14 @@ foreach j $weekly_logging_days {
 	if {[info exists screen_internal_notes_hash($pid)]} { set screen_internal_notes [string trim $screen_internal_notes_hash($pid)] }
 	if {[info exists screen_materials_hash($pid)]} { set screen_materials [string trim $screen_materials_hash($pid)] }
 
+	if { [regexp {([0-9]+)(\,([0-9]+))?} $screen_hours] } {
+	    regsub "," $screen_hours "." screen_hours
+	    regsub "'" $screen_hours "." screen_hours
+	} elseif { [regexp {([0-9]+)(\'([0-9]+))?} $screen_hours] } {
+	    regsub "'" $screen_hours "." screen_hours
+	    regsub "," $screen_hours "." screen_hours
+	}
+
 	if {"" != $screen_hours} {
 	    if {![string is double $screen_hours] || $screen_hours < 0} {
 		ad_return_complaint 1 "<b>[lang::message::lookup "" intranet-timesheet2.Only_positive_numbers_allowed "Only positive numbers allowed"]</b>:<br>
