@@ -198,19 +198,22 @@ set last_day_of_month [db_string get_number_days_month "select to_date( '$cap_ye
 set exclude_user_id [join [join $user_id_options " "] ","]
 set exclude_project_lead_id [join [join $project_lead_id_options " "] ","]
 
-
-
 set title_sql "
 	select 
 		p.person_id, 
 		p.first_names, 
 		p.last_name,
 			(select count(*) from (select * from im_absences_working_days_month(p.person_id,$cap_month,$cap_year) t(days int))ct) as work_days,
-			(select count(distinct absence_query.days) from (select * from im_absences_month_absence_type (p.person_id, $cap_month, $cap_year, $im_absence_type_vacation) AS (days date)) absence_query) as vacation_days,
-			(select count(distinct absence_query.days) from (select * from im_absences_month_absence_type (p.person_id, $cap_month, $cap_year, $im_absence_type_training) AS (days date)) absence_query) as training_days,
-			(select count(distinct absence_query.days) from (select * from im_absences_month_absence_type (p.person_id, $cap_month, $cap_year, $im_absence_type_travel) AS (days date)) absence_query) as travel_days,
-			(select count(distinct absence_query.days) from (select * from im_absences_month_absence_type (p.person_id, $cap_month, $cap_year, $im_absence_type_sick) AS (days date)) absence_query) as sick_days,
-			(select count(distinct absence_query.days) from (select * from im_absences_month_absence_type (p.person_id, $cap_month, $cap_year, $im_absence_type_personal) AS (days date)) absence_query) as personal_days,
+			(select count(distinct absence_query.days) from (select * from im_absences_month_absence_duration_type (p.person_id, $cap_month, $cap_year, $im_absence_type_vacation) 
+				AS (days date, total_days numeric, absence_type_id integer)) absence_query) as vacation_days,
+			(select count(distinct absence_query.days) from (select * from im_absences_month_absence_duration_type (p.person_id, $cap_month, $cap_year, $im_absence_type_training) 
+				AS (days date, total_days numeric, absence_type_id integer)) absence_query) as training_days,
+			(select count(distinct absence_query.days) from (select * from im_absences_month_absence_duration_type (p.person_id, $cap_month, $cap_year, $im_absence_type_travel) 
+				AS (days date, total_days numeric, absence_type_id integer)) absence_query) as travel_days,
+			(select count(distinct absence_query.days) from (select * from im_absences_month_absence_duration_type (p.person_id, $cap_month, $cap_year, $im_absence_type_sick) 
+				AS (days date, total_days numeric, absence_type_id integer)) absence_query) as sick_days,
+			(select count(distinct absence_query.days) from (select * from im_absences_month_absence_duration_type (p.person_id, $cap_month, $cap_year, $im_absence_type_personal) 
+				AS (days date, total_days numeric, absence_type_id integer)) absence_query) as personal_days,
 			(select
 				sum(c.days_capacity) 
 			from 

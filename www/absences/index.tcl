@@ -330,15 +330,9 @@ if {"" == $end_date} { set end_date [parameter::get_from_package_key -package_ke
 
 set org_start_date $start_date
 
-
-if {"" != $start_date} {
-    lappend criteria "a.end_date >= :start_date::timestamptz"
-}
-if {"" != $end_date} {
-    lappend criteria "a.start_date <= :end_date::timestamptz"
-}
-
-
+# Limit to start-date and end-date
+if {"" != $start_date} { lappend criteria "a.end_date::date >= :start_date" }
+if {"" != $end_date} { lappend criteria "a.start_date::date <= :end_date" }
 
 set order_by_clause ""
 switch $order_by {
