@@ -60,11 +60,13 @@ if {"" == $return_url} {
     }
 }
 
+# ---- Check write permissions ---- 
+# Site Wide Admins can log hours for everybody
 set write_p [im_is_user_site_wide_or_intranet_admin $current_user_id]
-if {$current_user_id == $user_id_from_search} {
-    # Can do anything to your own hours :)
-    set write_p 1
-}
+# User can do anything with its own hours
+if {$current_user_id == $user_id_from_search} { set write_p 1 }
+# Check for privilege "Add Hours All" 
+if { $add_hours_all_p } { set write_p 1 }
 
 set page_title [lang::message::lookup "" intranet-timesheet2.Timesheet_for_user_name "Timesheet for %user_name%"]
 set context_bar [im_context_bar "[_ intranet-timesheet2.Hours]"]
