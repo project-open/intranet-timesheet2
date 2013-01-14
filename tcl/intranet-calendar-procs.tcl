@@ -55,8 +55,10 @@ ad_proc calendar_get_info_from_db {
     }
 
     # Depends on locale
-    set first_day_of_week [lc_get firstdayofweek]
-    
+    set first_day_of_week [parameter::get -package_id [apm_package_id_from_key intranet-timesheet2] -parameter "WeekStartDay" -default ""]
+    if {$first_day_of_week == ""} {
+	set first_day_of_week [lc_get firstdayofweek]
+    }
     if {$first_day_of_week > 0 && $first_day_of_week <7} {
         set add_days [expr 7 - $first_day_of_week]
         set query_first_day_of_month "mod(cast(extract(dow from trunc(to_date(:the_date, 'yyyy-mm-dd'), 'Month')) as numeric)+$add_days,7)+1 as first_day_of_month,"
@@ -136,7 +138,7 @@ ad_proc calendar_basic_month {
     { 
 	-calendar_details "" 
 	-date "" 
-	-days_of_week "Sunday Monday Tuesday Wednesday Thursday Friday Saturday" 
+	-days_of_week ""
 	-large_calendar_p 1 
 	-master_bgcolor "black" 
 	-header_bgcolor "black"
@@ -213,17 +215,27 @@ ad_proc calendar_basic_month {
     </tr>
     <tr class='day_header'>"
 
-    # Depends on locale
-    set first_day_of_week [lc_get firstdayofweek]
-    
-    for {set i $first_day_of_week} {$i < 7 } {incr i} {
-	append output "<td width=14% align=center>[lindex $days_of_week $i]</td>"
-    }
-    
-    for {set i 0} {$i < $first_day_of_week} {incr i} {
-	append output "<td width=14% align=center>[lindex $days_of_week $i]</td>"
-    }
+    # Only use this if first days_of_week is a Sunday
+    if {"" == $days_of_week} {
+	set days_of_week "Sunday Monday Tuesday Wednesday Thursday Friday Saturday" 
 
+	# Depends on locale
+	set first_day_of_week [lc_get firstdayofweek]
+	
+	ds_comment "$first_day_of_week"
+	for {set i $first_day_of_week} {$i < 7 } {incr i} {
+	    append output "<td width=14% align=center>[lindex $days_of_week $i]</td>"
+	}
+    
+	for {set i 0} {$i < $first_day_of_week} {incr i} {
+	    append output "<td width=14% align=center>[lindex $days_of_week $i]</td>"
+	}
+	
+    } else {
+	for {set i 0} {$i < 7} {incr i} {
+	    append output "<td width=14% align=center>[lindex $days_of_week $i]</td>"
+	}
+    }
     append output "</tr><tr>"
 
     if { $fill_all_days == 0 } {

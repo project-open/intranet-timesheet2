@@ -587,6 +587,7 @@ set sql "
 		substring(parent.tree_sortkey from 17) as parent_tree_sortkey,
 		substring(children.tree_sortkey from 17) as child_tree_sortkey,
                 material_id,
+                task_status_id,
 		$sort_order as sort_order
 	from
 		im_projects parent,
@@ -605,13 +606,6 @@ set sql "
 		) not in (
 			select * from im_sub_categories([im_ticket_status_closed])
 		)
-		and coalesce(
-			(select task_status_id from im_timesheet_tasks t where t.task_id = children.project_id),
-			0
-		) not in (
-			select * from im_sub_categories([im_timesheet_task_status_closed])
-		)
-
 	order by
 		lower(parent.project_name),
 		children.tree_sortkey
@@ -928,7 +922,6 @@ template::multirow foreach hours_multirow {
 
     ns_log Notice "new: $pnam: p=$project_id, depth=$subproject_level, closed_level=$closed_level, status=$project_status"
 
-
     # We've just discovered a status change from open to closed:
     # Remember at what level this has happened to undo the change
     # once we're at the same level again:
@@ -977,6 +970,9 @@ template::multirow foreach hours_multirow {
 	}
 	set old_parent_project_nr $parent_project_nr
     }
+
+   # Make sure to surpress closed projects
+   if {$project_status_id == [im_project_status_closed]} { set surpress_output_p 1 }
 
     # ---------------------------------------------
     # Start the HTML column
