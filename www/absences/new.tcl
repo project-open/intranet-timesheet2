@@ -67,6 +67,12 @@ if {[info exists absence_id]} {
     }
 }
 
+set add_absences_for_group_p [im_permission $current_user_id "add_absences_for_group"]
+
+if {$user_id_from_search != $current_user_id && $add_absences_for_group_p == 0} {
+    set user_id_from_search $current_user_id
+}
+
 if {![exists_and_not_null absence_owner_id]} { set absence_owner_id $user_id_from_search }
 if {![exists_and_not_null absence_owner_id]} { set absence_owner_id $current_user_id }
 
@@ -85,7 +91,7 @@ set context [list $page_title]
 
 set read [im_permission $current_user_id "read_absences_all"]
 set write [im_permission $current_user_id "add_absences"]
-set add_absences_for_group_p [im_permission $current_user_id "add_absences_for_group"]
+
 
 if {[info exists absence_id]} {
     im_absence_permissions $current_user_id $absence_id view read write admin
@@ -240,7 +246,7 @@ ad_form -extend -name absence -on_request {
     if {![info exists start_date]} { set start_date [db_string today "select to_char(now(), :date_time_format)"] }
     if {![info exists end_date]} { set end_date [db_string today "select to_char(now(), :date_time_format)"] }
     if {![info exists duration_days]} { set duration_days "" }
-    if {![info exists absence_owner_id] || 0 == $absence_owner_id} { set absence_owner_id $user_id_from_scratch }
+    if {![info exists absence_owner_id] || 0 == $absence_owner_id} { set absence_owner_id $user_id_from_search }
     if {![info exists absence_owner_id] || 0 == $absence_owner_id} { set absence_owner_id $current_user_id }
     if {![info exists absence_type_id]} { set absence_type_id [im_absence_type_vacation] }
     if {![info exists absence_status_id]} { set absence_status_id [im_absence_status_requested] }
