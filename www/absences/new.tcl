@@ -41,8 +41,10 @@ set date_format "YYYY-MM-DD"
 set date_time_format "YYYY MM DD"
 if {![exists_and_not_null absence_type_id]} {set absence_type_id 0}
 if {$absence_type_id eq 0} {
+    set show_absence_type_p 1
     set absence_type "Absence"
 } else {
+    set show_absence_type_p 0
     set absence_type [im_category_from_id $absence_type_id]
 }
 
@@ -164,8 +166,14 @@ set form_fields {
 	absence_id:key
 	{absence_owner_id:text(hidden),optional}
 	{absence_name:text(text) {label "[_ intranet-timesheet2.Absence_Name]"} {html {size 40}}}
-	{absence_type_id:text(im_category_tree) {label "[_ intranet-timesheet2.Type]"} {custom {category_type "Intranet Absence Type"}}}
 }
+
+if {$show_absence_type_p} {
+    lappend form_fields {absence_type_id:text(im_category_tree) {label "[_ intranet-timesheet2.Type]"} {custom {category_type "Intranet Absence Type"}}}
+
+} else {
+    lappend form_fields {absence_type_id:text(hidden)}
+}    
 
 if {$add_absences_for_group_p} {
 
