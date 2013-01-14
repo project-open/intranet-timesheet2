@@ -664,7 +664,6 @@ ad_proc im_absence_cube {
     "
 }
 
-
 ad_proc -public im_absence_vacation_balance_component {
     -user_id_from_search:required
 } {
@@ -714,5 +713,29 @@ ad_proc -public im_get_next_absence_link { { user_id } } {
 	break
     }
     return $ret_val
+}
+
+ad_proc -public im_absence_user_component {
+    -user_id:required
+} {
+    Returns a HTML component showing the vacations
+    for the user
+} {
+    set current_user_id [ad_get_user_id]
+    # This is a sensitive field, so only allows this for the user himself
+    # and for users with HR permissions.
+
+    set read_p 0
+    if {$user_id == $current_user_id} { set read_p 1 }
+    if {[im_permission $current_user_id view_hr]} { set read_p 1 }
+    if {!$read_p} { return "" }
+
+    set params [list \
+		    [list user_id_from_search $user_id] \
+		    [list return_url [im_url_with_query]] \
+    ]
+
+    set result [ad_parse_template -params $params "/packages/intranet-timesheet2/lib/user-absences"]
+    return [string trim $result]
 }
 
