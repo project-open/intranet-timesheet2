@@ -174,4 +174,4 @@ db_foreach absences_list $selection {
 }
 
 # Links to add absences
-set admin_html [im_menu_ul_list -package_key "intranet-timesheet2" "timesheet2_absences" "{user_id} {$user_id_from_search} {return_url} {$return_url}"]
+set admin_html [im_menu_ul_list -package_key "intranet-timesheet2" "timesheet2_absences" "{user_id_from_search} {$user_id_from_search} {return_url} {$return_url}"]
