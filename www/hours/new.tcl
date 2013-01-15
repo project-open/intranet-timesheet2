@@ -551,6 +551,18 @@ switch $list_sort_order {
     }
 }
 
+set exclude_closed_tickets_sql ""
+if {[db_table_exists im_tickets]} { 
+   set exclude_closed_tickets_sql "
+		and coalesce(
+			(select ticket_status_id from im_tickets t where t.ticket_id = children.project_id),
+			0
+		) not in (
+			select * from im_sub_categories([im_ticket_status_closed])
+		)
+    "
+}
+
 set sql "
 	select
 		parent.project_id as top_project_id,
@@ -580,13 +592,7 @@ set sql "
 			tree_right(parent.tree_sortkey)
 		and parent.project_id in ($parent_project_sql)
 		and children.project_id in ($child_project_sql)
-		-- exclude closed tickets
-		and coalesce(
-			(select ticket_status_id from im_tickets t where t.ticket_id = children.project_id),
-			0
-		) not in (
-			select * from im_sub_categories([im_ticket_status_closed])
-		)
+		$exclude_closed_tickets_sql
 	order by
 		lower(parent.project_name),
 		children.tree_sortkey
