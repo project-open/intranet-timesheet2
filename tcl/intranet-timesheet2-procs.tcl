@@ -936,3 +936,27 @@ ad_proc get_unconfirmed_hours_for_period {
     "
     return [db_string get_unconfirmed_hours $sql -default 0]
 }
+
+ad_proc -public im_timesheet_approval_component {
+    -user_id:required
+} {
+    Returns a HTML component showing the vacations
+    for the user
+} {
+    set current_user_id [ad_get_user_id]
+    # This is a sensitive field, so only allows this for the user himself
+    # and for users with HR permissions.
+
+    set read_p 0
+    if {$user_id == $current_user_id} { set read_p 1 }
+    if {[im_permission $current_user_id view_hr]} { set read_p 1 }
+    if {!$read_p} { return "" }
+
+    set params [list \
+		    [list user_id $user_id] \
+		    [list return_url [im_url_with_query]] \
+    ]
+
+    set result [ad_parse_template -params $params "/packages/intranet-timesheet2/lib/timesheet-approval"]
+    return [string trim $result]
+}
