@@ -139,7 +139,7 @@ set tasks_sql "
                 wf_task_assignments wta
 	where
                 wta.task_id = t.task_id
-                and wta.party_id = :user_id
+                and (wta.party_id = :user_id or o.creation_user = :user_id)
 		and o.object_id = ca.object_id
 		and ca.case_id = t.case_id
 		and t.state in ('enabled', 'started')
@@ -197,7 +197,7 @@ db_foreach tasks $tasks_sql {
 	# L10ned version of next action
 	regsub -all " " $transition_name "_" next_action_key
 	set next_action_l10n [lang::message::lookup "" intranet-workflow.$next_action_key $transition_name]
-	}
+    }
     set object_subtype [im_category_from_id $type_id]
     set status [im_category_from_id $status_id]
     set object_url "[im_biz_object_url $object_id "view"]&return_url=[ns_urlencode $return_url]"
@@ -206,7 +206,14 @@ db_foreach tasks $tasks_sql {
     set approve_url [export_vars -base "/[im_workflow_url]/task" -url {{attributes.confirm_hours_are_the_logged_hours_ok_p t} {action.finish "Task done"} task_id return_url}]
     set deny_url [export_vars -base "/[im_workflow_url]/task" -url {{attributes.confirm_hours_are_the_logged_hours_ok_p f} {action.finish "Task done"} task_id return_url}]
 
-#    set action_url [export_vars -base "/[im_workflow_url]/task" {return_url task_id}]
+    # if this is the creator viewing it, prevent him from approving it
+    # himself
+    if {$owner_id == $user_id} {
+	set approve_url [export_vars -base "/[im_workflow_url]/task" {return_url task_id}]
+	set next_action_l10n "View"
+	set deny_url ""
+    }
+
 
     
     # Don't show the "Action" link if the object is mine...
