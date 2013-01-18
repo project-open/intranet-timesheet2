@@ -69,11 +69,14 @@ if {[info exists absence_id]} {
 
 set add_absences_for_group_p [im_permission $current_user_id "add_absences_for_group"]
 
-if {$user_id_from_search != $current_user_id && $add_absences_for_group_p == 0} {
-    set user_id_from_search $current_user_id
+if {[exists_and_not_null user_id_from_search]} {
+    if {$user_id_from_search != $current_user_id && $add_absences_for_group_p == 0} {
+	set user_id_from_search $current_user_id
+    }
+
+    if {![exists_and_not_null absence_owner_id]} { set absence_owner_id $user_id_from_search }
 }
 
-if {![exists_and_not_null absence_owner_id]} { set absence_owner_id $user_id_from_search }
 if {![exists_and_not_null absence_owner_id]} { set absence_owner_id $current_user_id }
 
 if {![info exists absence_id]} {
