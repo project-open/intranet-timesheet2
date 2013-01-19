@@ -23,6 +23,8 @@ ad_page_contract {
 
     @author mbryzek@arsdigita.com
     @author frank.bergmann@project-open.com
+    @author klaus.hofeditz@project-open.com
+
     @creation-date Jan 2006
 } {
     { project_id 0 }
@@ -568,6 +570,18 @@ switch $list_sort_order {
     }
 }
 
+set exclude_closed_tickets_sql ""
+if {[db_table_exists im_tickets]} { 
+   set exclude_closed_tickets_sql "
+		and coalesce(
+			(select ticket_status_id from im_tickets t where t.ticket_id = children.project_id),
+			0
+		) not in (
+			select * from im_sub_categories([im_ticket_status_closed])
+		)
+    "
+}
+
 set sql "
 	select
 		parent.project_id as top_project_id,
@@ -599,13 +613,7 @@ set sql "
 			tree_right(parent.tree_sortkey)
 		and parent.project_id in ($parent_project_sql)
 		and children.project_id in ($child_project_sql)
-		-- exclude closed tickets
-		and coalesce(
-			(select ticket_status_id from im_tickets t where t.ticket_id = children.project_id),
-			0
-		) not in (
-			select * from im_sub_categories([im_ticket_status_closed])
-		)
+		$exclude_closed_tickets_sql
 	order by
 		lower(parent.project_name),
 		children.tree_sortkey
@@ -755,6 +763,9 @@ set last_level_shown -1
 set level_entered_in_showing_child_elements -1
 
 set surpress_output_p 0
+
+# If top_parent_project is shown because it contains search string, we can surpress path 
+set top_parent_shown_p 0 
 
 template::multirow foreach hours_multirow {
 
@@ -931,12 +942,10 @@ template::multirow foreach hours_multirow {
 	set closed_level $subproject_level
     }
 
-
     # ---------------------------------------------
     # Final decision: Should we log or not?
     # Check if the current tree-branch-status is "closed"
     set closed_p [expr $closed_status == [im_project_status_closed]]
-
 
     # ---------------------------------------------
     # Indent the project line
@@ -950,24 +959,24 @@ template::multirow foreach hours_multirow {
 	append dots_for_filter "."
     }
 
-    if { "" != $dots_for_filter } {
-	set dots_for_filter "<strong><a href='/intranet/projects/view?project_id=$top_project_id' style='text-decoration: none'><span style='color:#A9D0F5'>$top_parent_project_name $dots_for_filter</span></a></strong>"
-    }
-
     # ---------------------------------------------
     # Insert intermediate header for every top-project
+
     if {$parent_project_nr != $old_parent_project_nr } { 
 	set project_name "<b>$project_name</b>"
 	set project_nr "<b>$project_nr</b>"
-
-	# Add an empty line after every main project
-	if {"" != $old_parent_project_nr || (0 == $ctr && "" != $search_task) } {
-	    if { "" != $search_task } {	    
-		append results "<tr class=rowplain><td colspan=99>$dots_for_filter</td></tr>\n"
-	    } else {
-		if { !$surpress_output_p } { append results "<tr class=rowplain><td colspan=99>&nbsp;</td></tr>\n" }
-	    }	
+	
+	# Save information if Top Project has been shown 
+	# If Top Project is not shown because of filter, we have to add this info to the task/subproject 
+	# task or subproject 
+	if { !$surpress_output_p } { 
+		set top_parent_shown_p 1 
+		# Add an empty line after every main project
+		append results "<tr class=rowplain><td colspan=99>&nbsp;</td></tr>\n" 
+	} else { 
+		set top_parent_shown_p 0	
 	}
+
 	set old_parent_project_nr $parent_project_nr
     }
 
@@ -975,17 +984,22 @@ template::multirow foreach hours_multirow {
    if {$project_status_id == [im_project_status_closed]} { set surpress_output_p 1 }
 
     # ---------------------------------------------
-    # Start the HTML column
-    set project_url [export_vars -base "/intranet/projects/view?" {project_id return_url}]
-    if { !$surpress_output_p } { append results "<tr $bgcolor([expr $ctr % 2])>\n" }
+    # Write out the name of the project nicely indented
 
-    # ---------------------------------------------
-    # Write out the project title
-    
+    # Set project title & URL
+    set project_url [export_vars -base "/intranet/projects/view?" {project_id return_url}]
     if {$show_project_nr_p} { set ptitle "$project_nr - $project_name" } else { set ptitle $project_name }
 
-    # Write out the name of the project nicely indented
-    if { !$surpress_output_p } { append results "<td><nobr>$indent <A href=\"$project_url\">$ptitle</A></nobr></td>\n" }
+    if { !$surpress_output_p } { 
+	if { !$top_parent_shown_p && $project_id != $top_project_id && "" != $search_task } {
+		append results "<tr $bgcolor([expr $ctr % 2])>\n<td>"
+		append results "<strong><a href='/intranet/projects/view?project_id=$top_project_id' style='text-decoration: none'>
+                                        <span style='color:\#A9D0F5'>$top_parent_project_name $dots_for_filter</span></a></strong><br>"
+		append results "</td></tr>"
+		set top_parent_shown_p 1
+	}	
+	append results "<tr $bgcolor([expr $ctr % 2])>\n<td><nobr>$indent <A href=\"$project_url\">$ptitle</A></nobr></td>\n" 
+    }
 
     # -----------------------------------------------
     # Create help texts to explain the user why certain projects aren't shown

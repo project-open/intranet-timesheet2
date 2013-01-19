@@ -689,6 +689,75 @@ ad_proc -public im_absence_vacation_balance_component {
 }
 
 
+ad_proc -public im_absence_vacation_balance_component_xhtml {
+    -user_id_from_search:required
+} {
+    Returns a HTML component for vacation management. 
+    Allows viewing vacations for current, last and next year 
+} {
+    
+    set current_user_id [ad_get_user_id]
+    # This is a sensitive field, so only allows this for the user himself
+    # and for users with HR permissions.
+
+    set read_p 0
+    if {$user_id_from_search == $current_user_id} { set read_p 1 }
+    if {[im_permission $current_user_id view_hr]} { set read_p 1 }
+    if {!$read_p} { return "" }
+
+    set result "
+	[lang::message::lookup "" intranet-timesheet2.ShowVacationsFor "Show vacations for:"] &nbsp;
+	<select id='im_absence_vacation_balance_component_select_vacation_period'>
+	    <option value='this_year' selected> [lang::message::lookup "" intranet-timesheet2.ThisYear "This year"]</option>
+	    <option value='last_year'> [lang::message::lookup "" intranet-timesheet2.LastYear "Last year"]</option>
+	    <option value='next_year'> [lang::message::lookup "" intranet-timesheet2.NextYear "Next year"]</option>
+	</select>
+        <div id='im_absence_vacation_balance_component_container'>
+		<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+		<img src=\"/intranet/images/ajax-loader.gif\" alt=\"ajaxloader\">
+		</div>
+        <script type='text/JavaScript'>
+                \$(function(){
+                        // XHTML request
+                        function getVacationPortlet() {
+                                var LoadMsg = '<img src=\"/intranet/images/ajax-loader.gif\" alt=\"ajaxloader\">';
+                                var _Href = '/intranet-timesheet2/absences/xhtml-vacation-balance-component';
+                                var _VacPeriod = \$('#im_absence_vacation_balance_component_select_vacation_period').find('option:selected').val();
+                                \$('<div id=\"loading\">'+LoadMsg+'</div>').appendTo('body').fadeIn('slow',function(){
+                                        \$.ajax({
+                                                type:           'GET',
+                                                url:            _Href,
+                                                data:           \"user_id_from_search=$user_id_from_search&period=\" + _VacPeriod,
+                                                dataType:       'html',
+                                                timeout:        5000,
+                                                success: function(d,s){
+                                                        \$('#loading').fadeOut('slow',function(){
+                                                                \$(this).remove();
+                                                                \$('#im_absence_vacation_balance_component_container').slideUp('slow',function(){
+                                                                                \$(this).html(d).slideDown('slow');
+                                                                        });
+                                                                  });
+                                                 },
+                                                 error: function(o,s,e){
+                                                     \$(\"\#im_absence_vacation_balance_component_container\").html('<br><span style=\"color:red\">An error has been occurred making this request:<br>' + e + '</span>');
+                                                 }
+                                        });
+                                });
+	                };
+
+                        \$(\"#im_absence_vacation_balance_component_select_vacation_period\").change(function() {
+                                getVacationPortlet();
+                        });
+                        // initial call
+                        getVacationPortlet();
+			
+                });
+        </script>
+    "
+    return [string trim $result]
+}
+
+
 ad_proc -public im_get_next_absence_link { { user_id } } {
     Returns a html link with the next "personal"absence of the given user_id.
     Do not show Bank Holidays.

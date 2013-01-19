@@ -111,6 +111,7 @@ ad_proc -public im_timesheet2_sync_timesheet_costs {
 	db_dml update_hours "
 		update	im_hours
 		set	billing_rate = :billing_rate,
+			billing_currency = :billing_currency,
 			cost_id = :cost_id
 		where	user_id = :hour_user_id
 			and project_id = :project_id
@@ -288,7 +289,8 @@ ad_proc -public im_timesheet_home_component {user_id} {
     set menu_html [im_menu_ul_list -no_cache -package_key "intranet-reporting" "reporting-timesheet" $bind_vars]
     if {"" != $menu_html} {
 	append hours_html "
-		[lang::message::lookup "" intranet-timesheet2.Associated_reports "Associated Reports"]
+		<br>
+		<b>[lang::message::lookup "" intranet-timesheet2.Associated_reports "Associated Reports"]:</b>
 		$menu_html
 	"
     }
