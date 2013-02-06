@@ -672,6 +672,10 @@ ad_proc -public im_absence_vacation_balance_component {
     Returns a HTML component showing the number of days left
     for the user
 } {
+
+    # Show only if user is an employee
+    if { ![im_user_is_employee_p $user_id_from_search] } { return "" }
+
     set current_user_id [ad_get_user_id]
     # This is a sensitive field, so only allows this for the user himself
     # and for users with HR permissions.
@@ -697,7 +701,10 @@ ad_proc -public im_absence_vacation_balance_component_xhtml {
     Returns a HTML component for vacation management. 
     Allows viewing vacations for current, last and next year 
 } {
-    
+
+    # Show only if user is an employee
+    if { ![im_user_is_employee_p $user_id_from_search] } { return "" }
+
     set current_user_id [ad_get_user_id]
     # This is a sensitive field, so only allows this for the user himself
     # and for users with HR permissions.
