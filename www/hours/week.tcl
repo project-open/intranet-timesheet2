@@ -28,9 +28,18 @@ ad_page_contract {
     { user_id_from_search:integer "" }
 }
 
+set user_id [ad_maybe_redirect_for_registration]
+
 if { [empty_string_p $user_id_from_search] } {
     set user_id_from_search [ad_maybe_redirect_for_registration]
 }
+
+# Permissions - limit view to the user himself,
+# unless special permissions are available
+if {"" == $user_id_from_search || ![im_permission $user_id "add_hours_all"]} { 
+    set user_id_from_search $user_id 
+}
+
 
 
 if { [empty_string_p $julian_date] } {

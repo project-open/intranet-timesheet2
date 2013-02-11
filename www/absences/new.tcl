@@ -22,7 +22,6 @@ if {![info exists panel_p]} {
     }
 }
 
-
 if {![info exists enable_master_p]} { set enable_master_p 1}
 
 # ------------------------------------------------------------------
@@ -298,6 +297,13 @@ ad_form -extend -name absence -on_request {
 	   "]
      } {
 	ad_return_complaint 1 [lang::message::lookup "" intranet-timesheet2.Absence_Duplicate_Start "There is already an absence with exactly the same owner, type and start date."]
+    }
+
+    # We do not allow entries of type "Vacation" over the turn of the year in order
+    # to be able to calculate vacation balance in an unambiguous manner
+    if { $absence_type_id == [im_absence_type_vacation] && [lindex $start_date 0] != [lindex $end_date 0] } {
+	set err_msg_default "Entry not allowed. Vacation absences need to begin and end in the same year. Please consider creating two entries."
+	ad_return_complaint 1 [lang::message::lookup "" intranet-timesheet2.NoVacationTurnOfTheYear $err_msg_default] 
     }
 
     db_transaction {
