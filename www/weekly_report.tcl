@@ -55,6 +55,8 @@ set site_url "/intranet-timesheet2"
 set return_url "$site_url/weekly_report"
 set date_format "YYYYMMDD"
 
+if {"" == $owner_id} {set owner_id $user_id}
+
 # Allow the project_manager to see the hours of this project
 
 if { $owner_id != $user_id && ![im_permission $user_id "view_hours_all"] && 0 == $project_id } {
@@ -127,12 +129,8 @@ if { $project_id != 0 } {
 
         # ad_return_complaint 1 $workflow_key
 
-	set include_empty 1
-	set department_only_p 1
-	set im_department_select [im_cost_center_select -include_empty $include_empty  -department_only_p $department_only_p  department_id $department_id [im_cost_type_timesheet]]
-
         set include_empty 1
-        set department_only_p 
+        set department_only_p 0
         set im_cc_select [im_cost_center_select -include_empty $include_empty  -department_only_p $department_only_p  cost_center_id $cost_center_id [im_cost_type_timesheet]]
 
 	set filter_form_html "
@@ -147,9 +145,6 @@ if { $project_id != 0 } {
                 <tr>
                 <td valign=top>&nbsp;</td>
                 </tr>
-        	<tr>
-	        <td valign=top><strong>[_ intranet-core.Department]:</strong><br>$im_department_select</td>
-	        </tr>
 	        <tr>
 	          <td valign=top colspan='2'>
 		        <input type=submit value='[_ intranet-timesheet2.Apply]' name=submit>
@@ -161,24 +156,7 @@ if { $project_id != 0 } {
 "
 }
 
-if { [im_permission $user_id "add_absences"] } {
-    append admin_html "<li><a href=/intranet-timesheet2/absences/new>[_ intranet-timesheet2.Add_a_new_Absence]</a></li>\n"
-}
-if { [im_permission $user_id "view_absences_all"] } {
-    append admin_html "<li><a href=/intranet-timesheet2/absences>[_ intranet-timesheet2.View_all_Absences]</a></li>\n"
-}
-if { [im_permission $user_id "add_hours"] } {
-    append admin_html "<li><a href=/intranet-timesheet2/hours>[_ intranet-timesheet2.Log_your_hours]</a></li>\n"
-}
-
-
-# 2010-12-10: Links should no more appear on this report, moved to /intranet-timesheet2/absences/index 
-# 
-# if { $admin_html != "" } {
-#     set filter_html [append filter_form_html "<ul>$admin_html</ul>"]
-# } else {
-    set filter_html $filter_form_html
-# }
+set filter_html $filter_form_html
 
 # ---------------------------------------------------------------
 # Get the Column Headers and prepare some SQL
@@ -307,24 +285,8 @@ if { "0" != $cost_center_id &&  "" != $cost_center_id } {
 "
 }
 
-set department_filter_where ""
 set cost_center_code [db_string get_cc_code "select cost_center_code from im_cost_centers where cost_center_id = :department_id" -default ""]
 
-if { "0" != $department_id &&  "" != $department_id } {
-	set department_filter_where "
-	   and 
-		u.user_id in (
-			select employee_id from im_employees where department_id in (
-				select 
-					object_id 
-				from 
-					acs_object_context_index 
-				where 
-					ancestor_id = $department_id  
-		) 
-	   )
-        "
-}
 
 set name_order [parameter::get -package_id [apm_package_id_from_key intranet-core] -parameter "NameOrder" -default 1]
 
@@ -352,7 +314,6 @@ where
 	and trunc(to_date(to_char(d.day,:date_format),:date_format),'Day')=trunc(to_date(to_char(i.day,:date_format),:date_format),'Day')
 	and u.user_id = active_users.party_id
 	$sql_where
-	$department_filter_where
 	$cc_filter_where
 order by
 	owner_name, curr_day
