@@ -55,14 +55,24 @@ set site_url "/intranet-timesheet2"
 set return_url "$site_url/weekly_report"
 set date_format "YYYYMMDD"
 
-if {"" == $owner_id} {set owner_id $user_id}
+if {![im_permission $user_id "view_hours_all"] && $owner_id == ""} {
+    set owner_id $user_id
+}
+
+# Allow the manager to see the department
+if {"" != $cost_center_id} {
+    set manager_id [db_string manager "select manager_id from im_cost_centers where cost_center_id = :cost_center_id" -default ""]
+    if {$manager_id == $user_id || [im_permission $user_id "view_hours_all"]} {
+	set owner_id ""
+    }
+}
 
 # Allow the project_manager to see the hours of this project
-
-if { $owner_id != $user_id && ![im_permission $user_id "view_hours_all"] && 0 == $project_id } {
-    ad_return_complaint 1 "<li>[_ intranet-timesheet2.lt_You_have_no_rights_to]"
-    return
-
+if {"" != $project_id} {
+    set manager_p [db_string manager "select count(*) from acs_rels ar, im_biz_object_members bom where ar.rel_id = bom.rel_id and object_id_one = :project_id and object_id_two = :user_id and object_role_id = 1301" -default 0]
+    if {$manager_p || [im_permission $user_id "view_hours_all"]} {
+	set owner_id ""
+    }
 }
 
 if { $start_at == "" } {
@@ -131,7 +141,12 @@ if { $project_id != 0 } {
 
         set include_empty 1
         set department_only_p 0
-        set im_cc_select [im_cost_center_select -include_empty $include_empty  -department_only_p $department_only_p  cost_center_id $cost_center_id [im_cost_type_timesheet]]
+	if {[im_permission $user_id "view_hours_all"]} {
+	    set im_cc_select [im_cost_center_select -include_empty $include_empty  -department_only_p $department_only_p  cost_center_id $cost_center_id [im_cost_type_timesheet]]
+	} else {
+	    # Limit to Cost Centers where he is the manager
+	    set im_cc_select [im_cost_center_select -include_empty $include_empty  -department_only_p $department_only_p  -manager_id $user_id cost_center_id $cost_center_id [im_cost_type_timesheet]]
+	}
 
 	set filter_form_html "
 	<form method=post action='$return_url' name=filter_form>
@@ -285,7 +300,8 @@ if { "0" != $cost_center_id &&  "" != $cost_center_id } {
 "
 }
 
-set cost_center_code [db_string get_cc_code "select cost_center_code from im_cost_centers where cost_center_id = :department_id" -default ""]
+
+set cost_center_code [db_string get_cc_code "select cost_center_code from im_cost_centers where cost_center_id = :cost_center_id" -default ""]
 
 
 set name_order [parameter::get -package_id [apm_package_id_from_key intranet-core] -parameter "NameOrder" -default 1]
