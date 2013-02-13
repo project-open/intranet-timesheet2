@@ -251,7 +251,7 @@ ad_form -extend -name absence -on_request {
     if {![info exists absence_owner_id] || 0 == $absence_owner_id} { set absence_owner_id $user_id_from_search }
     if {![info exists absence_owner_id] || 0 == $absence_owner_id} { set absence_owner_id $current_user_id }
     if {![info exists absence_type_id]} { set absence_type_id [im_absence_type_vacation] }
-    if {![info exists absence_status_id]} { set absence_status_id [im_absence_status_requested] }
+    if {![info exists absence_status_id]} { set absence_status_id [im_absence_status_active] }
     
 } -select_query {
 
