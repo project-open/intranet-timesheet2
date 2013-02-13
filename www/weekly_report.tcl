@@ -105,7 +105,7 @@ if { $project_id != 0 } {
     # As we allow Project Managers to view the timesheet, do not allow them to change the view to all 
     # users if they don't have the permission view_hours_all
     if {[im_permission $user_id "view_hours_all"]} {
-    set filter_form_html "
+	set filter_form_html "
 	<form method=get action='$return_url' name=filter_form>
 	[export_vars -form {start_at duration project_id owner_id workflow_key}]
 	<table border=0 cellpadding=0 cellspacing=0>
@@ -132,8 +132,6 @@ if { $project_id != 0 } {
 	</form>"
     } else {
 	set filter_form_html ""
-	set sel_pro "selected"
-	set display "project"
     }
 } else {
 
