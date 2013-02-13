@@ -55,45 +55,10 @@ set site_url "/intranet-timesheet2"
 set return_url "$site_url/weekly_report"
 set date_format "YYYYMMDD"
 
-if { $owner_id != $user_id && ![im_permission $user_id "view_hours_all"] } {
+# Allow the project_manager to see the hours of this project
+
+if { $owner_id != $user_id && ![im_permission $user_id "view_hours_all"] && 0 == $project_id } {
     ad_return_complaint 1 "<li>[_ intranet-timesheet2.lt_You_have_no_rights_to]"
-    return
-
-}
-
-if { $start_at == "" && $project_id != 0 } {
-
-    set hours_start_date [db_string get_new_start_at "
-	select	to_char(max(day), :date_format) 
-	from	im_hours 
-	where	project_id = :project_id
-    " -default ""]
-
-    set project_lead_p [db_string project_lead "select 1 from acs_rels r, im_biz_object_members bom 
-       where object_id_one = :project_id 
-         and object_id_two = :user_id
-         and r.rel_id = bom.rel_id 
-         and bom.object_role_id = 1301" -default 0]
-
-    set todays_date [db_string todays_date "
-	select	to_char(now(), :date_format) 
-	from	dual
-    " -default ""]
-
-    set start_at $hours_start_date
-    if {"" == $start_at} { 
-	set start_at $project_start_date 
-    }
-    if {"" == $start_at} { 
-	set start_at $todays_date 
-    }
-    if {"" == $start_at} {
-	ad_return_complaint 1 "Unable to determine start date for project \#$project_id:<br>
-        please set the 'Start Date' of the project"
-	return
-    }
-
-    ad_returnredirect "$return_url?[export_url_vars start_at duration project_id owner_id workflow_key]"
     return
 
 }
@@ -117,8 +82,10 @@ if { $project_id != 0 } {
 
 set sel_all ""
 set sel_pro ""
+set sel_sub ""
 
 if { $display == "all" } { set sel_all "selected" }
+if { $display == "subproject" } { set sel_sub "selected" }
 if { $display == "project" } { set sel_pro "selected" }
 
 if { $project_id != 0 } {
@@ -139,7 +106,7 @@ if { $project_id != 0 } {
 	  <td valign=top>[_ intranet-timesheet2.Display] </td>
 	<td valign=top><select name=display size=1>
 	<option value=\"project\" $sel_pro>[_ intranet-timesheet2.lt_hours_spend_on_projec]</option>
-	<option value=\"subproject\" $sel_pro>[_ intranet-timesheet2.lt_hours_spend_on_projec_and_sub]</option>
+	<option value=\"subproject\" $sel_sub>[_ intranet-timesheet2.lt_hours_spend_on_projec_and_sub]</option>
 	<option value=\"all\" $sel_all>[_ intranet-timesheet2.hours_spend_overall]</option>
 	</select></td>
 	</tr>
@@ -362,7 +329,7 @@ if { "0" != $department_id &&  "" != $department_id } {
 set name_order [parameter::get -package_id [apm_package_id_from_key intranet-core] -parameter "NameOrder" -default 1]
 
 set sql "
-select
+select 
 	u.user_id as curr_owner_id,
 	im_name_from_user_id(u.user_id, $name_order) as owner_name,
 	i.val,
@@ -458,10 +425,7 @@ db_foreach get_hours $sql {
     incr ctr
 }
 
-append table_body_html [im_do_row [array get bgcolor] $ctr $curr_owner_id $owner_name $days [array get user_days] [array get user_absences] $holydays $today_date [array get user_ab_descr] $workflow_key]
-
 set colspan [expr [llength $days]+1]
-
 
 if { $ctr > 0 } {
     # Writing last record 
