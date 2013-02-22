@@ -447,7 +447,7 @@ if {[string is integer $user_selection] && $add_absences_for_group_p && $user_se
 	set for_user_id $current_user_id 
 }
 
-set admin_html [im_menu_ul_list -package_key "intranet-timesheet2" "timesheet2_absences" "{user_id_from_search} {$for_user_id} {return_url} {$return_url}"]
+set admin_html [im_menu_ul_list "timesheet2_absences" "{user_id_from_search} {$for_user_id} {return_url} {$return_url}"]
 
 # ----------------------------------------------------------
 # Set color scheme 
