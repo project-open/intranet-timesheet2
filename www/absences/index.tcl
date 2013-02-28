@@ -465,7 +465,8 @@ set col_sql "
 append admin_html "<div class=filter-title>[lang::message::lookup "" intranet-timesheet2.Color_codes "Color Codes"]</div>\n"
 append admin_html "<table cellpadding='5' cellspacing='5'>\n"
 
-set index 0
+# Marc Fleischer: A question of color
+set index -1
 db_foreach cols $col_sql {
     if { "" == $aux_string2 } {
 	# set index [expr $category_id - 5000]
