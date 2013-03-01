@@ -67,6 +67,8 @@ set date_format "YYYY-MM-DD"
 set default_currency [ad_parameter -package_id [im_package_cost_id] "DefaultCurrency" "" "EUR"]
 set wf_installed_p [util_memoize "db_string timesheet_wf \"select count(*) from apm_enabled_package_versions where package_key = 'intranet-timesheet2-workflow'\""]
 
+set conf_objects_installed_p [llength [ns_info procs im_timesheet_conf_object_delete]]
+
 set materials_p [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter HourLoggingWithMaterialsP -default 0]
 set material_name ""
 set material_id ""
@@ -332,7 +334,7 @@ foreach j $weekly_logging_days {
 	# so we need to reset/delete the TimesheetConfObject.
 	ns_log Notice "hours/new-2: im_timesheet_conf_object_delete -project_id $project_id -user_id $user_id -day_julian $day_julian"
 
-	if {$wf_installed_p} {
+	if {$wf_installed_p && $conf_objects_installed_p} {
 	    im_timesheet_conf_object_delete \
 		-project_id $project_id \
 		-user_id $user_id_from_search \
