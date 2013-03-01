@@ -493,7 +493,7 @@ db_foreach cols $col_sql {
 		# color codes can't be parsed -> set a middle value
 		set r_bg 127
 		set g_bg 127
-		set b_Bg 127
+		set b_bg 127
 	}
 	# calculate a brightness-value for the color
 	# if brightness > 127 the foreground color is black, if < 127 the foreground color is white
