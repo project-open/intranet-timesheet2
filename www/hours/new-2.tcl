@@ -66,8 +66,7 @@ if {"" == $user_id_from_search || ![im_permission $user_id "add_hours_all"]} { s
 set date_format "YYYY-MM-DD"
 set default_currency [ad_parameter -package_id [im_package_cost_id] "DefaultCurrency" "" "EUR"]
 set wf_installed_p [util_memoize "db_string timesheet_wf \"select count(*) from apm_enabled_package_versions where package_key = 'intranet-timesheet2-workflow'\""]
-
-set conf_objects_installed_p [llength [ns_info procs im_timesheet_conf_object_delete]]
+set conf_objects_installed_p [llength [info procs im_timesheet_conf_object_delete]]
 
 set materials_p [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter HourLoggingWithMaterialsP -default 0]
 set material_name ""
