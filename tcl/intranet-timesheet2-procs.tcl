@@ -938,3 +938,43 @@ ad_proc get_unconfirmed_hours_for_period {
     "
     return [db_string get_unconfirmed_hours $sql -default 0]
 }
+
+ad_proc -public im_timesheet_remind_members {
+} {
+    Goes through the list of members in members_list and check if they have logged their hours within the last week.
+} {
+
+    set member_list [im_project_get_all_members]
+    
+    set interval [db_string select_interval { select now() - interval '7 days' from dual; }]
+    
+    foreach member_id $member_list {
+        set logged_hours_p [db_string select_hours {
+	        select count(*) from im_hours where day > now() -interval '7 days' and user_id = :member_id
+        }]
+		
+        if {$logged_hours_p eq 0} {
+            
+            set member_email [im_email_from_user_id $member_id]
+            
+            set from_addr [ad_admin_owner]
+            
+            db_1row select_system_url {
+                select attr_value as system_url from apm_parameter_values where parameter_id = (
+		           select parameter_id from apm_parameters where package_key = 'acs-kernel' and parameter_name = 'SystemURL' );
+            }
+	    
+            set hour_logging_url "${system_url}/intranet-timesheet2/hours/index"
+            db_1row select_package_id { 
+               		select package_id from apm_packages where package_key = 'intranet-core'
+            }
+
+            acs_mail_lite::send -send_immediately \
+                -to_addr $member_email \
+                -from_addr $from_addr \
+                -subject "[lang::util::localize "#intranet-timesheet2.You_did_not_log_hours#" [lang::user::locale -user_id $member_id -package_id $package_id -site_wide]]" \
+                -body "[lang::util::localize "#intranet-timesheet2.Please_log_hours#" [lang::user::locale -user_id $member_id -package_id $package_id -site_wide]]" 
+        }
+    }
+}
+
