@@ -939,12 +939,12 @@ ad_proc get_unconfirmed_hours_for_period {
     return [db_string get_unconfirmed_hours $sql -default 0]
 }
 
-ad_proc -public im_timesheet_remind_members {
+ad_proc -public im_timesheet_remind_employees {
 } {
-    Goes through the list of members in members_list and check if they have logged their hours within the last week.
+    Goes through the list of employees in members_list and check if they have logged their hours within the last week.
 } {
 
-    set member_list [im_project_get_all_members]
+    set member_list [im_project_get_all_members -group_id [im_profile_employees]]
     
     set interval [db_string select_interval { select now() - interval '7 days' from dual; }]
     
