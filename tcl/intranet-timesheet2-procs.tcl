@@ -311,7 +311,7 @@ ad_proc -public im_timesheet_project_component {user_id project_id} {
 
     # disable the component for users who can neither see stuff nor add stuff
     set add_hours [im_permission $user_id "add_hours"]
-    set view_hours_all [im_permission $user_id "add_hours"]
+    set view_hours_all [im_permission $user_id "view_hours_all"]
     if {!$add_hours & !$view_hours_all} { return "" }
 
     set hours_logged "<ul>"

@@ -595,7 +595,7 @@ ad_proc im_absence_cube {
 		cc.member_state = 'approved' and
 		a.start_date <= :report_end_date::date and
 		a.end_date >= :report_start_date::date and
-		d.d between a.start_date and a.end_date
+                date_trunc('day',d.d) between date_trunc('day',a.start_date) and date_trunc('day',a.end_date) 
 		$where_clause
      UNION
 	-- Absences for user groups
@@ -609,7 +609,7 @@ ad_proc im_absence_cube {
 	where	mm.member_id = u.user_id and
 		a.start_date <= :report_end_date::date and
 		a.end_date >= :report_start_date::date and
-		d.d between a.start_date and a.end_date and
+                date_trunc('day',d.d) between date_trunc('day',a.start_date) and date_trunc('day',a.end_date) and 
 		mm.group_id = a.group_id
 		$where_clause
     "
@@ -620,7 +620,6 @@ ad_proc im_absence_cube {
 	# Just add the lowest digit of the absence type to the cell.
 	set absence_hash($key) [append value [expr $absence_type_id-5000]]
     }
-    
 
     # ---------------------------------------------------------------
     # Render the table
