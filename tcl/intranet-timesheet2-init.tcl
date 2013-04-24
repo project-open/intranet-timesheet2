@@ -33,7 +33,7 @@ set remind_employees_p [db_string select_parameter {
     SELECT attr_value FROM apm_parameter_values WHERE parameter_id = (
         SELECT parameter_id FROM apm_parameters WHERE package_key = 'intranet-timesheet2' AND parameter_name = 'RemindEmployeesToLogHoursP'
 	);
-}]
+} -default 0]
 
 if {$remind_employees_p} {
     ad_schedule_proc -thread t -schedule_proc ns_schedule_weekly [list 1 7 0] im_timesheet_remind_employees
