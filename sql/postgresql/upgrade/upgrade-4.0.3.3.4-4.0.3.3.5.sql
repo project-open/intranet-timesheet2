@@ -54,7 +54,6 @@ values (27030,270,'Status','"$status"',30);
 insert into im_view_columns (column_id, view_id, column_name, column_render_tcl, sort_order) 
 values (27090,270,'Deny','"<a class=button href=$deny_url>Deny</a>"',90);
 
-		
 create or replace function im_absences_month_absence_duration_type (user_id integer, month integer, year integer, absence_type_id integer)
 returns setof record as $BODY$
 
