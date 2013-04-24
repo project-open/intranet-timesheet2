@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 -- 
 -- 
 -- 
@@ -6,6 +5,7 @@
 -- @creation-date 2013-01-14
 -- @cvs-id $Id$
 --
+-- upgrade-4.0.3.3.4-4.0.3.3.5.sql
 
 SELECT acs_log__debug('/packages/intranet-timesheet2/sql/postgresql/upgrade/upgrade-4.0.3.3.4-4.0.3.3.5.sql','');
 
@@ -54,10 +54,6 @@ values (27030,270,'Status','"$status"',30);
 insert into im_view_columns (column_id, view_id, column_name, column_render_tcl, sort_order) 
 values (27090,270,'Deny','"<a class=button href=$deny_url>Deny</a>"',90);
 
-=======
--- upgrade-4.0.3.3.4-4.0.3.3.5.sql
-
-SELECT acs_log__debug('/packages/intranet-timesheet2/sql/postgresql/upgrade/upgrade-4.0.3.3.4-4.0.3.3.5.sql','');
 		
 create or replace function im_absences_month_absence_duration_type (user_id integer, month integer, year integer, absence_type_id integer)
 returns setof record as $BODY$
@@ -126,4 +122,3 @@ begin
         END LOOP;
 end;$BODY$
 language 'plpgsql';
->>>>>>> 3324821a09bf5a693ad05e07cbb34281e8ba4ab5
