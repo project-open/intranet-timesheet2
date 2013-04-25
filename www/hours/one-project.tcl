@@ -29,8 +29,16 @@ ad_page_contract {
 
 
 set current_user_id [ad_maybe_redirect_for_registration]
-set view_ours_all_p [im_permission $current_user_id "view_hours_all"]
-if {!$view_ours_all_p} { 
+im_project_permissions $current_user_id $project_id view read write admin
+
+set view_hours_all_p [im_permission $current_user_id "view_hours_all"]
+
+# Allow the project manager to view all hours
+if {$admin} {
+    set view_hours_all_p 1
+}
+
+if {!$view_hours_all_p} { 
     ad_return_complaint 1 "<li>[_ intranet-core.lt_You_have_insufficient_6]"
     ad_script_abort
 }
