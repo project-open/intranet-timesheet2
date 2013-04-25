@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<message_catalog package_key="intranet-timesheet2" package_version="3.4.0.7.0" locale="zh_CN" charset="utf-8">
+<message_catalog package_key="intranet-timesheet2" locale="zh_CN" charset="utf-8">
 
   <msg key="1_Euro_equals">1欧元等于:</msg>
   <msg key="_user_id">并且应该提供 project_id .但是遇到了错误...</msg>
