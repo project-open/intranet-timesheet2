@@ -222,7 +222,6 @@ ad_proc calendar_basic_month {
 	# Depends on locale
 	set first_day_of_week [lc_get firstdayofweek]
 	
-	ds_comment "$first_day_of_week"
 	for {set i $first_day_of_week} {$i < 7 } {incr i} {
 	    append output "<td width=14% align=center>[lindex $days_of_week $i]</td>"
 	}
