@@ -40,15 +40,21 @@ ad_page_contract {
     { duration:integer "7" }
     { start_at:integer "" }
     { display "subproject" }
-    { cost_center_id:integer "" }
     { approved_only_p:integer "0"}
-    { active_employees_p:integer "0"}
+    { active_employees_p:integer "1"}
     { workflow_key ""}
 }
 
 # ---------------------------------------------------------------
 # Defaults & Security
 # ---------------------------------------------------------------
+
+set extra_wheres [list]
+set extra_froms [list]
+set extra_left_joins [list]
+set extra_selects [list]
+
+set extra_order_by ""
 
 set user_id [ad_maybe_redirect_for_registration]
 set subsite_id [ad_conn subsite_id]
@@ -58,14 +64,6 @@ set date_format "YYYYMMDD"
 
 if {![im_permission $user_id "view_hours_all"] && $owner_id == ""} {
     set owner_id $user_id
-}
-
-# Allow the manager to see the department
-if {"" != $cost_center_id} {
-    set manager_id [db_string manager "select manager_id from im_cost_centers where cost_center_id = :cost_center_id" -default ""]
-    if {$manager_id == $user_id || [im_permission $user_id "view_hours_all"]} {
-	set owner_id ""
-    }
 }
 
 # Allow the project_manager to see the hours of this project
@@ -114,7 +112,7 @@ ad_form \
 
 if {[apm_package_installed_p intranet-timesheet2-workflow]} {
     ad_form -extend -name $form_id -form {
-	{approved_only_p:text(select),optional {label \#intranet-timesheet2-workflow.Approved\# ?} {options {{[_ intranet-core.Yes] "1"} {[_ intranet-core.No] "0"}}} {value 0}}
+	{approved_only_p:text(select),optional {label \#intranet-timesheet2.OnlyApprovedHours\# ?} {options {{[_ intranet-core.Yes] "1"} {[_ intranet-core.No] "0"}}} {value 0}}
     }
 }
 
@@ -126,18 +124,23 @@ if { $project_id != "" && [im_permission $user_id "view_hours_all"]} {
     }
 }
 
-if {[im_permission $user_id "view_hours_all"]} {
-    set cost_center_options [im_cost_center_options -include_empty 1 -include_empty_name [lang::message::lookup "" intranet-core.All "All"] -department_only_p 0]
-} else {
-    # Limit to Cost Centers where he is the manager
-    set cost_center_options [im_cost_center_options -include_empty 0 -department_only_p 0 -manager_id $user_id]
-}
+## Deal with user filters
+im_dynfield::append_attributes_to_form \
+    -object_type "person" \
+    -form_id $form_id \
+    -advanced_filter_p 1 \
+    -page_url "/intranet-timesheet2/weekly_report" \
+    -object_id 0
 
-if {"" != $cost_center_options} {
-    ad_form -extend -name $form_id -form {
-        {cost_center_id:text(select),optional {label "User's Department"} {options $cost_center_options} {value $cost_center_id}}
-    }
-}
+# Set the form values from the HTTP form variable frame
+im_dynfield::set_form_values_from_http -form_id $form_id
+
+array set extra_sql_array [im_dynfield::search_sql_criteria_from_form \
+			       -form_id $form_id \
+			       -object_type "person"
+			  ]
+
+
 
 eval [template::adp_compile -string {<formtemplate id="$form_id" style="tiny-plain-po"></formtemplate>}]
 set filter_html $__adp_output
@@ -270,20 +273,61 @@ UNION
 select distinct user_id as party_id from im_hours  $approved_from where 1=1 $approved_where
 "
 
-set cc_filter_where ""
-if { "" != $cost_center_id } {
-        set cc_filter_where "
-        and u.user_id in (select employee_id from im_employees where department_id in (select object_id from acs_object_context_index where ancestor_id = $cost_center_id))
-"
+# Join the "extra_" SQL pieces 
+
+set extra_from [join $extra_froms ",\n\t"]
+set extra_left_join [join $extra_left_joins "\n\t"]
+set extra_select [join $extra_selects ",\n\t"]
+set extra_where [join $extra_wheres "\n\tand "]
+
+if {"" != $extra_from} { set extra_from ",$extra_from" }
+if {"" != $extra_select} { set extra_select ",$extra_select" }
+if {"" != $extra_where} { set extra_where "and $extra_where" }
+
+set switch_link_html "<a href=\"weekly_report?[export_url_vars owner_id project_id duration display]"
+
+
+# Create a ns_set with all local variables in order
+# to pass it to the SQL query
+set form_vars [ns_set create]
+foreach varname [info locals] {
+
+    # Don't consider variables that start with a "_", that
+    # contain a ":" or that are array variables:
+    if {"_" == [string range $varname 0 0]} { continue }
+    if {[regexp {:} $varname]} { continue }
+    if {[array exists $varname]} { continue }
+
+    # Get the value of the variable and add to the form_vars set
+    set value [expr "\$$varname"]
+    ns_set put $form_vars $varname $value
+}
+
+# Add the DynField variables to $form_vars
+set dynfield_extra_where $extra_sql_array(where)
+set ns_set_vars $extra_sql_array(bind_vars)
+set tmp_vars [util_list_to_ns_set $ns_set_vars]
+set tmp_var_size [ns_set size $tmp_vars]
+for {set i 0} {$i < $tmp_var_size} { incr i } {
+    set key [ns_set key $tmp_vars $i]
+    set value [ns_set get $tmp_vars $key]
+    set $key $value
+    set switch_link_html "$switch_link_html&[export_url_vars $key]"
+    ns_set put $form_vars $key $value
+}
+
+
+# Add the additional condition to the "where_clause"
+if {"" != $dynfield_extra_where} { 
+    append extra_where "
+                and u.user_id in $dynfield_extra_where
+            "
 }
 
 set active_employee_filter_where ""
 if {$active_employees_p} {
     set active_employee_filter_where "and u.user_id in (select employee_id from im_employees where employee_status_id = [im_employee_status_active])"
 }
-
-set cost_center_code [db_string get_cc_code "select cost_center_code from im_cost_centers where cost_center_id = :cost_center_id" -default ""]
-
 
 set name_order [parameter::get -package_id [apm_package_id_from_key intranet-core] -parameter "NameOrder" -default 1]
 
@@ -311,8 +355,7 @@ where
 	and trunc(to_date(to_char(d.day,:date_format),:date_format),'Day')=trunc(to_date(to_char(i.day,:date_format),:date_format),'Day')
 	and u.user_id = active_users.party_id
 	$sql_where
-	$cc_filter_where
-        $active_employee_filter_where
+	$extra_where
 order by
 	owner_name, curr_day
 "
@@ -410,10 +453,8 @@ set navig_sql "
     	dual"
 db_1row get_navig_dates $navig_sql
 
-set switch_link_html "<a href=\"weekly_report?[export_url_vars owner_id project_id duration display]"
-
-set switch_past_html "$switch_link_html&start_at=$past_date&cost_center_id=$cost_center_id&workflow_key=$workflow_key\">&laquo;</a>"
-set switch_future_html "$switch_link_html&start_at=$future_date&cost_center_id=$cost_center_id&workflow_key=$workflow_key\">&raquo;"
+set switch_past_html "$switch_link_html&start_at=$past_date&workflow_key=$workflow_key\">&laquo;</a>"
+set switch_future_html "$switch_link_html&start_at=$future_date&workflow_key=$workflow_key\">&raquo;"
 
 # ---------------------------------------------------------------
 # Format Table Continuation and title

@@ -275,6 +275,7 @@ of those units were billed hourly, for a total amount of</msg>
   <msg key="October">October</msg>
   <msg key="One_employee">One employee</msg>
   <msg key="One_project">One project</msg>
+  <msg key="OnlyApprovedHours">Only Approved Hours</msg>
   <msg key="Other_Options">Other Options</msg>
   <msg key="own_hours">own hours</msg>
   <msg key="P">P</msg>
