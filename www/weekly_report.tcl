@@ -37,11 +37,11 @@ ad_page_contract {
 } {
     { owner_id:integer "" }
     { project_id:integer "" }
+    { cost_center_id:integer "" }
     { duration:integer "7" }
     { start_at:integer "" }
     { display "subproject" }
     { approved_only_p:integer "0"}
-    { active_employees_p:integer "1"}
     { workflow_key ""}
 }
 
@@ -71,6 +71,14 @@ if {"" != $project_id} {
     set manager_p [db_string manager "select count(*) from acs_rels ar, im_biz_object_members bom where ar.rel_id = bom.rel_id and object_id_one = :project_id and object_id_two = :user_id and object_role_id = 1301" -default 0]
     if {$manager_p || [im_permission $user_id "view_hours_all"]} {
 	set owner_id ""
+    }
+}
+
+# Allow the manager to see the department
+if {"" != $cost_center_id} {
+    set manager_id [db_string manager "select manager_id from im_cost_centers where cost_center_id = :cost_center_id" -default ""]
+    if {$manager_id == $user_id || [im_permission $user_id "view_hours_all"]} {
+        set owner_id ""
     }
 }
 
@@ -107,7 +115,6 @@ ad_form \
     -export {start_at duration} \
     -form {
         {project_id:text(select),optional {label \#intranet-cost.Project\#} {options $project_options} {value $project_id}}
-	{active_employees_p:text(select),optional {label \#intranet-timesheet2.ActiveEmployeesOnly\#} {options {{[_ intranet-core.Yes] "1"} {[_ intranet-core.No] "0"}}} {value 0}}
     }
 
 if {[apm_package_installed_p intranet-timesheet2-workflow]} {
@@ -124,12 +131,26 @@ if { $project_id != "" && [im_permission $user_id "view_hours_all"]} {
     }
 }
 
+# Deal with the department
+if {[im_permission $user_id "view_hours_all"]} {
+    set cost_center_options [im_cost_center_options -include_empty 1 -include_empty_name [lang::message::lookup "" intranet-core.All "All"] -department_only_p 0]
+} else {
+    # Limit to Cost Centers where he is the manager
+    set cost_center_options [im_cost_center_options -include_empty 0 -department_only_p 1 -manager_id $user_id]
+}
+
+if {"" != $cost_center_options} {
+    ad_form -extend -name $form_id -form {
+        {cost_center_id:text(select),optional {label "User's Department"} {options $cost_center_options} {value $cost_center_id}}
+    }
+}
+
 ## Deal with user filters
 im_dynfield::append_attributes_to_form \
     -object_type "person" \
     -form_id $form_id \
+    -page_url "/intranet-timesheet2/weekly-report" \
     -advanced_filter_p 1 \
-    -page_url "/intranet-timesheet2/weekly_report" \
     -object_id 0
 
 # Set the form values from the HTTP form variable frame
@@ -273,6 +294,12 @@ UNION
 select distinct user_id as party_id from im_hours  $approved_from where 1=1 $approved_where
 "
 
+if { "" != $cost_center_id } {
+        lappend extra_wheres "
+        u.user_id in (select employee_id from im_employees where department_id in (select object_id from acs_object_context_index where ancestor_id = $cost_center_id) or u.user_id = :user_id)
+"
+}
+
 # Join the "extra_" SQL pieces 
 
 set extra_from [join $extra_froms ",\n\t"]
@@ -284,7 +311,7 @@ if {"" != $extra_from} { set extra_from ",$extra_from" }
 if {"" != $extra_select} { set extra_select ",$extra_select" }
 if {"" != $extra_where} { set extra_where "and $extra_where" }
 
-set switch_link_html "<a href=\"weekly_report?[export_url_vars owner_id project_id duration display]"
+set switch_link_html "<a href=\"weekly_report?[export_url_vars owner_id project_id duration display cost_center_id]"
 
 
 # Create a ns_set with all local variables in order
@@ -322,11 +349,6 @@ if {"" != $dynfield_extra_where} {
     append extra_where "
                 and u.user_id in $dynfield_extra_where
             "
-}
-
-set active_employee_filter_where ""
-if {$active_employees_p} {
-    set active_employee_filter_where "and u.user_id in (select employee_id from im_employees where employee_status_id = [im_employee_status_active])"
 }
 
 set name_order [parameter::get -package_id [apm_package_id_from_key intranet-core] -parameter "NameOrder" -default 1]
