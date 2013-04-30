@@ -133,7 +133,7 @@
   <msg key="log_hours">Stunden erfassen</msg>
   <msg key="Log_hours_for_user">Stunden für:</msg>
   <msg key="Log_your_hours">Erfassen sie ihre Stunden</msg>
-  <msg key="lt_A_total_of_total_hour">Es wurden insgesamt %total_hours_str% Stunden auf diesem Projekt erfaßt.</msg>
+  <msg key="lt_A_total_of_total_hour">Es wurden insgesamt %total_hours_str% Stunden (%approved_hours_str% genehmigt) auf diesem Projekt erfaßt.</msg>
   <msg key="lt_Add_hours_on_other_pr">Stunden erfassen auf anderen Projekten</msg>
   <msg key="lt_All_the_fields_should">Alle Felder müssen vorm verschicken ausgefüllt werden.</msg>
   <msg key="lt_All_the_fields_should_1">Alle Felder müssen vorm  %action% ausgefüllt sein.</msg>

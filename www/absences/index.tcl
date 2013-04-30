@@ -447,7 +447,7 @@ if {[string is integer $user_selection] && $add_absences_for_group_p && $user_se
 	set for_user_id $current_user_id 
 }
 
-set admin_html [im_menu_ul_list -package_key "intranet-timesheet2" "timesheet2_absences" "{user_id_from_search} {$for_user_id} {return_url} {$return_url}"]
+set admin_html [im_menu_ul_list "timesheet2_absences" [list user_id_from_search $for_user_id return_url $return_url]]
 
 # ----------------------------------------------------------
 # Set color scheme 
@@ -465,7 +465,8 @@ set col_sql "
 append admin_html "<div class=filter-title>[lang::message::lookup "" intranet-timesheet2.Color_codes "Color Codes"]</div>\n"
 append admin_html "<table cellpadding='5' cellspacing='5'>\n"
 
-set index 0
+# Marc Fleischer: A question of color
+set index -1
 db_foreach cols $col_sql {
     if { "" == $aux_string2 } {
 	# set index [expr $category_id - 5000]
@@ -492,7 +493,7 @@ db_foreach cols $col_sql {
 		# color codes can't be parsed -> set a middle value
 		set r_bg 127
 		set g_bg 127
-		set b_Bg 127
+		set b_bg 127
 	}
 	# calculate a brightness-value for the color
 	# if brightness > 127 the foreground color is black, if < 127 the foreground color is white

@@ -31,14 +31,19 @@ ad_page_contract {
 
 
 set current_user_id [ad_maybe_redirect_for_registration]
+im_project_permissions $current_user_id $project_id view read write admin
 
 # Has the current user the right to edit all timesheet information?
 set edit_timesheet_p [im_permission $current_user_id "add_hours_all"]
-set view_ours_all_p [im_permission $current_user_id "view_hours_all"]
+set view_hours_all_p [im_permission $current_user_id "view_hours_all"]
 set view_finance_p [im_permission $current_user_id "view_finance"]
 
+# Allow the project manager to view all hours
+if {$admin} {
+    set view_hours_all_p 1
+}
 
-if {!$view_ours_all_p} {
+if {!$view_hours_all_p} {
     ad_return_complaint 1 "<li>[_ intranet-core.lt_You_have_insufficient_6]"
     ad_script_abort
 }

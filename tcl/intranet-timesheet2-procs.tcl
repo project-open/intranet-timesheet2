@@ -307,20 +307,28 @@ ad_proc -public im_timesheet_project_component {user_id project_id} {
 	set return_url "[ad_conn url]?[ad_conn query]"
     }
 
-    set view_ours_all_p [im_permission $user_id "view_hours_all"]
+    set view_hours_all_p [im_permission $user_id "view_hours_all"]
+
+    # Allow the project manager to view all hours
+    if {$admin} {
+	set view_hours_all_p 1
+    }
 
     # disable the component for users who can neither see stuff nor add stuff
     set add_hours [im_permission $user_id "add_hours"]
-    set view_hours_all [im_permission $user_id "add_hours"]
-    if {!$add_hours & !$view_hours_all} { return "" }
+    if {!$add_hours & !$view_hours_all_p} { return "" }
 
     set hours_logged "<ul>"
     set info_html ""
 
+	
+
     # fraber 2007-01-31: Admin doesn't make sense.
-    if {$read && $view_ours_all_p} {
+    if {$read && $view_hours_all_p} {
         set total_hours [im_timesheet_hours_sum -project_id $project_id]
 	set total_hours_str "[util_commify_number $total_hours]"
+        set approved_hours [im_timesheet_hours_sum -project_id $project_id -approved]
+	set approved_hours_str "[util_commify_number $approved_hours]"
         set info_html "[_ intranet-timesheet2.lt_A_total_of_total_hour]"
         if { $total_hours > 0 } {
            append hours_logged "
@@ -333,6 +341,7 @@ ad_proc -public im_timesheet_project_component {user_id project_id} {
 
     if {$read} {
 	set total_hours_str [im_timesheet_hours_sum -user_id $user_id -project_id $project_id]
+	set approved_hours_str [im_timesheet_hours_sum -user_id $user_id -project_id $project_id -approved]
         append info_html "<br>[_ intranet-timesheet2.lt_You_have_loged_total_].\n"
         set hours_today [im_timesheet_hours_sum -user_id $user_id -number_days 1]
 
@@ -421,6 +430,7 @@ ad_proc im_timesheet_hours_sum {
     {-user_id 0}
     {-project_id 0}
     {-number_days 0}
+    -approved:boolean
 } {
     Returns the total number of hours the specified user logged for
     whatever else is included in the arg list.
@@ -452,11 +462,18 @@ ad_proc im_timesheet_hours_sum {
     if {0 != $number_days} {
 	lappend criteria "day >= now()::date - $number_days"	
     }
+    if {$approved_p} {
+	set approved_from ", im_timesheet_conf_objects tco"
+	set approved_where "and tco.conf_id = h.conf_object_id and tco.conf_status_id = 17010"
+    } else {
+      	set approved_from ""
+	set approved_where ""
+    }
     set num_hours [db_string sum_hours "
 	select	sum(h.hours) 
-	from	im_hours h
+	from	im_hours h $approved_from
 	where	h.day::date <= now()::date and
-		[join $criteria "\n    and "]
+		[join $criteria "\n    and "] $approved_where
     " -default 0]
     if {"" == $num_hours} { set num_hours 0}
 
@@ -961,4 +978,43 @@ ad_proc -public im_timesheet_approval_component {
 
     set result [ad_parse_template -params $params "/packages/intranet-timesheet2/lib/timesheet-approval"]
     return [string trim $result]
+}
+
+ad_proc -public im_timesheet_remind_employees {
+} {
+    Goes through the list of employees in members_list and check if they have logged their hours within the last week.
+} {
+
+    set member_list [im_project_get_all_members -group_id [im_profile_employees]]
+    
+    set interval [db_string select_interval { select now() - interval '7 days' from dual; }]
+    
+    foreach member_id $member_list {
+        set logged_hours_p [db_string select_hours {
+	        select count(*) from im_hours where day > now() -interval '7 days' and user_id = :member_id
+        }]
+		
+        if {$logged_hours_p eq 0} {
+            
+            set member_email [im_email_from_user_id $member_id]
+            
+            set from_addr [ad_admin_owner]
+            
+            db_1row select_system_url {
+                select attr_value as system_url from apm_parameter_values where parameter_id = (
+		           select parameter_id from apm_parameters where package_key = 'acs-kernel' and parameter_name = 'SystemURL' );
+            }
+	    
+            set hour_logging_url "${system_url}/intranet-timesheet2/hours/index"
+            db_1row select_package_id { 
+               		select package_id from apm_packages where package_key = 'intranet-core'
+            }
+
+            acs_mail_lite::send -send_immediately \
+                -to_addr $member_email \
+                -from_addr $from_addr \
+                -subject "[lang::util::localize "#intranet-timesheet2.You_did_not_log_hours#" [lang::user::locale -user_id $member_id -package_id $package_id -site_wide]]" \
+                -body "[lang::util::localize "#intranet-timesheet2.Please_log_hours#" [lang::user::locale -user_id $member_id -package_id $package_id -site_wide]]" 
+        }
+    }
 }
