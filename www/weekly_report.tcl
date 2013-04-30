@@ -102,7 +102,12 @@ if { $project_id != "" } {
 set form_id "report_filter"
 set action_url "/intranet-timesheet2/weekly_report"
 set form_mode "edit"
-set project_options [im_project_options -include_empty 1 -exclude_subprojects_p 0 -include_empty_name [lang::message::lookup "" intranet-core.All "All"]]
+if {[im_permission $user_id "view_projects_all"]} {
+    set project_options [im_project_options -include_empty 1 -exclude_subprojects_p 0 -include_empty_name [lang::message::lookup "" intranet-core.All "All" --exclude_status_id]]
+} else {
+    set project_options [im_project_options -include_empty 0 -exclude_subprojects_p 0 -include_empty_name [lang::message::lookup "" intranet-core.All "All" -member_user_id $user_id]]
+}
+
 set company_options [im_company_options -include_empty_p 1 -include_empty_name "[_ intranet-core.All]" -type "CustOrIntl" ]
 set levels {{"#intranet-timesheet2.lt_hours_spend_on_projec#" "project"} {"#intranet-timesheet2.lt_hours_spend_on_project_and_sub#" subproject} {"#intranet-timesheet2.hours_spend_overall#" all}}
 
@@ -136,7 +141,7 @@ if {[im_permission $user_id "view_hours_all"]} {
     set cost_center_options [im_cost_center_options -include_empty 1 -include_empty_name [lang::message::lookup "" intranet-core.All "All"] -department_only_p 0]
 } else {
     # Limit to Cost Centers where he is the manager
-    set cost_center_options [im_cost_center_options -include_empty 0 -department_only_p 1 -manager_id $user_id]
+    set cost_center_options [im_cost_center_options -include_empty 1 -department_only_p 1 -manager_id $user_id]
 }
 
 if {"" != $cost_center_options} {
