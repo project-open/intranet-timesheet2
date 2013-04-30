@@ -167,6 +167,7 @@ number of kilometers. Amount can be entered with either &lt;B&gt;&quot;.&quot;&l
   <msg key="lt_Hours_for_pretty_date">Hours for %pretty_date%</msg>
   <msg key="lt_Hours_for_user_name_W">Hours for $user_name (Week starting %date_value%)</msg>
   <msg key="lt_hours_spend_on_projec">hours spend on project &quot;%project_name%&quot;</msg>
+  <msg key="lt_hours_spend_on_project_and_sub">hours spend on project &quot;%project_name%&quot; and subprojects </msg>
   <msg key="lt_hours_varof_those_uni">%hours_var%
 of those units were billed hourly, for a total amount of</msg>
   <msg key="lt_Insufficient_Privileg">Insufficient Privileges</msg>
