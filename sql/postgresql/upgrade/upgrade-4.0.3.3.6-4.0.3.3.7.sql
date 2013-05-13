@@ -2,7 +2,25 @@
 
 SELECT acs_log__debug('/packages/intranet-timesheet2/sql/postgresql/upgrade/upgrade-4.0.3.3.6-4.0.3.3.7.sql','');
 
-drop function im_absences_get_absences_for_user(int4,date,date,int4); 
+
+create or replace function inline_0 ()
+returns integer as $body$
+declare
+	v_count  integer;
+begin
+	select count(*) into v_count from pg_proc
+	where lower(proname) = 'im_absences_get_absences_for_user';
+	IF v_count = 0 THEN return 1; END IF;
+
+	drop function im_absences_get_absences_for_user(int4,date,date,int4);
+
+	return 0;
+end;$body$ language 'plpgsql';
+select inline_0();
+drop function inline_0();
+
+
+
 
 create or replace function im_absences_get_absences_for_user(int4,date,date,int4) returns setof record as $body$
     declare
