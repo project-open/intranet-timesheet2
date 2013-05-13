@@ -35,7 +35,7 @@ ad_page_contract {
     { project_id:integer,multiple "" }
     { return_url "" }
     { header "" }
-    { message:allhtml "" }
+    { message:html "" }
     { show_week_p "" }
     { user_id_from_search "" }
 }

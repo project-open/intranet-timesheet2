@@ -283,6 +283,7 @@ ad_proc im_absence_new_page_wf_perm_delete_button {
 ad_proc im_absence_cube_color_list { } {
     Returns the list of colors for the various types of absences
 } {
+    # ad_return_complaint 1 [util_memoize im_absence_cube_color_list_helper]
     return [util_memoize im_absence_cube_color_list_helper]
 }
 
@@ -334,6 +335,7 @@ ad_proc im_absence_cube_color_list_helper { } {
 	incr ctr
     }
     return $color_list
+
 }
 
 
@@ -576,6 +578,21 @@ ad_proc im_absence_cube {
     "]
 
 
+    # Get list of categeory_ids to determine index 
+    # needed for color codes
+
+    set sql "
+        select  category_id
+        from    im_categories
+        where   category_type = 'Intranet Absence Type'
+        order by category_id
+     "
+
+    set category_list [list]
+    db_foreach category_id $sql {
+	lappend category_list [list $category_id]
+    }
+
     # ---------------------------------------------------------------
     # Get individual absences
     # ---------------------------------------------------------------
@@ -613,12 +630,13 @@ ad_proc im_absence_cube {
 		mm.group_id = a.group_id
 		$where_clause
     "
+
+    # ToDo: re-factor so that color codes also work in case of more than 10 absence types
     db_foreach absences $absence_sql {
 	set key "$owner_id-$d"
 	set value ""
 	if {[info exists absence_hash($key)]} { set value $absence_hash($key) }
-	# Just add the lowest digit of the absence type to the cell.
-	set absence_hash($key) [append value [expr $absence_type_id-5000]]
+	set absence_hash($key) [append value [lsearch $category_list $absence_type_id]]
     }
 
     # ---------------------------------------------------------------
@@ -650,6 +668,7 @@ ad_proc im_absence_cube {
 	    if {[info exists absence_hash($key)]} { set value $absence_hash($key) }
 	    if {[info exists holiday_hash($date_date)]} { append value $holiday_hash($date_date) }
 	    append table_body [im_absence_cube_render_cell $value]
+	    ns_log NOTICE "intranet-absences-procs::im_absence_cube_render_cell: $value"
 	}
 	append table_body "</tr>\n"
 	incr row_ctr
