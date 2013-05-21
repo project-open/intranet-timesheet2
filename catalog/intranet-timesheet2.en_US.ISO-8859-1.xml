@@ -1,14 +1,15 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
-<message_catalog package_key="intranet-timesheet2" package_version="3.4.0.7.0" locale="en_US" charset="ISO-8859-1">
+<message_catalog package_key="intranet-timesheet2" locale="en_US" charset="ISO-8859-1">
+
   <msg key="1_Euro_equals">1 Euro equals:</msg>
   <msg key="_user_id">and project_id can be provided. But there was some problem with them...</msg>
   <msg key="A">A</msg>
   <msg key="Absence">Absence</msg>
+  <msg key="Absence_Name">Name</msg>
   <msg key="Absence_Type">Absence Type:</msg>
   <msg key="Absence_Type_1">Absence Type</msg>
   <msg key="Absences">Absences</msg>
   <msg key="absences">absences</msg>
-  <msg key="Absence_Name">Name</msg>
   <msg key="Absences_Next_Year"></msg>
   <msg key="Absences_This_Year"></msg>
   <msg key="Absent">Absent</msg>
@@ -260,10 +261,10 @@ of those units were billed hourly, for a total amount of</msg>
   <msg key="Not_Member_of_Projects">You are not a member of any open project.</msg>
   <msg key="Notes">Notes:</msg>
   <msg key="Notice">Notice</msg>
-  <msg key="Notification_Subject_Notify_Applicant_Absence_Approved">Your application for an absence</msg>
   <msg key="Notification_Body_Notify_Applicant_Absence_Approved">Your application for an absence has been approved:</msg>
-  <msg key="Notification_Subject_Notify_Applicant_Absence_Not_Approved">Your application for an absence</msg>
   <msg key="Notification_Body_Notify_Applicant_Absence_Not_Approved">Your application for an absence has not been approved:</msg>
+  <msg key="Notification_Subject_Notify_Applicant_Absence_Approved">Your application for an absence</msg>
+  <msg key="Notification_Subject_Notify_Applicant_Absence_Not_Approved">Your application for an absence</msg>
   <msg key="Nov">Nov</msg>
   <msg key="November">November</msg>
   <msg key="O">O</msg>
@@ -361,12 +362,12 @@ of those units were billed hourly, for a total amount of</msg>
   <msg key="Worked_Day">Worked Day</msg>
   <msg key="X">X</msg>
   <msg key="Y">Y</msg>
+  <msg key="You_did_not_log_hours">You did not log your hours</msg>
   <msg key="You_need_to_log_hours">
   You have so far logged only %num_hours% hours worktime
   %absences_hours_message% of the required %expected_hours% hours in the last
   %num_days% days. Please log you hours now or contact your manager.
   </msg>
-  <msg key="You_did_not_log_hours">You did not log your hours</msg>
   <msg key="Your_hours">Your hours</msg>
   <msg key="Your_workspace">Your workspace</msg>
 </message_catalog>
