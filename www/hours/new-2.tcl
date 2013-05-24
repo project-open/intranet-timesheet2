@@ -84,6 +84,10 @@ set limit_to_one_day_per_main_project_p [parameter::get_from_package_key -packag
 set sync_cost_item_immediately_p [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter "SyncHoursImmediatelyAfterEntryP" -default 1]
 set check_all_hours_with_comment [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter "ForceAllTimesheetEntriesWithCommentP" -default 1]
 
+# Accept some cache inconsistencies? Experimental!
+set performance_mode_p [parameter::get_from_package_key -package_key acs-kernel -parameter "PerformanceModeP" -default 0]
+
+
 # ----------------------------------------------------------
 # Simple 'Callback' for custom validation 
 # ----------------------------------------------------------
@@ -505,38 +509,43 @@ incr i
 # modified projects and update hours for these projects.
 # ----------------------------------------------------------
 
-array set modified_projects_hash [array get action_hash]
-set new_parent_ids [array names modified_projects_hash]
-lappend new_parent_ids 0
+if {!$performance_mode_p} {
+    array set modified_projects_hash [array get all_project_ids]
+} else {
+    # Experimental - may lead to cache inconsistencies
 
-ns_log Notice "new-2.tcl: new_parent_ids=$new_parent_ids"
-set new_parent_ids [db_list new_parents "
-	select	distinct parent_id
-	from	im_projects
-	where	parent_id is not null and 
-		project_id in ([join $new_parent_ids ","])
-"]
-set cnt 0
-while {[llength $new_parent_ids] > 0 && $cnt < 10} {
-    foreach pid $new_parent_ids {
-	set modified_projects_hash($pid) $pid
-    }
+    array set modified_projects_hash [array get action_hash]
+    set new_parent_ids [array names modified_projects_hash]
+    lappend new_parent_ids 0
+    
+    ns_log Notice "new-2.tcl: new_parent_ids=$new_parent_ids"
     set new_parent_ids [db_list new_parents "
 	select	distinct parent_id
 	from	im_projects
 	where	parent_id is not null and 
 		project_id in ([join $new_parent_ids ","])
     "]
-    ns_log Notice "new-2.tcl: new_paren_ids=$new_parent_ids"
-    incr cnt
-}
+    set cnt 0
+    while {[llength $new_parent_ids] > 0 && $cnt < 10} {
+	foreach pid $new_parent_ids {
+	    set modified_projects_hash($pid) $pid
+	}
+	set new_parent_ids [db_list new_parents "
+		select	distinct parent_id
+		from	im_projects
+		where	parent_id is not null and 
+			project_id in ([join $new_parent_ids ","])
+        "]
+	ns_log Notice "new-2.tcl: new_paren_ids=$new_parent_ids"
+	incr cnt
+    }
 
+}
 
 # Create cost items for every logged hours?
 # This may take up to a second per user, so we may want to avoid this
 # in very busy Swisss systems where everybody logs hours between 16:00 and 16:30...
 if {$sync_cost_item_immediately_p} {
-
     # Update the affected project's cost_hours_cache and cost_days_cache fields,
     # so that the numbers will appear correctly in the TaskListPage
     foreach project_id [array names modified_projects_hash] {
