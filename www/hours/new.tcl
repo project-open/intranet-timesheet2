@@ -893,19 +893,19 @@ template::multirow foreach hours_multirow {
     # Change back from a closed branch to an open branch
     set pnam [string range $project_name 0 10]
     if {$subproject_level <= $closed_level} {
-	# ns_log Notice "new: $pnam: action: reset to open"
+	ns_log Notice "new: $pnam: action: reset to open"
 	set closed_status [im_project_status_open]
 	set closed_level 0
     }
 
-    # ns_log Notice "new: $pnam: p=$project_id, depth=$subproject_level, closed_level=$closed_level, status=$project_status"
+    ns_log Notice "new: $pnam: p=$project_id, depth=$subproject_level, closed_level=$closed_level, status=$project_status"
 
 
     # We've just discovered a status change from open to closed:
     # Remember at what level this has happened to undo the change
     # once we're at the same level again:
     if {!$log_p && $closed_status == [im_project_status_open]} {
-	# ns_log Notice "new: $pnam: action: set to closed: log_p=$log_p, vis=$task_visibility_scope"
+	ns_log Notice "new: $pnam: action: set to closed: log_p=$log_p, vis=$task_visibility_scope"
 	set closed_status [im_project_status_closed]
 	set closed_level $subproject_level
     }
