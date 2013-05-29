@@ -310,7 +310,7 @@ foreach j $weekly_logging_days {
 	if {"skip" == $action && !$show_week_p && $db_internal_notes != $screen_internal_notes} { set action update }
 	if {"skip" == $action && !$show_week_p && $db_materials != $screen_materials} { set action update }
 
-	# ns_log Notice "hours/new-2: pid=$pid, day=$day_julian, db:'$db_hours', screen:'$screen_hours' => action=$action"
+	ns_log Notice "hours/new-2: pid=$pid, day=$day_julian, db:'$db_hours', screen:'$screen_hours' => action=$action"
 
 	if {"skip" != $action} { set action_hash($pid) $action }
     }
@@ -331,11 +331,11 @@ foreach j $weekly_logging_days {
     # Execute the actions
     foreach project_id [array names action_hash] {
 
-	# ns_log Notice "hours/new-2: project_id=$project_id"
+	ns_log Notice "hours/new-2: project_id=$project_id"
 
 	# For all actions: We modify the hours that the person has logged that week, 
 	# so we need to reset/delete the TimesheetConfObject.
-	# ns_log Notice "hours/new-2: im_timesheet_conf_object_delete -project_id $project_id -user_id $user_id -day_julian $day_julian"
+	ns_log Notice "hours/new-2: im_timesheet_conf_object_delete -project_id $project_id -user_id $user_id -day_julian $day_julian"
 
 	if {$wf_installed_p && $conf_objects_installed_p} {
 	    im_timesheet_conf_object_delete \
@@ -346,7 +346,7 @@ foreach j $weekly_logging_days {
 
 	# Delete any cost elements related to the hour.
 	# This time project_id refers to the specific (sub-) project.
-	# ns_log Notice "hours/new-2: im_timesheet_costs_delete -project_id $project_id -user_id $user_id -day_julian $day_julian"
+	ns_log Notice "hours/new-2: im_timesheet_costs_delete -project_id $project_id -user_id $user_id -day_julian $day_julian"
 	im_timesheet_costs_delete \
 	    -project_id $project_id \
 	    -user_id $user_id_from_search \
