@@ -250,6 +250,7 @@ if { $owner_id == "" && $project_id == "" } {
 set sql_from_joined [join $sql_from " UNION "]
 set sql_from2_joined [join $sql_from2 " UNION "]
 
+# Approved comes from the category type "Intranet Timesheet Conf Status"
 if {$approved_only_p} {
     set approved_from ", im_timesheet_conf_objects tco"
     set approved_where "and tco.conf_id = im_hours.conf_object_id and tco.conf_status_id = 17010"
@@ -474,8 +475,8 @@ if { $ctr > 0 } {
 
 set navig_sql "
     select 
-    	to_char(to_date(:start_at, :date_format) - 7, :date_format) as past_date,
-	to_char(to_date(:start_at, :date_format) + 7, :date_format) as future_date 
+    	to_char(to_date(:start_at, :date_format) - $duration, :date_format) as past_date,
+	to_char(to_date(:start_at, :date_format) + $duration, :date_format) as future_date 
     from 
     	dual"
 db_1row get_navig_dates $navig_sql
