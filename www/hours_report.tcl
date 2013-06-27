@@ -200,17 +200,11 @@ if {$owner_id != ""} {
     lappend view_arr(extra_wheres) "u.user_id = :owner_id"
 }    
 
-# Approved comes from the category type "Intranet Timesheet Conf Status"
-if {$approved_only_p} {
-    lappend view_arr(extra_froms) "im_timesheet_conf_objects tco"
-    lappend view_arr(extra_wheres) "tco.conf_id = im_hours.conf_object_id and tco.conf_status_id = 17010"
-}
-
 # Filter for projects
 if {$project_id != ""} {
     # Get all hours for this project, including hours logged on
     # tasks (100) or tickets (101)
-    lappend view_arr(extra_wheres) "project_id in (select project_id from im_projects where project_type_id in (100,101) and parent_id = :project_id union :project_id)"
+    lappend view_arr(extra_wheres) "(project_id in (select project_id from im_projects where parent_id = :project_id) or project_id = :project_id)"
 }
 
 # Filter for department_id
@@ -226,6 +220,7 @@ set table_body_html ""
 
 # Get the username / project combinations
 set user_projects [list]
+
 db_foreach projects_info_query "
     select username,project_name,personnel_number,project_id,employee_id,project_nr,company_id
     $view_arr(extra_selects_sql)
@@ -253,11 +248,20 @@ db_foreach projects_info_query "
 # Load the total hours a user has logged in case we are looking at the
 # actuals or forecast
 
-if {"percentage" == $dimension && "planned" != $view_type} {
-    db_foreach logged_hours {select sum(hours) as total, to_char(day,'YYMM') as month, user_id
+# Approved comes from the category type "Intranet Timesheet Conf Status"
+if {$approved_only_p} {
+    set hours_sql "select sum(hours) as total, to_char(day,'YYMM') as month, user_id
+	from im_hours, im_timesheet_conf_objects tco
+        where tco.conf_id = im_hours.conf_object_id and tco.conf_status_id = 17010
+	group by user_id, month"
+} else {
+    set hours_sql "select sum(hours) as total, to_char(day,'YYMM') as month, user_id
 	from im_hours
-	group by user_id, month
-    } {
+	group by user_id, month"
+}
+
+if {"percentage" == $dimension && "planned" != $view_type} {
+    db_foreach logged_hours $hours_sql {
 	if {$user_id != "" && $month != ""} {
 	    set user_hours_${month}_${user_id} $total
 	}
@@ -289,7 +293,11 @@ foreach user_project $user_projects {
 		group by month
 	    } {
 		if {"percentage" == $dimension} {
-		    set total [set user_hours_${month}_$employee_id]
+		    if {[info exists user_hours_${month}_$employee_id]} {
+			set total [set user_hours_${month}_$employee_id]
+		    } else {
+			set total 0
+		    }
 		    if {0 < $total} {
 			set $month "[expr round($sum_hours / $total *100)]%"
 		    } 
@@ -333,7 +341,11 @@ foreach user_project $user_projects {
 		group by month
 	    } {
 		if {"percentage" == $dimension} {
-		    set total [set user_hours_${month}_$employee_id]
+		    if {[info exists user_hours_${month}_$employee_id]} {
+			set total [set user_hours_${month}_$employee_id]
+		    } else {
+			set total 0
+		    }
 		    if {0 < $total} {
 			set $month "[expr round($sum_hours / $total *100)]%"
 		    } else {
@@ -398,7 +410,6 @@ foreach user_project $user_projects {
 }   
  
 set table_header_html $view_arr(table_header_html)
-ds_comment "$table_header_html"
 set left_navbar_html "
             <div class=\"filter-block\">
                 $filter_html
