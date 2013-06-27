@@ -363,9 +363,12 @@ foreach user_project $user_projects {
 		if {"percentage" == $dimension && $planned($month) == 0} {
 		    append planned($month) "%"
 		}
-		if {[set $month] != $planned($month)} {
-		    set $month "[set $month] ($planned($month))"
-		}
+		set $month "<table><tr><td>[set $month]</td><td bgcolor=grey>$planned($month)</td></tr></table>"
+#		if {[set $month] != $planned($month)} {
+#
+#		} else {
+#		    set $month "<td bgcolor=green>[set $month]</td><td></td>"
+#		}
 	    }
 	    
 	} 
@@ -396,7 +399,11 @@ foreach user_project $user_projects {
     # Now append the values
     foreach month $months {
 	if {[set $month] == "" && $planned($month) != 0} {
-	    set value "($planned($month))"
+	    if {"percentage" == $dimension} {
+		set value "<table><tr><td>0%</td><td bgcolor=grey>$planned($month)</td></tr></table>"
+	    } else {
+		set value "<table><tr><td>0</td><td bgcolor=grey>$planned($month)</td></tr></table>"
+	    }
 	} else {
 	    set value [set $month]
 	}
