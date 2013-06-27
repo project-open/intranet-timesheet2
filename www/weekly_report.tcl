@@ -103,7 +103,7 @@ set form_id "report_filter"
 set action_url "/intranet-timesheet2/weekly_report"
 set form_mode "edit"
 if {[im_permission $user_id "view_projects_all"]} {
-    set project_options [im_project_options -include_empty 1 -exclude_subprojects_p 0 -include_empty_name [lang::message::lookup "" intranet-core.All "All" --exclude_status_id]]
+    set project_options [im_project_options -include_empty 1 -exclude_subprojects_p 0 -include_empty_name [lang::message::lookup "" intranet-core.All "All"]]
 } else {
     set project_options [im_project_options -include_empty 0 -exclude_subprojects_p 0 -include_empty_name [lang::message::lookup "" intranet-core.All "All" -member_user_id $user_id]]
 }
