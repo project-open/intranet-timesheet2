@@ -38,15 +38,14 @@ ad_page_contract {
     { approved_only_p:integer "0"}
     { workflow_key ""}
     { view_name "hours_list" }
-    { view_type "" }
-    { dimension "" }
+    { view_type "actual" }
+    { dimension "hours" }
+    { order_by "username,project_name"}
 }
 
 # ---------------------------------------------------------------
 # Defaults & Security
 # ---------------------------------------------------------------
-
-set extra_order_by ""
 
 set user_id [ad_maybe_redirect_for_registration]
 set admin_p [im_is_user_site_wide_or_intranet_admin $user_id]
@@ -74,9 +73,6 @@ if {"" == $end_date} {
 set start_month [db_string start_month "select to_char(to_date(:start_date,'YYYY-MM-DD'),'YYMM') from dual"]
 set end_month [db_string end_month "select to_char(to_date(:end_date,'YYYY-MM-DD'),'YYMM') from dual"]
 
-
-if {"" == $view_type} { set view_type "actual" }
-if {"" == $dimension} { set dimension "hours" }
 
 if {![im_permission $user_id "view_hours_all"] && $owner_id == ""} {
     set owner_id $user_id
@@ -106,17 +102,6 @@ if { $project_id != "" } {
     set error_msg [lang::message::lookup "" intranet-core.No_name_for_project_id "No Name for project %project_id%"]
     set project_name [db_string get_project_name "select project_name from im_projects where project_id = :project_id" -default $error_msg]
 }
-
-# ---------------------------------------------------------------
-# 3. Defined Table Fields
-# ---------------------------------------------------------------
-
-# Define the column headers and column contents that 
-# we want to show:
-#
-
-im_view_set_def_vars -view_name $view_name -array_name "view_arr"
-
 
 # ---------------------------------------------------------------
 # Format the Filter and admin Links
@@ -169,8 +154,8 @@ if {"" != $cost_center_options} {
 }
 
 ad_form -extend -name $form_id -form {
-    {dimension:text(select) {label "Dimension"} {options {{Hours hours} {Percentage percentage}}}}
-    {view_type:text(select) {label "Type"} {options {{Planning planning} {Actual actual} {Forecast forecast}}}}
+    {dimension:text(select) {label "Dimension"} {options {{Hours hours} {Percentage percentage}}} {value $dimension}}
+    {view_type:text(select) {label "Type"} {options {{Planning planning} {Actual actual} {Forecast forecast}}} {value $view_type}}
     {start_date:text(text) {label "[_ intranet-timesheet2.Start_Date]"} {value "$start_date"} {html {size 10}} {after_html {<input type="button" style="height:20px; width:20px; background: url('/resources/acs-templating/calendar.gif');" onclick ="return showCalendar('start_date', 'y-m-d');" >}}}
     {end_date:text(text) {label "[_ intranet-timesheet2.End_Date]"} {value "$end_date"} {html {size 10}} {after_html {<input type="button" style="height:20px; width:20px; background: url('/resources/acs-templating/calendar.gif');" onclick ="return showCalendar('end_date', 'y-m-d');" >}}}
     {view_name:text(select) {label \#intranet-core.View_Name\#} {value "$view_name"} {options $view_options}}
@@ -180,44 +165,30 @@ eval [template::adp_compile -string {<formtemplate id="$form_id" style="tiny-pla
 set filter_html $__adp_output
 
 # ---------------------------------------------------------------
+# 3. Defined Table Fields
+# ---------------------------------------------------------------
+
+# Define the column headers and column contents that 
+# we want to show:
+#
+
+im_view_set_def_vars -view_name $view_name -array_name "view_arr" -order_by $order_by -url "[export_vars -base "hours_report" -url {owner_id project_id cost_center_id end_date start_date approved_only_p workflow_key view_name view_type dimension}]"
+
+
+# ---------------------------------------------------------------
 # Get the Column Headers and prepare some SQL
 # ---------------------------------------------------------------
 
 set table_header_html "<tr><td class=rowtitle>[_ intranet-timesheet2.Users]</td><td class=rowtitle>[_ intranet-core.Project]</td>"
 
-# Format the header names with links that modify the
-# sort order of the SQL query.
-#
-set url "index?"
-set query_string [export_ns_set_vars url [list order_by]]
-if { ![empty_string_p $query_string] } {
-    append url "$query_string&"
-}
-
-set ctr 0
-foreach col $view_arr(column_headers) {
-    set wrench_html [lindex $view_arr(column_headers_admin) $ctr]
-    regsub -all " " $col "_" col_txt
-    set col_txt [lang::message::lookup "" intranet-core.$col_txt $col]
-    if {$ctr == 0} {
-	append table_header_html "<td class=rowtitle>$col_txt$wrench_html</td>\n"
-    } else {
-	#set col [lang::util::suggest_key $col]
-	append table_header_html "<td class=rowtitle><a href=\"${url}order_by=[ns_urlencode $col]\">$col_txt</a>$wrench_html</td>\n"
-    }
-    incr ctr
-}
-
 # Prepare the months headers
 set current_month $start_month
+set months [list]
 while {$current_month<=$end_month} {
-    lappend column_headers $current_month
+    lappend view_arr(column_headers) $current_month
+    lappend view_arr(column_headers_pretty) $current_month
+    lappend months $current_month
     set current_month [db_string current_month "select to_char(to_date(:current_month,'YYMM') + interval '1 month','YYMM') from dual"]
-}
-
-foreach col $column_headers {
-    # Append the months to the header
-    append table_header_html "<td class=rowtitle>$col</td>\n"
 }
 
 # ---------------------------------------------------------------
@@ -226,97 +197,54 @@ foreach col $column_headers {
 
 # Filter by owner_id
 if {$owner_id != ""} {
-    lappend view_arr(extra_where) "u.user_id = :owner_id"
+    lappend view_arr(extra_wheres) "u.user_id = :owner_id"
 }    
 
 # Approved comes from the category type "Intranet Timesheet Conf Status"
 if {$approved_only_p} {
-    lappend view_arr(extra_from) "im_timesheet_conf_objects tco"
-    lappend view_arr(extra_where) "tco.conf_id = im_hours.conf_object_id and tco.conf_status_id = 17010"
+    lappend view_arr(extra_froms) "im_timesheet_conf_objects tco"
+    lappend view_arr(extra_wheres) "tco.conf_id = im_hours.conf_object_id and tco.conf_status_id = 17010"
 }
 
 # Filter for projects
 if {$project_id != ""} {
     # Get all hours for this project, including hours logged on
     # tasks (100) or tickets (101)
-    lappend view_arr(extra_where) "project_id in (select project_id from im_projects where project_type_id in (100,101) and parent_id = :project_id union :project_id)"
+    lappend view_arr(extra_wheres) "project_id in (select project_id from im_projects where project_type_id in (100,101) and parent_id = :project_id union :project_id)"
 }
 
 # Filter for department_id
 if { "" != $cost_center_id } {
-        lappend view_arr(extra_where) "
+        lappend view_arr(extra_wheres) "
         u.user_id in (select employee_id from im_employees where department_id in (select object_id from acs_object_context_index where ancestor_id = $cost_center_id) or u.user_id = :user_id)
 "
 }
 
-# Join the "extra_" SQL pieces 
-
-set extra_from [join $view_arr(extra_from) ",\n\t"]
-if { ![empty_string_p $extra_from] } {set extra_from ",$extra_from"}
-
-set extra_select [join $view_arr(extra_select) ",\n\t"]
-if { ![empty_string_p $extra_select] } {set extra_from ",$extra_select"}
-
-set extra_where [join $view_arr(extra_where) "\n\tand "]
-if { ![empty_string_p $extra_where] } {set extra_from " and $extra_where"}
-
-# Create a ns_set with all local variables in order
-# to pass it to the SQL query
-set form_vars [ns_set create]
-foreach varname [info locals] {
-
-    # Don't consider variables that start with a "_", that
-    # contain a ":" or that are array variables:
-    if {"_" == [string range $varname 0 0]} { continue }
-    if {[regexp {:} $varname]} { continue }
-    if {[array exists $varname]} { continue }
-
-    # Get the value of the variable and add to the form_vars set
-    set value [expr "\$$varname"]
-    ns_set put $form_vars $varname $value
-}
-
-# Add the DynField variables to $form_vars
-set dynfield_extra_where ""
-set ns_set_vars ""
-set tmp_vars [util_list_to_ns_set $ns_set_vars]
-set tmp_var_size [ns_set size $tmp_vars]
-for {set i 0} {$i < $tmp_var_size} { incr i } {
-    set key [ns_set key $tmp_vars $i]
-    set value [ns_set get $tmp_vars $key]
-    set $key $value
-    set switch_link_html "$switch_link_html&[export_url_vars $key]"
-    ns_set put $form_vars $key $value
-}
-
-
-# Add the additional condition to the "where_clause"
-if {"" != $dynfield_extra_where} { 
-    append extra_where "
-                and u.user_id in $dynfield_extra_where
-            "
-}
+im_view_process_def_vars -array_name view_arr
 
 set table_body_html ""
-
 
 # Get the username / project combinations
 set user_projects [list]
 db_foreach projects_info_query "
     select username,project_name,personnel_number,project_id,employee_id,project_nr,company_id
+    $view_arr(extra_selects_sql)
     from im_planning_items i, im_projects p, im_employees e, users u
+    $view_arr(extra_froms_sql)
     where u.user_id = i.item_project_member_id
     and p.project_id = i.item_project_phase_id
     and e.employee_id = u.user_id
+    $view_arr(extra_wheres_sql)
     group by username,project_name,personnel_number,employee_id,project_id,project_nr,company_id
-    order by username,project_name
+    $view_arr(extra_group_by_sql)
+    order by $order_by
 " {
     set user_project "${employee_id}-${project_id}"
     lappend user_projects $user_project
-    append table_body($user_project) "<td>$username</td><td>$project_name</td>"
-    # append dynamic values
-    append table_body($user_project) "<td>$project_id</td>"
-   
+    set table_body($user_project) ""
+    foreach column_var $view_arr(column_vars) {
+	append table_body($user_project) "<td>[expr $column_var]</td>"
+    }
 }
 
 # Now go for the extra data
@@ -343,7 +271,7 @@ foreach user_project $user_projects {
     
     # Try to avoid building an array
     # Loop through all the column headers and set them to ""
-    foreach month $column_headers {
+    foreach month $months {
 	set $month ""
 	set planned($month) "0"
     }
@@ -442,7 +370,7 @@ foreach user_project $user_projects {
     }
 
     # Now append the values
-    foreach month $column_headers {
+    foreach month $months {
 	if {[set $month] == "" && $planned($month) != 0} {
 	    set value "($planned($month))"
 	} else {
@@ -453,7 +381,6 @@ foreach user_project $user_projects {
 
     append csv_line "\r\n"
     append csv_body $csv_line
-    incr ctr
 }
 
 
@@ -470,20 +397,8 @@ foreach user_project $user_projects {
     "
 }   
  
-set sql "
-select 
-        h.*,
-        u.*
-from
-        im_hours h, users u
-where
-	u.user_id > 0
-	and u.member_state in ('approved')
-	and u.user_id=h.user_id 
-"
-ds_comment "SQL to display: $sql"
-
-
+set table_header_html $view_arr(table_header_html)
+ds_comment "$table_header_html"
 set left_navbar_html "
             <div class=\"filter-block\">
                 $filter_html
