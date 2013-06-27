@@ -370,13 +370,25 @@ foreach user_project $user_projects {
 	    
 	} 
 	planning {
-	    db_foreach months_info {		    
-		select round(item_value,0) || '%' as value, to_char(item_date,'YYMM') as month 
-		from im_planning_items 
-		where item_project_member_id = :employee_id
-		and item_project_phase_id = :project_id
-	    } {
-		set $month $value
+	    if {"percentage" == $dimension} {
+		db_foreach months_info {		    
+		    select round(item_value,0) || '%' as value, to_char(item_date,'YYMM') as month 
+		    from im_planning_items 
+		    where item_project_member_id = :employee_id
+		    and item_project_phase_id = :project_id
+	    	    } {
+			set $month $value
+		    }
+	    } else {
+		db_foreach months_info "      	    
+		    select round(item_value/100*${hours_per_month},0) as value, to_char(item_date,'YYMM') as month 
+		    from im_planning_items, im_employees
+		    where item_project_member_id = :employee_id
+		    and employee_id = item_project_member_id
+		    and item_project_phase_id = :project_id
+	    	" {
+		    set $month $value
+		}
 	    }
 	}
     }
