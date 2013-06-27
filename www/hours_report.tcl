@@ -337,7 +337,6 @@ foreach user_project $user_projects {
 		from im_hours
 		where user_id = :employee_id
 		and project_id = :project_id
-		and day < to_date(:start_of_month,'YYMMDD')
 		group by month
 	    } {
 		if {"percentage" == $dimension} {
