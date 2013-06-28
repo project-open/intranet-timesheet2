@@ -502,7 +502,11 @@ ad_proc im_absence_cube {
                                                         from	group_approved_member_map m
                                                         where	m.group_id = [im_customer_group_id]
                                                         )"
-	}  default  {
+	}
+	"direct_reports" {
+	    lappend criteria "a.owner_id in (select employee_id from im_employees where supervisor_id = :current_user_id)"
+	}  
+	default  {
 	    if {[string is integer $user_selection]} {
 		lappend criteria "u.user_id = :user_selection"
 	    } else {
@@ -510,7 +514,6 @@ ad_proc im_absence_cube {
 	    }
 	}
     }
-
     set where_clause [join $criteria " and\n            "]
     if {![empty_string_p $where_clause]} {
 	set where_clause " and $where_clause"

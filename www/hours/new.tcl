@@ -211,8 +211,6 @@ if {$show_week_p} {
 
 set context_bar [im_context_bar [list index "[_ intranet-timesheet2.Hours]"] "[_ intranet-timesheet2.Add_hours]"]
 
-set permissive_logging [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter PermissiveHourLogging -default "permissive"]
-
 set log_hours_on_potential_project_p [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter TimesheetLogHoursOnPotentialProjectsP -default 1]
 
 set list_sort_order [parameter::get_from_package_key -package_key "intranet-timesheet2" -parameter TimesheetAddHoursSortOrder -default "order"]
@@ -428,16 +426,6 @@ switch $task_visibility_scope {
 						main.tree_sortkey and
 						tree_right(main.tree_sortkey)
 	"
-	
-        if { "restrictive" == $permissive_logging && $one_project_only_p } {
-            set children_sql "$children_sql
-                                and sub.project_id in (
-                                        select  r.object_id_one
-                                        from    acs_rels r
-                                        where   r.object_id_two = :user_id_from_search
-                                )
-            "
-        }
 
     }
     "sub_project" {

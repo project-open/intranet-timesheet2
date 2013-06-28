@@ -45,6 +45,9 @@ ad_page_contract {
     { user_id_from_search "" }
 }
 
+# KH: "watch package" ... instead of setting the watch through GUI   
+# ns_eval [source "[acs_root_dir]/packages/intranet-timesheet2/tcl/intranet-absences-procs.tcl"]
+
 # ---------------------------------------------------------------
 # 2. Defaults & Security
 # ---------------------------------------------------------------
@@ -56,6 +59,7 @@ set subsite_id [ad_conn subsite_id]
 set add_absences_for_group_p [im_permission $user_id "add_absences_for_group"]
 set add_hours_all_p [im_permission $user_id "add_hours_all"]
 set view_absences_all_p [im_permission $user_id "view_absences_all"]
+set view_absences_direct_reports_p [im_permission $user_id "view_absences_direct_reports"]
 set add_absences_p [im_permission $user_id "add_absences"]
 set org_absence_type_id $absence_type_id
 set show_context_help_p 1
@@ -63,7 +67,7 @@ set name_order [parameter::get -package_id [apm_package_id_from_key intranet-cor
 
 set today [db_string today "select now()::date"]
 
-if {![im_permission $user_id "view_absences"] && !$view_absences_all_p} { 
+if {![im_permission $user_id "view_absences"] && !$view_absences_all_p && !$view_absences_direct_reports_p} { 
     ad_return_complaint 1 "You don't have permissions to see absences"
     ad_script_abort
 }
@@ -75,10 +79,8 @@ if {"" != $user_id_from_search && $add_hours_all_p} {
     set user_selection $user_id_from_search
 }
 
-if {!$view_absences_all_p} {
-    set user_selection "mine"
-}
-
+# Set default to 'mine' in case user can't see ALL absences 
+if {!$view_absences_all_p} { set user_selection "mine" }
 
 set user_name $user_selection
 if {[string is integer $user_selection]} {
@@ -102,12 +104,16 @@ set return_url [im_url_with_query]
 set user_view_page "/intranet/users/view"
 set absence_view_page "$absences_url/new"
 
-set user_selection_types [list "all" "All" "mine" "Mine" "employees" "Employees" "providers" "Providers" "customers" "Customers"]
+# ---------- setting filter 'User selection' ------------- # 
+
+set user_selection_types [list "all" "All" "mine" "Mine" "direct_reports" "Direct reports" "employees" "Employees" "providers" "Providers" "customers" "Customers"]
 
 # Users can only see their own absences, unless they have a special permission
-if {!$view_absences_all_p} {
-    set user_selection_types [list "mine" "Mine"]
-}
+# ToDo: Users should _always_ see their absences 
+if {!$view_absences_all_p} { set user_selection_types [list "mine" "Mine"] }
+
+# Only 'direct' subordinates. 
+if {$view_absences_direct_reports_p} { append user_selection_types [list "direct_reports" "Direct reports"] }
 
 if {$add_hours_all_p} {
     # Add employees to user_selection
@@ -140,6 +146,9 @@ if {$add_hours_all_p} {
 foreach { value text } $user_selection_types {
     lappend user_selection_type_list [list $text $value]
 }
+
+
+# ---------- / setting filter 'User selection' ------------- # 
 
 set timescale_types [list \
 			 "all" "All" \
@@ -256,26 +265,36 @@ if { ![empty_string_p $user_selection] } {
                                                         from	group_approved_member_map m
                                                         where	m.group_id = [im_customer_group_id]
                                                         )"
-                }  default  {
+		}
+		"direct_reports" {
+		    lappend criteria "a.owner_id in (select employee_id from im_employees where supervisor_id = :current_user_id)"
+                }  
+		default  {
 		    if {[string is integer $user_selection]} {
 			lappend criteria "a.owner_id = :user_selection"
 		    } else {
-			ad_return_complaint 1 "Invalid User Selection:<br>Value '$user_selection' is not a user_id or one of {mine|all|employees|providers|customers}."
+			ad_return_complaint 1 "Invalid User Selection:<br>Value '$user_selection' is not a user_id or one of {mine|all|employees|providers|customers|direct reports}."
 		    }
 		}
 	    }
  	    ns_set put $bind_vars user_selection $user_selection
+	} elseif { $view_absences_direct_reports_p } {
+	    if { "direct_reports" == $user_selection } {
+		lappend criteria "a.owner_id in (select employee_id from im_employees where supervisor_id = :current_user_id)"
+	    } else {
+		# Show always own absences
+		lappend criteria "a.owner_id=:user_id"
+	    }
  	} else {
 	    lappend criteria "a.owner_id=:user_id"
 	}
-
     }
     switch $user_selection {
 	"mine" {
 	    # ns_set put $bind_vars user_selection $user_selection
 	    # lappend criteria "a.owner_id=:user_id"
 	}
-	"all" {
+	"all" - "direct_reports"  {
 	    ns_set put $bind_vars user_selection $user_selection
 	}
     }
@@ -375,6 +394,7 @@ where
 	$where_clause
 	$perm_clause
 "
+
 
 # ---------------------------------------------------------------
 # 5a. Limit the SQL query to MAX rows and provide << and >>

@@ -26,7 +26,6 @@ ad_library {
     @cvs-id ad-calendar-widget.tcl,v 3.11.2.6 2000/09/14 07:36:27 ron Exp
 }
 
-
 ad_proc calendar_get_info_from_db {
     { the_date "" }
 } {
@@ -219,6 +218,7 @@ ad_proc calendar_basic_month {
     if {"" == $days_of_week} {
 	set days_of_week "Sunday Monday Tuesday Wednesday Thursday Friday Saturday" 
 
+<<<<<<< HEAD
 	# Depends on locale
 	set first_day_of_week [lc_get firstdayofweek]
 	
@@ -237,11 +237,13 @@ ad_proc calendar_basic_month {
     }
     append output "</tr><tr>"
 
-    if { $fill_all_days == 0 } {
-	for { set n 1} { $n < $first_day_of_month } { incr n } {
-	    append output "<td id='empty_bg' bgcolor=$empty_bgcolor align=right valign=top></td>"
-	}
-    }
+    # KH: Following code would produce an unnecessary, ugly row
+    # Tested various configurations, in none of them this snippet produces valuable output 
+    #     if { $fill_all_days == 0 } {
+    #	 	for { set n 1} { $n < $first_day_of_month } { incr n } {
+    #	    		append output "<td id='empty_bg' bgcolor=$empty_bgcolor align=right valign=top></td>"
+    #	 	}
+    #     }
 
     set day_of_week 1
     set julian_date $first_julian_date

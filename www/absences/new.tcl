@@ -11,6 +11,7 @@ if {![info exists panel_p]} {
     ad_page_contract {
 	@param form_mode edit or display
 	@author frank.bergmann@project-open.com
+	@author klaus.hofeditz@project-open.com
     } {
 	absence_id:integer,optional
 	{ return_url "" }
@@ -103,7 +104,6 @@ if {![im_permission $current_user_id "add_absences"]} {
     <li>[_ intranet-timesheet2.lt_You_dont_have_suffici]"
 }
 
-
 # Redirect if the type of the object hasn't been defined and
 # if there are DynFields specific for subtypes.
 if {0 == $absence_type_id && ![info exists absence_id]} {
@@ -183,16 +183,36 @@ if {$show_absence_type_p} {
     lappend form_fields {absence_type_id:text(hidden)}
 }    
 
-if {$add_absences_for_group_p} {
+# -------
+# By setting RequireAbsenceTypeInUrlP to '1' an 'Absence Type' can be set only by passing 
+# the respective absence_type_id as an URL parameter.  
+# User is provided only with links for Absence Types she's allowed to create. She won't be able 
+# to edit the type anymore through the absence select box that is otherwise shown on this page.  
+# A callback can be set up to prevent that users create unauthorized absences by URL manipulation.  
+# For now provisional solution, RequireAbsenceTypeInUrlP is therfore a hidden parameter 
+if { ![parameter::get -package_id [apm_package_id_from_key intranet-timesheet2] -parameter "RequireAbsenceTypeInUrlP" -default 0] } {
+    lappend form_fields "absence_type_id:text(im_category_tree) {label \"[_ intranet-timesheet2.Type]\"} {custom {category_type \"Intranet Absence Type\"}}"
+} 
+# / -------
 
+if {$add_absences_for_group_p} {
     set group_options [im_profile::profile_options_all -translate_p 1]
     set group_options [linsert $group_options 0 [list "" ""]]
-
     lappend form_fields	{group_id:text(select),optional {label "[lang::message::lookup {} intranet-timesheet2.Valid_for_Group {Valid for Group}]"} {options $group_options}}
-
 } else {
     # The user doesn't have the right to specify absences for groups - set group_id to NULL
     set group_id ""
+}
+
+# When Absence Type Id is expected as URL Parameter, add it to the hidden field since no select box will be shown 
+set hidden_field_list [list]
+if { [parameter::get -package_id [apm_package_id_from_key intranet-timesheet2] -parameter "RequireAbsenceTypeInUrlP" -default 0] } {
+    lappend hidden_field_list [list absence_type_id $absence_type_id] 
+    lappend hidden_field_list [list user_id $user_id] 
+    lappend hidden_field_list [list return_url $return_url]
+} else {
+    lappend hidden_field_list [list user_id $user_id]
+    lappend hidden_field_list [list return_url $return_url]
 }
 
 ad_form \
@@ -202,13 +222,13 @@ ad_form \
     -actions $actions \
     -has_edit 1 \
     -mode $form_mode \
-    -export {user_id return_url} \
+    -export $hidden_field_list \
     -form $form_fields
 
 if {[im_permission $current_user_id edit_absence_status]} {
     set form_list {{absence_status_id:text(im_category_tree) {label "[lang::message::lookup {} intranet-timesheet2.Status Status]"} {custom {category_type "Intranet Absence Status"}}}}
 } else {
-#    set form_list {{absence_status_id:text(im_category_tree) {mode display} {label "[lang::message::lookup {} intranet-timesheet2.Status Status]"} {custom {category_type "Intranet Absence Status"}}}}
+#   set form_list {{absence_status_id:text(im_category_tree) {mode display} {label "[lang::message::lookup {} intranet-timesheet2.Status Status]"} {custom {category_type "Intranet Absence Status"}}}}
     set form_list {{absence_status_id:text(hidden)}}
 }
 ad_form -extend -name absence -form $form_list
@@ -220,7 +240,6 @@ ad_form -extend -name absence -form {
     {description:text(textarea),optional {label "[_ intranet-timesheet2.Description]"} {html {cols 40}}}
     {contact_info:text(textarea),optional {label "[_ intranet-timesheet2.Contact_Info]"} {html {cols 40}}}
 }
-
 
 # ------------------------------------------------------------------
 # Add DynFields
@@ -237,13 +256,11 @@ set field_cnt [im_dynfield::append_attributes_to_form \
     -form_display_mode $form_mode \
 ]
 
-
 # ------------------------------------------------------------------
 # Form Actions
 # ------------------------------------------------------------------
 
 ad_form -extend -name absence -on_request {
-
     # Populate elements from local variables
     if {![info exists start_date]} { set start_date [db_string today "select to_char(now(), :date_time_format)"] }
     if {![info exists end_date]} { set end_date [db_string today "select to_char(now(), :date_time_format)"] }
