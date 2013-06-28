@@ -36,18 +36,25 @@ ad_page_contract {
     @author Alwin Egger (alwin.egger@gmx.net)
 } {
     { owner_id:integer "" }
-    { project_id:integer 0 }
+    { project_id:integer "" }
+    { cost_center_id:integer "" }
     { duration:integer "7" }
     { start_at:integer "" }
     { display "subproject" }
-    { cost_center_id:integer 0 }
-    { department_id:integer 0 }
+    { approved_only_p:integer "0"}
     { workflow_key ""}
 }
 
 # ---------------------------------------------------------------
 # Defaults & Security
 # ---------------------------------------------------------------
+
+set extra_wheres [list]
+set extra_froms [list]
+set extra_left_joins [list]
+set extra_selects [list]
+
+set extra_order_by ""
 
 set user_id [ad_maybe_redirect_for_registration]
 set subsite_id [ad_conn subsite_id]
@@ -59,19 +66,19 @@ if {![im_permission $user_id "view_hours_all"] && $owner_id == ""} {
     set owner_id $user_id
 }
 
-# Allow the manager to see the department
-if {"" != $cost_center_id} {
-    set manager_id [db_string manager "select manager_id from im_cost_centers where cost_center_id = :cost_center_id" -default ""]
-    if {$manager_id == $user_id || [im_permission $user_id "view_hours_all"]} {
-	set owner_id ""
-    }
-}
-
 # Allow the project_manager to see the hours of this project
 if {"" != $project_id} {
     set manager_p [db_string manager "select count(*) from acs_rels ar, im_biz_object_members bom where ar.rel_id = bom.rel_id and object_id_one = :project_id and object_id_two = :user_id and object_role_id = 1301" -default 0]
     if {$manager_p || [im_permission $user_id "view_hours_all"]} {
 	set owner_id ""
+    }
+}
+
+# Allow the manager to see the department
+if {"" != $cost_center_id} {
+    set manager_id [db_string manager "select manager_id from im_cost_centers where cost_center_id = :cost_center_id" -default ""]
+    if {$manager_id == $user_id || [im_permission $user_id "view_hours_all"]} {
+        set owner_id ""
     }
 }
 
@@ -82,7 +89,7 @@ if { $start_at == "" } {
     set start_at [db_string get_today "select to_char(next_day(to_date(:start_at, :date_format), 'sun'), :date_format) from dual"]
 }
 
-if { $project_id != 0 } {
+if { $project_id != "" } {
     set error_msg [lang::message::lookup "" intranet-core.No_name_for_project_id "No Name for project %project_id%"]
     set project_name [db_string get_project_name "select project_name from im_projects where project_id = :project_id" -default $error_msg]
 }
@@ -92,84 +99,77 @@ if { $project_id != 0 } {
 # Format the Filter and admin Links
 # ---------------------------------------------------------------
 
-set sel_all ""
-set sel_pro ""
-set sel_sub ""
-
-if { $display == "all" } { set sel_all "selected" }
-if { $display == "subproject" } { set sel_sub "selected" }
-if { $display == "project" } { set sel_pro "selected" }
-
-if { $project_id != 0 } {
-
-    # As we allow Project Managers to view the timesheet, do not allow them to change the view to all 
-    # users if they don't have the permission view_hours_all
-    if {[im_permission $user_id "view_hours_all"]} {
-	set filter_form_html "
-	<form method=get action='$return_url' name=filter_form>
-	[export_vars -form {start_at duration project_id owner_id workflow_key}]
-	<table border=0 cellpadding=0 cellspacing=0>
-	<tr>
-	  <td colspan='2' class=rowtitle align=center>
-	[_ intranet-timesheet2.Filter]
-	  </td>
-	</tr>
-	<tr>
-	  <td valign=top>[_ intranet-timesheet2.Display] </td>
-	<td valign=top><select name=display size=1>
-	<option value=\"project\" $sel_pro>[_ intranet-timesheet2.lt_hours_spend_on_projec]</option>
-	<option value=\"subproject\" $sel_sub>[_ intranet-timesheet2.lt_hours_spend_on_projec_and_sub]</option>
-	<option value=\"all\" $sel_all>[_ intranet-timesheet2.hours_spend_overall]</option>
-	</select></td>
-	</tr>
-	  <td></td>
-	  <td valign=top>
-	    <input type=submit value='[_ intranet-timesheet2.Apply]' name=submit>
-	  </td>
-	</tr>
-	</table>
-	<!-- <a href=\"$return_url?\">[_ intranet-timesheet2.lt_Display_all_hours_on_]</a> -->
-	</form>"
-    } else {
-	set filter_form_html ""
-    }
+set form_id "report_filter"
+set action_url "/intranet-timesheet2/weekly_report"
+set form_mode "edit"
+if {[im_permission $user_id "view_projects_all"]} {
+    set project_options [im_project_options -include_empty 1 -exclude_subprojects_p 0 -include_empty_name [lang::message::lookup "" intranet-core.All "All"]]
 } else {
-
-        # ad_return_complaint 1 $workflow_key
-
-        set include_empty 1
-        set department_only_p 0
-	if {[im_permission $user_id "view_hours_all"]} {
-	    set im_cc_select [im_cost_center_select -include_empty $include_empty  -department_only_p $department_only_p  cost_center_id $cost_center_id [im_cost_type_timesheet]]
-	} else {
-	    # Limit to Cost Centers where he is the manager
-	    set im_cc_select [im_cost_center_select -include_empty $include_empty  -department_only_p $department_only_p  -manager_id $user_id cost_center_id $cost_center_id [im_cost_type_timesheet]]
-	}
-
-	set filter_form_html "
-	<form method=post action='$return_url' name=filter_form>
-	[export_vars -form {start_at duration project_id owner_id workflow_key}]	
-	<div class='filter-block'>
-		<div class='filter-title'>[_ intranet-timesheet2.Filter]</div>
-		<table border=0 cellpadding=5 cellspacing=5>
-		<tr>
-	        <td valign=top><strong>[_ intranet-core.Cost_Center]:</strong><br>$im_cc_select </td>
-	        </tr>
-                <tr>
-                <td valign=top>&nbsp;</td>
-                </tr>
-	        <tr>
-	          <td valign=top colspan='2'>
-		        <input type=submit value='[_ intranet-timesheet2.Apply]' name=submit>
-	          </td>
-        	</tr>
-		</table>
-	</div>
-	</form>	
-"
+    set project_options [im_project_options -include_empty 0 -exclude_subprojects_p 0 -include_empty_name [lang::message::lookup "" intranet-core.All "All" -member_user_id $user_id]]
 }
 
-set filter_html $filter_form_html
+set company_options [im_company_options -include_empty_p 1 -include_empty_name "[_ intranet-core.All]" -type "CustOrIntl" ]
+set levels {{"#intranet-timesheet2.lt_hours_spend_on_projec#" "project"} {"#intranet-timesheet2.lt_hours_spend_on_project_and_sub#" subproject} {"#intranet-timesheet2.hours_spend_overall#" all}}
+
+
+ad_form \
+    -name $form_id \
+    -action $action_url \
+    -mode $form_mode \
+    -method GET \
+    -export {start_at duration} \
+    -form {
+        {project_id:text(select),optional {label \#intranet-cost.Project\#} {options $project_options} {value $project_id}}
+    }
+
+if {[apm_package_installed_p intranet-timesheet2-workflow]} {
+    ad_form -extend -name $form_id -form {
+	{approved_only_p:text(select),optional {label \#intranet-timesheet2.OnlyApprovedHours\# ?} {options {{[_ intranet-core.Yes] "1"} {[_ intranet-core.No] "0"}}} {value 0}}
+    }
+}
+
+if { $project_id != "" && [im_permission $user_id "view_hours_all"]} {
+    # As we allow Project Managers to view the timesheet, do not allow them to change the view to all 
+    # users if they don't have the permission view_hours_all
+    ad_form -extend -name $form_id -form {
+	{display:text(select) {label "Level of Details"} {options $levels} {value $display}}
+    }
+}
+
+# Deal with the department
+if {[im_permission $user_id "view_hours_all"]} {
+    set cost_center_options [im_cost_center_options -include_empty 1 -include_empty_name [lang::message::lookup "" intranet-core.All "All"] -department_only_p 0]
+} else {
+    # Limit to Cost Centers where he is the manager
+    set cost_center_options [im_cost_center_options -include_empty 1 -department_only_p 1 -manager_id $user_id]
+}
+
+if {"" != $cost_center_options} {
+    ad_form -extend -name $form_id -form {
+        {cost_center_id:text(select),optional {label "User's Department"} {options $cost_center_options} {value $cost_center_id}}
+    }
+}
+
+## Deal with user filters
+im_dynfield::append_attributes_to_form \
+    -object_type "person" \
+    -form_id $form_id \
+    -page_url "/intranet-timesheet2/weekly-report" \
+    -advanced_filter_p 1 \
+    -object_id 0
+
+# Set the form values from the HTTP form variable frame
+im_dynfield::set_form_values_from_http -form_id $form_id
+
+array set extra_sql_array [im_dynfield::search_sql_criteria_from_form \
+			       -form_id $form_id \
+			       -object_type "person"
+			  ]
+
+
+
+eval [template::adp_compile -string {<formtemplate id="$form_id" style="tiny-plain-po"></formtemplate>}]
+set filter_html $__adp_output
 
 # ---------------------------------------------------------------
 # Get the Column Headers and prepare some SQL
@@ -231,16 +231,16 @@ append table_header_html "</tr>"
 # Get the Data and fill it up into lists
 # ---------------------------------------------------------------
 
-if { $owner_id == "" && $project_id == 0 } {
+if { $owner_id == "" && $project_id == "" } {
     set mode 1
     set sql_where ""  
-} elseif { $owner_id == "" && $project_id != 0 } {
+} elseif { $owner_id == "" && $project_id != "" } {
     set mode 2
     set sql_where "and u.user_id in (select object_id_two from acs_rels where object_id_one=:project_id)"
-} elseif { $owner_id != "" && $project_id == 0 } {
+} elseif { $owner_id != "" && $project_id == "" } {
     set mode 3
     set sql_where "and u.user_id = :owner_id"
-} elseif { $owner_id != "" && $project_id != 0 } {
+} elseif { $owner_id != "" && $project_id != "" } {
     set mode 4
     set sql_where "and u.user_id in (select object_id_two from acs_rels where object_id_one=:project_id)  and u.user_id = :owner_id"
 } else {
@@ -250,22 +250,31 @@ if { $owner_id == "" && $project_id == 0 } {
 set sql_from_joined [join $sql_from " UNION "]
 set sql_from2_joined [join $sql_from2 " UNION "]
 
-if { $project_id != 0 && $display ne "all"} {
+# Approved comes from the category type "Intranet Timesheet Conf Status"
+if {$approved_only_p} {
+    set approved_from ", im_timesheet_conf_objects tco"
+    set approved_where "and tco.conf_id = im_hours.conf_object_id and tco.conf_status_id = 17010"
+} else {
+    set approved_from ""
+    set approved_where ""
+}
+
+if { $project_id != "" && $display ne "all"} {
     if {$display eq "project"} {
-	set sql_from_imhours "select day, user_id, sum(hours) as val, 'h' as type, '' as descr from im_hours where project_id = :project_id group by user_id, day"
-	append sql_from_im_hours "UNION select day, user_id, sum(hours) as val, 'h' as type, '' as desc from im_hours where project_id in (select project_id from im_projects where project_type_id in (100,101) and parent_id = :project_id)"
+	set sql_from_imhours "select day, user_id, sum(hours) as val, 'h' as type, '' as descr from im_hours $approved_from where project_id = :project_id $approved_where group by user_id, day"
+	append sql_from_im_hours "UNION select day, user_id, sum(hours) as val, 'h' as type, '' as desc from im_hours $approved_from where project_id in (select project_id from im_projects where project_type_id in (100,101) and parent_id = :project_id) $approved_where"
     } else {
 	set sql_from_imhours "select day, user_id, sum(hours) as val, 'h' as type, '' as descr 
-                              from im_hours where project_id in (
+                              from im_hours $approved_from where project_id in (
                                 select p.project_id
                                 from im_projects p, im_projects parent_p
                                 where parent_p.project_id = :project_id
                                 and p.tree_sortkey between parent_p.tree_sortkey and tree_right(parent_p.tree_sortkey)
-                                and p.project_status_id not in (82)) group by user_id, day
+                                and p.project_status_id not in (82)) $approved_where group by user_id, day
 "
     }
 } else {
-    set sql_from_imhours "select day, user_id, sum(hours) as val, 'h' as type, '' as descr from im_hours group by user_id, day"
+    set sql_from_imhours "select day, user_id, sum(hours) as val, 'h' as type, '' as descr from im_hours $approved_from where 1=1 $approved_where group by user_id, day"
 }
 
 
@@ -288,19 +297,65 @@ select distinct owner_id as party_id
 from im_user_absences
 UNION
 -- Users who have actually logged hours
-select distinct user_id as party_id from im_hours 
+select distinct user_id as party_id from im_hours  $approved_from where 1=1 $approved_where
 "
 
-set cc_filter_where ""
-if { "0" != $cost_center_id &&  "" != $cost_center_id } {
-        set cc_filter_where "
-        and u.user_id in (select employee_id from im_employees where department_id in (select object_id from acs_object_context_index where ancestor_id = $cost_center_id))
+if { "" != $cost_center_id } {
+        lappend extra_wheres "
+        u.user_id in (select employee_id from im_employees where department_id in (select object_id from acs_object_context_index where ancestor_id = $cost_center_id) or u.user_id = :user_id)
 "
 }
 
+# Join the "extra_" SQL pieces 
 
-set cost_center_code [db_string get_cc_code "select cost_center_code from im_cost_centers where cost_center_id = :cost_center_id" -default ""]
+set extra_from [join $extra_froms ",\n\t"]
+set extra_left_join [join $extra_left_joins "\n\t"]
+set extra_select [join $extra_selects ",\n\t"]
+set extra_where [join $extra_wheres "\n\tand "]
 
+if {"" != $extra_from} { set extra_from ",$extra_from" }
+if {"" != $extra_select} { set extra_select ",$extra_select" }
+if {"" != $extra_where} { set extra_where "and $extra_where" }
+
+set switch_link_html "<a href=\"weekly_report?[export_url_vars owner_id project_id duration display cost_center_id]"
+
+
+# Create a ns_set with all local variables in order
+# to pass it to the SQL query
+set form_vars [ns_set create]
+foreach varname [info locals] {
+
+    # Don't consider variables that start with a "_", that
+    # contain a ":" or that are array variables:
+    if {"_" == [string range $varname 0 0]} { continue }
+    if {[regexp {:} $varname]} { continue }
+    if {[array exists $varname]} { continue }
+
+    # Get the value of the variable and add to the form_vars set
+    set value [expr "\$$varname"]
+    ns_set put $form_vars $varname $value
+}
+
+# Add the DynField variables to $form_vars
+set dynfield_extra_where $extra_sql_array(where)
+set ns_set_vars $extra_sql_array(bind_vars)
+set tmp_vars [util_list_to_ns_set $ns_set_vars]
+set tmp_var_size [ns_set size $tmp_vars]
+for {set i 0} {$i < $tmp_var_size} { incr i } {
+    set key [ns_set key $tmp_vars $i]
+    set value [ns_set get $tmp_vars $key]
+    set $key $value
+    set switch_link_html "$switch_link_html&[export_url_vars $key]"
+    ns_set put $form_vars $key $value
+}
+
+
+# Add the additional condition to the "where_clause"
+if {"" != $dynfield_extra_where} { 
+    append extra_where "
+                and u.user_id in $dynfield_extra_where
+            "
+}
 
 set name_order [parameter::get -package_id [apm_package_id_from_key intranet-core] -parameter "NameOrder" -default 1]
 
@@ -328,7 +383,7 @@ where
 	and trunc(to_date(to_char(d.day,:date_format),:date_format),'Day')=trunc(to_date(to_char(i.day,:date_format),:date_format),'Day')
 	and u.user_id = active_users.party_id
 	$sql_where
-	$cc_filter_where
+	$extra_where
 order by
 	owner_name, curr_day
 "
@@ -420,16 +475,14 @@ if { $ctr > 0 } {
 
 set navig_sql "
     select 
-    	to_char(to_date(:start_at, :date_format) - 7, :date_format) as past_date,
-	to_char(to_date(:start_at, :date_format) + 7, :date_format) as future_date 
+    	to_char(to_date(:start_at, :date_format) - $duration, :date_format) as past_date,
+	to_char(to_date(:start_at, :date_format) + $duration, :date_format) as future_date 
     from 
     	dual"
 db_1row get_navig_dates $navig_sql
 
-set switch_link_html "<a href=\"weekly_report?[export_url_vars owner_id project_id duration display]"
-
-set switch_past_html "$switch_link_html&start_at=$past_date&cost_center_id=$cost_center_id&department_id=$department_id&workflow_key=$workflow_key\">&laquo;</a>"
-set switch_future_html "$switch_link_html&start_at=$future_date&cost_center_id=$cost_center_id&department_id=$department_id&workflow_key=$workflow_key\">&raquo;"
+set switch_past_html "$switch_link_html&start_at=$past_date&workflow_key=$workflow_key\">&laquo;</a>"
+set switch_future_html "$switch_link_html&start_at=$future_date&workflow_key=$workflow_key\">&raquo;"
 
 # ---------------------------------------------------------------
 # Format Table Continuation and title
@@ -451,7 +504,7 @@ set context_bar [im_context_bar $page_title]
 if { $owner_id != "" && [info exists owner_name] } {
     append page_title " of $owner_name"
 }
-if { $project_id != 0 && [info exists project_name] } {
+if { $project_id != "" && [info exists project_name] } {
     append page_title " by project \"$project_name\""
 }
 

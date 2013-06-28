@@ -374,7 +374,6 @@ set day_bgcolor "#efefef"
 set day_number_template "<!--\$julian_date--><span class='day_number'>\$day_number</span>"
 
 ns_log Debug "/intranet-timesheet2/index: calendar_details=$calendar_details"
-ds_comment "$header_days_of_week"
 set page_body [calendar_basic_month \
 		   -calendar_details $calendar_details \
 		   -days_of_week $header_days_of_week \

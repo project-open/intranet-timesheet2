@@ -48,8 +48,6 @@ if { [empty_string_p $julian_date] } {
 set user_id [ad_maybe_redirect_for_registration]
 if {"" == $user_id_from_search || ![im_permission $user_id "add_hours_all"]} { set user_id_from_search $user_id }
 
-
-
 set user_name [db_string user_name "select im_name_from_user_id(:user_id_from_search) from dual"]
 
 db_1row week_select_start_and_end "

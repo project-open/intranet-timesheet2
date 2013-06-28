@@ -14,6 +14,7 @@
   <msg key="Absences_This_Year"></msg>
   <msg key="Absent">Absent</msg>
   <msg key="Absent_1">Absent (%absent_status_3letter_l10n%):</msg>
+  <msg key="ActiveEmployeesOnly">Only active employees</msg>
   <msg key="Add_a_new_Absence">Add a new Absence</msg>
   <msg key="Add_hours">Add hours</msg>
   <msg key="Add_lines">Add lines</msg>
@@ -166,6 +167,7 @@ number of kilometers. Amount can be entered with either &lt;B&gt;&quot;.&quot;&l
   <msg key="lt_Hours_for_pretty_date">Hours for %pretty_date%</msg>
   <msg key="lt_Hours_for_user_name_W">Hours for $user_name (Week starting %date_value%)</msg>
   <msg key="lt_hours_spend_on_projec">hours spend on project &quot;%project_name%&quot;</msg>
+  <msg key="lt_hours_spend_on_project_and_sub">hours spend on project &quot;%project_name%&quot; and subprojects </msg>
   <msg key="lt_hours_varof_those_uni">%hours_var%
 of those units were billed hourly, for a total amount of</msg>
   <msg key="lt_Insufficient_Privileg">Insufficient Privileges</msg>
@@ -273,6 +275,7 @@ of those units were billed hourly, for a total amount of</msg>
   <msg key="October">October</msg>
   <msg key="One_employee">One employee</msg>
   <msg key="One_project">One project</msg>
+  <msg key="OnlyApprovedHours">Only Approved Hours</msg>
   <msg key="Other_Options">Other Options</msg>
   <msg key="own_hours">own hours</msg>
   <msg key="P">P</msg>
