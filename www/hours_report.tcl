@@ -221,16 +221,28 @@ set table_body_html ""
 # Get the username / project combinations
 set user_projects [list]
 
+switch $view_type {
+    actual {
+	set possible_projects_sql " (select distinct user_id,project_id from im_hours)"
+    }
+    forecast {
+	set possible_projects_sql " (select distinct user_id, project_id from (select distinct user_id,project_id from im_hours union select distinct item_project_member_id as user_id, item_project_phase_id as project_id from im_planning_items) hp)"
+    }
+    planning {
+	set possible_projects_sql " (select distinct item_project_member_id as user_id, item_project_phase_id as project_id from im_planning_items)"
+    }
+}
+
 db_foreach projects_info_query "
-    select username,project_name,personnel_number,project_id,employee_id,project_nr,company_id
+    select username,project_name,personnel_number,p.project_id,employee_id,project_nr,company_id
     $view_arr(extra_selects_sql)
-    from im_planning_items i, im_projects p, im_employees e, users u
+    from im_projects p, im_employees e, users u,$possible_projects_sql h
     $view_arr(extra_froms_sql)
-    where u.user_id = i.item_project_member_id
-    and p.project_id = i.item_project_phase_id
-    and e.employee_id = u.user_id
+    where u.user_id = h.user_id
+    and p.project_id = h.project_id
+    and e.employee_id = h.user_id
     $view_arr(extra_wheres_sql)
-    group by username,project_name,personnel_number,employee_id,project_id,project_nr,company_id
+    group by username,project_name,personnel_number,employee_id,p.project_id,project_nr,company_id
     $view_arr(extra_group_by_sql)
     order by $order_by
 " {
@@ -241,6 +253,7 @@ db_foreach projects_info_query "
 	append table_body($user_project) "<td>[expr $column_var]</td>"
     }
 }
+
 
 # Now go for the extra data
 
