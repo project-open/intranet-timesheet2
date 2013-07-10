@@ -197,20 +197,20 @@ while {$current_month<=$end_month} {
 
 # Filter by owner_id
 if {$owner_id != ""} {
-    lappend view_arr(extra_wheres) "u.user_id = :owner_id"
+    lappend view_arr(extra_wheres) "h.user_id = :owner_id"
 }    
 
 # Filter for projects
 if {$project_id != ""} {
     # Get all hours for this project, including hours logged on
     # tasks (100) or tickets (101)
-    lappend view_arr(extra_wheres) "(project_id in (select project_id from im_projects where parent_id = :project_id) or project_id = :project_id)"
+    lappend view_arr(extra_wheres) "(h.project_id in (select project_id from im_projects where parent_id = :project_id) or h.project_id = :project_id)"
 }
 
 # Filter for department_id
 if { "" != $cost_center_id } {
         lappend view_arr(extra_wheres) "
-        u.user_id in (select employee_id from im_employees where department_id in (select object_id from acs_object_context_index where ancestor_id = $cost_center_id) or u.user_id = :user_id)
+        h.user_id in (select employee_id from im_employees where department_id in (select object_id from acs_object_context_index where ancestor_id = $cost_center_id) or h.user_id = :user_id)
 "
 }
 
