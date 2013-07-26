@@ -466,7 +466,7 @@ switch $task_visibility_scope {
 				-- Select any project or task with explicit membership
 				select  r.object_id_one
 				from    acs_rels r, im_projects p
-				where   r.object_id_two = :user_id_from_search -- and 
+				where   r.object_id_two = :user_id_from_search and 
 					r.object_id_two = p.project_id and
 					p.project_status_id not in ($closed_stati_list)
 	"
