@@ -57,6 +57,7 @@ set date_format "YYYY-MM-DD"
 # We need to set the overall hours per month an employee is working
 # Make this a default for all for now.
 set hours_per_month [expr [parameter::get -parameter TimesheetWorkDaysPerYear] * [parameter::get -parameter TimesheetHoursPerDay] / 12] 
+set hours_per_absence [parameter::get -package_id [apm_package_id_from_key intranet-timesheet2] -parameter "TimesheetHoursPerAbsence" -default 8.0]
 
 if {"" == $start_date} { 
     set start_date [db_string get_today "select to_char(sysdate,'YYYY-01-01
@@ -187,6 +188,11 @@ set months [list]
 while {$current_month<=$end_month} {
     lappend view_arr(column_headers) $current_month
     lappend view_arr(column_headers_pretty) $current_month
+    if {"forecast" == $view_type} {
+	#append it twice, so we can split the forecast column
+	lappend view_arr(column_headers) $current_month
+	lappend view_arr(column_headers_pretty) $current_month
+    }
     lappend months $current_month
     set current_month [db_string current_month "select to_char(to_date(:current_month,'YYMM') + interval '1 month','YYMM') from dual"]
 }
@@ -281,6 +287,9 @@ if {"percentage" == $dimension && "planned" != $view_type} {
     }
 }
 
+# Run through each combination of user and projec to retrieve the
+# values
+
 foreach user_project $user_projects {
     set ttt [split $user_project "-"]
     set employee_id [lindex $ttt 0]
@@ -312,10 +321,10 @@ foreach user_project $user_projects {
 			set total 0
 		    }
 		    if {0 < $total} {
-			set $month "[expr round($sum_hours / $total *100)]%"
+			set $month "<td>[expr round($sum_hours / $total *100)]%</td>"
 		    } 
 		} else {
-		    set $month $sum_hours
+		    set $month "<td>$sum_hours</td>"
 		}
 	    }
 	}
@@ -324,7 +333,7 @@ foreach user_project $user_projects {
 	    # First get the forecasted hours including the current month
 	    if {"percentage" == $dimension} {
 		set sql {
-		    select round(item_value,0) || '%' as value, to_char(item_date,'YYMM') as month 
+		    select round(item_value,0) as value, to_char(item_date,'YYMM') as month 
 		    from im_planning_items 
 		    where item_project_member_id = :employee_id
 		    and item_project_phase_id = :project_id
@@ -359,7 +368,7 @@ foreach user_project $user_projects {
 			set total 0
 		    }
 		    if {0 < $total} {
-			set $month "[expr round($sum_hours / $total *100)]%"
+			set $month "[expr round($sum_hours / $total *100)]"
 		    } else {
 			set $month ""
 		    }
@@ -372,10 +381,25 @@ foreach user_project $user_projects {
 		if {![info exists planned(${month})]} {
 		    set planned($month) 0
 		}
-		if {"percentage" == $dimension && $planned($month) == 0} {
-		    append planned($month) "%"
+		
+		# Calculate the color
+		set deviation_factor "0.2"
+		if {[set $month] < [expr $planned($month) * (1-$deviation_factor)]} {
+		    # Actual hours lower then planned, corrected by deviation_factor
+		    set color "yellow"
+		} elseif {[set $month] > [expr $planned($month) * (1+$deviation_factor)]} {
+		    # Actual hours more then planned, corrected by deviation_factor
+		    set color "red"
+		} else {
+		    set color "green"
 		}
-		set $month "<table><tr><td>[set $month]</td><td bgcolor=grey>$planned($month)</td></tr></table>"
+
+		if {"percentage" == $dimension} {
+		    set $month "<td align=right>[set $month]%</td><td bgcolor=$color align=left>$planned($month)%</td>"
+		} else {
+		    set $month "<td align=right>[set $month]</td><td bgcolor=$color align=left>$planned($month)</td>"
+		}
+
 #		if {[set $month] != $planned($month)} {
 #
 #		} else {
@@ -392,7 +416,7 @@ foreach user_project $user_projects {
 		    where item_project_member_id = :employee_id
 		    and item_project_phase_id = :project_id
 	    	    } {
-			set $month $value
+			set $month "<td>$value</td>"
 		    }
 	    } else {
 		db_foreach months_info "      	    
@@ -402,9 +426,10 @@ foreach user_project $user_projects {
 		    and employee_id = item_project_member_id
 		    and item_project_phase_id = :project_id
 	    	" {
-		    set $month $value
+		    set $month "<td>$value</td>"
 		}
 	    }
+
 	}
     }
 
@@ -412,18 +437,15 @@ foreach user_project $user_projects {
     foreach month $months {
 	if {[set $month] == "" && $planned($month) != 0} {
 	    if {"percentage" == $dimension} {
-		set value "<table><tr><td>0%</td><td bgcolor=grey>$planned($month)</td></tr></table>"
+		set value "<td align=right>0%</td><td bgcolor=yellow align=left>$planned($month)</td>"
 	    } else {
-		set value "<table><tr><td>0</td><td bgcolor=grey>$planned($month)</td></tr></table>"
+		set value "<td align=right>0</td><td bgcolor=yellow align=left>$planned($month)</td>"
 	    }
 	} else {
 	    set value [set $month]
 	}
-	append table_months($user_project) "<td>$value</td>"
+	append table_months($user_project) "$value"
     }
-
-    append csv_line "\r\n"
-    append csv_body $csv_line
 }
 
 
