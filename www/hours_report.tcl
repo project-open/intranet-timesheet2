@@ -386,18 +386,18 @@ foreach user_project $user_projects {
 		set deviation_factor "0.2"
 		if {[set $month] < [expr $planned($month) * (1-$deviation_factor)]} {
 		    # Actual hours lower then planned, corrected by deviation_factor
-		    set color "yellow"
+		    set color "red"
 		} elseif {[set $month] > [expr $planned($month) * (1+$deviation_factor)]} {
 		    # Actual hours more then planned, corrected by deviation_factor
-		    set color "red"
+		    set color "yellow"
 		} else {
 		    set color "green"
 		}
 
 		if {"percentage" == $dimension} {
-		    set $month "<td align=right>[set $month]%</td><td bgcolor=$color align=left>$planned($month)%</td>"
+		    set $month "<td bgcolor=$color align=right>[set $month]%</td><td align=left>$planned($month)%</td>"
 		} else {
-		    set $month "<td align=right>[set $month]</td><td bgcolor=$color align=left>$planned($month)</td>"
+		    set $month "<td bgcolor=$color align=right>[set $month]</td><td align=left>$planned($month)</td>"
 		}
 
 #		if {[set $month] != $planned($month)} {
@@ -437,9 +437,9 @@ foreach user_project $user_projects {
     foreach month $months {
 	if {[set $month] == "" && $planned($month) != 0} {
 	    if {"percentage" == $dimension} {
-		set value "<td align=right>0%</td><td bgcolor=yellow align=left>$planned($month)</td>"
+		set value "<td bgcolor=red align=right>0%</td><td align=left>$planned($month)</td>"
 	    } else {
-		set value "<td align=right>0</td><td bgcolor=yellow align=left>$planned($month)</td>"
+		set value "<td bgcolor=red align=right>0</td><td align=left>$planned($month)</td>"
 	    }
 	} else {
 	    set value [set $month]
