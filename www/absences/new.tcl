@@ -177,22 +177,20 @@ set form_fields {
 }
 
 if {$show_absence_type_p} {
-    lappend form_fields {absence_type_id:text(im_category_tree) {label "[_ intranet-timesheet2.Type]"} {custom {category_type "Intranet Absence Type"}}}
-
+    # -------
+    # By setting RequireAbsenceTypeInUrlP to '1' an 'Absence Type' can be set only by passing 
+    # the respective absence_type_id as an URL parameter.  
+    # User is provided only with links for Absence Types she's allowed to create. She won't be able 
+    # to edit the type anymore through the absence select box that is otherwise shown on this page.  
+    # A callback can be set up to prevent that users create unauthorized absences by URL manipulation.  
+    # For now provisional solution, RequireAbsenceTypeInUrlP is therfore a hidden parameter 
+    if { ![parameter::get -package_id [apm_package_id_from_key intranet-timesheet2] -parameter "RequireAbsenceTypeInUrlP" -default 0] } {
+	lappend form_fields "absence_type_id:text(im_category_tree) {label \"[_ intranet-timesheet2.Type]\"} {custom {category_type \"Intranet Absence Type\"}}"
+    } 
 } else {
     lappend form_fields {absence_type_id:text(hidden)}
 }    
 
-# -------
-# By setting RequireAbsenceTypeInUrlP to '1' an 'Absence Type' can be set only by passing 
-# the respective absence_type_id as an URL parameter.  
-# User is provided only with links for Absence Types she's allowed to create. She won't be able 
-# to edit the type anymore through the absence select box that is otherwise shown on this page.  
-# A callback can be set up to prevent that users create unauthorized absences by URL manipulation.  
-# For now provisional solution, RequireAbsenceTypeInUrlP is therfore a hidden parameter 
-if { ![parameter::get -package_id [apm_package_id_from_key intranet-timesheet2] -parameter "RequireAbsenceTypeInUrlP" -default 0] } {
-    lappend form_fields "absence_type_id:text(im_category_tree) {label \"[_ intranet-timesheet2.Type]\"} {custom {category_type \"Intranet Absence Type\"}}"
-} 
 # / -------
 
 if {$add_absences_for_group_p} {

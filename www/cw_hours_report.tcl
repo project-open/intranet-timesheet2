@@ -205,6 +205,11 @@ while {$current_date<=$end_date} {
     append __header_defs " <table:table-cell office:value-type=\"string\"><text:p>$current_week</text:p></table:table-cell>\n"
 }
 
+if {[llength $weeks]>52} {
+    # We can't handle more than one year horizont
+    ad_return_error "Problem with your input" "More than 52 weeks horizont is not supported."
+}
+
 # ---------------------------------------------------------------
 # Get the Data and fill it up into lists
 # ---------------------------------------------------------------
@@ -281,10 +286,12 @@ if {$approved_only_p} {
     set hours_sql "select sum(hours) as total, extract(week from day) as week, user_id
 	from im_hours, im_timesheet_conf_objects tco
         where tco.conf_id = im_hours.conf_object_id and tco.conf_status_id = 17010
+        and day between :start_date and :end_date
 	group by user_id, week"
 } else {
     set hours_sql "select sum(hours) as total, extract(week from day) as week, user_id
 	from im_hours
+        where day between :start_date and :end_date
 	group by user_id, week"
 }
 
