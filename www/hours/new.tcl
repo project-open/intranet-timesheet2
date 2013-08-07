@@ -72,6 +72,10 @@ if { !$show_week_p && [string first [expr [db_string dow "select to_char(to_date
     ad_return_complaint 1  [lang::message::lookup "" intranet-timesheet2.Not_Allowed "You are not allowed to log hours for this day due to configuration restrictions. (Parameter: 'TimesheetWeeklyLoggingDays') "]
 }
 
+# Should we show all the tasks of a project if the user has chosen this project specificly?
+# I believe this was used in the past for a single customer...
+set show_all_tasks_for_specific_project_p [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter ShowAllTasksForSpecificProjectP -default "0"]
+
 
 # ---------------------------------------------------------
 # Calculate the start and end of the week.
@@ -318,7 +322,9 @@ if {[string is integer $project_id] && 0 != $project_id} {
     set one_project_only_p 1
 
     # Make sure the user can see everything below the single main project
-    set task_visibility_scope "specified"
+    if {$show_all_tasks_for_specific_project_p} {
+	set task_visibility_scope "specified"
+    }
 
 } elseif {[llength $project_id] > 1} {
 
@@ -341,7 +347,9 @@ if {[string is integer $project_id] && 0 != $project_id} {
     set one_project_only_p 0
 
     # Make sure the user can see everything below the single main project
-    set task_visibility_scope "specified"
+    if {$show_all_tasks_for_specific_project_p} {
+	set task_visibility_scope "specified"
+    }
 
 } else {
 
