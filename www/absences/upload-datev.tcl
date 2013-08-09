@@ -24,8 +24,9 @@ set user_id [ad_maybe_redirect_for_registration]
 set page_title "Upload Absences CSV"
 set context_bar [im_context_bar [list "/intranet-timesheet2/absences/" "Absences"] $page_title]
 
-set user_is_admin_p [im_is_user_site_wide_or_intranet_admin $user_id]
-if {!$user_is_admin_p} {
+set add_absences_for_group_p [im_permission $user_id "add_absences_for_group"]
+
+if {!$add_absences_for_group_p} {
     ad_return_complaint 1 "You have insufficient privileges to use this page"
     return
 }
