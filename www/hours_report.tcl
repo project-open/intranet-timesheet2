@@ -210,7 +210,13 @@ if {$owner_id != ""} {
 if {$project_id != ""} {
     # Get all hours for this project, including hours logged on
     # tasks (100) or tickets (101)
-    lappend view_arr(extra_wheres) "(h.project_id in (select project_id from im_projects where parent_id = :project_id) or h.project_id = :project_id)"
+    lappend view_arr(extra_wheres) "(h.project_id in (	
+              	   select p.project_id
+		   from im_projects p, im_projects parent_p
+                   where parent_p.project_id = :project_id
+                   and p.tree_sortkey between parent_p.tree_sortkey and tree_right(parent_p.tree_sortkey)
+                   and p.project_status_id not in (82)
+		))"
 }
 
 # Filter for department_id
@@ -232,7 +238,7 @@ switch $view_type {
 	set possible_projects_sql " (select distinct user_id,project_id from im_hours)"
     }
     forecast {
-	set possible_projects_sql " (select distinct user_id, project_id from (select distinct user_id,project_id from im_hours union select distinct item_project_member_id as user_id, item_project_phase_id as project_id from im_planning_items) hp)"
+	set possible_projects_sql " (select distinct user_id, project_id from (select distinct user_id,h1.project_id from im_hours h1, im_projects p1 where h1.project_id = p1.project_id and p1.parent_id is null union select distinct item_project_member_id as user_id, item_project_phase_id as project_id from im_planning_items) hp)"
     }
     planning {
 	set possible_projects_sql " (select distinct item_project_member_id as user_id, item_project_phase_id as project_id from im_planning_items)"
@@ -246,6 +252,7 @@ db_foreach projects_info_query "
     $view_arr(extra_froms_sql)
     where u.user_id = h.user_id
     and p.project_id = h.project_id
+    and p.project_type_id not in (100,101)
     and e.employee_id = h.user_id
     $view_arr(extra_wheres_sql)
     group by username,project_name,personnel_number,employee_id,p.project_id,project_nr,company_id
@@ -309,9 +316,15 @@ foreach user_project $user_projects {
 	actual {
 	    # get the hours only
 	    db_foreach months_info {select sum(hours) as sum_hours, to_char(day,'YYMM') as month
-		from im_hours
+		from im_hours	   
 		where user_id = :employee_id
-		and project_id = :project_id
+                and project_id in (	
+              	   select p.project_id
+		   from im_projects p, im_projects parent_p
+                   where parent_p.project_id = :project_id
+                   and p.tree_sortkey between parent_p.tree_sortkey and tree_right(parent_p.tree_sortkey)
+                   and p.project_status_id not in (82)
+		)		   
 		group by month
 	    } {
 		if {"percentage" == $dimension} {
@@ -358,7 +371,13 @@ foreach user_project $user_projects {
 	    db_foreach months_info {select sum(hours) as sum_hours, to_char(day,'YYMM') as month
 		from im_hours
 		where user_id = :employee_id
-		and project_id = :project_id
+                and project_id in (	
+              	   select p.project_id
+		   from im_projects p, im_projects parent_p
+                   where parent_p.project_id = :project_id
+                   and p.tree_sortkey between parent_p.tree_sortkey and tree_right(parent_p.tree_sortkey)
+                   and p.project_status_id not in (82)
+		)		   
 		group by month
 	    } {
 		if {"percentage" == $dimension} {
@@ -442,7 +461,14 @@ foreach user_project $user_projects {
 		set value "<td bgcolor=red align=right>0</td><td align=left>$planned($month)</td>"
 	    }
 	} else {
-	    set value [set $month]
+	    set value "[set $month]"
+	    if {"" == $value} {
+		if {"forecast" == $view_type} {
+		    set value "<td>&nbsp;</td><td>&nbsp;</td>"		    
+		} else {
+		    set value "<td>&nbsp;</td>"
+		}
+	    }
 	}
 	append table_months($user_project) "$value"
     }

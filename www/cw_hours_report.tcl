@@ -223,7 +223,13 @@ if {$owner_id != ""} {
 if {$project_id != ""} {
     # Get all hours for this project, including hours logged on
     # tasks (100) or tickets (101)
-    lappend view_arr(extra_wheres) "(h.project_id in (select project_id from im_projects where parent_id = :project_id) or h.project_id = :project_id)"
+    lappend view_arr(extra_wheres) "(h.project_id in (	
+              	   select p.project_id
+		   from im_projects p, im_projects parent_p
+                   where parent_p.project_id = :project_id
+                   and p.tree_sortkey between parent_p.tree_sortkey and tree_right(parent_p.tree_sortkey)
+                   and p.project_status_id not in (82)
+		))"
 }
 
 # Filter for department_id
@@ -256,6 +262,7 @@ db_foreach projects_info_query "
     where u.user_id = h.user_id
     and p.project_id = h.project_id
     and e.employee_id = h.user_id
+    and p.project_type_id not in (100,101)
     $view_arr(extra_wheres_sql)
     group by username,project_name,personnel_number,employee_id,p.project_id,project_nr,company_id
     $view_arr(extra_group_by_sql)
@@ -324,7 +331,13 @@ foreach user_project $user_projects {
     db_foreach weeks_info {select sum(hours) as sum_hours, extract(week from day) as week
     		from im_hours
 		where user_id = :employee_id
-		and project_id = :project_id
+                and project_id in (	
+              	   select p.project_id
+		   from im_projects p, im_projects parent_p
+                   where parent_p.project_id = :project_id
+                   and p.tree_sortkey between parent_p.tree_sortkey and tree_right(parent_p.tree_sortkey)
+                   and p.project_status_id not in (82)
+		)		   
 		group by week
     } {
 	if {"percentage" == $dimension} {

@@ -1,5 +1,5 @@
 <master src="../../intranet-core/www/master">
-<property name="title">Weekly Hours</property>
+<property name="title">Calendar Weeks Report</property>
 <property name="context">context</property>
 <property name="main_navbar_label">finance</property>
 <property name="left_navbar">@left_navbar_html;noquote@</property>
