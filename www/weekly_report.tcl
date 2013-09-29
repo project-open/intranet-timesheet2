@@ -251,7 +251,7 @@ set sql_from_joined [join $sql_from " UNION "]
 set sql_from2_joined [join $sql_from2 " UNION "]
 
 # Approved comes from the category type "Intranet Timesheet Conf Status"
-if {$approved_only_p} {
+if {$approved_p && [apm_package_installed_p "intranet-timesheet2-workflow"]} {
     set approved_from ", im_timesheet_conf_objects tco"
     set approved_where "and tco.conf_id = im_hours.conf_object_id and tco.conf_status_id = 17010"
 } else {

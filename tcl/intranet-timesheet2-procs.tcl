@@ -462,7 +462,7 @@ ad_proc im_timesheet_hours_sum {
     if {0 != $number_days} {
 	lappend criteria "day >= now()::date - $number_days"	
     }
-    if {$approved_p} {
+    if {$approved_p && [apm_package_installed_p "intranet-timesheet2-workflow"]} {
 	set approved_from ", im_timesheet_conf_objects tco"
 	set approved_where "and tco.conf_id = h.conf_object_id and tco.conf_status_id = 17010"
     } else {
