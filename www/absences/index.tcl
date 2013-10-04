@@ -138,8 +138,8 @@ if {$add_hours_all_p} {
 		name
     "
     db_foreach emps $emp_sql {
-	lappend user_selection_types $user_id
 	lappend user_selection_types $name
+	lappend user_selection_types $user_id
     }
 }
 
@@ -149,7 +149,7 @@ foreach { value text } $user_selection_types {
 
 
 # ---------- / setting filter 'User selection' ------------- # 
-
+#
 set timescale_types [list \
 			 "all" "All" \
 			 "today" "Today" \
