@@ -275,7 +275,7 @@ db_foreach projects_info_query "
 # actuals or forecast
 
 # Approved comes from the category type "Intranet Timesheet Conf Status"
-if {$approved_p && [apm_package_installed_p "intranet-timesheet2-workflow"]} {
+if {$approved_only_p && [apm_package_installed_p "intranet-timesheet2-workflow"]} {
     set hours_sql "select sum(hours) as total, to_char(day,'YYMM') as month, user_id
 	from im_hours, im_timesheet_conf_objects tco
         where tco.conf_id = im_hours.conf_object_id and tco.conf_status_id = 17010
