@@ -67,6 +67,13 @@ set name_order [parameter::get -package_id [apm_package_id_from_key intranet-cor
 
 set today [db_string today "select now()::date"]
 
+if {!$view_absences_all_p} {
+    switch $user_selection {
+	all - employees {set user_selection "mine"}
+	providers - customers {set user_selection "mine"}
+    }
+}
+
 if {![im_permission $user_id "view_absences"] && !$view_absences_all_p && !$view_absences_direct_reports_p} { 
     ad_return_complaint 1 "You don't have permissions to see absences"
     ad_script_abort
@@ -84,9 +91,40 @@ if {!$view_absences_all_p} { set user_selection "mine" }
 
 set user_name $user_selection
 if {[string is integer $user_selection]} {
-    set user_name [im_name_from_user_id $user_selection]
-} else {
-    set user_name [lang::message::lookup "" intranet-core.$user_selection $user_selection]
+    set user_name [im_cost_center_name $user_selection]
+    if {"" == $user_name} {
+	# Not a department
+	set user_name [im_name_from_user_id $user_selection]
+	if {"" == $user_name} {
+	    ad_return_complaint 1 "Invalid User Selection:<br>Value '$user_selection' is not a user_id or one of {mine|all|employees|providers|customers|direct reports}."
+	} else {
+	    set user_id $user_selection
+
+	    # Check for permissions if we are allowed to see this user
+	    if {$view_absences_all_p} {
+		# He can see all users
+		set user_selection "user"
+	    } elseif {[im_manager_of_user_p -manager_id $current_user_id -user_id $user_id]} {
+		# He is a manager of the user
+		set user_selection "user"
+	    } elseif {[im_supervisor_of_employee_p -supervisor_id $current_user_id -employee_id $user_id]} {
+		# He is a supervisor of the user
+		set user_selection "user"
+	    } else {
+		# He is cheating
+		set user_selection "mine"
+	    }	      
+	}
+    } else {
+	# Allow the manager to see the department
+	if {![im_manager_of_cost_center_p -user_id $user_id -cost_center_id $user_selection] && !$view_absences_all_p} {
+	    # Not a manager => Only see yourself
+	    set user_selection "mine"
+	} else {
+	    set cost_center_id $user_selection
+	    set user_selection "cost_center"
+	}
+    }
 }
 
 set page_title "[lang::message::lookup "" intranet-timesheet2.Absences_for_user "Absences for %user_name%"]"
@@ -265,27 +303,19 @@ if { ![empty_string_p $user_selection] } {
                                                         from	group_approved_member_map m
                                                         where	m.group_id = [im_customer_group_id]
                                                         )"
-		}
-		"direct_reports" {
-		    lappend criteria "a.owner_id in (select employee_id from im_employees where supervisor_id = :current_user_id)"
-                }  
-		default  {
-		    if {[string is integer $user_selection]} {
-			lappend criteria "a.owner_id = :user_selection"
-		    } else {
-			ad_return_complaint 1 "Invalid User Selection:<br>Value '$user_selection' is not a user_id or one of {mine|all|employees|providers|customers|direct reports}."
-		    }
-		}
-	    }
- 	    ns_set put $bind_vars user_selection $user_selection
-	} elseif { $view_absences_direct_reports_p } {
-	    if { "direct_reports" == $user_selection } {
-		lappend criteria "a.owner_id in (select employee_id from im_employees where supervisor_id = :current_user_id)"
-	    } else {
-		# Show always own absences
-		lappend criteria "a.owner_id=:user_id"
-	    }
- 	} else {
+	}
+	"direct_reports" {
+	    lappend criteria "a.owner_id in (select employee_id from im_employees where supervisor_id = :current_user_id)"
+	}  
+	"cost_center" {
+	    set cost_center_list [im_cost_center_options -parent_id $cost_center_id]
+	    set cost_center_ids [list $cost_center_id]
+            foreach cost_center $cost_center_list {
+		lappend cost_center_ids [lindex $cost_center 1]
+            }
+	    lappend criteria "a.owner_id in (select employee_id from im_employees where department_id in ([template::util::tcl_to_sql_list $cost_center_ids]))"
+	}  
+	"user" {
 	    lappend criteria "a.owner_id=:user_id"
 	}
     }
