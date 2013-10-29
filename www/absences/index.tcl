@@ -93,13 +93,23 @@ if {!$view_absences_all_p} { set user_selection "mine" }
 
 set user_name $user_selection
 if {[string is integer $user_selection]} {
-    set user_name [im_cost_center_name $user_selection]
-    if {"" == $user_name} {
-	# Not a department
-	set user_name [im_name_from_user_id $user_selection]
-	if {"" == $user_name} {
-	    ad_return_complaint 1 "Invalid User Selection:<br>Value '$user_selection' is not a user_id or one of {mine|all|employees|providers|customers|direct reports}."
-	} else {
+    # Find out the object_type
+    set object_type [db_string object_type "select object_type from acs_objects where object_id = :user_selection" -default ""]
+    ds_comment "Type: $object_type"
+    switch $object_type {
+	im_cost_center {
+	    set user_name [im_cost_center_name $user_selection]
+	    # Allow the manager to see the department
+	    if {![im_manager_of_cost_center_p -user_id $user_id -cost_center_id $user_selection] && !$view_absences_all_p} {
+		# Not a manager => Only see yourself
+		set user_selection "mine"
+	    } else {
+		set cost_center_id $user_selection
+		set user_selection "cost_center"
+	    }
+	}
+	user {
+	    set user_name [im_name_from_user_id $user_selection]
 	    set user_id $user_selection
 
 	    # Check for permissions if we are allowed to see this user
@@ -117,14 +127,14 @@ if {[string is integer $user_selection]} {
 		set user_selection "mine"
 	    }	      
 	}
-    } else {
-	# Allow the manager to see the department
-	if {![im_manager_of_cost_center_p -user_id $user_id -cost_center_id $user_selection] && !$view_absences_all_p} {
-	    # Not a manager => Only see yourself
-	    set user_selection "mine"
-	} else {
-	    set cost_center_id $user_selection
-	    set user_selection "cost_center"
+	im_project {
+	    set project_id $user_selection
+	    set user_name [db_string project_name "select project_name from im_projects where project_id = :project_id" -default ""]
+	    set hide_colors_p 1
+	    set user_selection "project"
+	}
+	default {
+	    ad_return_complaint 1 "Invalid User Selection:<br>Value '$user_selection' is not a user_id, project_id, department_id or one of {mine|all|employees|providers|customers|direct reports}."
 	}
     }
 }
@@ -316,7 +326,11 @@ if { ![empty_string_p $user_selection] } {
 		lappend cost_center_ids [lindex $cost_center 1]
             }
 	    lappend criteria "a.owner_id in (select employee_id from im_employees where department_id in ([template::util::tcl_to_sql_list $cost_center_ids]))"
-	}  
+	}
+	"project" {
+	    set project_ids [im_project_subproject_ids -project_id $project_id]
+	    lappend criteria "a.owner_id in (select object_id_two from acs_rels where object_id_one in ([template::util::tcl_to_sql_list $project_ids]))"
+	}
 	"user" {
 	    lappend criteria "a.owner_id=:user_id"
 	}
