@@ -20,6 +20,7 @@ if {![info exists panel_p]} {
 	{ absence_type_id:integer 0 }
 	{ form_mode "edit" }
 	{ user_id_from_search "" }
+	{group_id ""}
     }
 }
 
