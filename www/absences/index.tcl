@@ -42,6 +42,8 @@ ad_page_contract {
     { view_name "absence_list_home" }
     { start_date "" }
     { user_id_from_search "" }
+    { cost_center_id:integer "" }
+    { project_id ""}
 }
 
 # KH: "watch package" ... instead of setting the watch through GUI   
@@ -64,6 +66,11 @@ set org_absence_type_id $absence_type_id
 set show_context_help_p 1
 set name_order [parameter::get -package_id [apm_package_id_from_key intranet-core] -parameter "NameOrder" -default 1]
 set hide_colors_p 0
+
+# Support if we pass a project_id in
+if {"" != $project_id} {
+    set user_selection $project_id
+}
 
 if {"" == $start_date} {
     set start_date [db_string today "select now()::date"]
@@ -139,7 +146,7 @@ if {[string is integer $user_selection]} {
     }
 }
 
-set page_title "[lang::message::lookup "" intranet-timesheet2.Absences_for_user "Absences for %user_name%"]"
+set page_title "[lang::message::lookup "" intranet-timesheet2.Absences_for_user "Absences for $user_name"]"
 set context [list $page_title]
 set context_bar [im_context_bar $page_title]
 set page_focus "im_header_form.keywords"
@@ -464,14 +471,14 @@ set form_id "absence_filter"
 set object_type "im_absence"
 set action_url "/intranet-timesheet2/absences/"
 set form_mode "edit"
-
+ds_comment "project_id :: $project_id"
 ad_form \
     -name $form_id \
     -action $action_url \
     -mode $form_mode \
     -actions [list [list [lang::message::lookup {} intranet-timesheet2.Edit Edit] edit]] \
     -method GET \
-    -export {start_idx order_by how_many view_name}\
+    -export {start_idx order_by how_many view_name project_id}\
     -form {
 	{start_date:text(text) {label "[_ intranet-timesheet2.Start_Date]"} {html {size 10}} {value "$start_date"} {after_html {<input type="button" style="height:23px; width:23px; background: url('/resources/acs-templating/calendar.gif');" onclick ="return showCalendar('start_date', 'y-m-d');" >}}}
         {timescale:text(select),optional {label "[_ intranet-timesheet2.Timescale]"} {options $timescale_type_list }}
@@ -706,5 +713,9 @@ set absence_cube_html [im_absence_cube \
 			   -timescale $timescale \
 			   -report_start_date $org_start_date \
 			   -user_id_from_search $user_id_from_search \
+			   -cost_center_id $cost_center_id \
+			   -user_id $user_id \
+			   -hide_colors_p $hide_colors_p \
+			   -project_id $project_id
 ]
 

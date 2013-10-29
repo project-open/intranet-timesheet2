@@ -431,6 +431,10 @@ ad_proc im_absence_cube {
     {-timescale "" }
     {-report_start_date "" }
     {-user_id_from_search "" }
+    {-user_id ""}
+    {-cost_center_id ""}
+    {-hide_colors_p 0}
+    {-project_id ""}
 } {
     Returns a rendered cube with a graphical absence display
     for users.
@@ -514,6 +518,10 @@ ad_proc im_absence_cube {
             }
 	    lappend criteria "a.owner_id in (select employee_id from im_employees where department_id in ([template::util::tcl_to_sql_list $cost_center_ids]))"
 	}  
+	"project" {
+	    set project_ids [im_project_subproject_ids -project_id $project_id]
+	    lappend criteria "a.owner_id in (select object_id_two from acs_rels where object_id_one in ([template::util::tcl_to_sql_list $project_ids]))"
+	}
 	"user" {
 	    lappend criteria "a.owner_id=:user_id"
 	}	    
