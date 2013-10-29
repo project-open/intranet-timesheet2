@@ -135,10 +135,16 @@ if {[string is integer $user_selection]} {
 	    }	      
 	}
 	im_project {
-	    set project_id $user_selection
-	    set user_name [db_string project_name "select project_name from im_projects where project_id = :project_id" -default ""]
-	    set hide_colors_p 1
-	    set user_selection "project"
+	    # Permission Check
+	    set project_manager_p [im_biz_object_member_p -role_id 1301 $user_id $project_id]
+	    if {!$project_manager_p} {
+		set user_selection "mine"
+	    } else {
+		set project_id $user_selection
+		set user_name [db_string project_name "select project_name from im_projects where project_id = :project_id" -default ""]
+		set hide_colors_p 1
+		set user_selection "project"
+	    }
 	}
 	default {
 	    ad_return_complaint 1 "Invalid User Selection:<br>Value '$user_selection' is not a user_id, project_id, department_id or one of {mine|all|employees|providers|customers|direct reports}."
