@@ -41,7 +41,6 @@ ad_page_contract {
     { timescale "next_3w" }
     { view_name "absence_list_home" }
     { start_date "" }
-    { end_date "" }
     { user_id_from_search "" }
 }
 
@@ -64,8 +63,11 @@ set add_absences_p [im_permission $user_id "add_absences"]
 set org_absence_type_id $absence_type_id
 set show_context_help_p 1
 set name_order [parameter::get -package_id [apm_package_id_from_key intranet-core] -parameter "NameOrder" -default 1]
+set hide_colors_p 0
 
-set today [db_string today "select now()::date"]
+if {"" == $start_date} {
+    set start_date [db_string today "select now()::date"]
+}
 
 if {!$view_absences_all_p} {
     switch $user_selection {
@@ -192,10 +194,10 @@ set timescale_types [list \
 			 "all" "All" \
 			 "today" "Today" \
 			 "next_3w" "Next 3 Weeks" \
-			 "next_3m" "Next_3_months" \
+			 "next_3m" "Next 3 months" \
 			 "future" "Future" \
 			 "past" "Past" \
-			 "last_3m" "Last_3_months" \
+			 "last_3m" "Last 3 months" \
 			 "last_3w" "Last 3 Weeks" \
 ]
 
@@ -337,40 +339,31 @@ if { ![empty_string_p $absence_type_id] &&  $absence_type_id != -1 } {
 
 switch $timescale {
     "all" { 
-	set start_date "2000-01-01"
 	set end_date "2099-12-31"
     }
     "today" { 
-	set start_date $today
-	set end_date $today
+	set end_date $start_date
     }
     "next_3w" { 
-	set start_date $today
 	set end_date [db_string 3w "select now()::date + 21"]
     }
     "last_3w" { 
-	set start_date [db_string 3w "select now()::date - 21"]
-	set end_date $today
-    }
-    "next_1m" { 
-	set start_date $today
-	set end_date [db_string 3w "select now()::date + 31"]
+	set end_date $start_date
+	set start_date [db_string 3w "select to_date(:start_date,'YYYY-MM-DD') - 21"]
     }
     "past" { 
+	set end_date $start_date
 	set start_date "2000-01-01"
-	set end_date $today
     }
     "future" { 
-	set start_date $today
 	set end_date "2100-01-01"
     }
     "last_3m" { 
-	set start_date [db_string last_3m_start_date "select now()::date -93"]
-	set end_date $today
+	set end_date $start_date
+	set start_date [db_string 3w "select to_date(:start_date,'YYYY-MM-DD') - 93"]
     }
     "next_3m" { 
-	set start_date $today
-	set end_date [db_string last_3m_start_date "select now()::date +93"]
+	set end_date [db_string 3w "select to_date(:start_date,'YYYY-MM-DD') + 93"]
     }
 }
 
@@ -466,18 +459,13 @@ ad_form \
     -method GET \
     -export {start_idx order_by how_many view_name}\
     -form {
+	{start_date:text(text) {label "[_ intranet-timesheet2.Start_Date]"} {html {size 10}} {value "$start_date"} {after_html {<input type="button" style="height:23px; width:23px; background: url('/resources/acs-templating/calendar.gif');" onclick ="return showCalendar('start_date', 'y-m-d');" >}}}
+        {timescale:text(select),optional {label "[_ intranet-timesheet2.Timescale]"} {options $timescale_type_list }}
         {absence_type_id:text(select),optional {label "[_ intranet-timesheet2.Absence_Type]"} {options $absence_type_list }}
         {user_selection:text(select),optional {label "[_ intranet-timesheet2.Show_Users]"} {options $user_selection_type_list }}
-        {timescale:text(select),optional {label "[_ intranet-timesheet2.Timescale]"} {options $timescale_type_list }}
-    }
-
-set ttt {
-	{start_date:text(text) {label "[_ intranet-timesheet2.Start_Date]"} {html {size 10}} {value "$start_date"} {after_html {<input type="button" style="height:23px; width:23px; background: url('/resources/acs-templating/calendar.gif');" onclick ="return showCalendar('start_date', 'y-m-d');" >}}}
-	{end_date:text(text) {label "[_ intranet-timesheet2.End_Date]"} {html {size 10}} {value "$end_date"} {after_html {<input type="button" style="height:23px; width:23px; background: url('/resources/acs-templating/calendar.gif');" onclick ="return showCalendar('end_date', 'y-m-d');" >}}}
 }
 
-# template::element::set_value $form_id start_date $start_date
-# template::element::set_value $form_id end_date $end_date
+template::element::set_value $form_id start_date $start_date
 template::element::set_value $form_id timescale $timescale
 
 
