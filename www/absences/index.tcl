@@ -137,7 +137,7 @@ if {[string is integer $user_selection]} {
 	im_project {
 	    # Permission Check
 	    set project_manager_p [im_biz_object_member_p -role_id 1301 $user_id $project_id]
-	    if {!$project_manager_p} {
+	    if {!$project_manager_p && !$view_absences_all_p} {
 		set user_selection "mine"
 	    } else {
 		set project_id $user_selection
