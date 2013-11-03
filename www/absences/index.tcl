@@ -167,21 +167,31 @@ set return_url [im_url_with_query]
 set user_view_page "/intranet/users/view"
 set absence_view_page "$absences_url/new"
 
-# ---------- setting filter 'User selection' ------------- # 
-
-set user_selection_types [list "all" "All" "mine" "Mine" "direct_reports" "Direct reports" "employees" "Employees" "providers" "Providers" "customers" "Customers"]
+set user_selection_types [list \
+			      [list [lang::message::lookup "" intranet-timesheet2.All All] "all"] \
+			      [list [lang::message::lookup "" intranet-timesheet2.Mine Mine] "mine"] \
+			      [list [lang::message::lookup "" intranet-timesheet2.Direct_reports "Direct reports"] "direct_reports"] \
+			      [list [lang::message::lookup "" intranet-timesheet2.Employees Employees] "employees"] \
+			      [list [lang::message::lookup "" intranet-timesheet2.Providers Providers] "providers"] \
+			      [list [lang::message::lookup "" intranet-timesheet2.Customers Customers] "customers"] \
+]
 
 # Users can only see their own absences, unless they have a special permission
 # ToDo: Users should _always_ see their absences 
-if {!$view_absences_all_p} { set user_selection_types [list "mine" "Mine"] }
+if {!$view_absences_all_p} { 
+    set user_selection_types [list [list "mine" [lang::message::lookup "" intranet-timesheet2.Mine Mine]]] 
 
-# Only 'direct' subordinates. 
-if {$view_absences_direct_reports_p} { append user_selection_types [list "direct_reports" "Direct reports"] }
+    # Only 'direct' subordinates. 
+    if {$view_absences_direct_reports_p} { 
+	lappend user_selection_types [list "direct_reports" [lang::message::lookup "" intranet-timesheet2.Direct_reports "Direct reports"]] 
+    }
+}
+
 
 if {$add_hours_all_p} {
     # Add employees to user_selection
     set emp_sql "
-	SELECT
+	SELECT distinct
         	im_name_from_user_id(cc.user_id, $name_order) as name,
 	        cc.user_id
 	FROM
@@ -201,27 +211,23 @@ if {$add_hours_all_p} {
 		name
     "
     db_foreach emps $emp_sql {
-	lappend user_selection_types $user_id
-	lappend user_selection_types $name
+	lappend user_selection_types [list $name $user_id]
     }
-}
 
-foreach { value text } $user_selection_types {
-    lappend user_selection_type_list [list $text $value]
-}
 
+}
 
 # ---------- / setting filter 'User selection' ------------- # 
-
+#
 set timescale_types [list \
-			 "all" "All" \
-			 "today" "Today" \
-			 "next_3w" "Next 3 Weeks" \
-			 "next_3m" "Next 3 months" \
-			 "future" "Future" \
-			 "past" "Past" \
-			 "last_3m" "Last 3 months" \
-			 "last_3w" "Last 3 Weeks" \
+			 "all" [lang::message::lookup "" intranet-timesheet2.All All] \
+			 "today" [lang::message::lookup "" intranet-timesheet2.Today Today] \
+			 "next_3w" [lang::message::lookup "" intranet-timesheet2.Next_3_Weeks "Next 3 Weeks"] \
+			 "next_3m" [lang::message::lookup "" intranet-timesheet2.Next_3_Month "Next 3 Months"] \
+			 "future" [lang::message::lookup "" intranet-timesheet2.Future "Future"] \
+			 "past" [lang::message::lookup "" intranet-timesheet2.Past "Past"] \
+			 "last_3m" [lang::message::lookup "" intranet-timesheet2.Last_3_Month "Last 3 Months"] \
+			 "last_3w" [lang::message::lookup "" intranet-timesheet2.Last_3_Weeks "Last 3 Weeks"] \
 ]
 
 foreach { value text } $timescale_types {
@@ -283,7 +289,7 @@ db_foreach column_list_sql $column_sql {
 
 # absences_types
 set absences_types [im_memoize_list select_absences_types "select absence_type_id, absence_type from im_absence_types order by lower(ABSENCE_TYPE)"]
-set absences_types [linsert $absences_types 0 "All"]
+set absences_types [linsert $absences_types 0 [lang::message::lookup "" intranet-timesheet2.All "All"]]
 set absences_types [linsert $absences_types 0 -1]
 set absence_type_list [list]
 foreach { value text } $absences_types {
