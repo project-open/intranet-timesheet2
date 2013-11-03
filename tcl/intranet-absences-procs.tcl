@@ -526,11 +526,8 @@ ad_proc im_absence_cube {
 	    lappend criteria "a.owner_id=:user_id"
 	}	    
 	default  {
-	    if {[string is integer $user_selection]} {
-		lappend criteria "u.user_id = :user_selection"
-	    } else {
-		# error message in index.tcl
-	    }
+	    # We shouldn't even be here, so just display his/her own ones
+	    lappend criteria "a.owner_id = :current_user_id"
 	}
     }
     set where_clause [join $criteria " and\n            "]
@@ -689,6 +686,7 @@ ad_proc im_absence_cube {
 	    set value ""
 	    if {[info exists absence_hash($key)]} { set value $absence_hash($key) }
 	    if {[info exists holiday_hash($date_date)]} { append value $holiday_hash($date_date) }
+	    if {$hide_colors_p && $value != "" } {set value "1"}
 	    append table_body [im_absence_cube_render_cell $value]
 	    ns_log NOTICE "intranet-absences-procs::im_absence_cube_render_cell: $value"
 	}
