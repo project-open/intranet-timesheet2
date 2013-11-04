@@ -152,7 +152,7 @@ ad_proc calendar_basic_month {
 	represents the details.
 " {
 
-    set start_day [parameter::get -package_id [im_package_timesheet2_id] -parameter "TimesheetStartDay" -default 1]
+    set start_day [parameter::get -package_id [apm_package_id_from_key intranet-timesheet2] -parameter "WeekStartDay" -default 0]
 
     calendar_get_info_from_db $date
     set todays_date [lindex [split [ns_localsqltimestamp] " "] 0]
@@ -262,6 +262,7 @@ ad_proc calendar_basic_month {
 
 	    # Set BG color for weekend 
 	    set weekend ""
+
 	    if { "1" == $start_day  } {
 		    if { "6" == $day_of_week || "7" == $day_of_week } {	set weekend "_weekend" }  	
 	    } else {
