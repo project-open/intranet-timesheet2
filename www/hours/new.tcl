@@ -529,6 +529,9 @@ set child_project_sql "
 
 set sort_integer 0
 set sort_legacy  0
+
+# ad_return_complaint 1 $list_sort_order
+
 switch $list_sort_order {
     name { 
 	set sort_order "lower(children.project_name)"
@@ -622,7 +625,8 @@ set hours_sql "
 	select
 		h.*,
 		to_char(h.day, 'J') as julian_day,
-		p.project_id
+		p.project_id,
+		(select conf_status_id from im_timesheet_conf_objects where conf_id = h.conf_object_id) as conf_status_id
 		$material_sql
 	from
 		im_hours h,
@@ -635,6 +639,7 @@ set hours_sql "
 db_foreach hours_hash $hours_sql {
     set key "$project_id-$julian_day"
     set hours_hours($key) $hours
+    set hours_conf_status_id($key) $conf_status_id
     set hours_note($key) $note
     set hours_internal_note($key) $internal_note
     if {"" != $invoice_id} {
@@ -646,7 +651,6 @@ db_foreach hours_hash $hours_sql {
     }
 }
 
-# ad_return_complaint 1 [array get hours_invoice_hash]
 
 # ---------------------------------------------------------
 # Get the list of open projects with direct membership
@@ -713,10 +717,11 @@ db_multirow hours_multirow hours_timesheet $sql
 # Sort the tree according to the specified sort order
 multirow_sort_tree hours_multirow project_id parent_id sort_order
 
-
-# ---------------------------------------------------------
+# ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # Format the output
-# ---------------------------------------------------------
+# ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 # Don't show closed and deleted projects:
 # The tree algorithm maintains a "closed_level"
@@ -736,7 +741,7 @@ set top_project_id_saved -1
 set last_level_shown -1
 set level_entered_in_showing_child_elements -1
 
-set surpress_output_p 0
+set filter_surpress_output_p 0
 
 # If top_parent_project is shown because it contains search string, we can surpress path 
 set top_parent_shown_p 0 
@@ -749,7 +754,7 @@ template::multirow foreach hours_multirow {
        if { !$showing_child_elements_p || $ctr==0 } {
 	   if { [string first [string tolower $search_task] [string tolower $project_name]] == -1 } {
 	       # ns_log NOTICE "/intranet-timesheet2/www/hours/new::String not found continuing ... "
-	       set surpress_output_p 1
+	       set filter_surpress_output_p 1
 	   } else {
 	       # ns_log NOTICE "/intranet-timesheet2/www/hours/new:: ------- String found -------"
 	       # ns_log NOTICE "/intranet-timesheet2/www/hours/new:: Setting showing_child_elements_p = 1, setting top_project_id_saved: $top_project_id"
@@ -773,7 +778,7 @@ template::multirow foreach hours_multirow {
 
                 if { [string first [string tolower $search_task] [string tolower $project_name]] == -1 } {
                     # ns_log NOTICE "/intranet-timesheet2/www/hours/new::String not found continuing ... "
-		    set surpress_output_p 1
+		    set filter_surpress_output_p 1
                 } else {
                     # ns_log NOTICE "/intranet-timesheet2/www/hours/new:: ------- String found -------"
                     # Set mode & last_level_shown
@@ -791,7 +796,7 @@ template::multirow foreach hours_multirow {
 			# Check for searchstring
 			if { [string first [string tolower $search_task] [string tolower $project_name]] == -1 } {
                             # ns_log NOTICE "/intranet-timesheet2/www/hours/new:: String not found continuing ... "
-			    set surpress_output_p 1
+			    set filter_surpress_output_p 1
 			} else {
                             # ns_log NOTICE "/intranet-timesheet2/www/hours/new:: ------- String found -------"
                             set last_level_shown $subproject_level
@@ -810,7 +815,7 @@ template::multirow foreach hours_multirow {
 			if { [string first [string tolower $search_task] [string tolower $project_name]] == -1 } {
 			    # ns_log NOTICE "/intranet-timesheet2/www/hours/new::String not found, continuing ... "
 			    set showing_child_elements_p 0
-			    set surpress_output_p 1
+			    set filter_surpress_output_p 1
 			} else {
 			    # ns_log NOTICE "/intranet-timesheet2/www/hours/new:: ------- String found -------"
 			    set last_level_shown $subproject_level
@@ -893,7 +898,6 @@ template::multirow foreach hours_multirow {
     set project_has_children_p [info exists has_children_hash($project_id)]
     set project_has_parents_p [info exists has_parent_hash($project_id)]
 
-
     # ---------------------------------------------
     # Tree open/close logic
 
@@ -934,8 +938,9 @@ template::multirow foreach hours_multirow {
 	append dots_for_filter "."
     }
 
-    # ---------------------------------------------
-    # Insert intermediate header for every top-project
+   # ------------------------------------------------------------------------------------------
+   # Insert intermediate header for every top-project
+   # ------------------------------------------------------------------------------------------
 
     if {$parent_project_nr != $old_parent_project_nr } { 
 	set project_name "<b>$project_name</b>"
@@ -944,7 +949,7 @@ template::multirow foreach hours_multirow {
 	# Save information if Top Project has been shown 
 	# If Top Project is not shown because of filter, we have to add this info to the task/subproject 
 	# task or subproject 
-	if { !$surpress_output_p } { 
+	if { !$filter_surpress_output_p } { 
 		set top_parent_shown_p 1 
 		# Add an empty line after every main project
 		append results "<tr class=rowplain><td colspan=99>&nbsp;</td></tr>\n" 
@@ -955,14 +960,13 @@ template::multirow foreach hours_multirow {
 	set old_parent_project_nr $parent_project_nr
     }
 
-    # ---------------------------------------------
     # Write out the name of the project nicely indented
 
     # Set project title & URL
     set project_url [export_vars -base "/intranet/projects/view?" {project_id return_url}]
     if {$show_project_nr_p} { set ptitle "$project_nr - $project_name" } else { set ptitle $project_name }
 
-    if { !$surpress_output_p } { 
+    if { !$filter_surpress_output_p } { 
 	if { !$top_parent_shown_p && $project_id != $top_project_id && "" != $search_task } {
 		append results "<tr $bgcolor([expr $ctr % 2])>\n<td>"
 		append results "<strong><a href='/intranet/projects/view?project_id=$top_project_id' style='text-decoration: none'>
@@ -981,7 +985,7 @@ template::multirow foreach hours_multirow {
     if {![string eq "t" $edit_hours_p]} { append help_text [lang::message::lookup "" intranet-timesheet2.Nolog_edit_hours_p "The time period has been closed for editing. "] }
     if {!$log_on_parent_p} { append help_text [lang::message::lookup "" intranet-timesheet2.Nolog_log_on_parent_p "This project has sub-projects or tasks. "] }
     if {$solitary_main_project_p} { append help_text [lang::message::lookup "" intranet-timesheet2.Nolog_solitary_main_project_p "This is a 'solitary' main project. Your system is configured in such a way, that you can't log hours on it. "] }
-
+   
     # Not a member: This isn't relevant in all modes:
     switch $task_visibility_scope {
         "main_project" - "specified" {
@@ -1004,7 +1008,6 @@ template::multirow foreach hours_multirow {
 
     if {$show_member_p && !$user_is_project_member_p} { append help_text [lang::message::lookup "" intranet-timesheet2.Not_member_of_project "You are not a member of this project. "] }
 
-
     # -----------------------------------------------
     # Write out help and debug information
     set help_gif ""
@@ -1022,7 +1025,7 @@ template::multirow foreach hours_multirow {
 	"
     }
 
-    if { !$surpress_output_p } { append results "<td>$help_gif $debug_html</td>\n" }
+    if { !$filter_surpress_output_p } { append results "<td>$help_gif $debug_html</td>\n" }
 
     set ttt {
 	chi=$project_has_children_p,
@@ -1040,21 +1043,30 @@ template::multirow foreach hours_multirow {
 	set internal_note ""
 	set material_id $default_material_id
 	set material "Default"
+	set conf_status_id ""
 	set key "$project_id-$julian_day_offset"
 
 	if {[info exists hours_hours($key)]} { set hours $hours_hours($key) }
 	if {[info exists hours_note($key)]} { set note $hours_note($key) }
 	if {[info exists hours_internal_note($key)]} { set internal_note $hours_internal_note($key) }
-
 	if {[info exists hours_material_id($key)]} { set material_id $hours_material_id($key) }
 	if {[info exists hours_material($key)]} { set material $hours_material($key) }
+        if {[info exists hours_conf_status_id($key)]} { set conf_status_id $hours_conf_status_id($key) }
 
 	# Determine whether the hours have already been included in a timesheet invoice
 	set invoice_id 0
 	set invoice_key "$project_id-$julian_day_offset"
 	if {[info exists hours_invoice_hash($invoice_key)]} { set invoice_id $hours_invoice_hash($invoice_key) }
 
-	if { "t" == $edit_hours_p && $log_on_parent_p && !$invoice_id && !$solitary_main_project_p && !$closed_p && !$surpress_output_p } {
+	set blocked_by_wf_help ""
+	if { "" ==  $conf_status_id || "17000" == $conf_status_id } {
+	    set blocked_by_wf_p 0 
+	} else {
+	    set blocked_by_wf_p 1
+	    set blocked_by_wf_help "[im_gif help [lang::message::lookup "" intranet-timesheet2.BlockedbyWF "Blocked by TS Approval Workflow"]]"
+	}
+	
+	if { "t" == $edit_hours_p && $log_on_parent_p && !$invoice_id && !$solitary_main_project_p && !$closed_p && !$filter_surpress_output_p && !$blocked_by_wf_p } {
 	    # Write editable entries.
 	    append results "<td><INPUT NAME=hours${i}.$project_id size=5 MAXLENGTH=5 value=\"$hours\"></td>\n"
 
@@ -1065,7 +1077,7 @@ template::multirow foreach hours_multirow {
 	    }
 
 	} else {
-	    if { $surpress_output_p } {
+	    if { $filter_surpress_output_p } {
 		# Filter in use - write only hidden fields 
 		append results "<INPUT type=hidden NAME=hours${i}.$project_id value=\"$hours\">\n"
 		if {!$show_week_p} {
@@ -1077,7 +1089,7 @@ template::multirow foreach hours_multirow {
 		}   
 	    } else {
 		# Write Disabled because we can't log hours on this one
-		append results "<td>$hours <INPUT type=hidden NAME=hours${i}.$project_id value=\"$hours\"></td>\n"
+		append results "<td>$hours $blocked_by_wf_help <INPUT type=hidden NAME=hours${i}.$project_id value=\"$hours\"></td>\n"
 		if {!$show_week_p} {
 		    append results "<td>[ns_quotehtml [value_if_exists note]] <INPUT type=hidden NAME=notes0.$project_id value=\"[ns_quotehtml [value_if_exists note]]\"></td>\n"
 		    if {$internal_note_exists_p} { 
@@ -1089,9 +1101,9 @@ template::multirow foreach hours_multirow {
 	}
 	incr i
     }; # For each weekday
-    if { !$surpress_output_p } { append results "</tr>\n" }
+    if { !$filter_surpress_output_p } { append results "</tr>\n" }
     incr ctr
-    set surpress_output_p 0
+    set filter_surpress_output_p 0
 }
 
 if { [empty_string_p results] } {
