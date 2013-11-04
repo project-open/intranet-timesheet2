@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
-<message_catalog package_key="intranet-timesheet2" package_version="3.4.0.7.0" locale="fr_FR" charset="ISO-8859-1">
+<message_catalog package_key="intranet-timesheet2" locale="fr_FR" charset="ISO-8859-1">
 
   <msg key="1_Euro_equals">1 Euro équivaut à:</msg>
   <msg key="_user_id">et un project_id peut être fourni. Mais il y a eu un souci avec eux...</msg>

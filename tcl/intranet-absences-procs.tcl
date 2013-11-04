@@ -158,14 +158,16 @@ ad_proc im_timesheet_absences_sum {
     set hours_per_absence [parameter::get -package_id [im_package_timesheet2_id] -parameter "TimesheetHoursPerAbsence" -default 8]
 
     set num_absences [db_string absences_sum "
-	select	count(*)
-	from	im_user_absences a,
-		im_day_enumerator(now()::date - '7'::integer, now()::date) d
-	where	owner_id = :user_id
-		and a.start_date <= d.d
-		and a.end_date >= d.d
-    "]
-
+		select	count(*)
+		from
+			im_user_absences a,
+			im_day_enumerator(now()::date - '$number_days'::integer, now()::date) d
+		where
+			owner_id = :user_id
+			and a.start_date <= d.d
+			and a.end_date >= d.d
+    " -default 0]
+    if {"" == $num_absences} { set num_absences 0}
     return [expr $num_absences * $hours_per_absence]
 }
 
@@ -297,8 +299,8 @@ ad_proc im_absence_cube_color_list_helper { } {
         53A7D8
         A185CB
         FFF956
-        CCCCC9
-        CCCCC9
+        006666
+        FFCC99
         CCCCC9
         CCCCC9
         CCCCC9
@@ -429,6 +431,10 @@ ad_proc im_absence_cube {
     {-timescale "" }
     {-report_start_date "" }
     {-user_id_from_search "" }
+    {-user_id ""}
+    {-cost_center_id ""}
+    {-hide_colors_p 0}
+    {-project_id ""}
 } {
     Returns a rendered cube with a graphical absence display
     for users.
@@ -504,12 +510,24 @@ ad_proc im_absence_cube {
 	"direct_reports" {
 	    lappend criteria "a.owner_id in (select employee_id from im_employees where supervisor_id = :current_user_id)"
 	}  
+	"cost_center" {
+	    set cost_center_list [im_cost_center_options -parent_id $cost_center_id]
+	    set cost_center_ids [list $cost_center_id]
+            foreach cost_center $cost_center_list {
+		lappend cost_center_ids [lindex $cost_center 1]
+            }
+	    lappend criteria "a.owner_id in (select employee_id from im_employees where department_id in ([template::util::tcl_to_sql_list $cost_center_ids]))"
+	}  
+	"project" {
+	    set project_ids [im_project_subproject_ids -project_id $project_id]
+	    lappend criteria "a.owner_id in (select object_id_two from acs_rels where object_id_one in ([template::util::tcl_to_sql_list $project_ids]))"
+	}
+	"user" {
+	    lappend criteria "a.owner_id=:user_id"
+	}	    
 	default  {
-	    if {[string is integer $user_selection]} {
-		lappend criteria "u.user_id = :user_selection"
-	    } else {
-		# error message in index.tcl
-	    }
+	    # We shouldn't even be here, so just display his/her own ones
+	    lappend criteria "a.owner_id = :current_user_id"
 	}
     }
     set where_clause [join $criteria " and\n            "]
@@ -668,6 +686,7 @@ ad_proc im_absence_cube {
 	    set value ""
 	    if {[info exists absence_hash($key)]} { set value $absence_hash($key) }
 	    if {[info exists holiday_hash($date_date)]} { append value $holiday_hash($date_date) }
+	    if {$hide_colors_p && $value != "" } {set value "1"}
 	    append table_body [im_absence_cube_render_cell $value]
 	    ns_log NOTICE "intranet-absences-procs::im_absence_cube_render_cell: $value"
 	}
@@ -682,7 +701,6 @@ ad_proc im_absence_cube {
 	</table>
     "
 }
-
 
 ad_proc -public im_absence_vacation_balance_component {
     -user_id_from_search:required
@@ -798,7 +816,7 @@ ad_proc -public im_get_next_absence_link { { user_id } } {
 	where
 		owner_id = :user_id and
 		group_id is null and
-		start_date >= to_date(sysdate::text,'yyyy-mm-dd')
+		start_date >= sysdate
 	order by
 		start_date, end_date
     "
@@ -809,5 +827,29 @@ ad_proc -public im_get_next_absence_link { { user_id } } {
 	break
     }
     return $ret_val
+}
+
+ad_proc -public im_absence_user_component {
+    -user_id:required
+} {
+    Returns a HTML component showing the vacations
+    for the user
+} {
+    set current_user_id [ad_get_user_id]
+    # This is a sensitive field, so only allows this for the user himself
+    # and for users with HR permissions.
+
+    set read_p 0
+    if {$user_id == $current_user_id} { set read_p 1 }
+    if {[im_permission $current_user_id view_hr]} { set read_p 1 }
+    if {!$read_p} { return "" }
+
+    set params [list \
+		    [list user_id_from_search $user_id] \
+		    [list return_url [im_url_with_query]] \
+    ]
+
+    set result [ad_parse_template -params $params "/packages/intranet-timesheet2/lib/user-absences"]
+    return [string trim $result]
 }
 

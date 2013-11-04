@@ -20,6 +20,7 @@ if {![info exists panel_p]} {
 	{ absence_type_id:integer 0 }
 	{ form_mode "edit" }
 	{ user_id_from_search "" }
+	{group_id ""}
     }
 }
 
@@ -39,7 +40,14 @@ if {"" == $return_url} { set return_url "/intranet-timesheet2/absences/index" }
 set focus "absence.var_name"
 set date_format "YYYY-MM-DD"
 set date_time_format "YYYY MM DD"
-set absence_type "Absence"
+if {![exists_and_not_null absence_type_id]} {set absence_type_id 0}
+if {$absence_type_id eq 0} {
+    set show_absence_type_p 1
+    set absence_type "Absence"
+} else {
+    set show_absence_type_p 0
+    set absence_type [im_category_from_id $absence_type_id]
+}
 
 if {[info exists absence_id]} { 
 
@@ -60,7 +68,16 @@ if {[info exists absence_id]} {
     }
 }
 
-if {![exists_and_not_null absence_owner_id]} { set absence_owner_id $user_id_from_search }
+set add_absences_for_group_p [im_permission $current_user_id "add_absences_for_group"]
+
+if {[exists_and_not_null user_id_from_search]} {
+    if {$user_id_from_search != $current_user_id && $add_absences_for_group_p == 0} {
+	set user_id_from_search $current_user_id
+    }
+
+    if {![exists_and_not_null absence_owner_id]} { set absence_owner_id $user_id_from_search }
+}
+
 if {![exists_and_not_null absence_owner_id]} { set absence_owner_id $current_user_id }
 
 if {![info exists absence_id]} {
@@ -78,7 +95,7 @@ set context [list $page_title]
 
 set read [im_permission $current_user_id "read_absences_all"]
 set write [im_permission $current_user_id "add_absences"]
-set add_absences_for_group_p [im_permission $current_user_id "add_absences_for_group"]
+
 
 if {[info exists absence_id]} {
     im_absence_permissions $current_user_id $absence_id view read write admin
@@ -160,21 +177,27 @@ set form_fields {
 	{absence_name:text(text) {label "[_ intranet-timesheet2.Absence_Name]"} {html {size 40}}}
 }
 
-# -------
-# By setting RequireAbsenceTypeInUrlP to '1' an 'Absence Type' can be set only by passing 
-# the respective absence_type_id as an URL parameter.  
-# User is provided only with links for Absence Types she's allowed to create. She won't be able 
-# to edit the type anymore through the absence select box that is otherwise shown on this page.  
-# A callback can be set up to prevent that users create unauthorized absences by URL manipulation.  
-# For now provisional solution, RequireAbsenceTypeInUrlP is therfore a hidden parameter 
-if { ![parameter::get -package_id [apm_package_id_from_key intranet-timesheet2] -parameter "RequireAbsenceTypeInUrlP" -default 0] } {
-    lappend form_fields "absence_type_id:text(im_category_tree) {label \"[_ intranet-timesheet2.Type]\"} {custom {category_type \"Intranet Absence Type\"}}"
-} 
-# / -------
+if {$show_absence_type_p} {
+    # -------
+    # By setting RequireAbsenceTypeInUrlP to '1' an 'Absence Type' can be set only by passing 
+    # the respective absence_type_id as an URL parameter.  
+    # User is provided only with links for Absence Types she's allowed to create. She won't be able 
+    # to edit the type anymore through the absence select box that is otherwise shown on this page.  
+    # A callback can be set up to prevent that users create unauthorized absences by URL manipulation.  
+    # For now provisional solution, RequireAbsenceTypeInUrlP is therfore a hidden parameter 
+    if { ![parameter::get -package_id [apm_package_id_from_key intranet-timesheet2] -parameter "RequireAbsenceTypeInUrlP" -default 0] } {
+	lappend form_fields "absence_type_id:text(im_category_tree) {label \"[_ intranet-timesheet2.Type]\"} {custom {category_type \"Intranet Absence Type\"}}"
+    } 
+} else {
+    lappend form_fields {absence_type_id:text(hidden)}
+}    
 
+# / -------
 if {$add_absences_for_group_p} {
     set group_options [im_profile::profile_options_all -translate_p 1]
+    set group_options [linsert $group_options 0 [list "[lang::message::lookup {} intranet-core.All {All}]" "-2"]]
     set group_options [linsert $group_options 0 [list "" ""]]
+    ds_comment "group:: $group_options"
     lappend form_fields	{group_id:text(select),optional {label "[lang::message::lookup {} intranet-timesheet2.Valid_for_Group {Valid for Group}]"} {options $group_options}}
 } else {
     # The user doesn't have the right to specify absences for groups - set group_id to NULL
@@ -242,10 +265,10 @@ ad_form -extend -name absence -on_request {
     if {![info exists start_date]} { set start_date [db_string today "select to_char(now(), :date_time_format)"] }
     if {![info exists end_date]} { set end_date [db_string today "select to_char(now(), :date_time_format)"] }
     if {![info exists duration_days]} { set duration_days "" }
-    if {![info exists absence_owner_id] || 0 == $absence_owner_id} { set absence_owner_id $user_id_from_scratch }
+    if {![info exists absence_owner_id] || 0 == $absence_owner_id} { set absence_owner_id $user_id_from_search }
     if {![info exists absence_owner_id] || 0 == $absence_owner_id} { set absence_owner_id $current_user_id }
     if {![info exists absence_type_id]} { set absence_type_id [im_absence_type_vacation] }
-    if {![info exists absence_status_id]} { set absence_status_id [im_absence_status_requested] }
+    if {![info exists absence_status_id]} { set absence_status_id [im_absence_status_active] }
     
 } -select_query {
 

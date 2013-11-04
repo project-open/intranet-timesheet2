@@ -1,7 +1,14 @@
+-- 
+-- 
+-- 
+-- @author Malte Sussdorff (malte.sussdorff@cognovis.de)
+-- @creation-date 2013-01-14
+-- @cvs-id $Id$
+--
 -- upgrade-4.0.3.3.4-4.0.3.3.5.sql
 
 SELECT acs_log__debug('/packages/intranet-timesheet2/sql/postgresql/upgrade/upgrade-4.0.3.3.4-4.0.3.3.5.sql','');
-		
+
 create or replace function im_absences_month_absence_duration_type (user_id integer, month integer, year integer, absence_type_id integer)
 returns setof record as $BODY$
 

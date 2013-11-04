@@ -32,17 +32,18 @@ ad_page_contract {
     @author Marc Fleischer (marc.fleischer@leinhaeuser-solutions.de)
 
 } {
-    { status_id:integer "" }
+    { status_id:integer "16000" }
     { start_idx:integer 0 }
     { order_by "User" }
     { how_many "" }
     { absence_type_id:integer "-1" }
-    { user_selection "all" }
+    { user_selection "mine" }
     { timescale "next_3w" }
     { view_name "absence_list_home" }
     { start_date "" }
-    { end_date "" }
     { user_id_from_search "" }
+    { cost_center_id:integer "" }
+    { project_id ""}
 }
 
 # KH: "watch package" ... instead of setting the watch through GUI   
@@ -64,8 +65,23 @@ set add_absences_p [im_permission $user_id "add_absences"]
 set org_absence_type_id $absence_type_id
 set show_context_help_p 1
 set name_order [parameter::get -package_id [apm_package_id_from_key intranet-core] -parameter "NameOrder" -default 1]
+set hide_colors_p 0
 
-set today [db_string today "select now()::date"]
+# Support if we pass a project_id in
+if {"" != $project_id} {
+    set user_selection $project_id
+}
+
+if {"" == $start_date} {
+    set start_date [db_string today "select now()::date"]
+}
+
+if {!$view_absences_all_p} {
+    switch $user_selection {
+	all - employees {set user_selection "mine"}
+	providers - customers {set user_selection "mine"}
+    }
+}
 
 if {![im_permission $user_id "view_absences"] && !$view_absences_all_p && !$view_absences_direct_reports_p} { 
     ad_return_complaint 1 "You don't have permissions to see absences"
@@ -79,17 +95,64 @@ if {"" != $user_id_from_search && $add_hours_all_p} {
     set user_selection $user_id_from_search
 }
 
-# Set default to 'mine' in case user can't see ALL absences 
-if {!$view_absences_all_p} { set user_selection "mine" }
 
 set user_name $user_selection
+
+# Check if we have a user_id or a department_id
 if {[string is integer $user_selection]} {
-    set user_name [im_name_from_user_id $user_selection]
-} else {
-    set user_name [lang::message::lookup "" intranet-core.$user_selection $user_selection]
+    # Find out the object_type
+    set object_type [db_string object_type "select object_type from acs_objects where object_id = :user_selection" -default ""]
+    ds_comment "Type: $object_type"
+    switch $object_type {
+	im_cost_center {
+	    set user_name [im_cost_center_name $user_selection]
+	    # Allow the manager to see the department
+	    if {![im_manager_of_cost_center_p -user_id $user_id -cost_center_id $user_selection] && !$view_absences_all_p} {
+		# Not a manager => Only see yourself
+		set user_selection "mine"
+	    } else {
+		set cost_center_id $user_selection
+		set user_selection "cost_center"
+	    }
+	}
+	user {
+	    set user_name [im_name_from_user_id $user_selection]
+	    set user_id $user_selection
+
+	    # Check for permissions if we are allowed to see this user
+	    if {$view_absences_all_p} {
+		# He can see all users
+		set user_selection "user"
+	    } elseif {[im_manager_of_user_p -manager_id $current_user_id -user_id $user_id]} {
+		# He is a manager of the user
+		set user_selection "user"
+	    } elseif {[im_supervisor_of_employee_p -supervisor_id $current_user_id -employee_id $user_id]} {
+		# He is a supervisor of the user
+		set user_selection "user"
+	    } else {
+		# He is cheating
+		set user_selection "mine"
+	    }	      
+	}
+	im_project {
+	    # Permission Check
+	    set project_manager_p [im_biz_object_member_p -role_id 1301 $user_id $project_id]
+	    if {!$project_manager_p && !$view_absences_all_p} {
+		set user_selection "mine"
+	    } else {
+		set project_id $user_selection
+		set user_name [db_string project_name "select project_name from im_projects where project_id = :project_id" -default ""]
+		set hide_colors_p 1
+		set user_selection "project"
+	    }
+	}
+	default {
+	    ad_return_complaint 1 "Invalid User Selection:<br>Value '$user_selection' is not a user_id, project_id, department_id or one of {mine|all|employees|providers|customers|direct reports}."
+	}
+    }
 }
 
-set page_title "[lang::message::lookup "" intranet-timesheet2.Absences_for_user "Absences for %user_name%"]"
+set page_title "[lang::message::lookup "" intranet-timesheet2.Absences_for_user "Absences for $user_name"]"
 set context [list $page_title]
 set context_bar [im_context_bar $page_title]
 set page_focus "im_header_form.keywords"
@@ -104,31 +167,50 @@ set return_url [im_url_with_query]
 set user_view_page "/intranet/users/view"
 set absence_view_page "$absences_url/new"
 
-set user_selection_types [list \
-			      [list [lang::message::lookup "" intranet-timesheet2.All All] "all"] \
-			      [list [lang::message::lookup "" intranet-timesheet2.Mine Mine] "mine"] \
-			      [list [lang::message::lookup "" intranet-timesheet2.Direct_reports "Direct reports"] "direct_reports"] \
-			      [list [lang::message::lookup "" intranet-timesheet2.Employees Employees] "employees"] \
-			      [list [lang::message::lookup "" intranet-timesheet2.Providers Providers] "providers"] \
-			      [list [lang::message::lookup "" intranet-timesheet2.Customers Customers] "customers"] \
-]
+# ---------- setting filter 'User selection' ------------- # 
+
+set user_selection_types [list "all" "All" "mine" "Mine" "employees" "Employees" "providers" "Providers" "customers" "Customers"]
 
 # Users can only see their own absences, unless they have a special permission
 # ToDo: Users should _always_ see their absences 
-if {!$view_absences_all_p} { 
-    set user_selection_types [list [list "mine" [lang::message::lookup "" intranet-timesheet2.Mine Mine]]] 
+if {!$view_absences_all_p} { set user_selection_types [list "mine" "Mine"] }
 
-    # Only 'direct' subordinates. 
-    if {$view_absences_direct_reports_p} { 
-	lappend user_selection_types [list "direct_reports" [lang::message::lookup "" intranet-timesheet2.Direct_reports "Direct reports"]] 
-    }
+set emp_sql ""
+
+# Only 'direct' subordinates. 
+if {$view_absences_direct_reports_p} { 
+    lappend user_selection_types "direct_reports"
+    lappend user_selection_types "Direct reports"
+    # Add employees to user_selection
+    set emp_sql "
+	SELECT
+        	im_name_from_user_id(cc.user_id, $name_order) as name,
+	        cc.user_id
+	FROM
+        	group_member_map gm,
+	        membership_rels mr,
+        	acs_rels r,
+	        cc_users cc, 
+                im_employees e
+	WHERE
+        	gm.rel_id = mr.rel_id
+	        AND r.rel_id = mr.rel_id
+        	AND r.rel_type = 'membership_rel'
+	        AND cc.user_id = gm.member_id
+        	AND cc.member_state = 'approved'
+	        AND cc.user_id = gm.member_id
+        	AND gm.group_id = [im_employee_group_id]
+                AND cc.user_id = e.employee_id
+                AND e.supervisor_id = :current_user_id
+	order by
+		name
+    "
 }
-
 
 if {$add_hours_all_p} {
     # Add employees to user_selection
     set emp_sql "
-	SELECT distinct
+	SELECT
         	im_name_from_user_id(cc.user_id, $name_order) as name,
 	        cc.user_id
 	FROM
@@ -147,24 +229,49 @@ if {$add_hours_all_p} {
 	order by
 		name
     "
-    db_foreach emps $emp_sql {
-	lappend user_selection_types [list $name $user_id]
-    }
-
 
 }
 
+set cost_center_options ""
+# Deal with the departments
+if {$view_absences_all_p} {
+    set cost_center_options [im_cost_center_options -include_empty_name [lang::message::lookup "" intranet-core.All "All"] -department_only_p 0]
+} else {
+    # Limit to Cost Centers where he is the manager
+    set cost_center_options [im_cost_center_options -department_only_p 1 -manager_id $current_user_id]
+}
+
+if {"" != $cost_center_options} {
+    foreach option $cost_center_options {
+	lappend user_selection_types [lindex $option 1] 
+	lappend user_selection_types [lindex $option 0]
+    }
+}
+
+# Hide employees from the drop down box for the time being
+#db_foreach emps $emp_sql {
+#	lappend user_selection_types $user_id
+#	lappend user_selection_types $name
+#}
+
+
+
+foreach { value text } $user_selection_types {
+    lappend user_selection_type_list [list $text $value]
+}
+
+
 # ---------- / setting filter 'User selection' ------------- # 
-#
+
 set timescale_types [list \
-			 "all" [lang::message::lookup "" intranet-timesheet2.All All] \
-			 "today" [lang::message::lookup "" intranet-timesheet2.Today Today] \
-			 "next_3w" [lang::message::lookup "" intranet-timesheet2.Next_3_Weeks "Next 3 Weeks"] \
-			 "next_3m" [lang::message::lookup "" intranet-timesheet2.Next_3_Month "Next 3 Months"] \
-			 "future" [lang::message::lookup "" intranet-timesheet2.Future "Future"] \
-			 "past" [lang::message::lookup "" intranet-timesheet2.Past "Past"] \
-			 "last_3m" [lang::message::lookup "" intranet-timesheet2.Last_3_Month "Last 3 Months"] \
-			 "last_3w" [lang::message::lookup "" intranet-timesheet2.Last_3_Weeks "Last 3 Weeks"] \
+			 "all" "All" \
+			 "today" "Today" \
+			 "next_3w" "Next 3 Weeks" \
+			 "next_3m" "Next 3 months" \
+			 "future" "Future" \
+			 "past" "Past" \
+			 "last_3m" "Last 3 months" \
+			 "last_3w" "Last 3 Weeks" \
 ]
 
 foreach { value text } $timescale_types {
@@ -226,7 +333,7 @@ db_foreach column_list_sql $column_sql {
 
 # absences_types
 set absences_types [im_memoize_list select_absences_types "select absence_type_id, absence_type from im_absence_types order by lower(ABSENCE_TYPE)"]
-set absences_types [linsert $absences_types 0 [lang::message::lookup "" intranet-timesheet2.All "All"]]
+set absences_types [linsert $absences_types 0 "All"]
 set absences_types [linsert $absences_types 0 -1]
 set absence_type_list [list]
 foreach { value text } $absences_types {
@@ -241,67 +348,57 @@ foreach { value text } $absences_types {
 
 # Now let's generate the sql query
 set criteria [list]
+ds_comment "user:: $user_selection"
 
 set bind_vars [ns_set create]
 if { ![empty_string_p $user_selection] } {
-
-    if { "mine"==$user_selection } {
-            lappend criteria "a.owner_id = :current_user_id"
-    } else {
-	if {$view_absences_all_p} {
-	    switch $user_selection {
-		"all" {
-		    # Nothing.
-		}
-		"employees" {
-                        lappend criteria "a.owner_id IN (select	m.member_id
+    switch $user_selection {
+	"all" {
+	    # Nothing.
+	}
+	"mine" {
+	    lappend criteria "a.owner_id = :current_user_id"
+	}
+	"employees" {
+	    lappend criteria "a.owner_id IN (select	m.member_id
                                                         from	group_approved_member_map m
                                                         where	m.group_id = [im_employee_group_id]
                                                         )"
-
-        	}
-		"providers" {
-                        lappend criteria "a.owner_id IN (select	m.member_id 
+	    
+	}
+	"providers" {
+	    lappend criteria "a.owner_id IN (select	m.member_id 
 							from	group_approved_member_map m 
 							where	m.group_id = [im_freelance_group_id]
 							)"
-		}
-                "customers" {
-                        lappend criteria "a.owner_id IN (select	m.member_id
+	}
+	"customers" {
+	    lappend criteria "a.owner_id IN (select	m.member_id
                                                         from	group_approved_member_map m
                                                         where	m.group_id = [im_customer_group_id]
                                                         )"
-		}
-		"direct_reports" {
-		    lappend criteria "a.owner_id in (select employee_id from im_employees where supervisor_id = :current_user_id)"
-                }  
-		default  {
-		    if {[string is integer $user_selection]} {
-			lappend criteria "a.owner_id = :user_selection"
-		    } else {
-			ad_return_complaint 1 "Invalid User Selection:<br>Value '$user_selection' is not a user_id or one of {mine|all|employees|providers|customers|direct reports}."
-		    }
-		}
-	    }
- 	    ns_set put $bind_vars user_selection $user_selection
-	} elseif { $view_absences_direct_reports_p } {
-	    if { "direct_reports" == $user_selection } {
-		lappend criteria "a.owner_id in (select employee_id from im_employees where supervisor_id = :current_user_id)"
-	    } else {
-		# Show always own absences
-		lappend criteria "a.owner_id=:user_id"
-	    }
- 	} else {
+	}
+	"direct_reports" {
+	    lappend criteria "a.owner_id in (select employee_id from im_employees where supervisor_id = :current_user_id)"
+	}  
+	"cost_center" {
+	    set cost_center_list [im_cost_center_options -parent_id $cost_center_id]
+	    set cost_center_ids [list $cost_center_id]
+            foreach cost_center $cost_center_list {
+		lappend cost_center_ids [lindex $cost_center 1]
+            }
+	    lappend criteria "a.owner_id in (select employee_id from im_employees where department_id in ([template::util::tcl_to_sql_list $cost_center_ids]))"
+	}
+	"project" {
+	    set project_ids [im_project_subproject_ids -project_id $project_id]
+	    lappend criteria "a.owner_id in (select object_id_two from acs_rels where object_id_one in ([template::util::tcl_to_sql_list $project_ids]))"
+	}
+	"user" {
 	    lappend criteria "a.owner_id=:user_id"
-	}
-    }
-    switch $user_selection {
-	"mine" {
-	    # ns_set put $bind_vars user_selection $user_selection
-	    # lappend criteria "a.owner_id=:user_id"
-	}
-	"all" - "direct_reports"  {
-	    ns_set put $bind_vars user_selection $user_selection
+	}	    
+	default  {
+	    # We shouldn't even be here, so just display his/her own ones
+	    lappend criteria "a.owner_id = :current_user_id"
 	}
     }
 }
@@ -313,40 +410,31 @@ if { ![empty_string_p $absence_type_id] &&  $absence_type_id != -1 } {
 
 switch $timescale {
     "all" { 
-	set start_date "2000-01-01"
 	set end_date "2099-12-31"
     }
     "today" { 
-	set start_date $today
-	set end_date $today
+	set end_date $start_date
     }
     "next_3w" { 
-	set start_date $today
 	set end_date [db_string 3w "select now()::date + 21"]
     }
     "last_3w" { 
-	set start_date [db_string 3w "select now()::date - 21"]
-	set end_date $today
-    }
-    "next_1m" { 
-	set start_date $today
-	set end_date [db_string 3w "select now()::date + 31"]
+	set end_date $start_date
+	set start_date [db_string 3w "select to_date(:start_date,'YYYY-MM-DD') - 21"]
     }
     "past" { 
+	set end_date $start_date
 	set start_date "2000-01-01"
-	set end_date $today
     }
     "future" { 
-	set start_date $today
 	set end_date "2100-01-01"
     }
     "last_3m" { 
-	set start_date [db_string last_3m_start_date "select now()::date -93"]
-	set end_date $today
+	set end_date $start_date
+	set start_date [db_string 3w "select to_date(:start_date,'YYYY-MM-DD') - 93"]
     }
     "next_3m" { 
-	set start_date $today
-	set end_date [db_string last_3m_start_date "select now()::date +93"]
+	set end_date [db_string 3w "select to_date(:start_date,'YYYY-MM-DD') + 93"]
     }
 }
 
@@ -375,11 +463,6 @@ if { ![empty_string_p $where_clause] } {
     set where_clause " and $where_clause"
 }
 
-set perm_clause "and owner_id = :user_id"
-if {$view_absences_all_p || "mine" == $user_selection } {
-    set perm_clause ""
-}
-
 set sql "
 select
 	a.*,
@@ -397,8 +480,8 @@ from
 where
         cc.member_state = 'approved'
 	and a.owner_id = cc.object_id
+        and a.absence_status_id = :status_id
 	$where_clause
-	$perm_clause
 "
 
 
@@ -433,27 +516,22 @@ set form_id "absence_filter"
 set object_type "im_absence"
 set action_url "/intranet-timesheet2/absences/"
 set form_mode "edit"
-
+ds_comment "project_id :: $project_id"
 ad_form \
     -name $form_id \
     -action $action_url \
     -mode $form_mode \
     -actions [list [list [lang::message::lookup {} intranet-timesheet2.Edit Edit] edit]] \
     -method GET \
-    -export {start_idx order_by how_many view_name}\
+    -export {start_idx order_by how_many view_name project_id}\
     -form {
-        {absence_type_id:text(select),optional {label "[_ intranet-timesheet2.Absence_Type]"} {options $absence_type_list }}
-        {user_selection:text(select),optional {label "[_ intranet-timesheet2.Show_Users]"} {options $user_selection_types }}
-        {timescale:text(select),optional {label "[_ intranet-timesheet2.Timescale]"} {options $timescale_type_list }}
-    }
-
-set ttt {
 	{start_date:text(text) {label "[_ intranet-timesheet2.Start_Date]"} {html {size 10}} {value "$start_date"} {after_html {<input type="button" style="height:23px; width:23px; background: url('/resources/acs-templating/calendar.gif');" onclick ="return showCalendar('start_date', 'y-m-d');" >}}}
-	{end_date:text(text) {label "[_ intranet-timesheet2.End_Date]"} {html {size 10}} {value "$end_date"} {after_html {<input type="button" style="height:23px; width:23px; background: url('/resources/acs-templating/calendar.gif');" onclick ="return showCalendar('end_date', 'y-m-d');" >}}}
+        {timescale:text(select),optional {label "[_ intranet-timesheet2.Timescale]"} {options $timescale_type_list }}
+        {absence_type_id:text(select),optional {label "[_ intranet-timesheet2.Absence_Type]"} {options $absence_type_list }}
+        {user_selection:text(select),optional {label "[_ intranet-timesheet2.Show_Users]"} {options $user_selection_type_list }}
 }
 
-# template::element::set_value $form_id start_date $start_date
-# template::element::set_value $form_id end_date $end_date
+template::element::set_value $form_id start_date $start_date
 template::element::set_value $form_id timescale $timescale
 
 
@@ -680,5 +758,9 @@ set absence_cube_html [im_absence_cube \
 			   -timescale $timescale \
 			   -report_start_date $org_start_date \
 			   -user_id_from_search $user_id_from_search \
+			   -cost_center_id $cost_center_id \
+			   -user_id $user_id \
+			   -hide_colors_p $hide_colors_p \
+			   -project_id $project_id
 ]
 

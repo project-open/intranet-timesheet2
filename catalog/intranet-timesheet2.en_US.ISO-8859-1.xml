@@ -1,19 +1,20 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
-<message_catalog package_key="intranet-timesheet2" package_version="3.4.0.7.0" locale="en_US" charset="ISO-8859-1">
+<message_catalog package_key="intranet-timesheet2" locale="en_US" charset="ISO-8859-1">
 
   <msg key="1_Euro_equals">1 Euro equals:</msg>
   <msg key="_user_id">and project_id can be provided. But there was some problem with them...</msg>
   <msg key="A">A</msg>
   <msg key="Absence">Absence</msg>
+  <msg key="Absence_Name">Name</msg>
   <msg key="Absence_Type">Absence Type:</msg>
   <msg key="Absence_Type_1">Absence Type</msg>
   <msg key="Absences">Absences</msg>
   <msg key="absences">absences</msg>
-  <msg key="Absence_Name">Name</msg>
   <msg key="Absences_Next_Year"></msg>
   <msg key="Absences_This_Year"></msg>
   <msg key="Absent">Absent</msg>
   <msg key="Absent_1">Absent (%absent_status_3letter_l10n%):</msg>
+  <msg key="ActiveEmployeesOnly">Only active employees</msg>
   <msg key="Add_a_new_Absence">Add a new Absence</msg>
   <msg key="Add_hours">Add hours</msg>
   <msg key="Add_lines">Add lines</msg>
@@ -97,6 +98,7 @@
   <msg key="Filter">Filter</msg>
   <msg key="Filter_Absences">Filter Absences</msg>
   <msg key="Filter_Tasks">Filter Tasks</msg>
+  <msg key="for_username"> for %user_from_search_name%</msg>
   <msg key="For_which_project">For which project:</msg>
   <msg key="Friday">Friday</msg>
   <msg key="From">From:</msg>
@@ -134,7 +136,7 @@
   <msg key="log_hours">log hours</msg>
   <msg key="Log_hours_for_user">Log for:</msg>
   <msg key="Log_your_hours">Log your hours</msg>
-  <msg key="lt_A_total_of_total_hour">A total of %total_hours_str% units have been spent on this project.</msg>
+  <msg key="lt_A_total_of_total_hour">A total of %total_hours_str% (%approved_hours% approved) units have been spent on this project.</msg>
   <msg key="lt_Add_hours_on_other_pr">Add hours on other projects</msg>
   <msg key="lt_All_the_fields_should">All the fields should be filled before submiting.</msg>
   <msg key="lt_All_the_fields_should_1">All the fields should be filled before %action%.</msg>
@@ -165,6 +167,7 @@ number of kilometers. Amount can be entered with either &lt;B&gt;&quot;.&quot;&l
   <msg key="lt_Hours_for_pretty_date">Hours for %pretty_date%</msg>
   <msg key="lt_Hours_for_user_name_W">Hours for $user_name (Week starting %date_value%)</msg>
   <msg key="lt_hours_spend_on_projec">hours spend on project &quot;%project_name%&quot;</msg>
+  <msg key="lt_hours_spend_on_project_and_sub">hours spend on project &quot;%project_name%&quot; and subprojects </msg>
   <msg key="lt_hours_varof_those_uni">%hours_var%
 of those units were billed hourly, for a total amount of</msg>
   <msg key="lt_Insufficient_Privileg">Insufficient Privileges</msg>
@@ -248,6 +251,7 @@ of those units were billed hourly, for a total amount of</msg>
   <msg key="New_Bank_Holiday">New Bank Holiday</msg>
   <msg key="New_Personal_Absence">New Personal Absence</msg>
   <msg key="New_Sick_Leave">New Sick Leave</msg>
+  <msg key="New_Training">New Training</msg>
   <msg key="New_Travel_Absence">New Travel Absence</msg>
   <msg key="New_Vacation_Absence">New Vacation Absence</msg>
   <msg key="Next_Month">Next Month</msg>
@@ -260,10 +264,10 @@ of those units were billed hourly, for a total amount of</msg>
   <msg key="Not_Member_of_Projects">You are not a member of any open project.</msg>
   <msg key="Notes">Notes:</msg>
   <msg key="Notice">Notice</msg>
-  <msg key="Notification_Subject_Notify_Applicant_Absence_Approved">Your application for an absence</msg>
   <msg key="Notification_Body_Notify_Applicant_Absence_Approved">Your application for an absence has been approved:</msg>
-  <msg key="Notification_Subject_Notify_Applicant_Absence_Not_Approved">Your application for an absence</msg>
   <msg key="Notification_Body_Notify_Applicant_Absence_Not_Approved">Your application for an absence has not been approved:</msg>
+  <msg key="Notification_Subject_Notify_Applicant_Absence_Approved">Your application for an absence</msg>
+  <msg key="Notification_Subject_Notify_Applicant_Absence_Not_Approved">Your application for an absence</msg>
   <msg key="Nov">Nov</msg>
   <msg key="November">November</msg>
   <msg key="O">O</msg>
@@ -271,12 +275,14 @@ of those units were billed hourly, for a total amount of</msg>
   <msg key="October">October</msg>
   <msg key="One_employee">One employee</msg>
   <msg key="One_project">One project</msg>
+  <msg key="OnlyApprovedHours">Only Approved Hours</msg>
   <msg key="Other_Options">Other Options</msg>
   <msg key="own_hours">own hours</msg>
   <msg key="P">P</msg>
   <msg key="Paid_by_Co">Paid by Co.?</msg>
   <msg key="Past">Past</msg>
   <msg key="Percentage">Percentage</msg>
+  <msg key="Please_log_hours">Please log your hours now at: %hour_logging_url%</msg>
   <msg key="Printer_Friendly">Printer-friendly version</msg>
   <msg key="Project">Project</msg>
   <msg key="Project_br_Name">Project&lt;br&gt;Name</msg>
@@ -321,6 +327,7 @@ of those units were billed hourly, for a total amount of</msg>
   <msg key="Thursday">Thursday</msg>
   <msg key="Timescale">Timescale:</msg>
   <msg key="Timesheet">Timesheet</msg>
+  <msg key="Timesheet_Filters">Timesheet Filters</msg>
   <msg key="Timesheet_for_user_name">Timesheet for %user_name%</msg>
   <msg key="Timesheet_Summary">Timesheet Summary</msg>
   <msg key="to">to:</msg>
@@ -359,6 +366,7 @@ of those units were billed hourly, for a total amount of</msg>
   <msg key="Worked_Day">Worked Day</msg>
   <msg key="X">X</msg>
   <msg key="Y">Y</msg>
+  <msg key="You_did_not_log_hours">You did not log your hours</msg>
   <msg key="You_need_to_log_hours">
   You have so far logged only %num_hours% hours worktime
   %absences_hours_message% of the required %expected_hours% hours in the last

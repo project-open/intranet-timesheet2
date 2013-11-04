@@ -97,6 +97,7 @@ for { set i 0 } { $i < $start_day } { incr i } {
     if { $i ==6 } { append header_days_of_week "[_ intranet-timesheet2.Saturday] " }
 }
 
+
 set weekly_logging_days [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter TimesheetWeeklyLoggingDays -default "0 1 2 3 4 5 6"]
 
 # ---------------------------------
@@ -111,7 +112,7 @@ if {"" ==  $date } {
 }
 
 set julian_date [db_string conv "select to_char(:date::date, 'J')"]
-ns_log Notice "/intranet-timesheet2/index: date=$date, julian_date=$julian_date"
+ns_log Debug "/intranet-timesheet2/index: date=$date, julian_date=$julian_date"
 
 # Set last day of month: 
 set last_day_of_month_ansi [db_string get_last_day_month "select date_trunc('month',add_months(:date,1))::date - 1" -default 0]
@@ -124,7 +125,9 @@ set project_restriction ""
 if {[string is integer $project_id] && "" != $project_id && 0 != $project_id} {
     set project_name [db_string project_name "select project_name from im_projects where project_id = :project_id"]
     append page_title " on $project_name"
-    set project_restriction "and project_id = :project_id"
+    set task_ids [im_project_subproject_ids -project_id $project_id -type "task"]
+    lappend task_ids $project_id
+    set project_restriction "and project_id in ([template::util::tcl_to_sql_list $task_ids])"
 }
 
 # Append user-defined menus
@@ -171,6 +174,7 @@ db_foreach hours_logged $sql {
     set users_hours($julian_date) $hours
 }
 
+
 # --------------------------------------------------------------
 # Render the calendar
 
@@ -216,7 +220,7 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
     	"
 	set no_ts_approval_wf [db_string workflow_started_p $no_ts_approval_wf_sql -default "0"]
 	if { $confirm_timesheet_hours_p && ("monthly" == $confirmation_period || "weekly" == $confirmation_period) && 0 != $no_ts_approval_wf } { 
-	    ns_log NOTICE "TS: Entry blocked: Date: $current_date_ansi; Number: $no_ts_approval_wf; $no_ts_approval_wf_sql"
+	    ns_log Debug "KHD: Blocked: Date: $current_date_ansi; Number: $no_ts_approval_wf; $no_ts_approval_wf_sql"
 	    set timesheet_entry_blocked_p 1 
     	}
     }
@@ -231,10 +235,10 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
 	if { $timesheet_entry_blocked_p } {
 		set hours "<span class='log_hours'>[lang::message::lookup "" intranet-timesheet2.Nolog_Workflow_In_Progress "0 hours"]</span>"
 	} else {
-	        ns_log NOTICE "TS: Not Blocked: $current_date"
-	        if { [string first $week_day $weekly_logging_days] != -1 } {
-		    set hours "<span class='log_hours'>[_ intranet-timesheet2.log_hours]</span>"
-		}
+	    ns_log NOTICE "TS: Not Blocked: $current_date"
+	    if { [string first $week_day $weekly_logging_days] != -1 } {
+		set hours "<span class='log_hours'>[_ intranet-timesheet2.log_hours]</span>"
+	    }
 	}	
     }
 
@@ -323,8 +327,7 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
 	    }
 
 	    set no_unconfirmed_hours [get_unconfirmed_hours_for_period $current_user_id $start_date_julian_wf $end_date_julian_wf]
-
-	    # ns_log NOTICE "Create weekly CONFIRM button: start: $start_date_julian_wf, end: $start_date_julian_wf, No. unconfirmed Hours $no_unconfirmed_hours, confirm: $confirm_timesheet_hours_p" 
+	    # ns_log Debug "Create weekly CONFIRM button: start: $start_date_julian_wf, end: $start_date_julian_wf, No. unconfirmed Hours $no_unconfirmed_hours, confirm: $confirm_timesheet_hours_p" 
 	    if {$confirm_timesheet_hours_p && (0 < $no_unconfirmed_hours || "" != $no_unconfirmed_hours) } {
 		set base_url_confirm_wf "/intranet-timesheet2-workflow/conf-objects/new-timesheet-workflow"  
 		set conf_url [export_vars -base $base_url_confirm_wf { {user_id $user_id_from_search} {start_date_julian $start_date_julian_wf} {end_date_julian $end_date_julian_wf } return_url}]
@@ -370,8 +373,7 @@ set next_month_template "
 set day_bgcolor "#efefef"
 set day_number_template "<!--\$julian_date--><span class='day_number'>\$day_number</span>"
 
-ns_log Notice "/intranet-timesheet2/index: calendar_details=$calendar_details"
-
+ns_log Debug "/intranet-timesheet2/index: calendar_details=$calendar_details"
 set page_body [calendar_basic_month \
 		   -calendar_details $calendar_details \
 		   -days_of_week $header_days_of_week \
@@ -383,6 +385,7 @@ set page_body [calendar_basic_month \
 		   -prev_next_links_in_title 1 \
 		   -fill_all_days $fill_up_first_last_row_p \
 		   -empty_bgcolor "\#cccccc"]
+
 
 # ---------------------------------------------------------------
 # Render the Calendar widget
@@ -438,7 +441,7 @@ if {$add_hours_all_p} {
 }
 
 append left_navbar_html "
-	<tr><td></td><td><input type=submit value='Go'></td></tr>
+	<tr><td></td><td><input type=submit value='#acs-kernel.common_Go#'></td></tr>
 	</table>
 	</form>
       </div>

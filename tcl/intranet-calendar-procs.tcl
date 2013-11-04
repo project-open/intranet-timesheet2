@@ -53,6 +53,18 @@ ad_proc calendar_get_info_from_db {
 	set the_date [db_string sysdate_from_dual "select trunc(sysdate) from dual"]
     }
 
+    # Depends on locale
+    set first_day_of_week [parameter::get -package_id [apm_package_id_from_key intranet-timesheet2] -parameter "WeekStartDay" -default ""]
+    if {$first_day_of_week == ""} {
+	set first_day_of_week [lc_get firstdayofweek]
+    }
+    if {$first_day_of_week > 0 && $first_day_of_week <7} {
+        set add_days [expr 7 - $first_day_of_week]
+        set query_first_day_of_month "mod(cast(extract(dow from trunc(to_date(:the_date, 'yyyy-mm-dd'), 'Month')) as numeric)+$add_days,7)+1 as first_day_of_month,"
+    } else {
+        set query_first_day_of_month "to_char(trunc(to_date(:the_date, 'yyyy-mm-dd'), 'Month'), 'D') as first_day_of_month,"
+    } 
+
     # This query gets us all of the date information we need to calculate
     # the calendar, including the name of the month, the year, the julian date
     # of the first of the month, the day of the week of the first day of the
@@ -94,15 +106,15 @@ ad_proc calendar_get_info_from_db {
 
     ns_set put $calendar_info_set last_julian_date_in_month \
         [expr $first_julian_date_of_month + $num_days_in_month - 1]
-
+    
     set days_in_next_month [expr 7 - (($num_days_in_month + $first_day_of_month - 1) % 7)]
-
+    
     if {$days_in_next_month == 7} {
         set days_in_next_month 0
     }
-
+    
     ns_set put $calendar_info_set last_julian_date \
-	    [expr $first_julian_date_of_month + $num_days_in_month - 1 + $days_in_next_month]
+	[expr $first_julian_date_of_month + $num_days_in_month - 1 + $days_in_next_month]
 
 
     # Now, set the variables in the caller's environment
@@ -125,7 +137,7 @@ ad_proc calendar_basic_month {
     { 
 	-calendar_details "" 
 	-date "" 
-	-days_of_week "Sunday Monday Tuesday Wednesday Thursday Friday Saturday" 
+	-days_of_week ""
 	-large_calendar_p 1 
 	-master_bgcolor "black" 
 	-header_bgcolor "black"
@@ -143,33 +155,32 @@ ad_proc calendar_basic_month {
 	-prev_month_template ""
 	-prev_next_links_in_title 0
 	-fill_all_days 0 } 
-} "
-	Returns a calendar for a specific month, with details supplied 
-	by Julian date. Defaults to this month.
-	To specify details for the individual days (if large_calendar_p is set) 
-	put data in an ns_set calendar_details.  The key is the Julian date of 
-	the day, and the value is a string (possibly with HTML formatting) that 
-	represents the details.
-" {
+} {
+    Returns a calendar for a specific month, with details supplied 
+    by Julian date. Defaults to this month.
+    To specify details for the individual days (if large_calendar_p is set) 
+    put data in an ns_set calendar_details.  The key is the Julian date of 
+    the day, and the value is a string (possibly with HTML formatting) that 
+    represents the details.
+} {
 
     set start_day [parameter::get -package_id [im_package_timesheet2_id] -parameter "TimesheetStartDay" -default 1]
-
     calendar_get_info_from_db $date
     set todays_date [lindex [split [ns_localsqltimestamp] " "] 0]
-
+    
     if { $calendar_details == "" } {
 	set calendar_details [ns_set create calendar_details]
     }
-
+    
     set day_of_week $first_day_of_month
-
-
+    
+    
     set julian_date $first_julian_date
-
+    
     set month_heading [format "%s %s" [_ intranet-timesheet2.$month] $year]
     set next_month_url ""
     set prev_month_url ""
-
+    
     if { $prev_month_template != "" } { 
 	set ansi_date [ns_urlencode $prev_month]
 	set prev_month_url [subst $prev_month_template]
@@ -203,11 +214,29 @@ ad_proc calendar_basic_month {
     </tr>
     <tr class='day_header'>"
 
-    foreach day_of_week $days_of_week {
-	append output "<td width=14% align=center>$day_of_week</td>"
-    }
+    # Only use this if first days_of_week is a Sunday
+    if {"" == $days_of_week} {
+	set days_of_week "Sunday Monday Tuesday Wednesday Thursday Friday Saturday" 
 
-    append output "</tr>"
+<<<<<<< HEAD
+	# Depends on locale
+	set first_day_of_week [lc_get firstdayofweek]
+	
+	for {set i $first_day_of_week} {$i < 7 } {incr i} {
+	    append output "<td width=14% align=center>[lindex $days_of_week $i]</td>"
+	}
+    
+	for {set i 0} {$i < $first_day_of_week} {incr i} {
+	    append output "<td width=14% align=center>[lindex $days_of_week $i]</td>"
+	}
+	
+    } else {
+	for {set i 0} {$i < 7} {incr i} {
+	    append output "<td width=14% align=center>[lindex $days_of_week $i]</td>"
+	}
+    }
+    append output "</tr><tr>"
+
     # KH: Following code would produce an unnecessary, ugly row
     # Tested various configurations, in none of them this snippet produces valuable output 
     #     if { $fill_all_days == 0 } {

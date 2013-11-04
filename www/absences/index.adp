@@ -11,6 +11,7 @@
 <%= [im_box_footer] %>
 </if>
 
+<if @hide_colors_p@ eq 0>
 <%= [im_box_header $page_title] %>
 
 	<table class='table_list_page'>
@@ -20,4 +21,4 @@
 	</table>
 
 <%= [im_box_footer] %>
-
+</if>

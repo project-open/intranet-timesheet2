@@ -307,20 +307,28 @@ ad_proc -public im_timesheet_project_component {user_id project_id} {
 	set return_url "[ad_conn url]?[ad_conn query]"
     }
 
-    set view_ours_all_p [im_permission $user_id "view_hours_all"]
+    set view_hours_all_p [im_permission $user_id "view_hours_all"]
+
+    # Allow the project manager to view all hours
+    if {$admin} {
+	set view_hours_all_p 1
+    }
 
     # disable the component for users who can neither see stuff nor add stuff
     set add_hours [im_permission $user_id "add_hours"]
-    set view_hours_all [im_permission $user_id "view_hours_all"]
-    if {!$add_hours & !$view_hours_all} { return "" }
+    if {!$add_hours & !$view_hours_all_p} { return "" }
 
     set hours_logged "<ul>"
     set info_html ""
 
+	
+
     # fraber 2007-01-31: Admin doesn't make sense.
-    if {$read && $view_ours_all_p} {
+    if {$read && $view_hours_all_p} {
         set total_hours [im_timesheet_hours_sum -project_id $project_id]
 	set total_hours_str "[util_commify_number $total_hours]"
+        set approved_hours [im_timesheet_hours_sum -project_id $project_id -approved]
+	set approved_hours_str "[util_commify_number $approved_hours]"
         set info_html "[_ intranet-timesheet2.lt_A_total_of_total_hour]"
         if { $total_hours > 0 } {
            append hours_logged "
@@ -333,6 +341,7 @@ ad_proc -public im_timesheet_project_component {user_id project_id} {
 
     if {$read} {
 	set total_hours_str [im_timesheet_hours_sum -user_id $user_id -project_id $project_id]
+	set approved_hours_str [im_timesheet_hours_sum -user_id $user_id -project_id $project_id -approved]
         append info_html "<br>[_ intranet-timesheet2.lt_You_have_loged_total_].\n"
         set hours_today [im_timesheet_hours_sum -user_id $user_id -number_days 1]
 
@@ -421,6 +430,7 @@ ad_proc im_timesheet_hours_sum {
     {-user_id 0}
     {-project_id 0}
     {-number_days 0}
+    -approved:boolean
 } {
     Returns the total number of hours the specified user logged for
     whatever else is included in the arg list.
@@ -452,11 +462,18 @@ ad_proc im_timesheet_hours_sum {
     if {0 != $number_days} {
 	lappend criteria "day >= now()::date - $number_days"	
     }
+    if {$approved_p && [apm_package_installed_p "intranet-timesheet2-workflow"]} {
+	set approved_from ", im_timesheet_conf_objects tco"
+	set approved_where "and tco.conf_id = h.conf_object_id and tco.conf_status_id = 17010"
+    } else {
+      	set approved_from ""
+	set approved_where ""
+    }
     set num_hours [db_string sum_hours "
 	select	sum(h.hours) 
-	from	im_hours h
+	from	im_hours h $approved_from
 	where	h.day::date <= now()::date and
-		[join $criteria "\n    and "]
+		[join $criteria "\n    and "] $approved_where
     " -default 0]
     if {"" == $num_hours} { set num_hours 0}
 
@@ -725,6 +742,193 @@ ad_proc -public calculate_dd_hh_mm_from_day {
     return $return_list
 }
 
+ad_proc im_do_row {
+    { bgcolorl }
+    { ctr }
+    { curr_owner_id }
+    { owner_name }
+    { days }
+    { user_daysl }
+    { absencel }
+    { holydays }
+    { today_date }
+    { descrl }
+    { workflow_key }
+} {
+    Returns a row with the hours loged of one user
+    'days' is a list of dates in format 'YYYYMMDD' with seven elements, first day 
+
+} {
+
+    if { $user_daysl != ""  } {
+	# ad_return_complaint 1 $user_daysl
+    }
+
+    set user_view_page "/intranet/users/view"
+    set absence_view_page "/intranet-timesheet2/absences/view"
+
+    set date_format "YYYY-MM-DD"
+
+    array set bgcolor $bgcolorl
+    array set user_days $user_daysl
+    array set absence $absencel
+    array set descr $descrl
+    set html ""
+    append html "
+    	<tr$bgcolor([expr $ctr % 2])>
+    	    <td>
+    	        <a href=\"$user_view_page?user_id=$curr_owner_id\">$owner_name</a>
+    	    </td>
+    "
+
+    # Adding feature: Set bg of cell to green when all logged hours have been confirmed 
+    if {  "" != $workflow_key } {
+	set wf_status_list [wf_status_list $curr_owner_id $days $workflow_key]
+	foreach rec $wf_status_list {
+		set wf_status_array([lindex [split $rec " "] 0]) [lindex [split $rec " "] 1]
+    	}
+    }
+
+    for { set i 0 } { $i < [llength $days] } { incr i } {
+	# Defaults 
+	set cell_text [list]
+	set cell_param [list]
+	set absent_p "f"
+
+	# if { [lsearch -exact $holydays [lindex $days $i]] >= 0 } {
+	#    set holy_html " style=\"background-color=\#DDDDDD;\" "
+	# } else {
+	#    set holy_html ""
+	# }
+
+	# Check for Absence and write absence information to cell (if applicable) 
+	if { [info exists absence([lindex $days $i])] } {
+	    set abs_id $absence([lindex $days $i])
+	    lappend cell_text "<a href=\"$absence_view_page?absence_id=$abs_id\" style=\"color:\\\#FF0000;\">[_ intranet-timesheet2.Absent]</a> ($descr($abs_id))"
+	    set absent_p "t"
+	}
+
+	# Check for hours logged and write hours logged for this day (if applicable) 
+	if { [info exists user_days([lindex $days $i])] } {
+	    lappend cell_text "$user_days([lindex $days $i]) [_ intranet-timesheet2.hours]"
+	    set absent_p "t"	
+	    # Set bg color to green when all logged hours have been confirmed
+	    if { "" != $workflow_key } {
+	    	if { 1 == $wf_status_array([lindex $days $i]) } {
+			set cell_param "style='background-color:#99CC33;'"
+	    	}
+	   }
+	} 
+	
+	# If no hours are logged and no absence is registered, set bg color of cell to yellow 
+        if { $absent_p == "f" } {
+             lappend cell_text "[_ intranet-timesheet2.No_hours_logged]"
+             lappend cell_param "style=\"background-color: #ffcc66;\""
+        }
+
+	if { [lsearch -exact $holydays [lindex $days $i]] >= 0 } {
+	    set cell_param "style=\"background-color: #DDDDDD;\""
+	}
+	append html "<td [join $cell_param " "]>[join $cell_text "<br>"]</td>\n"
+    }
+    append html "</tr>\n"
+    return $html
+}
+
+
+proc stripzeros {value} {
+    set retval [string trimleft $value 0]
+    if { ![string length $retval] } { return 0 } 
+    return $retval
+}
+
+ad_proc wf_status_list  {
+    { user_id }
+    { days  }
+    { workflow_key }
+} {
+    Returns a row with the hours loged of one user
+} {
+
+    set first_day_of_week [clock format [clock scan [lindex $days 0]] -format {%Y-%m-%d}]
+    set last_day_of_week [clock format [clock scan [lindex $days 6]] -format {%Y-%m-%d}]
+
+    set sql "
+        select
+                to_char(h.day,'YYYYMMDD') as day,
+                wf.state,
+                h.hours
+        from
+                im_hours h,
+                wf_cases wf
+        where
+                h.day <= :last_day_of_week and
+                h.day >= :first_day_of_week and
+                wf.workflow_key = :workflow_key and
+                wf.object_id = h.conf_object_id and
+                h.user_id = :user_id
+        
+	UNION
+
+	select
+                to_char(h.day,'YYYYMMDD') as day,
+                '' as state,
+                h.hours
+        from
+                im_hours h
+        where
+                h.day <= :last_day_of_week and
+                h.day >= :first_day_of_week and
+                h.user_id = :user_id and 
+		h.conf_object_id is null
+	order by
+		day
+
+    "
+
+    db_foreach col $sql {
+	# Handle multiple cases 
+	if { ![info exists wf_state_array($day)] } {
+	    # no value yet, just set it .... 
+	    set wf_state_array($day) $state
+	} else {
+	    # status != "finished" will always overwrite current status  
+	    if { "finished" != $state } {
+		set wf_state_array($day) $state				
+	    }
+	}
+	set logged_array($day) $hours
+    }    
+    
+    # if { $user_id == 61127 } { ad_return_complaint 1 [array get wf_state_array] }
+    
+    set wf_status_list [list]
+    
+    foreach list_day $days {
+	
+	# set default to '0' -> bgcolor NOT green  
+	set return_array($list_day) 0
+	
+	if { ![info exists wf_state_array($list_day)]  } {
+	    # No WF for this day 
+	    if { [info exists logged_array($list_day)] } {
+		# No hours logged for this day 
+		set return_array($list_day) 1 	
+	    }
+	} else {
+	    # We have a WF case for this day  
+		if { "finished" == $wf_state_array($list_day) } {
+		    set return_array($list_day) 1	
+		}
+	    }
+    }
+    
+    foreach i [array names return_array] {
+	lappend wf_status_list "$i $return_array($i)" 
+    }
+    # if { $user_id == 61127 } { ad_return_complaint 1 $wf_status_list }
+    return $wf_status_list   
+}
 
 ad_proc get_unconfirmed_hours_for_period {
     user_id
@@ -750,4 +954,67 @@ ad_proc get_unconfirmed_hours_for_period {
         ) i
     "
     return [db_string get_unconfirmed_hours $sql -default 0]
+}
+
+ad_proc -public im_timesheet_approval_component {
+    -user_id:required
+} {
+    Returns a HTML component showing the vacations
+    for the user
+} {
+    set current_user_id [ad_get_user_id]
+    # This is a sensitive field, so only allows this for the user himself
+    # and for users with HR permissions.
+
+    set read_p 0
+    if {$user_id == $current_user_id} { set read_p 1 }
+    if {[im_permission $current_user_id view_hr]} { set read_p 1 }
+    if {!$read_p} { return "" }
+
+    set params [list \
+		    [list user_id $user_id] \
+		    [list return_url [im_url_with_query]] \
+    ]
+
+    set result [ad_parse_template -params $params "/packages/intranet-timesheet2/lib/timesheet-approval"]
+    return [string trim $result]
+}
+
+ad_proc -public im_timesheet_remind_employees {
+} {
+    Goes through the list of employees in members_list and check if they have logged their hours within the last week.
+} {
+
+    set member_list [im_project_get_all_members -group_id [im_profile_employees]]
+    
+    set interval [db_string select_interval { select now() - interval '7 days' from dual; }]
+    
+    foreach member_id $member_list {
+        set logged_hours_p [db_string select_hours {
+	        select count(*) from im_hours where day > now() -interval '7 days' and user_id = :member_id
+        }]
+		
+        if {$logged_hours_p eq 0} {
+            
+            set member_email [im_email_from_user_id $member_id]
+            
+            set from_addr [ad_admin_owner]
+            
+            db_1row select_system_url {
+                select attr_value as system_url from apm_parameter_values where parameter_id = (
+		           select parameter_id from apm_parameters where package_key = 'acs-kernel' and parameter_name = 'SystemURL' );
+            }
+	    
+            set hour_logging_url "${system_url}/intranet-timesheet2/hours/index"
+            db_1row select_package_id { 
+               		select package_id from apm_packages where package_key = 'intranet-core'
+            }
+
+            acs_mail_lite::send -send_immediately \
+                -to_addr $member_email \
+                -from_addr $from_addr \
+                -subject "[lang::util::localize "#intranet-timesheet2.You_did_not_log_hours#" [lang::user::locale -user_id $member_id -package_id $package_id -site_wide]]" \
+                -body "[lang::util::localize "#intranet-timesheet2.Please_log_hours#" [lang::user::locale -user_id $member_id -package_id $package_id -site_wide]]" 
+        }
+    }
 }

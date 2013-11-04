@@ -36,6 +36,14 @@ ad_page_contract {
     { search_task ""}
 }
 
+# Redirect to custom new page if necessary
+callback im_timesheet_hours_new_redirect \
+    -object_id $project_id -status_id "" -type_id "" \
+    -project_id $project_id -julian_date $julian_date \
+    -gregorian_date $gregorian_date -show_week_p $show_week_p \
+    -user_id_from_search $user_id_from_search  -return_url $return_url
+
+
 # ---------------------------------------------------------
 # Default & Security
 # ---------------------------------------------------------
@@ -206,6 +214,8 @@ if {$show_week_p} {
 }
 
 set context_bar [im_context_bar [list index "[_ intranet-timesheet2.Hours]"] "[_ intranet-timesheet2.Add_hours]"]
+
+set permissive_logging [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter PermissiveHourLogging -default "permissive"]
 
 set log_hours_on_potential_project_p [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter TimesheetLogHoursOnPotentialProjectsP -default 1]
 
@@ -395,7 +405,6 @@ append parent_project_sql "
 "
 
 
-
 # Determine how to show the tasks of projects.
 switch $task_visibility_scope {
     "main_project" {
@@ -427,7 +436,15 @@ switch $task_visibility_scope {
 						main.tree_sortkey and
 						tree_right(main.tree_sortkey)
 	"
-
+        if { "restrictive" == $permissive_logging && $one_project_only_p } {
+            set children_sql "$children_sql
+                                and sub.project_id in (
+                                        select  r.object_id_one
+                                        from    acs_rels r
+                                        where   r.object_id_two = :user_id_from_search
+                                )
+            "
+        }
     }
     "sub_project" {
 	# sub_project: Each (sub-) project determines the visibility of its tasks.
@@ -458,6 +475,17 @@ switch $task_visibility_scope {
 			and r.object_id_two = :user_id_from_search
 	"
 
+        if { "restrictive" == $permissive_logging } {
+            set restrictive_sql "and sub.project_id in (
+                                        select  r.object_id_one
+                                        from    acs_rels r
+                                        where   r.object_id_two = :user_id_from_search
+                                )
+            "
+        } else {
+	    set restrictive_sql ""
+	}
+
 	set children_sql "
 				-- Select any subprojects of control projects
 				select	sub.project_id
@@ -470,6 +498,7 @@ switch $task_visibility_scope {
 					and sub.tree_sortkey between
 						main.tree_sortkey and
 						tree_right(main.tree_sortkey)
+                                        $restrictive_sql
 			UNION
 				-- Select any project or task with explicit membership
 				select  r.object_id_one
@@ -576,10 +605,12 @@ set sql "
 		tree_level(children.tree_sortkey) -1 as subproject_level,
 		substring(parent.tree_sortkey from 17) as parent_tree_sortkey,
 		substring(children.tree_sortkey from 17) as child_tree_sortkey,
+                material_id,
+                task_status_id,
 		$sort_order as sort_order
 	from
 		im_projects parent,
-		im_projects children
+		im_projects children left outer join im_timesheet_tasks tt on (children.project_id = tt.task_id)
 	where
 		parent.parent_id is null
 		and children.tree_sortkey between 
@@ -907,7 +938,6 @@ template::multirow foreach hours_multirow {
 
     ns_log Notice "new: $pnam: p=$project_id, depth=$subproject_level, closed_level=$closed_level, status=$project_status"
 
-
     # We've just discovered a status change from open to closed:
     # Remember at what level this has happened to undo the change
     # once we're at the same level again:
@@ -955,6 +985,9 @@ template::multirow foreach hours_multirow {
 	set old_parent_project_nr $parent_project_nr
     }
 
+   # Make sure to surpress closed projects
+   if {$project_status_id == [im_project_status_closed]} { set surpress_output_p 1 }
+
     # ---------------------------------------------
     # Write out the name of the project nicely indented
 
@@ -982,6 +1015,7 @@ template::multirow foreach hours_multirow {
     if {!$log_on_parent_p} { append help_text [lang::message::lookup "" intranet-timesheet2.Nolog_log_on_parent_p "This project has sub-projects or tasks. "] }
     if {$solitary_main_project_p} { append help_text [lang::message::lookup "" intranet-timesheet2.Nolog_solitary_main_project_p "This is a 'solitary' main project. Your system is configured in such a way, that you can't log hours on it. "] }
 
+   # 
     # Not a member: This isn't relevant in all modes:
     switch $task_visibility_scope {
         "main_project" - "specified" {
@@ -1038,7 +1072,9 @@ template::multirow foreach hours_multirow {
 	set hours ""
 	set note ""
 	set internal_note ""
-	set material_id $default_material_id
+	if {"" == $material_id} {
+	    set material_id $default_material_id
+	}
 	set material "Default"
 	set key "$project_id-$julian_day_offset"
 

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
-<message_catalog package_key="intranet-timesheet2" package_version="3.4.0.7.0" locale="de_DE" charset="ISO-8859-1">
+<message_catalog package_key="intranet-timesheet2" locale="de_DE" charset="ISO-8859-1">
 
   <msg key="1_Euro_equals">1 Euro entspricht</msg>
   <msg key="_user_id">und die Projekt ID kann bereit gestellt werden. Aber es gab einige Probleme mit ihnen...</msg>
@@ -9,6 +9,7 @@
   <msg key="Absence_Type_1">Abwesenheitstyp</msg>
   <msg key="Absences">Abwesenheiten</msg>
   <msg key="absences">Abwesenheiten</msg>
+  <msg key="Absences_for_user">Abwesenheiten der Benutzer</msg>
   <msg key="Absent">Abwesend</msg>
   <msg key="Absent_1">Abwesend</msg>
   <msg key="Add_a_new_Absence">Neue Abwesenheit</msg>
@@ -25,7 +26,7 @@
   <msg key="Amount_EUR">Betrag (EUR)</msg>
   <msg key="Amount_in_Euros">Betrag (EUR)</msg>
   <msg key="AMOUNTS">Beträge</msg>
-  <msg key="and_absences_hours">und %absences_hours% Stunden Absenzen</msg>
+  <msg key="and_absences_hours">und %absences_hours% Stunden Abwesenheit</msg>
   <msg key="Apply">Bestätigen</msg>
   <msg key="April">April</msg>
   <msg key="Associated_reports">Beteiligte Berichte</msg>
@@ -94,6 +95,7 @@
   <msg key="Filter">Filter</msg>
   <msg key="Filter_Absences">Filter Abwesenheiten</msg>
   <msg key="Filter_Tasks">Aufgaben filtern</msg>
+  <msg key="for_username"> für %user_from_search_name%</msg>
   <msg key="For_which_project">Für Projekt</msg>
   <msg key="Friday">Freitag</msg>
   <msg key="From">Von</msg>
@@ -131,7 +133,7 @@
   <msg key="log_hours">Stunden erfassen</msg>
   <msg key="Log_hours_for_user">Stunden für:</msg>
   <msg key="Log_your_hours">Erfassen sie ihre Stunden</msg>
-  <msg key="lt_A_total_of_total_hour">Es wurden insgesamt %total_hours_str% Stunden auf diesem Projekt erfaßt.</msg>
+  <msg key="lt_A_total_of_total_hour">Es wurden insgesamt %total_hours_str% Stunden (%approved_hours_str% genehmigt) auf diesem Projekt erfaßt.</msg>
   <msg key="lt_Add_hours_on_other_pr">Stunden erfassen auf anderen Projekten</msg>
   <msg key="lt_All_the_fields_should">Alle Felder müssen vorm verschicken ausgefüllt werden.</msg>
   <msg key="lt_All_the_fields_should_1">Alle Felder müssen vorm  %action% ausgefüllt sein.</msg>
@@ -217,7 +219,6 @@
   <msg key="lt_You_cant_edit_someone">Sie können nicht die Stunden von jemand anders bearbeiten</msg>
   <msg key="lt_You_dont_have_suffici">Sie haben keine ausreichenden Privielgien um Abwesenheiten zu sehen.</msg>
   <msg key="lt_You_dont_have_suffici_1">Sie verfügen über nicht ausreichende Berechtigungen zum Ändern dieser Abwesenheit.</msg>
-  <msg key="lt_You_have_loged_total_">Sie haben %total_hours_str% auf diesem Projekt erfaßt</msg>
   <msg key="lt_You_have_no_rights_to">Sie haben unzureichende Berechtigungen, um diese Seite zu sehen.</msg>
   <msg key="lt_You_havent_logged_you">Sie haben in der letzen Woche keine Stunden erfaßt, bitte %log_them_now_link% tun Sie das jetzt</msg>
   <msg key="lt_You_logged_num_hours_">Sie haben %num_hours% Stunden in den letzten 7 Tagen erfaßt.</msg>
@@ -232,10 +233,11 @@
   <msg key="N">N</msg>
   <msg key="Name">Name</msg>
   <msg key="New_Absence">Neue Abwesenheit</msg>
-  <msg key="New_Absence_Type">Neue %absence_type% </msg>
+  <msg key="New_Absence_Type">Neue(r) %absence_type% </msg>
   <msg key="New_Bank_Holiday">Neuer Feiertag</msg>
   <msg key="New_Personal_Absence">Neue Abwesenheit (privat)</msg>
   <msg key="New_Sick_Leave">Neue Abwesenheit (Krankheit)</msg>
+  <msg key="New_Training">Neues Training</msg>
   <msg key="New_Travel_Absence">Neue Abwesenheit (Reise)</msg>
   <msg key="New_Vacation_Absence">Neu Abwesenheit (Urlaub)</msg>
   <msg key="Next_Month">Nächster Monat</msg>
@@ -248,10 +250,10 @@
   <msg key="Not_Member_of_Projects">Sie sind in keinem derzeit offenen Projekt Mitglied.</msg>
   <msg key="Notes">Notizen</msg>
   <msg key="Notice">Notiz</msg>
-  <msg key="Notification_Subject_Notify_Applicant_Absence_Approved">Ihr Antrag auf Abwesenheit</msg>
   <msg key="Notification_Body_Notify_Applicant_Absence_Approved">Ihrem Antrag wurde stattgegeben:</msg>
-  <msg key="Notification_Subject_Notify_Applicant_Absence_Not_Approved">Ihr Antrag auf Abwesenheit</msg>
   <msg key="Notification_Body_Notify_Applicant_Absence_Not_Approved">Ihrem Antrag konnte nicht stattgegeben werden:</msg>
+  <msg key="Notification_Subject_Notify_Applicant_Absence_Approved">Ihr Antrag auf Abwesenheit</msg>
+  <msg key="Notification_Subject_Notify_Applicant_Absence_Not_Approved">Ihr Antrag auf Abwesenheit</msg>
   <msg key="Nov">Nov</msg>
   <msg key="November">November</msg>
   <msg key="O">O</msg>
@@ -310,6 +312,7 @@ name</msg>
   <msg key="Thursday">Donnerstag</msg>
   <msg key="Timescale">Zeitskala</msg>
   <msg key="Timesheet">Zeiterfassung</msg>
+  <msg key="Timesheet_Filters">Filter für Zeiterfassung</msg>
   <msg key="Timesheet_for_user_name">Zeiterfassung für %user_name%</msg>
   <msg key="Timesheet_Summary">Zusammenfassung Stunden</msg>
   <msg key="to">an</msg>
@@ -331,6 +334,8 @@ name</msg>
   <msg key="user_not_logged_in">Benutzer nicht angemeldet</msg>
   <msg key="Users">Benutzer</msg>
   <msg key="V">V</msg>
+  <msg key="Vacation_Days_Taken">genommener Urlaub</msg>
+  <msg key="Valid_for_Group">Gültig für Gruppe</msg>
   <msg key="View">Sicht</msg>
   <msg key="View_Absence">Abwesehnheiten zeigen</msg>
   <msg key="View_all_Absences">Alle Abwesenheiten anzeigen</msg>
