@@ -258,11 +258,13 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
 		set hours "$hours"
 	}
 
-	if {$column_ctr == 1 && !$timesheet_entry_blocked_p && $show_link_log_hours_for_week_p } {
-	    append hours "<br>
+	if {$column_ctr == 1 && $show_link_log_hours_for_week_p } {
+	    set log_hours_for_the_week_html "<br>
                 <a href=[export_vars -base "new" {user_id_from_search {julian_date $current_date} {show_week_p 1} return_url}]
                 ><span class='log_hours'>[lang::message::lookup "" intranet-timesheet2.Log_hours_for_the_week "Log hours for the week"]</span></a>
  	    "
+	} else {
+	    set log_hours_for_the_week_html ""
 	}
 
         if { [info exists users_hours($current_date)] } {
@@ -280,9 +282,9 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
                         "
                         set no_wf_cases [db_string no_wf_cases $wf_actice_case_sql]
                         if { $no_wf_cases > 0 } {
-                                set html "<span id='hours_confirmed_yellow'>$hours</span>$curr_absence"
+                                set html "<span id='hours_confirmed_yellow'>$hours</span>$curr_absence$log_hours_for_the_week_html"
                         } else {
-                                set html "<span id='hours_confirmed_green'>$hours</span>$curr_absence"
+                                set html "<span id='hours_confirmed_green'>$hours</span>$curr_absence$log_hours_for_the_week_html"
                         }
                  } else {
 		     set html "${hours}${curr_absence}<br>" 
@@ -290,15 +292,16 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
 				append html "[lang::message::lookup "" intranet-timesheet2.ToConfirm "To confirm"]:&nbsp;"
 				append html "<span id='hours_confirmed_red'>${no_unconfirmed_hours}&nbsp;[_ intranet-timesheet2.hours]</span>"
 			}	
+		     append html "$log_hours_for_the_week_html"
                  }
 	    } else {
-		set html "${hours}${curr_absence}"
+		set html "${hours}${curr_absence}$log_hours_for_the_week_html"
 	    }
         } else {
-		set html "${hours}${curr_absence}"
+		set html "${hours}${curr_absence}$log_hours_for_the_week_html"
         }
     } else {
-        set html "$curr_absence"
+        set html "$curr_absence$log_hours_for_the_week_html"
     }
 
     # Render 
