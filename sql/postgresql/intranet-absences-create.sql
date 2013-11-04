@@ -276,7 +276,18 @@ update im_categories set aux_string1 = 'vacation_approval_wf' where category_id 
 update im_categories set aux_string1 = 'personal_approval_wf' where category_id = 5001;
 update im_categories set aux_string1 = 'sick_approval_wf' where category_id = 5002;
 update im_categories set aux_string1 = 'travel_approval_wf' where category_id = 5003;
-update im_categories set aux_string1 = 'bank_holiday_approval_wf' where category_id = 5004;
+update im_categories set aux_string1 = 'training_approval_wf' where category_id = 5004;
+update im_categories set aux_string1 = 'bank_holiday_approval_wf' where category_id = 5005;
+
+
+update im_categories set aux_string2 = '99CCFF' where category_id = 5000;
+update im_categories set aux_string2 = 'CCFFCC' where category_id = 5001;
+update im_categories set aux_string2 = 'CC9999' where category_id = 5002;
+update im_categories set aux_string2 = 'CC99FF' where category_id = 5003;
+update im_categories set aux_string2 = 'FFCC99' where category_id = 5004;
+update im_categories set aux_string2 = 'CCCCCC' where category_id = 5005;
+update im_categories set aux_string2 = 'FF99CC' where category_id = 5006;
+update im_categories set aux_string2 = 'FF9999' where category_id = 5007;
 
 
 
