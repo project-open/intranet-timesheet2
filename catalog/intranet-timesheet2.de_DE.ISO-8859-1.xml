@@ -137,7 +137,7 @@
   <msg key="Log_Hours">Stunden kontieren</msg>
   <msg key="log_hours">Stunden für den Tag erfassen</msg>
   <msg key="Log_hours_for_the_week">Stunden für die Woche erfassen</msg>
-  <msg key="Log_hours_for_user">Stunden für:</msg>
+  <msg key="Log_hours_for_user">Ausgaben für</msg>
   <msg key="Log_your_hours">Erfassen sie ihre Stunden</msg>
   <msg key="lt_A_total_of_total_hour">Es wurden insgesamt %total_hours_str% Stunden auf diesem Projekt erfaßt.</msg>
   <msg key="lt_Add_hours_on_other_pr">Stunden erfassen auf anderen Projekten</msg>

@@ -1,15 +1,16 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
-<message_catalog package_key="intranet-timesheet2" package_version="3.4.0.7.0" locale="en_US" charset="ISO-8859-1">
+<message_catalog package_key="intranet-timesheet2" locale="en_US" charset="ISO-8859-1">
 
   <msg key="1_Euro_equals">1 Euro equals:</msg>
   <msg key="_user_id">and project_id can be provided. But there was some problem with them...</msg>
   <msg key="A">A</msg>
   <msg key="Absence">Absence</msg>
+  <msg key="Absence_Name">Name</msg>
+  <msg key="Absence_status_3letter_Req">Req</msg>
   <msg key="Absence_Type">Absence Type:</msg>
   <msg key="Absence_Type_1">Absence Type</msg>
   <msg key="Absences">Absences</msg>
   <msg key="absences">absences</msg>
-  <msg key="Absence_Name">Name</msg>
   <msg key="Absences_Next_Year"></msg>
   <msg key="Absences_This_Year"></msg>
   <msg key="Absent">Absent</msg>
@@ -41,6 +42,7 @@
   <msg key="Budget">Budget</msg>
   <msg key="C">C</msg>
   <msg key="Calendar">Calendar</msg>
+  <msg key="Capacity_Planning">Capacity Planning</msg>
   <msg key="Case">Case</msg>
   <msg key="Casex">Casex</msg>
   <msg key="Casex_for">Casex for</msg>
@@ -52,11 +54,13 @@
   <msg key="Comp_VISA">Comp. VISA?</msg>
   <msg key="Companies">Companies</msg>
   <msg key="Company">Company</msg>
+  <msg key="Confirm_weekly_hours">Confirm hours for this week</msg>
   <msg key="Contact">Contact</msg>
   <msg key="Contact_Info">Contact Info</msg>
   <msg key="context">context</msg>
   <msg key="Country">Country:</msg>
   <msg key="Currency">Currency:</msg>
+  <msg key="Customers">Customers</msg>
   <msg key="D">D</msg>
   <msg key="Daily_project_notes">Daily project notes</msg>
   <msg key="Date">Date</msg>
@@ -75,6 +79,7 @@
   <msg key="Delete">Delete</msg>
   <msg key="Description">Description</msg>
   <msg key="Deviation">Deviation</msg>
+  <msg key="Direct_reports">Direct reports</msg>
   <msg key="Display">Display:</msg>
   <msg key="Display_Users">Display Users:</msg>
   <msg key="Duration_days">Duration Days</msg>
@@ -83,6 +88,7 @@
   <msg key="Edit">Edit</msg>
   <msg key="Edit_Absence">Edit Absence</msg>
   <msg key="Employee">Employee</msg>
+  <msg key="Employees">Employees</msg>
   <msg key="End_Date">End Date</msg>
   <msg key="Ending">Ending:</msg>
   <msg key="equals">equals</msg>
@@ -126,7 +132,9 @@
   <msg key="June">June</msg>
   <msg key="K">K</msg>
   <msg key="L">L</msg>
+  <msg key="Last_3_Month">last 3 month</msg>
   <msg key="Last_3_months">Last 3 months</msg>
+  <msg key="Last_3_Weeks">Last 3 weeks</msg>
   <msg key="Local">Local</msg>
   <msg key="Log_Absences">Log Absences</msg>
   <msg key="log_dedication">log dedication</msg>
@@ -250,6 +258,8 @@ of those units were billed hourly, for a total amount of</msg>
   <msg key="New_Sick_Leave">New Sick Leave</msg>
   <msg key="New_Travel_Absence">New Travel Absence</msg>
   <msg key="New_Vacation_Absence">New Vacation Absence</msg>
+  <msg key="Next_3_Month">Next 3 month</msg>
+  <msg key="Next_3_Weeks">Next 3 weeks</msg>
   <msg key="Next_Month">Next Month</msg>
   <msg key="No_Data_found">No Data found</msg>
   <msg key="No_hours_logged">No hours logged!</msg>
@@ -260,10 +270,10 @@ of those units were billed hourly, for a total amount of</msg>
   <msg key="Not_Member_of_Projects">You are not a member of any open project.</msg>
   <msg key="Notes">Notes:</msg>
   <msg key="Notice">Notice</msg>
-  <msg key="Notification_Subject_Notify_Applicant_Absence_Approved">Your application for an absence</msg>
   <msg key="Notification_Body_Notify_Applicant_Absence_Approved">Your application for an absence has been approved:</msg>
-  <msg key="Notification_Subject_Notify_Applicant_Absence_Not_Approved">Your application for an absence</msg>
   <msg key="Notification_Body_Notify_Applicant_Absence_Not_Approved">Your application for an absence has not been approved:</msg>
+  <msg key="Notification_Subject_Notify_Applicant_Absence_Approved">Your application for an absence</msg>
+  <msg key="Notification_Subject_Notify_Applicant_Absence_Not_Approved">Your application for an absence</msg>
   <msg key="Nov">Nov</msg>
   <msg key="November">November</msg>
   <msg key="O">O</msg>
@@ -284,6 +294,7 @@ of those units were billed hourly, for a total amount of</msg>
   <msg key="Project_name">Project name</msg>
   <msg key="Project_Summaries">Project Summaries</msg>
   <msg key="Project_units">Project units</msg>
+  <msg key="Providers">Providers</msg>
   <msg key="Q">Q</msg>
   <msg key="R">R</msg>
   <msg key="Rate_Per_Km">Rate Per Km.</msg>
@@ -293,6 +304,7 @@ of those units were billed hourly, for a total amount of</msg>
   <msg key="S">S</msg>
   <msg key="Saturday">Saturday</msg>
   <msg key="Save">Save</msg>
+  <msg key="SearchTask">Search by Name</msg>
   <msg key="Select_a_company">Select a company</msg>
   <msg key="select_a_company">select a company</msg>
   <msg key="Select_a_task">Select a task</msg>
@@ -323,7 +335,10 @@ of those units were billed hourly, for a total amount of</msg>
   <msg key="Timesheet">Timesheet</msg>
   <msg key="Timesheet_for_user_name">Timesheet for %user_name%</msg>
   <msg key="Timesheet_Summary">Timesheet Summary</msg>
+  <msg key="Timesheet_Weekly_Report">Timesheet Weekly Report</msg>
+  <msg key="TimesheetFilters">Timesheet Filters</msg>
   <msg key="to">to:</msg>
+  <msg key="ToConfirm">To confirm</msg>
   <msg key="Today">Today</msg>
   <msg key="Tools">Tools:</msg>
   <msg key="Total">Total</msg>
@@ -342,6 +357,7 @@ of those units were billed hourly, for a total amount of</msg>
   <msg key="user_not_logged_in">user not logged in</msg>
   <msg key="Users">Users</msg>
   <msg key="V">V</msg>
+  <msg key="Vacation_Days_Planned">Vacation Days Planned</msg>
   <msg key="View">View</msg>
   <msg key="View_Absence">View Absence</msg>
   <msg key="View_all_Absences">View all Absences</msg>
