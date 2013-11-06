@@ -1,14 +1,17 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
-<message_catalog package_key="intranet-timesheet2" package_version="3.4.0.7.0" locale="de_DE" charset="ISO-8859-1">
+<message_catalog package_key="intranet-timesheet2" locale="de_DE" charset="ISO-8859-1">
 
   <msg key="1_Euro_equals">1 Euro entspricht</msg>
   <msg key="_user_id">und die Projekt ID kann bereit gestellt werden. Aber es gab einige Probleme mit ihnen...</msg>
   <msg key="A">A</msg>
   <msg key="Absence">Abwesehnheit</msg>
-  <msg key="Absence_Type">Abwesenheitstyp</msg>
+  <msg key="Absence_absence_type">Abwesendheit</msg>
+  <msg key="Absence_Name">Name</msg>
+  <msg key="Absence_Type">Typ</msg>
   <msg key="Absence_Type_1">Abwesenheitstyp</msg>
   <msg key="Absences">Abwesenheiten</msg>
   <msg key="absences">Abwesenheiten</msg>
+  <msg key="Absences_for_user">Abwesendheiten</msg>
   <msg key="Absent">Abwesend</msg>
   <msg key="Absent_1">Abwesend</msg>
   <msg key="Add_a_new_Absence">Neue Abwesenheit</msg>
@@ -45,10 +48,12 @@
   <msg key="Category_Summaries">Zusammenfassungen Kategorien</msg>
   <msg key="Choose_project">Projekt wählen</msg>
   <msg key="Choose_projects_for_user">Projekte auswählen für  %user_name_from_search%</msg>
+  <msg key="Color_codes">Farbkodierung</msg>
   <msg key="comma_separated">Komma separiert</msg>
   <msg key="Comp_VISA">Mit Kreditkarte bezahlt?</msg>
   <msg key="Companies">Firmen</msg>
   <msg key="Company">Firma</msg>
+  <msg key="Confirm_weekly_hours">Wochenreport bestätigen</msg>
   <msg key="Contact">Kontakt</msg>
   <msg key="Contact_Info">Kontaktinformation</msg>
   <msg key="context">Kontext</msg>
@@ -80,7 +85,7 @@
   <msg key="Edit">Ändern</msg>
   <msg key="Edit_Absence">Abwesenheit bearbeiten</msg>
   <msg key="Employee">Mitarbeiter</msg>
-  <msg key="End_Date">Enddatum</msg>
+  <msg key="End_Date">Endedatum</msg>
   <msg key="Ending">Ende</msg>
   <msg key="equals">ist gleich</msg>
   <msg key="Euro_Converter">Euro Konverter</msg>
@@ -123,12 +128,15 @@
   <msg key="June">Juni</msg>
   <msg key="K">K</msg>
   <msg key="L">L</msg>
+  <msg key="Last_3_Month">Letzte 3 Monate</msg>
   <msg key="Last_3_months">Letzte drei Monate</msg>
+  <msg key="Last_3_Weeks">Letzte 3 Wochen</msg>
   <msg key="Local">Lokal</msg>
   <msg key="Log_Absences">Abwesenheiten melden</msg>
   <msg key="log_dedication">Stunden erfassen</msg>
   <msg key="Log_Hours">Stunden kontieren</msg>
-  <msg key="log_hours">Stunden erfassen</msg>
+  <msg key="log_hours">Stunden für den Tag erfassen</msg>
+  <msg key="Log_hours_for_the_week">Stunden für die Woche erfassen</msg>
   <msg key="Log_hours_for_user">Stunden für:</msg>
   <msg key="Log_your_hours">Erfassen sie ihre Stunden</msg>
   <msg key="lt_A_total_of_total_hour">Es wurden insgesamt %total_hours_str% Stunden auf diesem Projekt erfaßt.</msg>
@@ -191,7 +199,7 @@
   <msg key="lt_There_was_an_unexpect">Es war ein unerwarteter Fehler in der CASEX Datenbank</msg>
   <msg key="lt_Timeline_for_project_">Zeitschiene für %project_name% </msg>
   <msg key="lt_To_send_proyect_infor">Klicken sie hier um die Projektinformationen per E-Mail zu verschicken</msg>
-  <msg key="lt_To_send_this_informat">Um diese Informationen per Email zu versenden, klicken Sie bitte in der Microsoft Internet Explorer Menüleiste auf 'Datei-&gt; Senden-&gt; Seite durch E-Mail...' (diese Option ignoriert die Werte die Sie in den Filter ausgewählt haben)</msg>
+  <msg key="lt_To_send_this_informat">Um diese Informationen per E-Mail zu versenden, klicken Sie bitte in der Microsoft Internet Explorer Menüleiste auf 'Datei-&gt; Senden-&gt; Seite durch E-Mail...' (diese Option ignoriert die Werte die Sie in den Filter ausgewählt haben)</msg>
   <msg key="lt_Today_you_didnt_log_y">Sie haben heute noch keine Stunden erfaßt!</msg>
   <msg key="lt_Total_Company_visa_Eu">Summe Euros (Firmenkreditkarte)</msg>
   <msg key="lt_total_hours_hours_bet">%total_hours% Stunden zwischen %first_day_str% und %last_day_str% </msg>
@@ -217,7 +225,6 @@
   <msg key="lt_You_cant_edit_someone">Sie können nicht die Stunden von jemand anders bearbeiten</msg>
   <msg key="lt_You_dont_have_suffici">Sie haben keine ausreichenden Privielgien um Abwesenheiten zu sehen.</msg>
   <msg key="lt_You_dont_have_suffici_1">Sie verfügen über nicht ausreichende Berechtigungen zum Ändern dieser Abwesenheit.</msg>
-  <msg key="lt_You_have_loged_total_">Sie haben %total_hours_str% auf diesem Projekt erfaßt</msg>
   <msg key="lt_You_have_no_rights_to">Sie haben unzureichende Berechtigungen, um diese Seite zu sehen.</msg>
   <msg key="lt_You_havent_logged_you">Sie haben in der letzen Woche keine Stunden erfaßt, bitte %log_them_now_link% tun Sie das jetzt</msg>
   <msg key="lt_You_logged_num_hours_">Sie haben %num_hours% Stunden in den letzten 7 Tagen erfaßt.</msg>
@@ -238,6 +245,8 @@
   <msg key="New_Sick_Leave">Neue Abwesenheit (Krankheit)</msg>
   <msg key="New_Travel_Absence">Neue Abwesenheit (Reise)</msg>
   <msg key="New_Vacation_Absence">Neu Abwesenheit (Urlaub)</msg>
+  <msg key="Next_3_Month">Nächste 3 Monate</msg>
+  <msg key="Next_3_Weeks">Nächste 3 Wochen</msg>
   <msg key="Next_Month">Nächster Monat</msg>
   <msg key="No_Data_found">Keine Daten gefunden</msg>
   <msg key="No_hours_logged">Keine Stunden erfaßt</msg>
@@ -245,13 +254,13 @@
   <msg key="No_users_found">Keine Benutzer gefunden.</msg>
   <msg key="none">kein</msg>
   <msg key="Not_member_of_project">Sie sind nicht Mitglied dieses Projekts.</msg>
-  <msg key="Not_Member_of_Projects">Sie sind in keinem derzeit offenen Projekt Mitglied.</msg>
+  <msg key="Not_Member_of_Projects">Sie sind derzeit in keinem offenen Projekt Mitglied.</msg>
   <msg key="Notes">Notizen</msg>
   <msg key="Notice">Notiz</msg>
-  <msg key="Notification_Subject_Notify_Applicant_Absence_Approved">Ihr Antrag auf Abwesenheit</msg>
   <msg key="Notification_Body_Notify_Applicant_Absence_Approved">Ihrem Antrag wurde stattgegeben:</msg>
-  <msg key="Notification_Subject_Notify_Applicant_Absence_Not_Approved">Ihr Antrag auf Abwesenheit</msg>
   <msg key="Notification_Body_Notify_Applicant_Absence_Not_Approved">Ihrem Antrag konnte nicht stattgegeben werden:</msg>
+  <msg key="Notification_Subject_Notify_Applicant_Absence_Approved">Ihr Antrag auf Abwesenheit</msg>
+  <msg key="Notification_Subject_Notify_Applicant_Absence_Not_Approved">Ihr Antrag auf Abwesenheit</msg>
   <msg key="Nov">Nov</msg>
   <msg key="November">November</msg>
   <msg key="O">O</msg>
@@ -270,7 +279,7 @@
   <msg key="Project_br_Name">Projekt
 name</msg>
   <msg key="Project_History">Projekthistorie</msg>
-  <msg key="Project_name">Projektname</msg>
+  <msg key="Project_name">Aufgabenname</msg>
   <msg key="Project_Summaries">Projektzusammenfassung</msg>
   <msg key="Project_units">Projekteinheiten</msg>
   <msg key="Q">Q</msg>
@@ -282,6 +291,7 @@ name</msg>
   <msg key="S">S</msg>
   <msg key="Saturday">Samstag</msg>
   <msg key="Save">Speichern</msg>
+  <msg key="SearchTask">Name</msg>
   <msg key="Select_a_company">Wählen Sie eine Firma</msg>
   <msg key="select_a_company">Wählen Sie eine Firma</msg>
   <msg key="Select_a_task">Wählen Sie eine Aufgabe</msg>
@@ -308,11 +318,13 @@ name</msg>
   <msg key="The_week_for_user">Die Woche für %user_name_from_search%</msg>
   <msg key="this_day_entry">Einträge von heute</msg>
   <msg key="Thursday">Donnerstag</msg>
+  <msg key="Time_Period">Zeitraum</msg>
   <msg key="Timescale">Zeitskala</msg>
   <msg key="Timesheet">Zeiterfassung</msg>
   <msg key="Timesheet_for_user_name">Zeiterfassung für %user_name%</msg>
   <msg key="Timesheet_Summary">Zusammenfassung Stunden</msg>
   <msg key="to">an</msg>
+  <msg key="ToConfirm">Zu bestätigen</msg>
   <msg key="Today">Heute</msg>
   <msg key="Tools">Werkzeuge</msg>
   <msg key="Total">Gesamtsumme</msg>
@@ -331,6 +343,13 @@ name</msg>
   <msg key="user_not_logged_in">Benutzer nicht angemeldet</msg>
   <msg key="Users">Benutzer</msg>
   <msg key="V">V</msg>
+  <msg key="Vacation_Balance_From_Last_Year">Resturlaub Vorjahr</msg>
+  <msg key="Vacation_Days_per_Year">Urlaubsanspruch</msg>
+  <msg key="Vacation_Days_Planned">Urlaub geplant</msg>
+  <msg key="Vacation_Days_Taken">Urlaub genommen</msg>
+  <msg key="Vacation_Left_for_Period">Resturlaub</msg>
+  <msg key="Vacation_Taken_This_Year">Urlaub genommen</msg>
+  <msg key="Valid_for_Group">Gültig für Gruppe</msg>
   <msg key="View">Sicht</msg>
   <msg key="View_Absence">Abwesehnheiten zeigen</msg>
   <msg key="View_all_Absences">Alle Abwesenheiten anzeigen</msg>
@@ -344,14 +363,13 @@ name</msg>
   <msg key="Week_total">Woche total</msg>
   <msg key="Week_total_1">Woche gesamt</msg>
   <msg key="Weekly_hours">Wöchentliche Stunden</msg>
-  <msg key="Work_done">Geleistete Arbeit</msg>
+  <msg key="Work_done">Geleistete Arbeit - Kommentierung</msg>
   <msg key="Worked_Day">Arbeitstag</msg>
   <msg key="X">X</msg>
   <msg key="Y">Y</msg>
-  <msg key="You_need_to_log_hours">
-  Sie haben bisher lediglich %num_hours% Stunden Arbeitszeit %absences_hours_message%
-  erfasst von erforderlichen %expected_hours% Stunden in den letzten %num_days% Tagen.
-  Bitte aktualisieren Sie ihre Stunden oder setzen Sie sich mit Ihrem Vorgesetzten in Verbindung.
+  <msg key="You_need_to_log_hours">  Sie haben bisher lediglich %num_hours% Stunden Arbeitszeit %absences_hours_message%
+  erfasst von erforderlichen %expected_hours% Stunden in den letzten %num_days% Tagen.
+  Bitte aktualisieren Sie ihre Stunden oder setzen Sie sich mit Ihrem Vorgesetzten in Verbindung.
   </msg>
   <msg key="Your_hours">Ihre Stunden</msg>
   <msg key="Your_workspace">Ihr Arbeitsbereich</msg>
