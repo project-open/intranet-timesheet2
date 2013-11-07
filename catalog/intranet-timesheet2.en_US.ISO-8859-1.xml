@@ -5,12 +5,15 @@
   <msg key="_user_id">and project_id can be provided. But there was some problem with them...</msg>
   <msg key="A">A</msg>
   <msg key="Absence">Absence</msg>
+  <msg key="Absence_absence_type">Absence Type</msg>
+  <msg key="Absence_Duplicate_Start">Duplicate Start</msg>
   <msg key="Absence_Name">Name</msg>
   <msg key="Absence_status_3letter_Req">Req</msg>
   <msg key="Absence_Type">Absence Type:</msg>
   <msg key="Absence_Type_1">Absence Type</msg>
   <msg key="Absences">Absences</msg>
   <msg key="absences">absences</msg>
+  <msg key="Absences_for_user">Absences for user</msg>
   <msg key="Absences_Next_Year"></msg>
   <msg key="Absences_This_Year"></msg>
   <msg key="Absent">Absent</msg>
@@ -31,6 +34,7 @@
   <msg key="AMOUNTS">AMOUNTS</msg>
   <msg key="and_absences_hours">and %absences_hours% hours absences</msg>
   <msg key="Apply">Apply</msg>
+  <msg key="Apr">Apr</msg>
   <msg key="April">April</msg>
   <msg key="Associated_reports">Associated Reports</msg>
   <msg key="Aug">Aug</msg>
@@ -42,6 +46,7 @@
   <msg key="Budget">Budget</msg>
   <msg key="C">C</msg>
   <msg key="Calendar">Calendar</msg>
+  <msg key="Capacity">Capacity</msg>
   <msg key="Capacity_Planning">Capacity Planning</msg>
   <msg key="Case">Case</msg>
   <msg key="Casex">Casex</msg>
@@ -50,6 +55,7 @@
   <msg key="Category_Summaries">Category Summaries</msg>
   <msg key="Choose_project">Choose project</msg>
   <msg key="Choose_projects_for_user">Choose projects for user %user_name_from_search%</msg>
+  <msg key="Color_codes">Color Codes</msg>
   <msg key="comma_separated">comma separated</msg>
   <msg key="Comp_VISA">Comp. VISA?</msg>
   <msg key="Companies">Companies</msg>
@@ -69,11 +75,14 @@
   <msg key="Day_of_Expense">Day of Expense</msg>
   <msg key="Day_of_week_Fri">Fri</msg>
   <msg key="Day_of_week_Mon">Mon</msg>
+  <msg key="Day_of_week_Sat">Sat</msg>
+  <msg key="Day_of_week_Sun">Sun</msg>
   <msg key="Day_of_week_Thu">Thu</msg>
   <msg key="Day_of_week_Tue">Tue</msg>
   <msg key="Day_of_week_Wed">Wed</msg>
   <msg key="DAYS">DAYS</msg>
   <msg key="days">days</msg>
+  <msg key="DaysPlanned">Days Planned</msg>
   <msg key="Dec">Dec</msg>
   <msg key="December">December</msg>
   <msg key="Delete">Delete</msg>
@@ -103,6 +112,7 @@
   <msg key="Filter">Filter</msg>
   <msg key="Filter_Absences">Filter Absences</msg>
   <msg key="Filter_Tasks">Filter Tasks</msg>
+  <msg key="for_username">for username</msg>
   <msg key="For_which_project">For which project:</msg>
   <msg key="Friday">Friday</msg>
   <msg key="From">From:</msg>
@@ -127,6 +137,7 @@
   <msg key="Internal_Comment">Internal Comment</msg>
   <msg key="J">J</msg>
   <msg key="January">January</msg>
+  <msg key="Jul">Jul</msg>
   <msg key="July">July</msg>
   <msg key="Jun">Jun</msg>
   <msg key="June">June</msg>
@@ -140,8 +151,10 @@
   <msg key="log_dedication">log dedication</msg>
   <msg key="Log_Hours">Log Hours</msg>
   <msg key="log_hours">log hours</msg>
+  <msg key="Log_hours_for_the_week">Log hours for the week</msg>
   <msg key="Log_hours_for_user">Log for:</msg>
   <msg key="Log_your_hours">Log your hours</msg>
+  <msg key="Logging_hours_has_been_closed">Logging hours has been closed</msg>
   <msg key="lt_A_total_of_total_hour">A total of %total_hours_str% units have been spent on this project.</msg>
   <msg key="lt_Add_hours_on_other_pr">Add hours on other projects</msg>
   <msg key="lt_All_the_fields_should">All the fields should be filled before submiting.</msg>
@@ -237,6 +250,7 @@ of those units were billed hourly, for a total amount of</msg>
   <msg key="lt_You_dont_have_suffici">You don't have sufficient privileges to see absences.</msg>
   <msg key="lt_You_dont_have_suffici_1">You don't have sufficient privileges to modify this absence.</msg>
   <msg key="lt_You_have_loged_total_">You have loged %total_hours_str% units on this project</msg>
+  <msg key="lt_You_have_logged_total_">You have logged %total_hours_str% units on this project</msg>
   <msg key="lt_You_have_no_rights_to">You have no rights to see this page</msg>
   <msg key="lt_You_havent_logged_you">You haven't logged your hours in the last week,
         please %log_them_now_link% log them now</msg>
@@ -281,7 +295,9 @@ of those units were billed hourly, for a total amount of</msg>
   <msg key="October">October</msg>
   <msg key="One_employee">One employee</msg>
   <msg key="One_project">One project</msg>
+  <msg key="Only_positive_numbers_allowed">Only positive numbers allowed</msg>
   <msg key="Other_Options">Other Options</msg>
+  <msg key="OtherAbsences">Other Absences</msg>
   <msg key="own_hours">own hours</msg>
   <msg key="P">P</msg>
   <msg key="Paid_by_Co">Paid by Co.?</msg>
@@ -300,6 +316,7 @@ of those units were billed hourly, for a total amount of</msg>
   <msg key="Rate_Per_Km">Rate Per Km.</msg>
   <msg key="Rates">Rates</msg>
   <msg key="Real">Real</msg>
+  <msg key="Reassign_logged_hours">Reassign logged hours</msg>
   <msg key="Restrict_date">Restrict date</msg>
   <msg key="S">S</msg>
   <msg key="Saturday">Saturday</msg>
@@ -331,6 +348,7 @@ of those units were billed hourly, for a total amount of</msg>
   <msg key="The_week_for_user">The week for %user_name_from_search%</msg>
   <msg key="this_day_entry">this day entry</msg>
   <msg key="Thursday">Thursday</msg>
+  <msg key="Time_Period">Time Period</msg>
   <msg key="Timescale">Timescale:</msg>
   <msg key="Timesheet">Timesheet</msg>
   <msg key="Timesheet_for_user_name">Timesheet for %user_name%</msg>
@@ -345,6 +363,8 @@ of those units were billed hourly, for a total amount of</msg>
   <msg key="Total_1">Total:</msg>
   <msg key="Total_Amount">Total Amount</msg>
   <msg key="Total_Euros">Total Euros:</msg>
+  <msg key="TotalAbsences">Total Absences</msg>
+  <msg key="Training">Training</msg>
   <msg key="Tuesday">Tuesday</msg>
   <msg key="Type">Type</msg>
   <msg key="U">U</msg>
@@ -357,7 +377,14 @@ of those units were billed hourly, for a total amount of</msg>
   <msg key="user_not_logged_in">user not logged in</msg>
   <msg key="Users">Users</msg>
   <msg key="V">V</msg>
+  <msg key="Vacation_Balance">Vacation Balance</msg>
+  <msg key="Vacation_Balance_From_Last_Year">Vacation Balance From Last Year</msg>
+  <msg key="Vacation_Days_per_Year">Vacation Days Per Year</msg>
   <msg key="Vacation_Days_Planned">Vacation Days Planned</msg>
+  <msg key="Vacation_Days_Taken">Vacation Days Taken</msg>
+  <msg key="Vacation_Left_for_Period">Vacation Left For Period</msg>
+  <msg key="Vacation_Taken_This_Year">Vacation Taken This Year</msg>
+  <msg key="Valid_for_Group">Valid For Group</msg>
   <msg key="View">View</msg>
   <msg key="View_Absence">View Absence</msg>
   <msg key="View_all_Absences">View all Absences</msg>
@@ -372,6 +399,7 @@ of those units were billed hourly, for a total amount of</msg>
   <msg key="Week_total_1">Week total:</msg>
   <msg key="Weekly_hours">Weekly hours</msg>
   <msg key="Work_done">Work done</msg>
+  <msg key="Workdays">Workdays</msg>
   <msg key="Worked_Day">Worked Day</msg>
   <msg key="X">X</msg>
   <msg key="Y">Y</msg>
