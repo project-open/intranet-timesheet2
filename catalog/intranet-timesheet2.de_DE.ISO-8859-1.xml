@@ -225,6 +225,7 @@
   <msg key="lt_You_cant_edit_someone">Sie können nicht die Stunden von jemand anders bearbeiten</msg>
   <msg key="lt_You_dont_have_suffici">Sie haben keine ausreichenden Privielgien um Abwesenheiten zu sehen.</msg>
   <msg key="lt_You_dont_have_suffici_1">Sie verfügen über nicht ausreichende Berechtigungen zum Ändern dieser Abwesenheit.</msg>
+  <msg key="lt_You_have_loged_total_">Sie haben %total_hours_str% auf diesem Projekt erfaßt</msg>
   <msg key="lt_You_have_no_rights_to">Sie haben unzureichende Berechtigungen, um diese Seite zu sehen.</msg>
   <msg key="lt_You_havent_logged_you">Sie haben in der letzen Woche keine Stunden erfaßt, bitte %log_them_now_link% tun Sie das jetzt</msg>
   <msg key="lt_You_logged_num_hours_">Sie haben %num_hours% Stunden in den letzten 7 Tagen erfaßt.</msg>
