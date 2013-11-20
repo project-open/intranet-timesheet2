@@ -257,6 +257,7 @@ select im_component_plugin__new (
 );
 
 \i intranet-absences-create.sql
+\i intranet-leave-entitlement-create.sql
 \i ../common/intranet-timesheet-common.sql
 \i ../common/intranet-timesheet-backup.sql
 
