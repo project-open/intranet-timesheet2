@@ -229,3 +229,57 @@ select	category_id as leave_entitlement_type_id, category as leave_entitlement_t
 from	im_categories
 where	category_type = 'Intranet Leave Entitlement Type'
 	and (enabled_p is null or enabled_p = 't');
+
+SELECT  im_component_plugin__new (
+	null,					-- plugin_id
+	'im_component_plugin',			-- object_type
+	now(),					-- creation_date
+	null,					-- creation_user
+	null,					-- creation_ip
+	null,					-- context_id
+
+	'Leave Entitlements',			-- component_name
+	'intranet-timesheet2',			-- package_name
+	'bottom',				-- location
+	'/intranet/users/view',			-- page_url
+	null,					-- view_name
+	100,					-- sort_order
+	'im_leave_entitlement_user_component -user_id $user_id'
+);
+
+-- ------------------------------------------------------
+-- Leave Entitlement View Definition
+-- ------------------------------------------------------
+
+
+delete from im_view_columns where view_id = 201;
+delete from im_views where view_id = 201;
+
+insert into im_views (view_id, view_name, visible_for, view_type_id) values 
+       (201, 'leave_entitlement_list', '', 1400);
+
+
+insert into im_view_columns (column_id, view_id, group_id, column_name, column_render_tcl,
+extra_select, extra_where, sort_order, visible_for) values (20101,201,NULL,'Name',
+'"<a href=$leave_entitlement_view_url>$leave_entitlement_name_pretty</a>"','','',1,'');
+
+insert into im_view_columns (column_id, view_id, group_id, column_name, column_render_tcl,
+extra_select, extra_where, sort_order, visible_for) values (20103,201,NULL,'Booking Date',
+'"$booking_date_pretty"','','',3,'');
+
+insert into im_view_columns (column_id, view_id, group_id, column_name, column_render_tcl,
+extra_select, extra_where, sort_order, visible_for) values (20104,201,NULL,'Entitlement Days',
+'"$entitlement_days"','','',4,'');
+
+insert into im_view_columns (column_id, view_id, group_id, column_name, column_render_tcl,
+extra_select, extra_where, sort_order, visible_for) values (20105,201,NULL,'User',
+'"<a href=/intranet/users/view?user_id=$owner_id>$owner_name</a>"','','',5,'');
+
+insert into im_view_columns (column_id, view_id, group_id, column_name, column_render_tcl,
+extra_select, extra_where, sort_order, visible_for) values (20107,201,NULL,'Type',
+'"$leave_entitlement_type"','','',7,'');
+
+insert into im_view_columns (column_id, view_id, group_id, column_name, column_render_tcl,
+extra_select, extra_where, sort_order, visible_for) values (20109,201,NULL,'Status',
+'"$leave_entitlement_status"','','',9,'');
+
