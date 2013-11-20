@@ -697,8 +697,7 @@ set has_children_sql "
         where
 		main_p.project_id in ($parent_project_sql) and
 		tree_ancestor_key(parent_p.tree_sortkey, 1) = main_p.tree_sortkey and
-		child_p.parent_id = parent_p.project_id and
-		child_p.project_status_id not in ($closed_stati_list)
+		child_p.parent_id = parent_p.project_id
 "
 
 array set has_children_hash {}
@@ -924,7 +923,7 @@ template::multirow foreach hours_multirow {
     # ---------------------------------------------
     # Final decision: Should we log or not?
     # Check if the current tree-branch-status is "closed"
-    set closed_p [expr $closed_status == [im_project_status_closed]]
+    set closed_p [expr $closed_status == [im_project_status_closed] || [lsearch $closed_stati $project_status_id] > -1]
 
     # ---------------------------------------------
     # Indent the project line
