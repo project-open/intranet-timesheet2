@@ -3,4 +3,4 @@
 	    <%= $table_body_html %>
 	</table>
 
-@admin_html;noquote@
+<ul><li> <a href="@new_leave_entitlement_url;noquote@">Add new leave entitlement</A></li></ul>

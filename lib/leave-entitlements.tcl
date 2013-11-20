@@ -1,6 +1,6 @@
 ad_page_contract {
 
-    user-absences.tcl
+    leave_entitlements.tcl
     @author malte sussdorff malte.sussdorff@cognovis.de
     @date 2013-01-13
 }
@@ -171,4 +171,4 @@ db_foreach leave_entitlements_list $selection {
 }
 
 # Links to add leave_entitlements
-set admin_html [im_menu_ul_list -package_key "intranet-timesheet2" "timesheet2_leave_entitlements" "{user_id_from_search} {$user_id_from_search} {return_url} {$return_url}"]
+set new_leave_entitlement_url [export_vars -base "/intranet-timesheet2/leave-entitlement/new" -url {owner_id return_url}]
