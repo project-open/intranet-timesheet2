@@ -197,7 +197,6 @@ if {$add_absences_for_group_p} {
     set group_options [im_profile::profile_options_all -translate_p 1]
     set group_options [linsert $group_options 0 [list "[lang::message::lookup {} intranet-core.All {All}]" "-2"]]
     set group_options [linsert $group_options 0 [list "" ""]]
-    ds_comment "group:: $group_options"
     lappend form_fields	{group_id:text(select),optional {label "[lang::message::lookup {} intranet-timesheet2.Valid_for_Group {Valid for Group}]"} {options $group_options}}
 } else {
     # The user doesn't have the right to specify absences for groups - set group_id to NULL

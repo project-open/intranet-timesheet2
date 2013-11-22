@@ -59,7 +59,7 @@ set date_format "YYYY-MM-DD"
 set hours_per_week [expr 5 * [parameter::get -parameter TimesheetHoursPerDay]] 
 
 if {"" == $start_date} { 
-    set start_date [db_string get_today "select to_char(sysdate,'YYYY-01-01') from dual"]   
+    set start_date [db_string get_today "select to_char(sysdate - interval '2 months','YYYY-MM-01') from dual"]   
 }
 
 if {"" == $end_date} { 
@@ -67,7 +67,7 @@ if {"" == $end_date} {
     set end_date [db_string current_week "select to_char(sysdate + interval '6 weeks',:date_format) from dual"]
 }
 
-
+ds_comment "Star:: $start_date :: $end_date"
 if {![im_permission $user_id "view_hours_all"] && $owner_id == ""} {
     set owner_id $user_id
 }
