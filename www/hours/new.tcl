@@ -1,6 +1,6 @@
 # /packages/intranet-timesheet2/www/hours/new.tcl
 #
-# Copyright (C) 1998-2004 various parties
+# Copyright (C) 1998-2013 various parties
 # The code is based on ArsDigita ACS 3.4
 #
 # This program is free software. You can redistribute it
@@ -25,7 +25,6 @@ ad_page_contract {
     @author frank.bergmann@project-open.com
     @author klaus.hofeditz@project-open.com
 
-    @creation-date Jan 2006
 } {
     { project_id 0 }
     { julian_date "" }
@@ -76,6 +75,8 @@ if { !$show_week_p && [string first [expr [db_string dow "select to_char(to_date
 # I believe this was used in the past for a single customer...
 set show_all_tasks_for_specific_project_p [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter ShowAllTasksForSpecificProjectP -default "0"]
 
+# Check if WF package is installed 
+set workflow_installed_p [llength [info proc [db_string get_package_id "select package_id from apm_packages where package_key = 'intranet-timesheet2-workflow'" -default 0]]]
 
 # ---------------------------------------------------------
 # Calculate the start and end of the week.
@@ -134,7 +135,6 @@ if {$internal_note_exists_p} {
     set external_comment_size 20
     set internal_comment_size 20
 }
-
 
 # Append user-defined menus
 set bind_vars [list user_id $user_id user_id_from_search $user_id_from_search julian_date $julian_date return_url $return_url show_week_p $show_week_p]
@@ -206,21 +206,15 @@ if {$show_week_p} {
 }
 
 set context_bar [im_context_bar [list index "[_ intranet-timesheet2.Hours]"] "[_ intranet-timesheet2.Add_hours]"]
-
 set log_hours_on_potential_project_p [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter TimesheetLogHoursOnPotentialProjectsP -default 1]
-
 set list_sort_order [parameter::get_from_package_key -package_key "intranet-timesheet2" -parameter TimesheetAddHoursSortOrder -default "order"]
-
 set show_project_nr_p [parameter::get_from_package_key -package_key "intranet-core" -parameter ShowProjectNrAndProjectNameP -default 0]
 
 # Should we allow users to log hours on a parent project, even though it has children?
 set log_hours_on_parent_with_children_p [parameter::get_from_package_key -package_key "intranet-timesheet2" -parameter LogHoursOnParentWithChildrenP -default 1]
 
-# "Solitary" projects are main projects without children.
-# Some companies want to avoid logging on such projects.
+# "Solitary" projects are main projects without children, some companies want to avoid logging on such projects.
 set log_hours_on_solitary_projects_p [parameter::get_from_package_key -package_key "intranet-timesheet2" -parameter LogHoursOnSolitaryProjectsP -default 1]
-# set log_hours_on_solitary_projects_p 0
-
 
 # Determine how to show the tasks of projects. There are several options:
 #	- main_project: The main project determines the subproject/task visibility space
@@ -242,7 +236,6 @@ if {!$log_hours_on_potential_project_p} {
 set closed_stati [db_list closed_stati $closed_stati_select]
 set closed_stati_list [join $closed_stati ","]
 
-
 # ---------------------------------------------------------
 # Select the list of days for the weekly view
 # ---------------------------------------------------------
@@ -250,7 +243,7 @@ set closed_stati_list [join $closed_stati ","]
 # Only show day '0' if we log for a single day
 if {!$show_week_p} { set weekly_logging_days [list 0] }
 
-# This check is necessary anymore: 
+# This check is not necessary anymore: 
 
 # if {$show_week_p} {
     # Bug from Genedata: Hours logged on Sa or Su could get deleted by the weekly
@@ -283,18 +276,15 @@ set edit_hours_p "t"
 set last_month_closing_day [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter TimesheetLastMonthClosingDay -default 0]
 
 if {0 != $last_month_closing_day && "" != $last_month_closing_day && !$add_hours_all_p} {
-
     # Check that $julian_date is before the Nth of the next month:
     # Select the 1st day of the last month:
     set first_of_last_month [db_string last_month "
 	select to_char(now()::date - :last_month_closing_day::integer + '0 Month'::interval, 'YYYY-MM-01')
     "]
     set edit_hours_p [db_string e "select to_date(:julian_date, 'J') >= :first_of_last_month::date"]
-
 }
 
 set edit_hours_closed_message [lang::message::lookup "" intranet-timesheet2.Logging_hours_has_been_closed "Logging hours for this date has already been closed. <br>Please contact your supervisor or the HR department."]
-
 
 # ---------------------------------------------------------
 # Build the SQL Subquery, determining the (parent)
@@ -621,12 +611,15 @@ if {!$materials_p} { set material_sql "" }
 # anymore.
 # ---------------------------------------------------------
 
+set conf_status_sql ""
+if { $workflow_installed_p } { set conf_status_sql "(select conf_status_id from im_timesheet_conf_objects where conf_id = h.conf_object_id) as conf_status_id," }
+
 set hours_sql "
 	select
 		h.*,
 		to_char(h.day, 'J') as julian_day,
-		p.project_id,
-		(select conf_status_id from im_timesheet_conf_objects where conf_id = h.conf_object_id) as conf_status_id
+		$conf_status_sql
+		p.project_id
 		$material_sql
 	from
 		im_hours h,
