@@ -74,7 +74,7 @@ if { !$show_week_p && [string first [expr [db_string dow "select to_char(to_date
 # Should we show all the tasks of a project if the user has chosen this project specificly?
 # I believe this was used in the past for a single customer...
 set show_all_tasks_for_specific_project_p [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter ShowAllTasksForSpecificProjectP -default "0"]
-
+ 
 # Check if WF package is installed 
 set workflow_installed_p [llength [info proc [db_string get_package_id "select package_id from apm_packages where package_key = 'intranet-timesheet2-workflow'" -default 0]]]
 
@@ -104,7 +104,6 @@ if {$show_week_p} {
     # Condition to check for hours this week:
     set h_day_in_dayweek "h.day between to_date(:julian_week_start, 'J') and to_date(:julian_week_end, 'J')"
 }
-
 
 # Materials
 set materials_p [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter HourLoggingWithMaterialsP -default 0]
@@ -710,9 +709,9 @@ db_multirow hours_multirow hours_timesheet $sql
 multirow_sort_tree hours_multirow project_id parent_id sort_order
 
 # ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-# ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# 
 # Format the output
-# ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# 
 # ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 # Don't show closed and deleted projects:
@@ -742,55 +741,37 @@ template::multirow foreach hours_multirow {
 
    if { "" != $search_task } {
        set search_task [string trim $search_task]
-       # ns_log NOTICE "/intranet-timesheet2/www/hours/new::project_name: $project_name, search_task: $search_task, top_project_id: $top_project_id"
        if { !$showing_child_elements_p || $ctr==0 } {
 	   if { [string first [string tolower $search_task] [string tolower $project_name]] == -1 } {
-	       # ns_log NOTICE "/intranet-timesheet2/www/hours/new::String not found continuing ... "
 	       set filter_surpress_output_p 1
 	   } else {
-	       # ns_log NOTICE "/intranet-timesheet2/www/hours/new:: ------- String found -------"
-	       # ns_log NOTICE "/intranet-timesheet2/www/hours/new:: Setting showing_child_elements_p = 1, setting top_project_id_saved: $top_project_id"
-	       # Set mode
 	       set showing_child_elements_p 1
-	       # Save vars
 	       set last_level_shown $subproject_level
 	       set level_entered_in_showing_child_elements $subproject_level
 	       set top_project_id_saved $top_project_id
 	   }
 	} else {
 	    # We are in mode "Show child elements"
-            ## ns_log NOTICE "/intranet-timesheet2/www/hours/new::In showing_child_elements_p"
             if { $top_project_id_saved != $top_project_id } {
-                # We are in a new top parent project
-                # ns_log NOTICE "/intranet-timesheet2/www/hours/new:: top_project_id_saved: $top_project_id_saved != top_project_id:$top_project_id"
-                # Reset
+                # New top parent project, reset
                 set showing_child_elements_p 0
                 # Save vars
                 set top_project_id_saved $top_project_id
-
                 if { [string first [string tolower $search_task] [string tolower $project_name]] == -1 } {
-                    # ns_log NOTICE "/intranet-timesheet2/www/hours/new::String not found continuing ... "
 		    set filter_surpress_output_p 1
                 } else {
-                    # ns_log NOTICE "/intranet-timesheet2/www/hours/new:: ------- String found -------"
                     # Set mode & last_level_shown
                     set showing_child_elements_p 1
 		    set level_entered_in_showing_child_elements $subproject_level
                     set last_level_shown $subproject_level
                 }
             } else {
-		# ns_log NOTICE "/intranet-timesheet2/www/hours/new::Same Top Parent Project  ... "
                 if { $subproject_level == $last_level_shown } {
-		    # ns_log NOTICE "/intranet-timesheet2/www/hours/new:: Current level is equal to the level the last item to show had: resetting"
 		    if { $level_entered_in_showing_child_elements >= $subproject_level} {
-			# reset last_level_shown
-			# ns_log NOTICE "/intranet-timesheet2/www/hours/new:: level_entered_in_showing_child_elements: $level_entered_in_showing_child_elements >= subproject_level:$subproject_level -> resetting, check for searchstring"
-			# Check for searchstring
+			# reset last_level_shown, check for searchstring
 			if { [string first [string tolower $search_task] [string tolower $project_name]] == -1 } {
-                            # ns_log NOTICE "/intranet-timesheet2/www/hours/new:: String not found continuing ... "
 			    set filter_surpress_output_p 1
 			} else {
-                            # ns_log NOTICE "/intranet-timesheet2/www/hours/new:: ------- String found -------"
                             set last_level_shown $subproject_level
 			}			
 		    } else {
@@ -798,18 +779,13 @@ template::multirow foreach hours_multirow {
 		    }
                 } elseif { $subproject_level > $last_level_shown } {
                         # show in all cases
-                        # ns_log NOTICE "/intranet-timesheet2/www/hours/new:: subproject_level > last_level_shown -> show item"
 			set last_level_shown $subproject_level
                 } else {
-		    # ns_log NOTICE "/intranet-timesheet2/www/hours/new:: subproject_level < last_level_shown"
 		    if { $level_entered_in_showing_child_elements >= $subproject_level} {
-			# ns_log NOTICE "/intranet-timesheet2/www/hours/new:: Check for searchstring"
 			if { [string first [string tolower $search_task] [string tolower $project_name]] == -1 } {
-			    # ns_log NOTICE "/intranet-timesheet2/www/hours/new::String not found, continuing ... "
 			    set showing_child_elements_p 0
 			    set filter_surpress_output_p 1
 			} else {
-			    # ns_log NOTICE "/intranet-timesheet2/www/hours/new:: ------- String found -------"
 			    set last_level_shown $subproject_level
 			}
 		    } else {
@@ -818,8 +794,6 @@ template::multirow foreach hours_multirow {
 		}
 	    }
 	}
-        # ns_log NOTICE "/intranet-timesheet2/www/hours/new:: ----------------------------------------------------------------------------"
-        # set vars
         set top_project_id_saved $top_project_id
     }
 
@@ -903,7 +877,6 @@ template::multirow foreach hours_multirow {
 
     ns_log Notice "new: $pnam: p=$project_id, depth=$subproject_level, closed_level=$closed_level, status=$project_status"
 
-
     # We've just discovered a status change from open to closed:
     # Remember at what level this has happened to undo the change
     # once we're at the same level again:
@@ -976,7 +949,7 @@ template::multirow foreach hours_multirow {
     if {$closed_p && (!$user_is_project_member_p && $project_is_task_p)} { append help_text [lang::message::lookup "" intranet-timesheet2.Nolog_closed_p "The project or one of its parents has been closed or requires membership. "] }
     if {![string eq "t" $edit_hours_p]} { append help_text [lang::message::lookup "" intranet-timesheet2.Nolog_edit_hours_p "The time period has been closed for editing. "] }
     if {!$log_on_parent_p} { append help_text [lang::message::lookup "" intranet-timesheet2.Nolog_log_on_parent_p "This project has sub-projects or tasks. "] }
-    if {$solitary_main_project_p} { append help_text [lang::message::lookup "" intranet-timesheet2.Nolog_solitary_main_project_p "This is a 'solitary' main project. Your system is configured in such a way, that you can't log hours on it. "] }
+    if {$solitary_main_project_p} { append help_text [lang::message::lookup "" intranet-timesheet2.Nolog_solitary_main_project_p "This is a 'solitary' main project. Your system is configured in such a way, that you can't log hours on it."] }
    
     # Not a member: This isn't relevant in all modes:
     switch $task_visibility_scope {
@@ -1018,11 +991,6 @@ template::multirow foreach hours_multirow {
     }
 
     if { !$filter_surpress_output_p } { append results "<td>$help_gif $debug_html</td>\n" }
-
-    set ttt {
-	chi=$project_has_children_p,
-	par=$project_has_parents_p,
-    }
 
     # -----------------------------------------------
     # Write out logging INPUT fields - either for Daily View (1 field) or Weekly View (7 fields)
