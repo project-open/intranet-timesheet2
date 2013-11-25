@@ -610,7 +610,7 @@ if {!$materials_p} { set material_sql "" }
 # anymore.
 # ---------------------------------------------------------
 
-set conf_status_sql ""
+set conf_status_sql "NULL as conf_status_id,"
 if { $workflow_installed_p } { set conf_status_sql "(select conf_status_id from im_timesheet_conf_objects where conf_id = h.conf_object_id) as conf_status_id," }
 
 set hours_sql "
