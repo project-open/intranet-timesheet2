@@ -41,8 +41,8 @@ set date_format "YYYY-MM-DD"
 set date_time_format "YYYY MM DD"
 set absence_type "Absence"
 
+set absence_under_wf_control_p 0
 if {[info exists absence_id]} { 
-
     # absence_owner_id determines the list of projects per absence and other DynField widgets
     # it defaults to user_id when creating a new absence
     set absence_owner_id [db_string absence_owner "select owner_id from im_user_absences where absence_id = :absence_id" -default ""]
@@ -58,6 +58,13 @@ if {[info exists absence_id]} {
 	    ad_script_abort
 	}
     }
+
+    set absence_under_wf_control_p [db_string wf_control "
+	select	count(*)
+	from	wf_cases
+	where	object_id = :absence_id and
+		state != 'finished'
+    "]
 }
 
 if {![exists_and_not_null absence_owner_id]} { set absence_owner_id $user_id_from_search }
@@ -97,6 +104,7 @@ if {0 == $absence_type_id && ![info exists absence_id]} {
 	ad_returnredirect [export_vars -base "/intranet/biz-object-type-select" { user_id_from_search {object_type "im_user_absence"} {return_url $current_url} {type_id_var "absence_type_id"} }]
     }
 }
+
 
 # ------------------------------------------------------------------
 # Action permissions
@@ -197,12 +205,13 @@ ad_form \
     -cancel_url $cancel_url \
     -action $action_url \
     -actions $actions \
-    -has_edit 1 \
+    -has_edit [expr !$write] \
     -mode $form_mode \
     -export $hidden_field_list \
     -form $form_fields
 
-if {[im_permission $current_user_id edit_absence_status]} {
+
+if {!$absence_under_wf_control_p || [im_permission $current_user_id edit_absence_status]} {
     set form_list {{absence_status_id:text(im_category_tree) {label "[lang::message::lookup {} intranet-timesheet2.Status Status]"} {custom {category_type "Intranet Absence Status"}}}}
 } else {
 #   set form_list {{absence_status_id:text(im_category_tree) {mode display} {label "[lang::message::lookup {} intranet-timesheet2.Status Status]"} {custom {category_type "Intranet Absence Status"}}}}
