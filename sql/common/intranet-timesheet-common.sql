@@ -20,7 +20,7 @@
 ------------------------------------------------------
 -- Absences
 --
-create or replace view im_absence_types as
+create or replace view im_user_absence_types as
 select	category_id as absence_type_id, category as absence_type
 from	im_categories
 where	(enabled_p = 't' or enabled_p is NULL) and
