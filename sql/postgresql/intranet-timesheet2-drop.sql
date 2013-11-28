@@ -61,7 +61,7 @@ end;' language 'plpgsql';
 -- commit;
 
 drop function on_vacation_p(timestamptz);
-drop view im_absence_types;
+drop view im_user_absence_types;
 drop table im_hours;
 -- drop sequence user_vacations_vacation_id_seq;
 drop sequence im_user_absences_id_seq;
