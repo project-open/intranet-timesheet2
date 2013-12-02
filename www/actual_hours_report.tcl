@@ -38,9 +38,10 @@ ad_page_contract {
     { approved_only_p:integer "0"}
     { workflow_key ""}
     { view_name "hours_list" }
-    { view_type "html" }
+    { display_type "html" }
     { dimension "hours" }
     { order_by "username,project_name"}
+    { timescale "weekly" }
 }
 
 # ---------------------------------------------------------------
@@ -67,17 +68,19 @@ if {"" == $end_date} {
     set end_date [db_string current_week "select to_char(sysdate + interval '6 weeks',:date_format) from dual"]
 }
 
-ds_comment "Star:: $start_date :: $end_date"
 if {![im_permission $user_id "view_hours_all"] && $owner_id == ""} {
     set owner_id $user_id
 }
 
 # Get the correct view options
-# set view_options [db_list_of_lists views {select view_label,view_name from im_views where view_type_id = 1451}]
+# set view_options [db_list_of_lists views {select view_label,view_name from im_views where display_type_id = 1451}]
 set view_options {{Hours hours_list}}
 
 # Allow the project_manager to see the hours of this project
-if {"" != $project_id} {
+# Project_id 0 is reserved for aggregation of hours on a user level
+# only
+set filter_project_id $project_id
+if {"" != $project_id && $project_id != 0} {
     set manager_p [db_string manager "select count(*) from acs_rels ar, im_biz_object_members bom where ar.rel_id = bom.rel_id and object_id_one = :project_id and object_id_two = :user_id and object_role_id = 1301" -default 0]
     if {$manager_p || [im_permission $user_id "view_hours_all"]} {
 	set owner_id ""
@@ -92,7 +95,7 @@ if {"" != $cost_center_id} {
     }
 }
 
-if { $project_id != "" } {
+if { $project_id != "" && $project_id != 0} {
     set error_msg [lang::message::lookup "" intranet-core.No_name_for_project_id "No Name for project %project_id%"]
     set project_name [db_string get_project_name "select project_name from im_projects where project_id = :project_id" -default $error_msg]
 }
@@ -129,6 +132,7 @@ if {[apm_package_installed_p intranet-timesheet2-workflow]} {
     }
 }
 
+set project_options [concat [list [list None 0]] $project_options]
 ad_form -extend -name $form_id -form {
     {project_id:text(select),optional {label \#intranet-cost.Project\#} {options $project_options} {value $project_id}}
 }
@@ -149,7 +153,8 @@ if {"" != $cost_center_options} {
 
 ad_form -extend -name $form_id -form {
     {dimension:text(select) {label "Dimension"} {options {{Hours hours} {Percentage percentage}}} {value $dimension}}
-    {view_type:text(select) {label "Type"} {options {{HTML html} {Excel xls}}} {value $view_type}}
+    {timescale:text(select) {label "Timescale"} {options {{Weekly weekly} {Monthly monthly}}} {value $timescale}}
+    {display_type:text(select) {label "Type"} {options {{HTML html} {Excel xls}}} {value $display_type}}
     {start_date:text(text) {label "[_ intranet-timesheet2.Start_Date]"} {value "$start_date"} {html {size 10}} {after_html {<input type="button" style="height:20px; width:20px; background: url('/resources/acs-templating/calendar.gif');" onclick ="return showCalendar('start_date', 'y-m-d');" >}}}
     {end_date:text(text) {label "[_ intranet-timesheet2.End_Date]"} {value "$end_date"} {html {size 10}} {after_html {<input type="button" style="height:20px; width:20px; background: url('/resources/acs-templating/calendar.gif');" onclick ="return showCalendar('end_date', 'y-m-d');" >}}}
     {view_name:text(select) {label \#intranet-core.View_Name\#} {value "$view_name"} {options $view_options}}
@@ -166,7 +171,7 @@ set filter_html $__adp_output
 # we want to show:
 #
 
-im_view_set_def_vars -view_name $view_name -array_name "view_arr" -order_by $order_by -url "[export_vars -base "hours_report" -url {owner_id project_id cost_center_id end_date start_date approved_only_p workflow_key view_name view_type dimension}]"
+im_view_set_def_vars -view_name $view_name -array_name "view_arr" -order_by $order_by -url "[export_vars -base "hours_report" -url {owner_id project_id cost_center_id end_date start_date approved_only_p workflow_key view_name display_type dimension}]"
 
 set __column_defs ""
 set __header_defs ""
@@ -180,34 +185,56 @@ foreach column_header $view_arr(column_headers) {
 # Get the Column Headers and prepare some SQL
 # ---------------------------------------------------------------
 
-set table_header_html "<tr><td class=rowtitle>[_ intranet-timesheet2.Users]</td><td class=rowtitle>[_ intranet-core.Project]</td>"
+# Prepare the timescale headers
+# Those can be week numbers or months
+set timescale_headers [list]
+set fix_years [list]
 
-# Prepare the weeks headers
-
-# Get the first and last week
-#set start_week [db_string start_week "select extract(week from to_date(:start_date,'YYYY-MM-DD')) from dual"]
-#set end_week [db_string end_week "select extract(week from to_date(:end_date,'YYYY-MM-DD')) from dual"]
-
-set current_date $start_date
-set weeks [list]
-while {$current_date<=$end_date} {
-    set current_week [db_string end_week "select extract(week from to_date(:current_date,'YYYY-MM-DD')) from dual"]   
-    lappend view_arr(column_headers) $current_week
-    lappend view_arr(column_headers_pretty) $current_week
-    lappend weeks $current_week
-    set current_date [db_string current_week "select to_char(to_date(:current_date,'YYYY-MM-DD') + interval '1 week','YYYY-MM-DD') from dual"]
-    # for XLS output
-    if {"percentage" == $dimension} {
-	append __column_defs "<table:table-column table:style-name=\"co2\" table:default-cell-style-name=\"ce6\"/>\n"
-    } else {
-	append __column_defs "<table:table-column table:style-name=\"co2\" table:default-cell-style-name=\"ce5\"/>\n"
-    }
-    append __header_defs " <table:table-cell office:value-type=\"string\"><text:p>$current_week</text:p></table:table-cell>\n"
+set end_date_list [split $end_date "-"]
+set end_year [lindex $end_date_list 0]
+set end_month [lindex $end_date_list 1]
+if {[string length $end_month] eq 1 } {
+    set end_month "0$end_month"
+}
+set end_day [lindex $end_date_list 2]
+if {[string length $end_day] eq 1 } {
+    set end_day "0$end_day"
 }
 
-if {[llength $weeks]>52} {
-    # We can't handle more than one year horizont
-    ad_return_error "Problem with your input" "More than 52 weeks horizont is not supported."
+set end_date "${end_year}-${end_month}-${end_day}"
+
+set start_date_list [split $start_date "-"]
+set start_year [lindex $start_date_list 0]
+set start_month [lindex $start_date_list 1]
+if {[string length $start_month] eq 1 } {
+    set start_month "0$start_month"
+}
+set start_day [lindex $start_date_list 2]
+if {[string length $start_day] eq 1 } {
+    set start_day "0$start_day"
+}
+
+set start_date "${start_year}-${start_month}-${start_day}"
+set current_date $start_date
+
+switch $timescale {
+    weekly {
+	while {$current_date<=$end_date} {
+	    db_1row end_week "select extract(week from to_date(:current_date,'YYYY-MM-DD')) as week, extract(isoyear from to_date(:current_date,'YYYY-MM-DD')) as year"
+	    set current_week "$week-$year"
+	    lappend timescale_headers $current_week
+	    set current_date [db_string current_week "select to_char(to_date(:current_date,'YYYY-MM-DD') + interval '1 week','YYYY-MM-DD') from dual"]
+	}
+	set timescale_sql "extract(week from day) || '-' || extract(isoyear from day)"
+    }
+    default {
+	while {$current_date<=$end_date} {
+	    set current_month [db_string end_week "select to_char(to_date(:current_date,'YYYY-MM-DD'),'YYMM') from dual"]   
+	    lappend timescale_headers $current_month
+	    set current_date [db_string current_month "select to_char(to_date(:current_date,'YYYY-MM-DD') + interval '1 month','YYYY-MM-DD') from dual"]
+	}
+	set timescale_sql "to_char(day,'YYMM')"
+    }
 }
 
 # ---------------------------------------------------------------
@@ -220,7 +247,7 @@ if {$owner_id != ""} {
 }    
 
 # Filter for projects
-if {$project_id != ""} {
+if {$project_id != "" && $project_id != 0} {
     # Get all hours for this project, including hours logged on
     # tasks (100) or tickets (101)
     lappend view_arr(extra_wheres) "(h.project_id in (	
@@ -241,11 +268,23 @@ if { "" != $cost_center_id } {
 
 im_view_process_def_vars -array_name view_arr
 
+# Initialize the timescale headers for XLS output
+
+set table_header_html $view_arr(table_header_html)
+
+foreach timescale_header $timescale_headers {
+    append table_header_html "<td class=rowtitle>$timescale_header</td>"
+    # for XLS output
+    if {"percentage" == $dimension} {
+	append __column_defs "<table:table-column table:style-name=\"co2\" table:default-cell-style-name=\"ce6\"/>\n"
+    } else {
+	append __column_defs "<table:table-column table:style-name=\"co2\" table:default-cell-style-name=\"ce5\"/>\n"
+    }
+    append __header_defs " <table:table-cell office:value-type=\"string\"><text:p>$timescale_header</text:p></table:table-cell>\n"
+}
+
 
 set table_body_html ""
-
-# Get the username / project combinations
-set user_projects [list]
 
 set possible_projects_sql " (select distinct user_id,project_id from im_hours)"
 
@@ -254,6 +293,7 @@ set __output $__column_defs
 # Set the first row
 append __output "<table:table-row table:style-name=\"ro1\">\n$__header_defs</table:table-row>\n"
 
+set user_list [list]
 db_foreach projects_info_query "
     select username,project_name,personnel_number,p.project_id,employee_id,project_nr,company_id
     $view_arr(extra_selects_sql)
@@ -268,8 +308,13 @@ db_foreach projects_info_query "
     $view_arr(extra_group_by_sql)
     order by $order_by
 " {
+    if {[lsearch $user_list $employee_id] < 0} {
+	lappend user_list $employee_id
+	set user_pretty($employee_id) $username_pretty
+	set user_projects($employee_id) [list]
+    }
+    lappend user_projects($employee_id) $project_id
     set user_project "${employee_id}-${project_id}"
-    lappend user_projects $user_project
     set table_body($user_project) ""
     set xls_body($user_project) ""
     foreach column_var $view_arr(column_vars) {
@@ -282,55 +327,80 @@ db_foreach projects_info_query "
 }
 
 
-# Now go for the extra data
-
-# If we want the percentages, we need to 
-# Load the total hours a user has logged in case we are looking at the
-# actuals or forecast
-
-# Approved comes from the category type "Intranet Timesheet Conf Status"
-if {$approved_only_p && [apm_package_installed_p "intranet-timesheet2-workflow"]} {
-    set hours_sql "select sum(hours) as total, extract(week from day) as week, user_id
-	from im_hours, im_timesheet_conf_objects tco
-        where tco.conf_id = im_hours.conf_object_id and tco.conf_status_id = 17010
-        and day between :start_date and :end_date
-	group by user_id, week"
-} else {
-    set hours_sql "select sum(hours) as total, extract(week from day) as week, user_id
-	from im_hours
-        where day between :start_date and :end_date
-	group by user_id, week"
-}
-
-if {"percentage" == $dimension} {
-    db_foreach logged_hours $hours_sql {
-	if {$user_id != "" && $week != ""} {
-	    set user_hours_${week}_${user_id} $total
-	}
-    }
-}
-
-
-foreach user_project $user_projects {
-    set ttt [split $user_project "-"]
-    set employee_id [lindex $ttt 0]
-    set project_id [lindex $ttt 1]
+foreach user_id $user_list {
+    # Go through all the users to get their full list of projects
     
-    # Try to avoid building an array
-    # Loop through all the column headers and set them to ""
-    foreach week $weeks {
-	set $week ""
-	set planned($week) "0"
-    }
-    
-    # Now load all the weeks variables
-    # We need to differentiate by the view type to know where we get
-    # the values from
-
-    # get the hours only
-    db_foreach weeks_info {select sum(hours) as sum_hours, extract(week from day) as week
+    if {$filter_project_id == 0} {
+	# Get the user total line over all projects
+	# Approved comes from the category type "Intranet Timesheet Conf Status"
+	if {$approved_only_p && [apm_package_installed_p "intranet-timesheet2-workflow"]} {
+	    set timescale_value_sql "select sum(hours) as sum_hours,$timescale_sql as timescale_header
+ 	        from im_hours, im_timesheet_conf_objects tco
+                where tco.conf_id = im_hours.conf_object_id and tco.conf_status_id = 17010
+		and user_id = :user_id
+		group by timescale_header
+                order by timescale_header
+         "
+	} else {
+	    set timescale_value_sql "select sum(hours) as sum_hours,$timescale_sql as timescale_header
     		from im_hours
-		where user_id = :employee_id
+		where user_id = :user_id
+		group by timescale_header
+                order by timescale_header
+         "
+	}
+	
+	# Get the non value columns
+	append __output "<table:table-row table:style-name=\"ro1\">\n"
+	append table_body_html "<tr>"
+	set parent_project ""
+	set project_name ""
+	
+	# Append the values for an empty project
+	# Get the most common names
+	set username_pretty $user_pretty($user_id)
+	foreach column_var $view_arr(column_vars) {
+	    set column_value [expr $column_var]
+	    # HTML
+	    append table_body_html "<td>$column_value</td>"
+	    # and XLS
+	    append __output " <table:table-cell office:value-type=\"string\"><text:p>$column_value</text:p></table:table-cell>\n"
+	}
+	
+	# Now create the actual rows
+	foreach timescale_header $timescale_headers {
+	    set var ${user_id}($timescale_header)	   
+	    if {[info exists $var]} {
+		set value [set $var]
+	    } else {
+		set value ""
+	    }
+	    if {"percentage" == $dimension} {
+		append table_body_html "<td>${value}%</td>"
+		set xls_value [expr $value / 100.0]
+		append __output "<table:table-cell office:value-type=\"percentage\" office:value=\"$xls_value\"></table:table-cell>"
+	    } else {
+		append table_body_html "<td>${value}</td>"
+		append __output "<table:table-cell office:value-type=\"float\" office:value=\"$value\"></table:table-cell>"
+	    }
+	}
+	append table_body_html "</tr>"
+	append __output "\n</table:table-row>\n"
+	
+    } else {
+	# Go through all the users to get their full list of projects
+	set user_projects($user_id) [im_parent_projects -project_ids $user_projects($user_id)] 
+	foreach project_id  $user_projects($user_id) {
+	    
+	    # Get the timescale values for all projects, sorted by the
+	    # tree_sortkey, so we can change traverse the projects correctly.
+	    
+	    # Approved comes from the category type "Intranet Timesheet Conf Status"
+	    if {$approved_only_p && [apm_package_installed_p "intranet-timesheet2-workflow"]} {
+		set timescale_value_sql "select sum(hours) as sum_hours,$timescale_sql as timescale_header
+ 	        from im_hours, im_timesheet_conf_objects tco
+                where tco.conf_id = im_hours.conf_object_id and tco.conf_status_id = 17010
+		and user_id = :user_id
                 and project_id in (	
               	   select p.project_id
 		   from im_projects p, im_projects parent_p
@@ -338,62 +408,85 @@ foreach user_project $user_projects {
                    and p.tree_sortkey between parent_p.tree_sortkey and tree_right(parent_p.tree_sortkey)
                    and p.project_status_id not in (82)
 		)		   
-		group by week
-    } {
-	if {"percentage" == $dimension} {
-	    if {[info exists user_hours_${week}_$employee_id]} {
-		set total [set user_hours_${week}_$employee_id]
+		group by timescale_header
+                order by timescale_header
+         "
 	    } else {
-		set total 0
+		set timescale_value_sql "select sum(hours) as sum_hours,$timescale_sql as timescale_header
+    		from im_hours
+		where user_id = :user_id
+                and project_id in (	
+              	   select p.project_id
+		   from im_projects p, im_projects parent_p
+                   where parent_p.project_id = :project_id
+                   and p.tree_sortkey between parent_p.tree_sortkey and tree_right(parent_p.tree_sortkey)
+                   and p.project_status_id not in (82)
+		)		   
+		group by timescale_header
+                order by timescale_header
+         "
 	    }
-	    if {0 < $total} {
-		set $week "[expr round($sum_hours / $total *100)]"
-	    } 
-	} else {
-	    set $week $sum_hours
-	}
-    }
-
-
-    # Now append the values
-    foreach week $weeks {
-	if {"percentage" == $dimension} {
-	    if {"" != [set $week]} {
-		set value [set $week]
-		append table_weeks($user_project) "<td>${value}%</td>"
-		set xls_value [expr $value / 100.0]
-	    } else {
-		set value ""
-		set xls_value ""
-		append table_weeks($user_project) "<td></td>"
+	    
+	    # Store the value for the timescale for the project in an array
+	    # for later use.
+	    db_foreach timescale_info $timescale_value_sql {
+		set var ${user_id}_${project_id}($timescale_header)
+		if {"percentage" == $dimension} {
+		    if {[info exists user_hours_${dimension}_$employee_id]} {
+			set total [set user_hours_${dimension}_$employee_id]
+		    } else {
+			set total 0
+		    }
+		    if {0 < $total} {
+			set $var "[expr round($sum_hours / $total *100)]"
+		    } else {
+			set $var "0"
+		    }
+		} else {
+		    set $var $sum_hours
+		}
 	    }
-	    append xls_weeks($user_project) "<table:table-cell office:value-type=\"percentage\" office:value=\"$xls_value\"></table:table-cell>"
-	} else {
-	    set value [set $week]
-	    append table_weeks($user_project) "<td>${value}</td>"
-	    append xls_weeks($user_project) "<table:table-cell office:value-type=\"float\" office:value=\"$value\"></table:table-cell>"
-	}
+	    
+	    # Get the non value columns
+	    append __output "<table:table-row table:style-name=\"ro1\">\n"
+	    append table_body_html "<tr>"
+	    db_1row project_info "select parent_id, im_name_from_id(parent_id) as parent_project, project_name from im_projects where project_id = :project_id"
+	    # Append the values for an empty project
+	    # Get the most common names
+	    set username_pretty $user_pretty($user_id)
+	    foreach column_var $view_arr(column_vars) {
+		set column_value [expr $column_var]
+		# HTML
+		append table_body_html "<td>$column_value</td>"
+		# and XLS
+		append __output " <table:table-cell office:value-type=\"string\"><text:p>$column_value</text:p></table:table-cell>\n"
+	    }
+	    
+	    # Now create the actual rows
+	    foreach timescale_header $timescale_headers {
+		set var ${user_id}_${project_id}($timescale_header)	   
+		if {[info exists $var]} {
+		    set value [set $var]
+		} else {
+		    set value ""
+		}
+		if {"percentage" == $dimension} {
+		    append table_body_html "<td>${value}%</td>"
+		    set xls_value [expr $value / 100.0]
+		    append __output "<table:table-cell office:value-type=\"percentage\" office:value=\"$xls_value\"></table:table-cell>"
+		} else {
+		    append table_body_html "<td>${value}</td>"
+		    append __output "<table:table-cell office:value-type=\"float\" office:value=\"$value\"></table:table-cell>"
+		}
+	    }
+	    append table_body_html "</tr>"
+	    append __output "\n</table:table-row>\n"
+	}   
     }
 }
 
 
-# Now loop again through the user_projects so we can build up the
-# table_html
-
-foreach user_project $user_projects {
-    # Get the non value columns
-    append table_body_html "<tr>
-      $table_body($user_project)
-      $table_weeks($user_project)
-      </tr>
-    "
-    append __output "<table:table-row table:style-name=\"ro1\">\n"
-    append __output $xls_body($user_project)
-    append __output $xls_weeks($user_project)
-    append __output "\n</table:table-row>\n"
-}   
-
-if {"xls" == $view_type} {
+if {"xls" == $display_type} {
     # Check if we have the table.ods file in the proper place
     set ods_file "[acs_package_root_dir "intranet-openoffice"]/templates/table.ods"
     if {![file exists $ods_file]} {
@@ -404,7 +497,6 @@ if {"xls" == $view_type} {
     ad_script_abort
 
 } else {
-    set table_header_html $view_arr(table_header_html)
     set left_navbar_html "
             <div class=\"filter-block\">
                 $filter_html
