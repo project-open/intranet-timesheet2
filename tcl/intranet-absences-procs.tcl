@@ -489,11 +489,7 @@ ad_proc im_absence_cube {
 	    lappend criteria "u.user_id = :current_user_id"
 	}
 	"employees" {
-	    lappend criteria "u.user_id IN (select	m.member_id
-                                                        from	group_approved_member_map m
-                                                        where	m.group_id = [im_employee_group_id]
-                                                        )"
-	    
+	    lappend criteria "a.owner_id in (select employee_id from im_employees)"
 	}
 	"providers" {
 	    lappend criteria "u.user_id IN (select	m.member_id 
@@ -508,7 +504,7 @@ ad_proc im_absence_cube {
                                                         )"
 	}
 	"direct_reports" {
-	    lappend criteria "a.owner_id in (select employee_id from im_employees where supervisor_id = :current_user_id)"
+	    lappend criteria "a.owner_id in (select employee_id from im_employees where supervisor_id = :current_user_id and employee_status_id = '454')"
 	}  
 	"cost_center" {
 	    set cost_center_list [im_cost_center_options -parent_id $cost_center_id]
@@ -516,8 +512,8 @@ ad_proc im_absence_cube {
             foreach cost_center $cost_center_list {
 		lappend cost_center_ids [lindex $cost_center 1]
             }
-	    lappend criteria "a.owner_id in (select employee_id from im_employees where department_id in ([template::util::tcl_to_sql_list $cost_center_ids]))"
-	}  
+	    lappend criteria "a.owner_id in (select employee_id from im_employees where department_id in ([template::util::tcl_to_sql_list $cost_center_ids]) and employee_status_id = '454')"
+	}
 	"project" {
 	    set project_ids [im_project_subproject_ids -project_id $project_id]
 	    lappend criteria "a.owner_id in (select object_id_two from acs_rels where object_id_one in ([template::util::tcl_to_sql_list $project_ids]))"
