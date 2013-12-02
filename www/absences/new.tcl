@@ -114,21 +114,32 @@ set actions [list]
 
 # Check whether to show the "Edit" and "Delete" buttons.
 # These buttons only make sense if the absences already exists.
-#
+
 if {[info exists absence_id]} {
     set absence_exists_p [db_string abs_ex "select count(*) from im_user_absences where absence_id = :absence_id"]
     if {$absence_exists_p} {
 
-	set edit_perm_func [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter AbsenceNewPageWfEditButtonPerm -default "im_absence_new_page_wf_perm_edit_button"]
-	set delete_perm_func [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter AbsenceNewPageWfDeleteButtonPerm -default "im_absence_new_page_wf_perm_delete_button"]
+	if {$absence_under_wf_control_p} {
+	    set edit_perm_func [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter AbsenceNewPageWfEditButtonPerm -default "im_absence_new_page_wf_perm_edit_button"]
+	    set delete_perm_func [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter AbsenceNewPageWfDeleteButtonPerm -default "im_absence_new_page_wf_perm_delete_button"]
 
-	if {[eval [list $edit_perm_func -absence_id $absence_id]]} {
-	    lappend actions [list [lang::message::lookup {} intranet-timesheet2.Edit Edit] edit]
-	}
-	if {[eval [list $delete_perm_func -absence_id $absence_id]]} {
-	    lappend actions [list [lang::message::lookup {} intranet-timesheet2.Delete Delete] delete]
+	    if {[eval [list $edit_perm_func -absence_id $absence_id]]} {
+		lappend actions [list [lang::message::lookup {} intranet-timesheet2.Edit Edit] edit]
+	    }
+	    if {[eval [list $delete_perm_func -absence_id $absence_id]]} {
+		lappend actions [list [lang::message::lookup {} intranet-timesheet2.Delete Delete] delete]
+	    }
 
+	} else {
+	    # No workflow control - enable buttons
+	    if {$write} {
+		lappend actions [list [lang::message::lookup {} intranet-timesheet2.Edit Edit] edit]
+	    } 
+	    if {$admin} {
+		lappend actions [list [lang::message::lookup {} intranet-timesheet2.Delete Delete] delete]
+	    }
 	}
+
     }
 }
 
@@ -209,6 +220,8 @@ ad_form \
     -mode $form_mode \
     -export $hidden_field_list \
     -form $form_fields
+
+# ad_return_complaint 1 $write
 
 
 if {!$absence_under_wf_control_p || [im_permission $current_user_id edit_absence_status]} {
