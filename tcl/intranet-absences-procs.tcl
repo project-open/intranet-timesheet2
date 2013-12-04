@@ -80,9 +80,9 @@ ad_proc absence_list_for_user_and_time_period {user_id first_julian_date last_ju
 		im_category_from_id(absence_type_id) as absence_type,
 		im_category_from_id(absence_status_id) as absence_status,
 		absence_id
-	from 
+	from
 		im_user_absences
-	where 
+	where
 		owner_id = :user_id and
 		group_id is null and
 		start_date <= to_date(:last_julian_date,'J') and
