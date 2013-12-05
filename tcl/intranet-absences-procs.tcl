@@ -24,18 +24,18 @@ ad_library {
 # Constants
 # ---------------------------------------------------------------------
 
-ad_proc -public im_absence_type_vacation {} { return 5000 }
-ad_proc -public im_absence_type_personal {} { return 5001 }
-ad_proc -public im_absence_type_sick {} { return 5002 }
-ad_proc -public im_absence_type_travel {} { return 5003 }
-ad_proc -public im_absence_type_training {} { return 5004 }
-ad_proc -public im_absence_type_bank_holiday {} { return 5005 }
+ad_proc -public im_user_absence_type_vacation {} { return 5000 }
+ad_proc -public im_user_absence_type_personal {} { return 5001 }
+ad_proc -public im_user_absence_type_sick {} { return 5002 }
+ad_proc -public im_user_absence_type_travel {} { return 5003 }
+ad_proc -public im_user_absence_type_training {} { return 5004 }
+ad_proc -public im_user_absence_type_bank_holiday {} { return 5005 }
 
 
-ad_proc -public im_absence_status_active {} { return 16000 }
-ad_proc -public im_absence_status_deleted {} { return 16002 }
-ad_proc -public im_absence_status_requested {} { return 16004 }
-ad_proc -public im_absence_status_rejected {} { return 16006 }
+ad_proc -public im_user_absence_status_active {} { return 16000 }
+ad_proc -public im_user_absence_status_deleted {} { return 16002 }
+ad_proc -public im_user_absence_status_requested {} { return 16004 }
+ad_proc -public im_user_absence_status_rejected {} { return 16006 }
 
 
 
@@ -43,7 +43,7 @@ ad_proc -public im_absence_status_rejected {} { return 16006 }
 # Absences Permissions
 # ---------------------------------------------------------------------
 
-ad_proc -public im_absence_permissions {user_id absence_id view_var read_var write_var admin_var} {
+ad_proc -public im_user_absence_permissions {user_id absence_id view_var read_var write_var admin_var} {
     Fill the "by-reference" variables read, write and admin
     with the permissions of $user_id on $absence_id
 } {
@@ -209,10 +209,10 @@ ad_proc im_absence_new_page_wf_perm_table { } {
     controlling the read and write permissions on absences,
     depending on the users's role and the WF status.
 } {
-    set req [im_absence_status_requested]
-    set rej [im_absence_status_rejected]
-    set act [im_absence_status_active]
-    set del [im_absence_status_deleted]
+    set req [im_user_absence_status_requested]
+    set rej [im_user_absence_status_rejected]
+    set act [im_user_absence_status_active]
+    set del [im_user_absence_status_deleted]
 
     set perm_hash(owner-$rej) {v r d w a}
     set perm_hash(owner-$req) {v r d}

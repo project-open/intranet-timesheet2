@@ -88,7 +88,7 @@ set write [im_permission $current_user_id "add_absences"]
 set add_absences_for_group_p [im_permission $current_user_id "add_absences_for_group"]
 
 if {[info exists absence_id]} {
-    im_absence_permissions $current_user_id $absence_id view read write admin
+    im_user_absence_permissions $current_user_id $absence_id view read write admin
 }
 if {![im_permission $current_user_id "add_absences"]} {
     ad_return_complaint "[_ intranet-timesheet2.lt_Insufficient_Privileg]" "
@@ -266,8 +266,8 @@ ad_form -extend -name absence -on_request {
     if {![info exists duration_days]} { set duration_days "" }
     if {![info exists absence_owner_id] || 0 == $absence_owner_id} { set absence_owner_id $user_id_from_scratch }
     if {![info exists absence_owner_id] || 0 == $absence_owner_id} { set absence_owner_id $current_user_id }
-    if {![info exists absence_type_id]} { set absence_type_id [im_absence_type_vacation] }
-    if {![info exists absence_status_id]} { set absence_status_id [im_absence_status_requested] }
+    if {![info exists absence_type_id]} { set absence_type_id [im_user_absence_type_vacation] }
+    if {![info exists absence_status_id]} { set absence_status_id [im_user_absence_status_requested] }
     
 } -select_query {
 
@@ -317,7 +317,7 @@ ad_form -extend -name absence -on_request {
 
     # We do not allow entries of type "Vacation" over the turn of the year in order
     # to be able to calculate vacation balance in an unambiguous manner
-    if { $absence_type_id == [im_absence_type_vacation] && [lindex $start_date 0] != [lindex $end_date 0] } {
+    if { $absence_type_id == [im_user_absence_type_vacation] && [lindex $start_date 0] != [lindex $end_date 0] } {
 	set err_msg_default "Entry not allowed. Vacation absences need to begin and end in the same year. Please consider creating two entries."
 	ad_return_complaint 1 [lang::message::lookup "" intranet-timesheet2.NoVacationTurnOfTheYear $err_msg_default] 
     }
