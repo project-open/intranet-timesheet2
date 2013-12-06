@@ -49,15 +49,12 @@ ad_page_contract {
     { user_id_from_search "" }
 }
 
-# ns_eval [source "[acs_root_dir]/packages/intranet-cust-bv/tcl/intranet-cust-bv-procs.tcl"]
-
 # ----------------------------------------------------------
 # Security / setting user
 # ----------------------------------------------------------
 
 set user_id [ad_maybe_redirect_for_registration]
 if {"" == $user_id_from_search || ![im_permission $user_id "add_hours_all"]} { set user_id_from_search $user_id }
-
 
 # ----------------------------------------------------------
 # Default
@@ -87,7 +84,6 @@ set check_all_hours_with_comment [parameter::get_from_package_key -package_key i
 # Accept some cache inconsistencies? Experimental!
 set performance_mode_p [parameter::get_from_package_key -package_key acs-kernel -parameter "PerformanceModeP" -default 0]
 
-
 # ----------------------------------------------------------
 # Simple 'Callback' for custom validation 
 # ----------------------------------------------------------
@@ -99,7 +95,6 @@ set performance_mode_p [parameter::get_from_package_key -package_key acs-kernel 
 # $max_hours_per_day might be ignored under certain conditions. In this case 
 # Custom validation function can overwrite the existing parameter  and set 
 # variable max_hours_per_day used in script to '999'.      
-
 set cust_validation_function [parameter::get -package_id [apm_package_id_from_key intranet-timesheet2] -parameter "CustomHoursEntryValidationFunction" -default ""]
 if { "" != $cust_validation_function } {
 		eval $cust_validation_function \
@@ -150,7 +145,6 @@ if {!$show_week_p && $check_all_hours_with_comment} {
 	}
     }
 }
-
 
 # ----------------------------------------------------------
 # Billing Rate & Currency
@@ -280,7 +274,7 @@ foreach j $weekly_logging_days {
 	set screen_notes ""
 	set screen_internal_notes ""
 	set screen_materials ""
-	if {[info exists screen_hours_hash($pid)]} { set screen_hours $screen_hours_hash($pid) }
+	if {[info exists screen_hours_hash($pid)]} { set screen_hours [string trim $screen_hours_hash($pid)] }
 	if {[info exists screen_notes_hash($pid)]} { set screen_notes [string trim $screen_notes_hash($pid)] }
 	if {[info exists screen_internal_notes_hash($pid)]} { set screen_internal_notes [string trim $screen_internal_notes_hash($pid)] }
 	if {[info exists screen_materials_hash($pid)]} { set screen_materials [string trim $screen_materials_hash($pid)] }
