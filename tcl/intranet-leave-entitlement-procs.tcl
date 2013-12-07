@@ -48,3 +48,55 @@ ad_proc -public im_leave_entitlement_user_component {
     return [string trim $result]
 }
 
+
+ad_proc -public im_leave_entitlement_absence_balance_component {
+    -user_id:required
+} {
+    Returns a HTML component showing the balance of his entitlements and how much of it is spend
+} {
+
+    # Show only if user is an employee
+    if { ![im_user_is_employee_p $user_id] } { return "" }
+
+    set current_user_id [ad_get_user_id]
+    # This is a sensitive field, so only allows this for the user himself
+    # and for users with HR permissions.
+
+    set read_p 0
+    if {$user_id == $current_user_id} { set read_p 1 }
+    if {[im_permission $current_user_id view_hr]} { set read_p 1 }
+    if {!$read_p} { return "" }
+
+    set params [list \
+		    [list user_id $user_id] \
+		    [list return_url [im_url_with_query]] \
+    ]
+
+    set result [ad_parse_template -params $params "/packages/intranet-timesheet2/lib/absence-balance-component"]
+
+    return [string trim $result]
+}
+
+
+ad_proc -public im_leave_entitlement_remaining_days {
+    -user_id:required
+    -absence_type_id:required
+} {
+    Returns the number of remaining days for the user of a certain absence type
+} {
+
+    set vacation_sql "
+	select
+                coalesce((select sum(a.duration_days) as absence_days from im_user_absences a where absence_type_id = category_id and owner_id = :user_id),0) as absence_days,
+                category_id,
+                coalesce((select sum(l.entitlement_days) as absence_days from im_user_leave_entitlements l where leave_entitlement_type_id = category_id and owner_id = :user_id),0) as entitlement_days
+	from
+		im_categories c
+	where
+                category_id = :absence_type_id
+"
+
+    db_0or1row absence_info $vacation_sql
+    set remaining_days [expr $entitlement_days - $absence_days]
+    return $remaining_days
+}

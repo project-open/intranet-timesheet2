@@ -8,11 +8,11 @@
 <if @message@ not nil>
   <div class="general-message">@message@</div>
 </if>
-
 <table width="100%">
   <tr valign="top">
     <td width="50%">
       <%= [im_box_header $page_title] %>
+@absence_balance_component_html;noquote@
       <formtemplate id="absence"></formtemplate></font>
       <%= [im_box_footer] %>
 

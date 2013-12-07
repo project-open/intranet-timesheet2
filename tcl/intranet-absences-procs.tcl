@@ -848,4 +848,3 @@ ad_proc -public im_absence_user_component {
     set result [ad_parse_template -params $params "/packages/intranet-timesheet2/lib/user-absences"]
     return [string trim $result]
 }
-

@@ -12,6 +12,7 @@ set view_name "leave_entitlement_list"
 set name_order [parameter::get -package_id [apm_package_id_from_key intranet-core] -parameter "NameOrder" -default 1]
 set date_format "YYYY-MM-DD"
 set page_title "[lang::message::lookup "" intranet-timesheet2.Absences_for_user "Absences for %user_name%"]"
+set owner_id $user_id_from_search
 
 # Check permissions. "See details" is an additional check for
 # critical information
@@ -171,4 +172,4 @@ db_foreach leave_entitlements_list $selection {
 }
 
 # Links to add leave_entitlements
-set new_leave_entitlement_url [export_vars -base "/intranet-timesheet2/leave-entitlement/new" -url {owner_id return_url}]
+set new_leave_entitlement_url [export_vars -base "/intranet-timesheet2/leave-entitlements/new" -url {owner_id return_url}]

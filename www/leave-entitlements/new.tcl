@@ -6,8 +6,8 @@ ad_page_contract {
     @author malte.sussdorff@cognovis.de
 } {
     {owner_id ""}
-    { leave_entitlement_type_id:integer 5100 }
-    { leave_entitlement_status_id:integer 16100 }
+    { leave_entitlement_type_id:integer 5000 }
+    { leave_entitlement_status_id:integer 16000 }
     leave_entitlement_id:integer,optional
     {return_url ""}
 }
@@ -36,7 +36,7 @@ ad_form -name leave_entitlement -export {return_url leave_entitlement_status_id}
     owner_id:text(hidden)
     {owner_name:text(inform) {label "owner"} {value $owner_name}}
     {leave_entitlement_name:text(text) {label "[_ intranet-timesheet2.Absence_Name]"} {html {size 40}}}
-    {leave_entitlement_type_id:text(im_category_tree) {label "[_ intranet-timesheet2.Type]"} {custom {category_type "Intranet Leave Entitlement Type"}}}
+    {leave_entitlement_type_id:text(im_category_tree) {label "[_ intranet-timesheet2.Type]"} {custom {category_type "Intranet Absence Type"}}}
     {booking_date:date(date) {label "[_ intranet-timesheet2.Booking_date]"} {format "YYYY-MM-DD"} {after_html {<input type="button" style="height:23px; width:23px; background: url('/resources/acs-templating/calendar.gif');" onclick ="return showCalendarWithDateWidget('booking_date', 'y-m-d');" >}}}
     {entitlement_days:float(text) {label "[lang::message::lookup {} intranet-timesheet2.Entitlement_days {Leave Entitlement (Days)}]"} {help_text "[lang::message::lookup {} intranet-timesheet2.Entitlement_days_help {Please specify the leave entitlement as a number or fraction of days. Example: '1'=one day, '0.5'=half a day)}]"}}
     {description:text(textarea),optional {label "[_ intranet-timesheet2.Description]"} {html {cols 40}}}
@@ -92,7 +92,6 @@ ad_form -extend -name leave_entitlement -edit_request {
 	# Audit the action
 	im_audit -object_type im_user_leave_entitlement -action after_create -object_id $leave_entitlement_id -status_id $leave_entitlement_status_id -type_id $leave_entitlement_type_id
     }
-	
 } -edit_data {
     
     set booking_date_sql [template::util::date get_property sql_timestamp $booking_date]

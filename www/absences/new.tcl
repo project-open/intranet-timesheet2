@@ -32,6 +32,7 @@ if {![info exists enable_master_p]} { set enable_master_p 1}
 
 set user_id [ad_maybe_redirect_for_registration]
 set current_user_id $user_id
+set absence_owner_id $user_id_from_search
 set action_url "/intranet-timesheet2/absences/new"
 set cancel_url "/intranet-timesheet2/absences/index"
 set current_url [im_url_with_query]
@@ -252,9 +253,10 @@ set field_cnt [im_dynfield::append_attributes_to_form \
     -object_type "im_user_absence" \
     -form_id absence \
     -object_id $my_absence_id \
-    -form_display_mode $form_mode \
+    -form_display_mode $form_mode
 ]
 
+set absence_balance_component_html ""
 # ------------------------------------------------------------------
 # Form Actions
 # ------------------------------------------------------------------
@@ -268,7 +270,7 @@ ad_form -extend -name absence -on_request {
     if {![info exists absence_owner_id] || 0 == $absence_owner_id} { set absence_owner_id $current_user_id }
     if {![info exists absence_type_id]} { set absence_type_id [im_absence_type_vacation] }
     if {![info exists absence_status_id]} { set absence_status_id [im_absence_status_active] }
-    
+    template::element::set_value absence vacation_replacement_id [db_string supervisor "select supervisor_id from im_employees where employee_id = :absence_owner_id" -default $current_user_id]
 } -select_query {
 
 	select	a.*,
@@ -283,44 +285,36 @@ ad_form -extend -name absence -on_request {
 	{$duration_days > 0}
 	"Positive number expected"
     }
-    
-} -new_data {
-
-    set start_date_sql [template::util::date get_property sql_timestamp $start_date]
-    set end_date_sql [template::util::date get_property sql_timestamp $end_date]
-
-    # Check the date range
-
-    set date_range_error_p [db_string date_range "select $end_date_sql >= $start_date_sql"]
-    if {"f" == $date_range_error_p} {
-	ad_return_complaint 1 "<b>Date Range Error</b>:<br>Please revise your start and end date."
-	ad_script_abort
+    {duration_days
+	{$duration_days <= [expr [db_string date_range "select date([template::util::date get_property sql_timestamp $end_date]) - date([template::util::date get_property sql_timestamp $start_date]) + 1"] +1]}
+	"Duration is longer then date interval."
     }
-
-    # Check the number of absence days per interval
-    set date_range_days [db_string date_range "select date($end_date_sql) - date($start_date_sql) + 1"]
-    if {$duration_days > [expr $date_range_days+1]} {
-	ad_return_complaint 1 "<b>Date Range Error</b>:<br>Duration is longer then date interval."
-	ad_script_abort
+    {duration_days
+	{$duration_days <= [im_leave_entitlement_remaining_days -user_id $absence_owner_id -absence_type_id $absence_type_id]}
+	"Duration is longer than remaining days"
     }
-
-    if { [db_string exists "
+    {start_date
+	{"f" != [db_string date_range "select [template::util::date get_property sql_timestamp $end_date] >= [template::util::date get_property sql_timestamp $start_date]"]}
+	"Please revise your start and end date."
+    }
+    {start_date
+	{ 0 == [db_string exists "
 		select	count(*) 
 		from	im_user_absences a
 		where	a.owner_id = :absence_owner_id and
 			a.absence_type_id = :absence_type_id and
-			a.start_date = $start_date_sql
-	   "]
-     } {
-	ad_return_complaint 1 [lang::message::lookup "" intranet-timesheet2.Absence_Duplicate_Start "There is already an absence with exactly the same owner, type and start date."]
+			a.start_date = [template::util::date get_property sql_timestamp $start_date]
+	   "]}
+	{[lang::message::lookup "" intranet-timesheet2.Absence_Duplicate_Start "There is already an absence with exactly the same owner, type and start date."]}
     }
+    {end_date
+	{$absence_type_id != [im_absence_type_vacation] || [lindex $start_date 0] == [lindex $end_date 0] }
+	{[lang::message::lookup "" intranet-timesheet2.NoVacationTurnOfTheYear "Entry not allowed. Vacation absences need to begin and end in the same year. Please consider creating two entries."]}
+    } 
+} -new_data {
 
-    # We do not allow entries of type "Vacation" over the turn of the year in order
-    # to be able to calculate vacation balance in an unambiguous manner
-    if { $absence_type_id == [im_absence_type_vacation] && [lindex $start_date 0] != [lindex $end_date 0] } {
-	set err_msg_default "Entry not allowed. Vacation absences need to begin and end in the same year. Please consider creating two entries."
-	ad_return_complaint 1 [lang::message::lookup "" intranet-timesheet2.NoVacationTurnOfTheYear $err_msg_default] 
-    }
+    set start_date_sql [template::util::date get_property sql_timestamp $start_date]
+    set end_date_sql [template::util::date get_property sql_timestamp $end_date]
 
     db_transaction {
 	set absence_id [db_string new_absence "
@@ -357,11 +351,11 @@ ad_form -extend -name absence -on_request {
 		where object_id = :absence_id
 	"
 
+	ds_comment "vacation: $vacation_replacement_id"
 	im_dynfield::attribute_store \
 	    -object_type "im_user_absence" \
 	    -object_id $absence_id \
 	    -form_id absence
-
 	set wf_key [db_string wf "select trim(aux_string1) from im_categories where category_id = :absence_type_id" -default ""]
 	set wf_exists_p [db_string wf_exists "select count(*) from wf_workflows where workflow_key = :wf_key"]
 	if {$wf_exists_p} {
@@ -377,8 +371,8 @@ ad_form -extend -name absence -on_request {
 	}
 	
 	# Callback 
-    ns_log Notice "Callback: Calling callback 'absence_on_change' "
-
+	ns_log Notice "Callback: Calling callback 'absence_on_change' "
+	
 	callback absence_on_change \
 	    -absence_id $absence_id \
 	    -absence_type_id $absence_type_id \
@@ -443,3 +437,10 @@ ad_form -extend -name absence -on_request {
     ad_script_abort
 }
 
+# Absence Balance Component
+set params [list \
+		[list user_id $absence_owner_id] \
+		[list return_url [im_url_with_query]] \
+	       ]
+
+set absence_balance_component_html [ad_parse_template -params $params "/packages/intranet-timesheet2/lib/absence-balance-component"]

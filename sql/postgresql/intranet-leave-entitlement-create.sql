@@ -67,7 +67,7 @@ create table im_user_leave_entitlements (
                                 references users,
         booking_date            timestamptz
                                 constraint im_user_leave_entitlements_booking_nn not null,
-	entitlement_days	float default 1
+	entitlement_days	numeric(12,1) 
 				constraint im_user_leave_entitlements_entitlement_days_nn not null,
         description             text,
         leave_entitlement_type_id		integer
@@ -199,37 +199,6 @@ SELECT im_priv_create('add_leave_entitlements', 'HR Managers');
 SELECT im_priv_create('view_leave_entitlements_all', 'HR Managers');
 SELECT im_priv_create('view_leave_entitlements_all', 'Senior Managers');
 
------------------------------------------------------------
--- Type and Status
---
--- 5100 - 5199	Intranet Leave Entitlement types
--- 16100-16199  Intranet Leave Entitlement status
-
-SELECT im_category_new (16100, 'Active', 'Intranet Leave Entitlement Status');
-SELECT im_category_new (16102, 'Deleted', 'Intranet Leave Entitlement Status');
-SELECT im_category_new (16104, 'Requested', 'Intranet Leave Entitlement Status');
-SELECT im_category_new (16106, 'Rejected', 'Intranet Leave Entitlement Status');
-
-SELECT im_category_new (5100, 'Vacation', 'Intranet Leave Entitlement Type');
-SELECT im_category_new (5101, 'Overtime', 'Intranet Leave Entitlement Type');
-SELECT im_category_new (5102, 'Other', 'Intranet Leave Entitlement Type');
-
------------------------------------------------------------
--- Create views for shortcut
---
-
-create or replace view im_user_leave_entitlement_status as
-select	category_id as leave_entitlement_status_id, category as leave_entitlement_status
-from	im_categories
-where	category_type = 'Intranet Leave Entitlement Status'
-	and (enabled_p is null or enabled_p = 't');
-
-create or replace view im_user_leave_entitlement_types as
-select	category_id as leave_entitlement_type_id, category as leave_entitlement_type
-from	im_categories
-where	category_type = 'Intranet Leave Entitlement Type'
-	and (enabled_p is null or enabled_p = 't');
-
 SELECT  im_component_plugin__new (
 	null,					-- plugin_id
 	'im_component_plugin',			-- object_type
@@ -246,6 +215,24 @@ SELECT  im_component_plugin__new (
 	100,					-- sort_order
 	'im_leave_entitlement_user_component -user_id $user_id'
 );
+
+SELECT  im_component_plugin__new (
+	null,					-- plugin_id
+	'im_component_plugin',			-- object_type
+	now(),					-- creation_date
+	null,					-- creation_user
+	null,					-- creation_ip
+	null,					-- context_id
+
+	'Absence Balance',			-- component_name
+	'intranet-timesheet2',			-- package_name
+	'bottom',				-- location
+	'/intranet/users/view',			-- page_url
+	null,					-- view_name
+	101,					-- sort_order
+	'im_leave_entitlement_absence_balance_component -user_id $user_id'
+);
+
 
 -- ------------------------------------------------------
 -- Leave Entitlement View Definition
