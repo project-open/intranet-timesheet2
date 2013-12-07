@@ -192,7 +192,27 @@ if { ![parameter::get -package_id [apm_package_id_from_key intranet-timesheet2] 
 # / -------
 
 if {$add_absences_for_group_p} {
-    set group_options [im_profile::profile_options_all -translate_p 1]
+    set group_options_untranslated [db_list_of_lists group_options "
+	select	g.group_name,
+		g.group_id
+	from	groups g,
+		acs_objects o
+	where	g.group_id = o.object_id and
+		o.object_type in ('im_profile', 'im_biz_object_group')
+	order by g.group_name
+    "]
+    set group_options [list]
+    foreach tuple $group_options_untranslated {
+        set gname [lindex $tuple 0]
+	set gid [lindex $tuple 1]
+	regsub -all {[ /]} $gname "_" gkey
+	set gname [lang::message::lookup "" intranet-core.Profile_$gkey $gname]
+    	lappend group_options [list $gname $gid]
+    }
+
+    #set group_options [im_profile::profile_options_all -translate_p 1]
+    #ad_return_complaint 1 "$group_options <br> $group_options2"
+
     set group_options [linsert $group_options 0 [list "" ""]]
     lappend form_fields	{group_id:text(select),optional {label "[lang::message::lookup {} intranet-timesheet2.Valid_for_Group {Valid for Group}]"} {options $group_options}}
 } else {
