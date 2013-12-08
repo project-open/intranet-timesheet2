@@ -892,24 +892,24 @@ ad_proc -public im_absence_remaining_days {
                           coalesce(rwh_days_last_year,0) as rwh_days_last_year,
                           coalesce(rwh_days_per_year,0) as rwh_days_per_year
                       from im_employees where employee_id = :user_id"
-switch $absence_type_id {
-    5000 {
+    switch $absence_type_id {
+	5000 {
             # Vacation
-	set entitlement_days [expr $vacation_balance + $vacation_days_per_year]
-    }
-    5006 {
+	    set entitlement_days [expr $vacation_balance + $vacation_days_per_year]
+	}
+	5006 {
             # Overtime
             set entitlement_days $overtime_balance
         }
-    5007 {
+	5007 {
             # RTT
-	set entitlement_days [expr $rwh_days_last_year + $rwh_days_per_year]
-    }
-    default {
+	    set entitlement_days [expr $rwh_days_last_year + $rwh_days_per_year]
+	}
+	default {
             set entitlement_days 0
+	}
     }
-}
-
+    
     db_0or1row absence_info $vacation_sql
 set remaining_days [expr $entitlement_days - $absence_days]
     return $remaining_days

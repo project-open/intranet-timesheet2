@@ -261,6 +261,10 @@ set absence_balance_component_html ""
 # Form Actions
 # ------------------------------------------------------------------
 
+# We need to find out the vacation_ids to enable the check
+set vacation_category_ids [db_list bank_holidays "select child_id from im_category_hierarchy where parent_id = '5000'"]
+lappend vacation_category_ids 5000
+
 ad_form -extend -name absence -on_request {
     # Populate elements from local variables
     if {![info exists start_date]} { set start_date [db_string today "select to_char(now(), :date_time_format)"] }
@@ -290,7 +294,7 @@ ad_form -extend -name absence -on_request {
 	"Duration is longer then date interval."
     }
     {duration_days
-	{$duration_days <= [im_leave_entitlement_remaining_days -user_id $absence_owner_id -absence_type_id $absence_type_id]}
+	{$duration_days <= [im_absence_remaining_days -user_id $absence_owner_id -absence_type_id $absence_type_id] || [lsearch $vacation_category_ids $absence_type_id]<0}
 	"Duration is longer than remaining days"
     }
     {start_date
