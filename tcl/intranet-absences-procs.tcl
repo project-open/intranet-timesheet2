@@ -848,3 +848,69 @@ ad_proc -public im_absence_user_component {
     set result [ad_parse_template -params $params "/packages/intranet-timesheet2/lib/user-absences"]
     return [string trim $result]
 }
+
+ad_proc -public im_absence_remaining_days {
+    -user_id:required
+    -absence_type_id:required
+    -approved:boolean
+} {
+    Returns the number of remaining days for the user of a certain absence type
+} {
+
+    set current_year [db_string current_year "select to_char(now(), 'YYYY')"]
+
+    set start_of_year "$current_year-01-01"
+    set end_of_year "$current_year-12-31"
+
+    if {!$approved_p} {
+        set approved_sql ""
+    } else {
+        set approved_sql ""
+    }
+
+    set vacation_sql "
+        select
+                coalesce((
+                    select sum(a.duration_days) as absence_days
+                    from im_user_absences a
+                    where absence_type_id = category_id and
+                    owner_id = :user_id and
+                    a.start_date <= :end_of_year and
+                    a.end_date >= :start_of_year
+                    $approved_sql
+                ),0) as absence_days,
+                category_id
+        from
+                im_categories c
+        where
+                category_id = :absence_type_id
+    "
+
+    db_1row user_info "select coalesce(vacation_balance,0) as vacation_balance,
+                          coalesce(vacation_days_per_year,0) as vacation_days_per_year,
+                          coalesce(overtime_balance,0) as overtime_balance,
+                          coalesce(rwh_days_last_year,0) as rwh_days_last_year,
+                          coalesce(rwh_days_per_year,0) as rwh_days_per_year
+                      from im_employees where employee_id = :user_id"
+switch $absence_type_id {
+    5000 {
+            # Vacation
+	set entitlement_days [expr $vacation_balance + $vacation_days_per_year]
+    }
+    5006 {
+            # Overtime
+            set entitlement_days $overtime_balance
+        }
+    5007 {
+            # RTT
+	set entitlement_days [expr $rwh_days_last_year + $rwh_days_per_year]
+    }
+    default {
+            set entitlement_days 0
+    }
+}
+
+    db_0or1row absence_info $vacation_sql
+set remaining_days [expr $entitlement_days - $absence_days]
+    return $remaining_days
+}
