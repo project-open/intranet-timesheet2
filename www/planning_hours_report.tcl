@@ -51,7 +51,7 @@ set user_id [ad_maybe_redirect_for_registration]
 set admin_p [im_is_user_site_wide_or_intranet_admin $user_id]
 set subsite_id [ad_conn subsite_id]
 set site_url "/intranet-timesheet2"
-set return_url "$site_url/monthly_hours_report"
+set return_url "$site_url/planning_hours_report"
 set date_format "YYYY-MM-DD"
 
 # We need to set the overall hours per month an employee is working
@@ -109,7 +109,7 @@ if { $project_id != "" } {
 # ---------------------------------------------------------------
 
 set form_id "report_filter"
-set action_url "/intranet-timesheet2/monthly_hours_report"
+set action_url "/intranet-timesheet2/planning_hours_report"
 set form_mode "edit"
 if {[im_permission $user_id "view_projects_all"]} {
     set project_options [im_project_options -include_empty 1 -exclude_subprojects_p 0 -include_empty_name [lang::message::lookup "" intranet-core.All "All"]]
