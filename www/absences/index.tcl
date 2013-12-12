@@ -348,7 +348,6 @@ foreach { value text } $absences_types {
 
 # Now let's generate the sql query
 set criteria [list]
-ds_comment "user:: $user_selection"
 
 set bind_vars [ns_set create]
 if { ![empty_string_p $user_selection] } {
@@ -462,6 +461,7 @@ if { ![empty_string_p $where_clause] } {
 set sql "
 select
 	a.*,
+        to_char(start_date,'YYYY-MM-DD') as start_date2,
 	coalesce(absence_name, absence_id::varchar) as absence_name_pretty,
 	substring(a.description from 1 for 40) as description_pretty,
 	substring(a.contact_info from 1 for 40) as contact_info_pretty,
@@ -512,7 +512,6 @@ set form_id "absence_filter"
 set object_type "im_absence"
 set action_url "/intranet-timesheet2/absences/"
 set form_mode "edit"
-ds_comment "project_id :: $project_id"
 ad_form \
     -name $form_id \
     -action $action_url \

@@ -357,7 +357,6 @@ ad_form -extend -name absence -on_request {
 		where object_id = :absence_id
 	"
 
-	ds_comment "vacation: $vacation_replacement_id"
 	im_dynfield::attribute_store \
 	    -object_type "im_user_absence" \
 	    -object_id $absence_id \

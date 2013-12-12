@@ -68,14 +68,14 @@ set criteria [list]
 set bind_vars [ns_set create]
 
 lappend criteria "owner_id=:user_id_from_search"
-set start_date [db_string last_3m_start_date "select now()::date -31"]
-set end_date [db_string last_3m_start_date "select now()::date +180"]
+#set start_date [db_string last_3m_start_date "select now()::date -31"]
+#set end_date [db_string last_3m_start_date "select now()::date +180"]
 
-set org_start_date $start_date
+#set org_start_date $start_date
 
 # Limit to start-date and end-date
-if {"" != $start_date} { lappend criteria "l.booking_date::date >= :start_date" }
-if {"" != $end_date} { lappend criteria "l.booking_date::date <= :end_date" }
+if {[exists_and_not_null start_date]} { lappend criteria "l.booking_date::date >= :start_date" }
+if {[exists_and_not_null end_date]} { lappend criteria "l.booking_date::date <= :end_date" }
 
 set order_by_clause "order by booking_date"
 
