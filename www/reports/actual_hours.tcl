@@ -52,7 +52,7 @@ set user_id [ad_maybe_redirect_for_registration]
 set admin_p [im_is_user_site_wide_or_intranet_admin $user_id]
 set subsite_id [ad_conn subsite_id]
 set site_url "/intranet-timesheet2"
-set return_url "$site_url/actual_hours_report"
+set return_url "actual_hours"
 set date_format "YYYY-MM-DD"
 
 # We need to set the overall hours per week an employee is working
@@ -105,7 +105,7 @@ if { $project_id != "" && $project_id != 0} {
 # ---------------------------------------------------------------
 
 set form_id "report_filter"
-set action_url "/intranet-timesheet2/actual_hours_report"
+set action_url "actual_hours"
 set form_mode "edit"
 if {[im_permission $user_id "view_projects_all"]} {
     set project_options [im_project_options -include_empty 1 -exclude_subprojects_p 0 -include_empty_name [lang::message::lookup "" intranet-core.All "All"]]
@@ -376,6 +376,7 @@ foreach user_id $user_list {
 		set value ""
 	    }
 	    if {"percentage" == $dimension} {
+		if {$value == ""} {set value 0}
 		append table_body_html "<td>${value}%</td>"
 		set xls_value [expr $value / 100.0]
 		append __output "<table:table-cell office:value-type=\"percentage\" office:value=\"$xls_value\"></table:table-cell>"
@@ -432,8 +433,8 @@ foreach user_id $user_list {
 	    db_foreach timescale_info $timescale_value_sql {
 		set var ${user_id}_${project_id}($timescale_header)
 		if {"percentage" == $dimension} {
-		    if {[info exists user_hours_${dimension}_$employee_id]} {
-			set total [set user_hours_${dimension}_$employee_id]
+		    if {[info exists user_hours_${timescale_header}_$employee_id]} {
+			set total [set user_hours_${timescale_header}_$employee_id]
 		    } else {
 			set total 0
 		    }
@@ -471,6 +472,7 @@ foreach user_id $user_list {
 		    set value ""
 		}
 		if {"percentage" == $dimension} {
+		    if {$value == ""} {set value 0}
 		    append table_body_html "<td>${value}%</td>"
 		    set xls_value [expr $value / 100.0]
 		    append __output "<table:table-cell office:value-type=\"percentage\" office:value=\"$xls_value\"></table:table-cell>"
