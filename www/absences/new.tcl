@@ -286,8 +286,11 @@ ad_form -extend -name absence -on_request {
     if {![info exists duration_days]} { set duration_days "" }
     if {![info exists absence_owner_id] || 0 == $absence_owner_id} { set absence_owner_id $user_id_from_scratch }
     if {![info exists absence_owner_id] || 0 == $absence_owner_id} { set absence_owner_id $current_user_id }
-    if {![info exists absence_type_id]} { set absence_type_id [im_user_absence_type_vacation] }
-    if {![info exists absence_status_id]} { set absence_status_id [im_user_absence_status_requested] }
+    if {![info exists absence_type_id]} { set absence_type_id [im_absence_type_vacation] }
+    if {![info exists absence_status_id]} { set absence_status_id [im_absence_status_requested] }
+    if { $current_user_id != $user_id_from_search && ![im_permission $user_id "add_absences_all"] } {
+	set user_id_from_search $current_user_id
+    }
     
 } -select_query {
 
