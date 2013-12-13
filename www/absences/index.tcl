@@ -57,7 +57,7 @@ set admin_p [im_is_user_site_wide_or_intranet_admin $user_id]
 set current_user_id $user_id
 set subsite_id [ad_conn subsite_id]
 set add_absences_for_group_p [im_permission $user_id "add_absences_for_group"]
-set add_hours_all_p [im_permission $user_id "add_hours_all"]
+set add_absences_all_p [im_permission $user_id "add_absences_all"]
 set view_absences_all_p [im_permission $user_id "view_absences_all"]
 set view_absences_direct_reports_p [im_permission $user_id "view_absences_direct_reports"]
 set add_absences_p [im_permission $user_id "add_absences"]
@@ -72,15 +72,48 @@ if {![im_permission $user_id "view_absences"] && !$view_absences_all_p && !$view
     ad_script_abort
 }
 
-# "user_id_from_search" is the guy we're going to log absences for.
-# reset this variable to the current user if undefined or if the user doesn't have
-# the permission to log hours/absences for other user.
-if {"" != $user_id_from_search && $add_hours_all_p} { 
-    set user_selection $user_id_from_search
+# Setting list of "direct reports" and "other employees"
+set direct_reports_list [list]
+set other_employees_list [list]
+if { $view_absences_direct_reports_p || $add_absences_all_p || $view_absences_all_p } {
+    set emp_sql "
+	SELECT distinct
+        	im_name_from_user_id(cc.user_id, $name_order) as name,
+	        cc.user_id,
+		e.supervisor_id
+	FROM
+        	group_member_map gm,
+	        membership_rels mr,
+        	acs_rels r,
+	        cc_users cc,
+		im_employees e
+	WHERE
+        	gm.rel_id = mr.rel_id
+	        AND r.rel_id = mr.rel_id
+        	AND r.rel_type = 'membership_rel'
+	        AND e.employee_id = gm.member_id
+        	AND cc.member_state = 'approved'
+	        AND cc.user_id = gm.member_id
+        	AND gm.group_id = [im_employee_group_id]
+	order by
+		name
+    "
+    db_foreach emps $emp_sql {
+	if { $supervisor_id == $current_user_id } {
+	    lappend direct_reports_list [list "&nbsp;&nbsp;$name" $user_id]
+	} else {
+	    lappend other_employees_list [list "&nbsp;&nbsp;$name" $user_id]
+	}
+    }
 }
 
+# Reset this variable to the current user if undefined or if the user doesn't have
+# the permission to log absences for other user.
+# if {"" != $user_id_from_search && $add_absences_all_p } { 
+#    set user_selection $user_id_from_search
+# }
 # Set default to 'mine' in case user can't see ALL absences 
-if {!$view_absences_all_p} { set user_selection "mine" }
+# if {!$view_absences_all_p } { set user_selection "mine" }
 
 set user_name $user_selection
 if {[string is integer $user_selection]} {
@@ -104,61 +137,33 @@ set return_url [im_url_with_query]
 set user_view_page "/intranet/users/view"
 set absence_view_page "$absences_url/new"
 
-set user_selection_types [list \
-			      [list [lang::message::lookup "" intranet-timesheet2.All All] "all"] \
-			      [list [lang::message::lookup "" intranet-timesheet2.Mine Mine] "mine"] \
-			      [list [lang::message::lookup "" intranet-timesheet2.Direct_reports "Direct reports"] "direct_reports"] \
-			      [list [lang::message::lookup "" intranet-timesheet2.Employees Employees] "employees"] \
-			      [list [lang::message::lookup "" intranet-timesheet2.Providers Providers] "providers"] \
-			      [list [lang::message::lookup "" intranet-timesheet2.Customers Customers] "customers"] \
-]
+# Show always "mine" 
+set user_selection_types [list [list [lang::message::lookup "" intranet-timesheet2.Mine Mine] "mine"]] 
 
-# Users can only see their own absences, unless they have a special permission
-# ToDo: Users should _always_ see their absences 
-if {!$view_absences_all_p} { 
-    set user_selection_types [list [list "mine" [lang::message::lookup "" intranet-timesheet2.Mine Mine]]] 
-
-    # Only 'direct' subordinates. 
-    if {$view_absences_direct_reports_p} { 
-	lappend user_selection_types [list "direct_reports" [lang::message::lookup "" intranet-timesheet2.Direct_reports "Direct reports"]] 
+# Direct subordinates 
+if {$view_absences_direct_reports_p || $add_absences_all_p || $view_absences_all_p} { 
+    if { 0 != [llength $direct_reports_list] } {
+	lappend user_selection_types [list [lang::message::lookup "" intranet-timesheet2.Direct_reports "Direct reports"] "direct_reports"]
+	foreach list_item $direct_reports_list { lappend user_selection_types $list_item}
     }
 }
 
-
-if {$add_hours_all_p} {
-    # Add employees to user_selection
-    set emp_sql "
-	SELECT distinct
-        	im_name_from_user_id(cc.user_id, $name_order) as name,
-	        cc.user_id
-	FROM
-        	group_member_map gm,
-	        membership_rels mr,
-        	acs_rels r,
-	        cc_users cc
-	WHERE
-        	gm.rel_id = mr.rel_id
-	        AND r.rel_id = mr.rel_id
-        	AND r.rel_type = 'membership_rel'
-	        AND cc.user_id = gm.member_id
-        	AND cc.member_state = 'approved'
-	        AND cc.user_id = gm.member_id
-        	AND gm.group_id = [im_employee_group_id]
-	order by
-		name
-    "
-    db_foreach emps $emp_sql {
-	lappend user_selection_types [list $name $user_id]
-    }
-
-
+# All
+if {$add_absences_all_p || $view_absences_all_p} {
+    lappend user_selection_types [list [lang::message::lookup "" intranet-timesheet2.All "All"] "all"] 
+    foreach list_item $other_employees_list { lappend user_selection_types $list_item}
+    lappend user_selection_types [list [lang::message::lookup "" intranet-timesheet2.Employees "Employees"] "employees"] 
+    lappend user_selection_types [list [lang::message::lookup "" intranet-timesheet2.Providers "Providers"] "providers"] 
+    lappend user_selection_types [list [lang::message::lookup "" intranet-timesheet2.Customers "Customers"] "customers"]     
 }
+
 
 # ---------- / setting filter 'User selection' ------------- # 
 #
 set timescale_types [list \
-			 "all" [lang::message::lookup "" intranet-timesheet2.All All] \
-			 "today" [lang::message::lookup "" intranet-timesheet2.Today Today] \
+			 "all" [lang::message::lookup "" intranet-timesheet2.All "All"] \
+			 "custom" [lang::message::lookup "" intranet-timesheet2.CustomTimescale "Start/End Date"] \
+			 "today" [lang::message::lookup "" intranet-timesheet2.Today "Today"] \
 			 "next_3w" [lang::message::lookup "" intranet-timesheet2.Next_3_Weeks "Next 3 Weeks"] \
 			 "next_3m" [lang::message::lookup "" intranet-timesheet2.Next_3_Month "Next 3 Months"] \
 			 "future" [lang::message::lookup "" intranet-timesheet2.Future "Future"] \
@@ -373,6 +378,7 @@ if {"" == $start_date} { set start_date [parameter::get_from_package_key -packag
 if {"" == $end_date} { set end_date [parameter::get_from_package_key -package_key "intranet-cost" -parameter DefaultEndDate -default "2100-01-01"] }
 
 set org_start_date $start_date
+set org_end_date $end_date
 
 # Limit to start-date and end-date
 if {"" != $start_date} { lappend criteria "a.end_date::date >= :start_date" }
@@ -464,21 +470,16 @@ ad_form \
         {absence_type_id:text(select),optional {label "[_ intranet-timesheet2.Absence_Type]"} {options $absence_type_list }}
         {user_selection:text(select),optional {label "[_ intranet-timesheet2.Show_Users]"} {options $user_selection_types }}
         {timescale:text(select),optional {label "[_ intranet-timesheet2.Timescale]"} {options $timescale_type_list }}
-    }
-
-set ttt {
 	{start_date:text(text) {label "[_ intranet-timesheet2.Start_Date]"} {html {size 10}} {value "$start_date"} {after_html {<input type="button" style="height:23px; width:23px; background: url('/resources/acs-templating/calendar.gif');" onclick ="return showCalendar('start_date', 'y-m-d');" >}}}
 	{end_date:text(text) {label "[_ intranet-timesheet2.End_Date]"} {html {size 10}} {value "$end_date"} {after_html {<input type="button" style="height:23px; width:23px; background: url('/resources/acs-templating/calendar.gif');" onclick ="return showCalendar('end_date', 'y-m-d');" >}}}
-}
+    }
 
-# template::element::set_value $form_id start_date $start_date
-# template::element::set_value $form_id end_date $end_date
+template::element::set_value $form_id start_date $start_date
+template::element::set_value $form_id end_date $end_date
 template::element::set_value $form_id timescale $timescale
-
 
 eval [template::adp_compile -string {<formtemplate style="tiny-plain-po" id="absence_filter"></formtemplate>}]
 set filter_html $__adp_output
-
 
 # ---------------------------------------------------------------
 # Create Links from Menus 
@@ -698,6 +699,7 @@ set absence_cube_html [im_absence_cube \
 			   -user_selection $user_selection \
 			   -timescale $timescale \
 			   -report_start_date $org_start_date \
+			   -report_end_date $org_end_date \
 			   -user_id_from_search $user_id_from_search \
 ]
 
