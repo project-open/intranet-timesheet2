@@ -367,11 +367,23 @@ ad_form -extend -name absence -on_request {
 		)
 	"]
 
+	# Don't add the creator as a participant of a group absence
+	if {"" != $group_id} { set owner_id "" }
+
 	db_dml update_absence "
-		update im_user_absences	set
+		UPDATE im_user_absences SET
+			absence_name = :absence_name,
+			owner_id = :absence_owner_id,
+			start_date = $start_date_sql,
+			end_date = $end_date_sql,
 			duration_days = :duration_days,
-			group_id = :group_id
-		where absence_id = :absence_id
+			group_id = :group_id,
+			absence_status_id = :absence_status_id,
+			absence_type_id = :absence_type_id,
+			description = :description,
+			contact_info = :contact_info
+		WHERE
+			absence_id = :absence_id
 	"
 
 	db_dml update_object "
@@ -433,6 +445,9 @@ ad_form -extend -name absence -on_request {
 	ad_return_complaint 1 "<b>Date Range Error</b>:<br>Duration is longer then date interval."
 	ad_script_abort
     }
+
+    # Don't add the creator as a participant of a group absence
+    if {"" != $group_id} { set owner_id "" }
 
     db_dml update_absence "
 		UPDATE im_user_absences SET
