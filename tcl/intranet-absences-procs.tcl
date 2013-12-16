@@ -420,7 +420,6 @@ ad_proc im_absence_cube_render_cell {
     }
 }
 
-
 ad_proc im_absence_cube {
     {-num_days 21}
     {-absence_status_id "" }
@@ -428,18 +427,36 @@ ad_proc im_absence_cube {
     {-user_selection "" }
     {-timescale "" }
     {-report_start_date "" }
+    {-report_end_date "" }
     {-user_id_from_search "" }
 } {
     Returns a rendered cube with a graphical absence display
     for users.
 } {
     switch $timescale {
-	today { return "" }
-	all { return "" }
+	today { 
+	    return ""
+	    ad_script_abort
+	}
+	all { 
+            return [lang::message::lookup "" intranet-timesheet2.AbsenceCubeNotShownAllAbsences "Graphical view of absences not available for Timescale option 'All'. Please choose a different option."]
+            ad_script_abort
+	}
+	custom {
+	    if {[catch {
+		set num_days [db_string get_number_days "select (:report_end_date::date - :report_start_date::date);" -default 0]
+		incr num_days
+	    } err_msg]} {
+		set num_days 93
+	    }
+	}
 	next_3w { set num_days 21 }
 	last_3w { set num_days 21 }
 	next_1m { set num_days 31 }
-	past { return "" }
+	past { 
+            return [lang::message::lookup "" intranet-timesheet2.AbsenceCubeNotShownPastAbsences "Graphical view of absences not available for Timescale option 'Past'. Please choose a different option."]
+            ad_script_abort
+	}
 	future { set num_days 93 }
 	last_3m { set num_days 93 }
 	next_3m { set num_days 93 }
@@ -447,6 +464,12 @@ ad_proc im_absence_cube {
 	    set num_days 31
 	}
     }
+
+    if { $num_days > 370 } {
+	return [lang::message::lookup "" intranet-timesheet2.AbsenceCubeNotShownGreateOneYear "Graphical view of absences only available for periods less than 1 year"]
+	ad_script_abort 
+    }
+
 
     set user_url "/intranet/users/view"
     set date_format "YYYY-MM-DD"
@@ -459,7 +482,9 @@ ad_proc im_absence_cube {
 	set report_start_date [db_string start_date "select now()::date"]
     }
 
-    set report_end_date [db_string end_date "select :report_start_date::date + :num_days::integer"]
+    if { "" == $report_end_date } {
+	set report_end_date [db_string end_date "select :report_start_date::date + :num_days::integer"]	
+    }
 
     if {-1 == $absence_type_id} { set absence_type_id "" }
 
