@@ -368,7 +368,7 @@ ad_form -extend -name absence -on_request {
 	"]
 
 	# Don't add the creator as a participant of a group absence
-	if {"" != $group_id} { set owner_id "" }
+	if {"" != $group_id} { set absence_owner_id "" }
 
 	db_dml update_absence "
 		UPDATE im_user_absences SET
@@ -447,7 +447,7 @@ ad_form -extend -name absence -on_request {
     }
 
     # Don't add the creator as a participant of a group absence
-    if {"" != $group_id} { set owner_id "" }
+    if {"" != $group_id} { set absence_owner_id "" }
 
     db_dml update_absence "
 		UPDATE im_user_absences SET
