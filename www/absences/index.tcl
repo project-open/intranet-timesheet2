@@ -78,23 +78,23 @@ set other_employees_list [list]
 if { $view_absences_direct_reports_p || $add_absences_all_p || $view_absences_all_p } {
     set emp_sql "
 	SELECT distinct
-        	im_name_from_user_id(cc.user_id, $name_order) as name,
-	        cc.user_id,
+		im_name_from_user_id(cc.user_id, $name_order) as name,
+		cc.user_id,
 		e.supervisor_id
 	FROM
-        	group_member_map gm,
-	        membership_rels mr,
-        	acs_rels r,
-	        cc_users cc,
+		group_member_map gm,
+		membership_rels mr,
+		acs_rels r,
+		cc_users cc,
 		im_employees e
 	WHERE
-        	gm.rel_id = mr.rel_id
-	        AND r.rel_id = mr.rel_id
-        	AND r.rel_type = 'membership_rel'
-	        AND e.employee_id = gm.member_id
-        	AND cc.member_state = 'approved'
-	        AND cc.user_id = gm.member_id
-        	AND gm.group_id = [im_employee_group_id]
+		gm.rel_id = mr.rel_id
+		AND r.rel_id = mr.rel_id
+		AND r.rel_type = 'membership_rel'
+		AND e.employee_id = gm.member_id
+		AND cc.member_state = 'approved'
+		AND cc.user_id = gm.member_id
+		AND gm.group_id = [im_employee_group_id]
 	order by
 		name
     "
@@ -112,8 +112,10 @@ if { $view_absences_direct_reports_p || $add_absences_all_p || $view_absences_al
 # if {"" != $user_id_from_search && $add_absences_all_p } { 
 #    set user_selection $user_id_from_search
 # }
-# Set default to 'mine' in case user can't see ALL absences 
-# if {!$view_absences_all_p } { set user_selection "mine" }
+
+# Set default to 'mine' in case user can't see ALL absences
+# fraber 131217: Re-enabled: This is security
+if {!$view_absences_all_p } { set user_selection "mine" }
 
 set user_name $user_selection
 if {[string is integer $user_selection]} {
@@ -244,14 +246,16 @@ foreach { value text } $absences_types {
 # 5. Generate SQL Query
 # ---------------------------------------------------------------
 
+ns_log Notice "xxx: user_selection=$user_selection"
+
+
 # Now let's generate the sql query
 set criteria [list]
-
 set bind_vars [ns_set create]
 if { ![empty_string_p $user_selection] } {
 
     if { "mine"==$user_selection } {
-            lappend criteria "a.owner_id = :current_user_id"
+	    lappend criteria "(a.owner_id = :current_user_id OR a.group_id in (select group_id from group_member_map where member_id = :current_user_id))"
     } else {
 	if {$view_absences_all_p} {
 	    switch $user_selection {
@@ -259,23 +263,23 @@ if { ![empty_string_p $user_selection] } {
 		    # Nothing.
 		}
 		"employees" {
-                        lappend criteria "a.owner_id IN (select	m.member_id
-                                                        from	group_approved_member_map m
-                                                        where	m.group_id = [im_employee_group_id]
-                                                        )"
+			lappend criteria "a.owner_id IN (select	m.member_id
+							from	group_approved_member_map m
+							where	m.group_id = [im_employee_group_id]
+							)"
 
-        	}
+		}
 		"providers" {
-                        lappend criteria "a.owner_id IN (select	m.member_id 
+			lappend criteria "a.owner_id IN (select	m.member_id 
 							from	group_approved_member_map m 
 							where	m.group_id = [im_freelance_group_id]
 							)"
 		}
-                "customers" {
-                        lappend criteria "a.owner_id IN (select	m.member_id
-                                                        from	group_approved_member_map m
-                                                        where	m.group_id = [im_customer_group_id]
-                                                        )"
+		"customers" {
+			lappend criteria "a.owner_id IN (select	m.member_id
+							from	group_approved_member_map m
+							where	m.group_id = [im_customer_group_id]
+							)"
 		}
 		"direct_reports" {
 		    lappend criteria "a.owner_id in (
@@ -298,7 +302,7 @@ if { ![empty_string_p $user_selection] } {
 			where  e.department_id = tt.cost_center_id
 			       OR e.employee_id = tt.manager_id
 		    )"
-                }  
+		}  
 		default  {
 		    if {[string is integer $user_selection]} {
 			lappend criteria "a.owner_id = :user_selection"
@@ -406,24 +410,30 @@ if {$view_absences_all_p || "mine" == $user_selection } {
 }
 
 set sql "
-select
-	a.*,
-	coalesce(absence_name, absence_id::varchar) as absence_name_pretty,
-	substring(a.description from 1 for 40) as description_pretty,
-	substring(a.contact_info from 1 for 40) as contact_info_pretty,
-	im_category_from_id(absence_status_id) as absence_status,
-	im_category_from_id(absence_type_id) as absence_type,
-	to_char(a.start_date, :date_format) as start_date_pretty,
-	to_char(a.end_date, :date_format) as end_date_pretty,
-	im_name_from_user_id(a.owner_id, $name_order) as owner_name
-from
-	im_user_absences a,
-        cc_users cc
-where
-        cc.member_state = 'approved'
-	and a.owner_id = cc.object_id
-	$where_clause
-	$perm_clause
+	select
+		a.*,
+		coalesce(absence_name, absence_id::varchar) as absence_name_pretty,
+		substring(a.description from 1 for 40) as description_pretty,
+		substring(a.contact_info from 1 for 40) as contact_info_pretty,
+		im_category_from_id(absence_status_id) as absence_status,
+		im_category_from_id(absence_type_id) as absence_type,
+		to_char(a.start_date, :date_format) as start_date_pretty,
+		to_char(a.end_date, :date_format) as end_date_pretty,
+		im_name_from_user_id(a.owner_id, $name_order) as owner_name
+	from
+		im_user_absences a
+	where	(a.owner_id is null OR a.owner_id not in (
+			-- Exclude deleted or disabled users
+			select	m.member_id
+			from	group_member_map m, 
+				membership_rels mr
+			where	m.group_id = acs__magic_object_id('registered_users') and 
+				m.rel_id = mr.rel_id and 
+				m.container_id = m.group_id and
+				mr.member_state != 'approved'
+		))
+		$where_clause
+		$perm_clause
 "
 
 
@@ -467,9 +477,9 @@ ad_form \
     -method GET \
     -export {start_idx order_by how_many view_name}\
     -form {
-        {absence_type_id:text(select),optional {label "[_ intranet-timesheet2.Absence_Type]"} {options $absence_type_list }}
-        {user_selection:text(select),optional {label "[_ intranet-timesheet2.Show_Users]"} {options $user_selection_types }}
-        {timescale:text(select),optional {label "[_ intranet-timesheet2.Timescale]"} {options $timescale_type_list }}
+	{absence_type_id:text(select),optional {label "[_ intranet-timesheet2.Absence_Type]"} {options $absence_type_list }}
+	{user_selection:text(select),optional {label "[_ intranet-timesheet2.Show_Users]"} {options $user_selection_types }}
+	{timescale:text(select),optional {label "[_ intranet-timesheet2.Timescale]"} {options $timescale_type_list }}
 	{start_date:text(text) {label "[_ intranet-timesheet2.Start_Date]"} {html {size 10}} {value "$start_date"} {after_html {<input type="button" style="height:23px; width:23px; background: url('/resources/acs-templating/calendar.gif');" onclick ="return showCalendar('start_date', 'y-m-d');" >}}}
 	{end_date:text(text) {label "[_ intranet-timesheet2.End_Date]"} {html {size 10}} {value "$end_date"} {after_html {<input type="button" style="height:23px; width:23px; background: url('/resources/acs-templating/calendar.gif');" onclick ="return showCalendar('end_date', 'y-m-d');" >}}}
     }
@@ -543,11 +553,11 @@ db_foreach cols $col_sql {
 	}
 	# calculate a brightness-value for the color
 	# if brightness > 127 the foreground color is black, if < 127 the foreground color is white
-        set brightness [expr $r_bg * 0.2126 + $g_bg * 0.7152 + $b_bg * 0.0722]
+	set brightness [expr $r_bg * 0.2126 + $g_bg * 0.7152 + $b_bg * 0.0722]
 	set col_fg "fff"
-        if {$brightness >= 127} {set col_fg "000"}
-        set category_l10n [lang::message::lookup "" intranet-core.$category_key $category]
-        append admin_html "<tr><td style='padding:3px; background-color:\#$col; color:\#$col_fg'>$category_l10n</td></tr>\n"
+	if {$brightness >= 127} {set col_fg "000"}
+	set category_l10n [lang::message::lookup "" intranet-core.$category_key $category]
+	append admin_html "<tr><td style='padding:3px; background-color:\#$col; color:\#$col_fg'>$category_l10n</td></tr>\n"
    }
 }
 
@@ -669,20 +679,20 @@ set table_continuation_html ""
 
 
 set left_navbar_html "
-            <div class=\"filter-block\">
-                <div class=\"filter-title\">
-                [lang::message::lookup "" intranet-timesheet2.Filter_Absences "Filter Absences"]
-                </div>
-                $filter_html
-            </div>
-            <hr/>
+	    <div class=\"filter-block\">
+		<div class=\"filter-title\">
+		[lang::message::lookup "" intranet-timesheet2.Filter_Absences "Filter Absences"]
+		</div>
+		$filter_html
+	    </div>
+	    <hr/>
 
-            <div class=\"filter-block\">
-                <div class=\"filter-title\">
-                [lang::message::lookup "" intranet-timesheet2.Admin_Absences "Admin Absences"]
-                </div>
-                $admin_html
-            </div>
+	    <div class=\"filter-block\">
+		<div class=\"filter-title\">
+		[lang::message::lookup "" intranet-timesheet2.Admin_Absences "Admin Absences"]
+		</div>
+		$admin_html
+	    </div>
 "
 
 
