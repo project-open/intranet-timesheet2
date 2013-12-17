@@ -101,9 +101,16 @@ if {0 == $absence_type_id && ![info exists absence_id]} {
     set all_same_p [im_dynfield::subtype_have_same_attributes_p -object_type "im_user_absence"]
     set all_same_p 0
     if {!$all_same_p} {
-	ad_returnredirect [export_vars -base "/intranet/biz-object-type-select" { user_id_from_search {object_type "im_user_absence"} {return_url $current_url} {type_id_var "absence_type_id"} }]
+	ad_returnredirect [export_vars -base "/intranet/biz-object-type-select" { 
+	    user_id_from_search 
+	    {object_type "im_user_absence"} 
+	    {return_url $current_url} 
+	    {type_id_var "absence_type_id"} 
+	}]
     }
 }
+
+#	    {pass_through_variables "object_type type_id_var return_url" }
 
 
 # ------------------------------------------------------------------

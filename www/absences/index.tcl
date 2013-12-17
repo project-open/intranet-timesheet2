@@ -115,7 +115,9 @@ if { $view_absences_direct_reports_p || $add_absences_all_p || $view_absences_al
 
 # Set default to 'mine' in case user can't see ALL absences
 # fraber 131217: Re-enabled: This is security
-if {!$view_absences_all_p } { set user_selection "mine" }
+if {!$view_absences_all_p && !$view_absences_direct_reports_p} { 
+    set user_selection "mine" 
+}
 
 set user_name $user_selection
 if {[string is integer $user_selection]} {
@@ -494,13 +496,11 @@ set filter_html $__adp_output
 # ---------------------------------------------------------------
 # Create Links from Menus 
 # ---------------------------------------------------------------
-set for_user_id ""
+set for_user_id $current_user_id
 
-if {[string is integer $user_selection] && $add_absences_for_group_p && $user_selection != $user_id} { 
-	# Log for other user "than current user" requires 
-	set for_user_id $user_selection
-} else {
-	set for_user_id $current_user_id 
+if {[string is integer $user_selection] && $add_absences_for_group_p} { 
+    # Log for other user "than current user" requires permissions
+    set for_user_id $user_selection
 }
 
 set admin_html [im_menu_ul_list "timesheet2_absences" [list user_id_from_search $for_user_id return_url $return_url]]
