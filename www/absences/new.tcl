@@ -393,16 +393,18 @@ ad_form -extend -name absence -on_request {
 			absence_id = :absence_id
 	"
 
-	db_dml update_object "
-		update acs_objects set
-			last_modified = now()
-		where object_id = :absence_id
-	"
-
 	im_dynfield::attribute_store \
 	    -object_type "im_user_absence" \
 	    -object_id $absence_id \
 	    -form_id absence
+
+	db_dml update_object "
+		update acs_objects set
+			last_modified = now(),
+			modifying_user = :current_user_id,
+			modifying_ip = '[ad_conn peeraddr]'
+		where object_id = :absence_id
+	"
 
 	set wf_key [db_string wf "select trim(aux_string1) from im_categories where category_id = :absence_type_id" -default ""]
 	set wf_exists_p [db_string wf_exists "select count(*) from wf_workflows where workflow_key = :wf_key"]
@@ -477,6 +479,13 @@ ad_form -extend -name absence -on_request {
         -object_id $absence_id \
         -form_id absence
 
+    db_dml update_object "
+		update acs_objects set
+			last_modified = now(),
+			modifying_user = :current_user_id,
+			modifying_ip = '[ad_conn peeraddr]'
+		where object_id = :absence_id
+    "
 
     # Audit the action
     im_audit -object_type im_user_absence -action after_update -object_id $absence_id -status_id $absence_status_id -type_id $absence_type_id
