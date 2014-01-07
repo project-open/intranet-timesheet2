@@ -286,7 +286,7 @@ ad_form -extend -name absence -form $form_list
 ad_form -extend -name absence -form {
     {start_date:date(date) {label "[_ intranet-timesheet2.Start_Date]"} {format "YYYY-MM-DD"} {after_html {<input type="button" style="height:23px; width:23px; background: url('/resources/acs-templating/calendar.gif');" onclick ="return showCalendarWithDateWidget('start_date', 'y-m-d');" >}}}
     {end_date:date(date) {label "[_ intranet-timesheet2.End_Date]"} {format "YYYY-MM-DD"} {after_html {<input type="button" style="height:23px; width:23px; background: url('/resources/acs-templating/calendar.gif');" onclick ="return showCalendarWithDateWidget('end_date', 'y-m-d');" >}}}
-    {duration_days:float(text) {label "[lang::message::lookup {} intranet-timesheet2.Duration_days {Duration (Days)}]"} {help_text "[lang::message::lookup {} intranet-timesheet2.Duration_days_help {Please specify the absence duration as a number or fraction of days. Example: '1'=one day, '0.5'=half a day)}]"}}
+    {duration_days:float(inform) {label "[lang::message::lookup {} intranet-timesheet2.Duration_days {Duration (Days)}]"} {help_text "[lang::message::lookup {} intranet-timesheet2.Duration_days_help {Please specify the absence duration as a number or fraction of days. Example: '1'=one day, '0.5'=half a day)}]"}}
     {description:text(textarea),optional {label "[_ intranet-timesheet2.Description]"} {html {cols 40}}}
     {contact_info:text(textarea),optional {label "[_ intranet-timesheet2.Contact_Info]"} {html {cols 40}}}
 }
@@ -322,8 +322,8 @@ ad_form -extend -name absence -on_request {
     if {![info exists duration_days]} { set duration_days "" }
     if {![info exists absence_owner_id] || 0 == $absence_owner_id} { set absence_owner_id $user_id_from_search }
     if {![info exists absence_owner_id] || 0 == $absence_owner_id} { set absence_owner_id $current_user_id }
-    if {![info exists absence_type_id]} { set absence_type_id [im_absence_type_vacation] }
-    if {![info exists absence_status_id]} { set absence_status_id [im_absence_status_active] }
+    if {![info exists absence_type_id]} { set absence_type_id [im_user_absence_type_vacation] }
+    if {![info exists absence_status_id]} { set absence_status_id [im_user_absence_status_active] }
     template::element::set_value absence vacation_replacement_id [db_string supervisor "select supervisor_id from im_employees where employee_id = :absence_owner_id" -default $current_user_id]
 } -select_query {
 
@@ -336,15 +336,7 @@ ad_form -extend -name absence -on_request {
 } -validate {
 
     {duration_days
-	{$duration_days > 0}
-	"Positive number expected"
-    }
-    {duration_days
-	{$duration_days <= [expr [db_string date_range "select date([template::util::date get_property sql_timestamp $end_date]) - date([template::util::date get_property sql_timestamp $start_date]) + 1"] +1]}
-	"Duration is longer then date interval."
-    }
-    {duration_days
-	{$duration_days <= [im_absence_remaining_days -user_id $absence_owner_id -absence_type_id $absence_type_id] || [lsearch $vacation_category_ids $absence_type_id]<0}
+	{[im_absence_calculate_duration_days -start_date "[join [template::util::date get_property linear_date_no_time $start_date] "-"]" -end_date "[join [template::util::date get_property linear_date_no_time $end_date] "-"]" -owner_id $absence_owner_id] <= [im_absence_remaining_days -user_id $absence_owner_id -absence_type_id $absence_type_id] || [lsearch $vacation_category_ids $absence_type_id]<0}
 	"Duration is longer than remaining days $absence_owner_id $absence_type_id"
     }
     {start_date
@@ -362,14 +354,14 @@ ad_form -extend -name absence -on_request {
 	{[lang::message::lookup "" intranet-timesheet2.Absence_Duplicate_Start "There is already an absence with exactly the same owner, type and start date."]}
     }
     {end_date
-	{$absence_type_id != [im_absence_type_vacation] || [lindex $start_date 0] == [lindex $end_date 0] }
+	{$absence_type_id != [im_user_absence_type_vacation] || [lindex $start_date 0] == [lindex $end_date 0] }
 	{[lang::message::lookup "" intranet-timesheet2.NoVacationTurnOfTheYear "Entry not allowed. Vacation absences need to begin and end in the same year. Please consider creating two entries."]}
     } 
 } -new_data {
 
     set start_date_sql [template::util::date get_property sql_timestamp $start_date]
     set end_date_sql [template::util::date get_property sql_timestamp $end_date]
-
+    set duration_days [im_absence_calculate_duration_days -start_date "[join [template::util::date get_property linear_date_no_time $start_date] "-"]" -end_date "[join [template::util::date get_property linear_date_no_time $end_date] "-"]" -owner_id $absence_owner_id]
     db_transaction {
 	set absence_id [db_string new_absence "
 		SELECT im_user_absence__new(

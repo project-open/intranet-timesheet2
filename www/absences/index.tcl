@@ -238,7 +238,7 @@ if {$view_absences_direct_reports_p} {
     "
 }
 
-if {$add_hours_all_p} {
+if {$add_absences_all_p} {
     # Add employees to user_selection
     set emp_sql "
 	SELECT

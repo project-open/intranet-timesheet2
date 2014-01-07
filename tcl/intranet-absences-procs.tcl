@@ -940,6 +940,94 @@ ad_proc -public im_absence_remaining_days {
     }
     
     db_0or1row absence_info $vacation_sql
-set remaining_days [expr $entitlement_days - $absence_days]
+    set remaining_days [expr $entitlement_days - $absence_days]
     return $remaining_days
+}
+
+ad_proc -public im_absence_days {
+    {-owner_id ""}
+    {-group_ids ""}
+    -absence_type_ids:required
+    -approved:boolean
+    -start_date:required
+    -end_date:required
+} {
+    Returns the number of remaining days for the user of a certain absence type
+} {
+
+    if {!$approved_p} {
+        set approved_sql ""
+    } else {
+        set approved_sql ""
+    }
+
+    if {$owner_id ne ""} {
+	# Get the groups the owner belongs to
+	set group_ids [db_list group_options "
+	select	g.group_id
+	from	groups g,
+		acs_objects o,
+                acs_rels r
+	where	g.group_id = o.object_id and
+		o.object_type in ('im_profile', 'im_biz_object_group') and
+                r.object_id_one = g.group_id and
+                r.object_id_two = :owner_id
+	order by g.group_name
+         "]
+	# Add registered_users
+	lappend group_ids "-2"
+
+	set owner_sql "(owner_id = :owner_id or group_id in ([template::util::tcl_to_sql_list $group_ids])) and"
+    } elseif {$group_ids ne ""} {
+	# We try to find the holidays for the group of users
+	set owner_sql "group_id in ([template::util::tcl_to_sql_list $group_ids]) and"
+    } else {
+	set owner_sql "group_id is not null and"
+    }
+
+    set absence_type_ids [im_sub_categories $absence_type_ids]
+        
+    return [db_string absence_sql "
+	select coalesce(sum(a.duration_days),0) as absence_days
+	from im_user_absences a
+	where absence_type_id in ([template::util::tcl_to_sql_list $absence_type_ids]) and
+        (owner_id = :owner_id or group_id in ([template::util::tcl_to_sql_list $group_ids])) and
+	a.start_date >= :start_date and
+	a.end_date <= :end_date
+	$approved_sql
+    "]
+
+}
+
+ad_proc -public im_absence_calculate_duration_days {
+    {-owner_id ""}
+    -start_date:required
+    -end_date:required
+} {
+    # First calculate the number of days in the timespan
+    set total_days [db_string date_range "select date('$end_date') - date('$start_date') + 1"]
+
+    # Now substract the number of weekends
+    set weekend_days [db_string date_range "
+	SELECT count(*)
+	FROM (
+	      SELECT generate_series(start, finish, '1 day') AS i
+	      FROM
+	      (VALUES(
+		      '$start_date'::date,
+		      '$end_date'::date
+		      )) AS t(\"start\", \"finish\")
+	      ) AS j
+	WHERE
+	extract('dow' FROM i)=0
+	or extract('dow' FROM i)=6
+    "]
+
+    if {$owner_id ne ""} {
+	# Get public holidays
+	set holiday_days [im_absence_days -start_date $start_date -end_date $end_date -absence_type_ids [im_user_absence_type_bank_holiday] -owner_id $owner_id]
+    } else {
+	set holiday_days [im_absence_days -start_date $start_date -end_date $end_date -absence_type_ids [im_user_absence_type_bank_holiday] -group_ids [list -2 463]]
+    }
+    return [expr $total_days - $weekend_days - $holiday_days]
 }
