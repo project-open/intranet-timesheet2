@@ -58,7 +58,7 @@ set admin_p [im_is_user_site_wide_or_intranet_admin $user_id]
 set current_user_id $user_id
 set subsite_id [ad_conn subsite_id]
 set add_absences_for_group_p [im_permission $user_id "add_absences_for_group"]
-set add_hours_all_p [im_permission $user_id "add_hours_all"]
+set add_absences_all_p [im_permission $user_id "add_absences_all"]
 set view_absences_all_p [im_permission $user_id "view_absences_all"]
 set view_absences_direct_reports_p [im_permission $user_id "view_absences_direct_reports"]
 set add_absences_p [im_permission $user_id "add_absences"]
@@ -88,11 +88,39 @@ if {![im_permission $user_id "view_absences"] && !$view_absences_all_p && !$view
     ad_script_abort
 }
 
-# "user_id_from_search" is the guy we're going to log absences for.
-# reset this variable to the current user if undefined or if the user doesn't have
-# the permission to log hours/absences for other user.
-if {"" != $user_id_from_search && $add_hours_all_p} { 
-    set user_selection $user_id_from_search
+# Setting list of "direct reports" and "other employees"
+set direct_reports_list [list]
+set other_employees_list [list]
+if { $view_absences_direct_reports_p || $add_absences_all_p || $view_absences_all_p } {
+    set emp_sql "
+	SELECT distinct
+		im_name_from_user_id(cc.user_id, $name_order) as name,
+		cc.user_id,
+		e.supervisor_id
+	FROM
+		group_member_map gm,
+		membership_rels mr,
+		acs_rels r,
+		cc_users cc,
+		im_employees e
+	WHERE
+		gm.rel_id = mr.rel_id
+		AND r.rel_id = mr.rel_id
+		AND r.rel_type = 'membership_rel'
+		AND e.employee_id = gm.member_id
+		AND cc.member_state = 'approved'
+		AND cc.user_id = gm.member_id
+		AND gm.group_id = [im_employee_group_id]
+	order by
+		name
+    "
+    db_foreach emps $emp_sql {
+	if { $supervisor_id == $current_user_id } {
+	    lappend direct_reports_list [list "&nbsp;&nbsp;$name" $user_id]
+	} else {
+	    lappend other_employees_list [list "&nbsp;&nbsp;$name" $user_id]
+	}
+    }
 }
 
 
@@ -169,11 +197,14 @@ set absence_view_page "$absences_url/new"
 
 # ---------- setting filter 'User selection' ------------- # 
 
-set user_selection_types [list "all" "All" "mine" "Mine" "employees" "Employees" "providers" "Providers" "customers" "Customers"]
-
 # Users can only see their own absences, unless they have a special permission
 # ToDo: Users should _always_ see their absences 
-if {!$view_absences_all_p} { set user_selection_types [list "mine" "Mine"] }
+if {!$view_absences_all_p} { 
+    set user_selection_types [list "mine" "Mine"] 
+} else {
+    set user_selection_types [list "all" "All" "mine" "Mine"]
+}
+
 
 set emp_sql ""
 
@@ -255,23 +286,29 @@ if {"" != $cost_center_options} {
 #}
 
 
+# All
+if {$add_absences_all_p || $view_absences_all_p} {
+    lappend user_selection_types [list [lang::message::lookup "" intranet-timesheet2.Employees "Employees"] "employees"] 
+    lappend user_selection_types [list [lang::message::lookup "" intranet-timesheet2.Providers "Providers"] "providers"] 
+    lappend user_selection_types [list [lang::message::lookup "" intranet-timesheet2.Customers "Customers"] "customers"]     
+}
 
 foreach { value text } $user_selection_types {
     lappend user_selection_type_list [list $text $value]
 }
 
-
 # ---------- / setting filter 'User selection' ------------- # 
 
 set timescale_types [list \
-			 "all" "All" \
-			 "today" "Today" \
-			 "next_3w" "Next 3 Weeks" \
-			 "next_3m" "Next 3 months" \
-			 "future" "Future" \
-			 "past" "Past" \
-			 "last_3m" "Last 3 months" \
-			 "last_3w" "Last 3 Weeks" \
+			 "all" [lang::message::lookup "" intranet-timesheet2.All "All"] \
+			 "custom" [lang::message::lookup "" intranet-timesheet2.CustomTimescale "Start/End Date"] \
+			 "today" [lang::message::lookup "" intranet-timesheet2.Today "Today"] \
+			 "next_3w" [lang::message::lookup "" intranet-timesheet2.Next_3_Weeks "Next 3 Weeks"] \
+			 "next_3m" [lang::message::lookup "" intranet-timesheet2.Next_3_Month "Next 3 Months"] \
+			 "future" [lang::message::lookup "" intranet-timesheet2.Future "Future"] \
+			 "past" [lang::message::lookup "" intranet-timesheet2.Past "Past"] \
+			 "last_3m" [lang::message::lookup "" intranet-timesheet2.Last_3_Month "Last 3 Months"] \
+			 "last_3w" [lang::message::lookup "" intranet-timesheet2.Last_3_Weeks "Last 3 Weeks"] \
 ]
 
 foreach { value text } $timescale_types {
@@ -332,8 +369,8 @@ db_foreach column_list_sql $column_sql {
 # ---------------------------------------------------------------
 
 # absences_types
-set absences_types [im_memoize_list select_absences_types "select absence_type_id, absence_type from im_absence_types order by lower(ABSENCE_TYPE)"]
-set absences_types [linsert $absences_types 0 "All"]
+set absences_types [im_memoize_list select_absences_types "select absence_type_id, absence_type from im_user_absence_types order by lower(absence_type)"]
+set absences_types [linsert $absences_types 0 [lang::message::lookup "" intranet-timesheet2.All "All"]]
 set absences_types [linsert $absences_types 0 -1]
 set absence_type_list [list]
 foreach { value text } $absences_types {
@@ -346,10 +383,11 @@ foreach { value text } $absences_types {
 # 5. Generate SQL Query
 # ---------------------------------------------------------------
 
+ns_log Notice "xxx: user_selection=$user_selection"
+
+
 # Now let's generate the sql query
 set criteria [list]
-ds_comment "user:: $user_selection"
-
 set bind_vars [ns_set create]
 if { ![empty_string_p $user_selection] } {
     switch $user_selection {
@@ -375,7 +413,28 @@ if { ![empty_string_p $user_selection] } {
                                                         )"
 	}
 	"direct_reports" {
-	    lappend criteria "a.owner_id in (select employee_id from im_employees where supervisor_id = :current_user_id and employee_status_id = '454')"
+		    lappend criteria "a.owner_id in (
+			select employee_id from im_employees
+			where supervisor_id = :current_user_id 
+                        and employee_status_id = [im_employee_status_active]
+		    UNION
+			select	e.employee_id 
+			from	im_employees e,
+				-- Select all departments where the current user is manager
+				(select	cc.cost_center_id,
+					cc.manager_id
+				from	im_cost_centers cc,
+					(select cost_center_code as code,
+						length(cost_center_code) len
+					from	im_cost_centers
+					where	manager_id = :current_user_id
+					) t
+				where	substring(cc.cost_center_code for t.len) = t.code
+				) tt
+			where  (e.department_id = tt.cost_center_id
+			       OR e.employee_id = tt.manager_id)
+                        and employee_status_id = [im_employee_status_active]
+		    )"
 	}  
 	"cost_center" {
 	    set cost_center_list [im_cost_center_options -parent_id $cost_center_id]
@@ -383,7 +442,7 @@ if { ![empty_string_p $user_selection] } {
             foreach cost_center $cost_center_list {
 		lappend cost_center_ids [lindex $cost_center 1]
             }
-	    lappend criteria "a.owner_id in (select employee_id from im_employees where department_id in ([template::util::tcl_to_sql_list $cost_center_ids]) and employee_status_id = '454')"
+	    lappend criteria "a.owner_id in (select employee_id from im_employees where department_id in ([template::util::tcl_to_sql_list $cost_center_ids]) and employee_status_id = [im_employee_status_active])"
 	}
 	"project" {
 	    set project_ids [im_project_subproject_ids -project_id $project_id]
@@ -438,6 +497,7 @@ if {"" == $start_date} { set start_date [parameter::get_from_package_key -packag
 if {"" == $end_date} { set end_date [parameter::get_from_package_key -package_key "intranet-cost" -parameter DefaultEndDate -default "2100-01-01"] }
 
 set org_start_date $start_date
+set org_end_date $end_date
 
 # Limit to start-date and end-date
 if {"" != $start_date} { lappend criteria "a.end_date::date >= :start_date" }
@@ -460,7 +520,7 @@ if { ![empty_string_p $where_clause] } {
 }
 
 set sql "
-select
+    select
 	a.*,
         to_char(start_date,'YYYY-MM-DD') as start_date2,
 	coalesce(absence_name, absence_id::varchar) as absence_name_pretty,
@@ -471,14 +531,20 @@ select
 	to_char(a.start_date, :date_format) as start_date_pretty,
 	to_char(a.end_date, :date_format) as end_date_pretty,
 	im_name_from_user_id(a.owner_id, $name_order) as owner_name
-from
-	im_user_absences a,
-        cc_users cc
-where
-        cc.member_state = 'approved'
-	and a.owner_id = cc.object_id
-        and a.absence_status_id = :status_id
-	$where_clause
+    from
+	im_user_absences a
+    where	(a.owner_id is null OR a.owner_id not in (
+			-- Exclude deleted or disabled users
+			select	m.member_id
+			from	group_member_map m, 
+				membership_rels mr
+			where	m.group_id = acs__magic_object_id('registered_users') and 
+				m.rel_id = mr.rel_id and 
+				m.container_id = m.group_id and
+				mr.member_state != 'approved'
+		))
+    and a.absence_status_id = :status_id
+    $where_clause
 "
 
 
@@ -513,7 +579,6 @@ set form_id "absence_filter"
 set object_type "im_absence"
 set action_url "/intranet-timesheet2/absences/"
 set form_mode "edit"
-ds_comment "project_id :: $project_id"
 ad_form \
     -name $form_id \
     -action $action_url \
@@ -531,21 +596,17 @@ ad_form \
 template::element::set_value $form_id start_date $start_date
 template::element::set_value $form_id timescale $timescale
 
-
 eval [template::adp_compile -string {<formtemplate style="tiny-plain-po" id="absence_filter"></formtemplate>}]
 set filter_html $__adp_output
-
 
 # ---------------------------------------------------------------
 # Create Links from Menus 
 # ---------------------------------------------------------------
-set for_user_id ""
+set for_user_id $current_user_id
 
-if {[string is integer $user_selection] && $add_absences_for_group_p && $user_selection != $user_id} { 
-	# Log for other user "than current user" requires 
-	set for_user_id $user_selection
-} else {
-	set for_user_id $current_user_id 
+if {[string is integer $user_selection] && $add_absences_for_group_p} { 
+    # Log for other user "than current user" requires permissions
+    set for_user_id $user_selection
 }
 
 set admin_html [im_menu_ul_list "timesheet2_absences" [list user_id_from_search $for_user_id return_url $return_url]]
@@ -598,11 +659,11 @@ db_foreach cols $col_sql {
 	}
 	# calculate a brightness-value for the color
 	# if brightness > 127 the foreground color is black, if < 127 the foreground color is white
-        set brightness [expr $r_bg * 0.2126 + $g_bg * 0.7152 + $b_bg * 0.0722]
+	set brightness [expr $r_bg * 0.2126 + $g_bg * 0.7152 + $b_bg * 0.0722]
 	set col_fg "fff"
-        if {$brightness >= 127} {set col_fg "000"}
-        set category_l10n [lang::message::lookup "" intranet-core.$category_key $category]
-        append admin_html "<tr><td style='padding:3px; background-color:\#$col; color:\#$col_fg'>$category_l10n</td></tr>\n"
+	if {$brightness >= 127} {set col_fg "000"}
+	set category_l10n [lang::message::lookup "" intranet-core.$category_key $category]
+	append admin_html "<tr><td style='padding:3px; background-color:\#$col; color:\#$col_fg'>$category_l10n</td></tr>\n"
    }
 }
 
@@ -725,20 +786,20 @@ set table_continuation_html ""
 
 
 set left_navbar_html "
-            <div class=\"filter-block\">
-                <div class=\"filter-title\">
-                [lang::message::lookup "" intranet-timesheet2.Filter_Absences "Filter Absences"]
-                </div>
-                $filter_html
-            </div>
-            <hr/>
+	    <div class=\"filter-block\">
+		<div class=\"filter-title\">
+		[lang::message::lookup "" intranet-timesheet2.Filter_Absences "Filter Absences"]
+		</div>
+		$filter_html
+	    </div>
+	    <hr/>
 
-            <div class=\"filter-block\">
-                <div class=\"filter-title\">
-                [lang::message::lookup "" intranet-timesheet2.Admin_Absences "Admin Absences"]
-                </div>
-                $admin_html
-            </div>
+	    <div class=\"filter-block\">
+		<div class=\"filter-title\">
+		[lang::message::lookup "" intranet-timesheet2.Admin_Absences "Admin Absences"]
+		</div>
+		$admin_html
+	    </div>
 "
 
 
@@ -755,6 +816,7 @@ set absence_cube_html [im_absence_cube \
 			   -user_selection $user_selection \
 			   -timescale $timescale \
 			   -report_start_date $org_start_date \
+			   -report_end_date $org_end_date \
 			   -user_id_from_search $user_id_from_search \
 			   -cost_center_id $cost_center_id \
 			   -user_id $user_id \

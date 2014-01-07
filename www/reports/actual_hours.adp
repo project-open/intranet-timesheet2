@@ -1,4 +1,4 @@
-<master src="../../intranet-core/www/master">
+<master src="../../../intranet-core/www/master">
 <property name="title">Calendar Weeks Report</property>
 <property name="context">context</property>
 <property name="main_navbar_label">finance</property>
