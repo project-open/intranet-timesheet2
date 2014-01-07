@@ -349,7 +349,8 @@ ad_form -extend -name absence -on_request {
 		from	im_user_absences a
 		where	a.owner_id = :absence_owner_id and
 			a.absence_type_id = :absence_type_id and
-			a.start_date = [template::util::date get_property sql_timestamp $start_date]
+			a.start_date <= [template::util::date get_property sql_timestamp $start_date] and
+                        a.end_date >= [template::util::date get_property sql_timestamp $start_date]
 	   "]}
 	{[lang::message::lookup "" intranet-timesheet2.Absence_Duplicate_Start "There is already an absence with exactly the same owner, type and start date."]}
     }
