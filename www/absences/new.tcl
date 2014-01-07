@@ -49,8 +49,8 @@ if {$absence_type_id eq 0} {
     set absence_type [im_category_from_id $absence_type_id]
 }
 
+set absence_under_wf_control_p 0
 if {[info exists absence_id]} { 
-
     # absence_owner_id determines the list of projects per absence and other DynField widgets
     # it defaults to user_id when creating a new absence
     set absence_owner_id [db_string absence_owner "select owner_id from im_user_absences where absence_id = :absence_id" -default ""]
@@ -66,6 +66,13 @@ if {[info exists absence_id]} {
 	    ad_script_abort
 	}
     }
+
+    set absence_under_wf_control_p [db_string wf_control "
+	select	count(*)
+	from	wf_cases
+	where	object_id = :absence_id and
+		state != 'finished'
+    "]
 }
 
 set add_absences_for_group_p [im_permission $current_user_id "add_absences_for_group"]
@@ -101,7 +108,7 @@ set write [im_permission $current_user_id "add_absences"]
 
 
 if {[info exists absence_id]} {
-    im_absence_permissions $current_user_id $absence_id view read write admin
+    im_user_absence_permissions $current_user_id $absence_id view read write admin
 }
 if {![im_permission $current_user_id "add_absences"]} {
     ad_return_complaint "[_ intranet-timesheet2.lt_Insufficient_Privileg]" "
@@ -114,9 +121,17 @@ if {0 == $absence_type_id && ![info exists absence_id]} {
     set all_same_p [im_dynfield::subtype_have_same_attributes_p -object_type "im_user_absence"]
     set all_same_p 0
     if {!$all_same_p} {
-	ad_returnredirect [export_vars -base "/intranet/biz-object-type-select" { user_id_from_search {object_type "im_user_absence"} {return_url $current_url} {type_id_var "absence_type_id"} }]
+	ad_returnredirect [export_vars -base "/intranet/biz-object-type-select" { 
+	    user_id_from_search 
+	    {object_type "im_user_absence"} 
+	    {return_url $current_url} 
+	    {type_id_var "absence_type_id"} 
+	}]
     }
 }
+
+#	    {pass_through_variables "object_type type_id_var return_url" }
+
 
 # ------------------------------------------------------------------
 # Action permissions
@@ -126,21 +141,32 @@ set actions [list]
 
 # Check whether to show the "Edit" and "Delete" buttons.
 # These buttons only make sense if the absences already exists.
-#
+
 if {[info exists absence_id]} {
     set absence_exists_p [db_string abs_ex "select count(*) from im_user_absences where absence_id = :absence_id"]
     if {$absence_exists_p} {
 
-	set edit_perm_func [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter AbsenceNewPageWfEditButtonPerm -default "im_absence_new_page_wf_perm_edit_button"]
-	set delete_perm_func [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter AbsenceNewPageWfDeleteButtonPerm -default "im_absence_new_page_wf_perm_delete_button"]
+	if {$absence_under_wf_control_p} {
+	    set edit_perm_func [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter AbsenceNewPageWfEditButtonPerm -default "im_absence_new_page_wf_perm_edit_button"]
+	    set delete_perm_func [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter AbsenceNewPageWfDeleteButtonPerm -default "im_absence_new_page_wf_perm_delete_button"]
 
-	if {[eval [list $edit_perm_func -absence_id $absence_id]]} {
-	    lappend actions [list [lang::message::lookup {} intranet-timesheet2.Edit Edit] edit]
-	}
-	if {[eval [list $delete_perm_func -absence_id $absence_id]]} {
-	    lappend actions [list [lang::message::lookup {} intranet-timesheet2.Delete Delete] delete]
+	    if {[eval [list $edit_perm_func -absence_id $absence_id]]} {
+		lappend actions [list [lang::message::lookup {} intranet-timesheet2.Edit Edit] edit]
+	    }
+	    if {[eval [list $delete_perm_func -absence_id $absence_id]]} {
+		lappend actions [list [lang::message::lookup {} intranet-timesheet2.Delete Delete] delete]
+	    }
 
+	} else {
+	    # No workflow control - enable buttons
+	    if {$write} {
+		lappend actions [list [lang::message::lookup {} intranet-timesheet2.Edit Edit] edit]
+	    } 
+	    if {$admin} {
+		lappend actions [list [lang::message::lookup {} intranet-timesheet2.Delete Delete] delete]
+	    }
 	}
+
     }
 }
 
@@ -197,8 +223,27 @@ if {$show_absence_type_p} {
 
 # / -------
 if {$add_absences_for_group_p} {
-    set group_options [im_profile::profile_options_all -translate_p 1]
-    set group_options [linsert $group_options 0 [list "[lang::message::lookup {} intranet-core.All {All}]" "-2"]]
+    set group_options_untranslated [db_list_of_lists group_options "
+	select	g.group_name,
+		g.group_id
+	from	groups g,
+		acs_objects o
+	where	g.group_id = o.object_id and
+		o.object_type in ('im_profile', 'im_biz_object_group')
+	order by g.group_name
+    "]
+    set group_options [list]
+    foreach tuple $group_options_untranslated {
+        set gname [lindex $tuple 0]
+	set gid [lindex $tuple 1]
+	regsub -all {[ /]} $gname "_" gkey
+	set gname [lang::message::lookup "" intranet-core.Profile_$gkey $gname]
+    	lappend group_options [list $gname $gid]
+    }
+
+    #set group_options [im_profile::profile_options_all -translate_p 1]
+    #ad_return_complaint 1 "$group_options <br> $group_options2"
+
     set group_options [linsert $group_options 0 [list "" ""]]
     lappend form_fields	{group_id:text(select),optional {label "[lang::message::lookup {} intranet-timesheet2.Valid_for_Group {Valid for Group}]"} {options $group_options}}
 } else {
@@ -222,12 +267,15 @@ ad_form \
     -cancel_url $cancel_url \
     -action $action_url \
     -actions $actions \
-    -has_edit 1 \
+    -has_edit [expr !$write] \
     -mode $form_mode \
     -export $hidden_field_list \
     -form $form_fields
 
-if {[im_permission $current_user_id edit_absence_status]} {
+# ad_return_complaint 1 $write
+
+
+if {!$absence_under_wf_control_p || [im_permission $current_user_id edit_absence_status]} {
     set form_list {{absence_status_id:text(im_category_tree) {label "[lang::message::lookup {} intranet-timesheet2.Status Status]"} {custom {category_type "Intranet Absence Status"}}}}
 } else {
 #   set form_list {{absence_status_id:text(im_category_tree) {mode display} {label "[lang::message::lookup {} intranet-timesheet2.Status Status]"} {custom {category_type "Intranet Absence Status"}}}}
@@ -344,23 +392,38 @@ ad_form -extend -name absence -on_request {
 		)
 	"]
 
-	db_dml update_absence "
-		update im_user_absences	set
-			duration_days = :duration_days,
-			group_id = :group_id
-		where absence_id = :absence_id
-	"
+	# Don't add the creator as a participant of a group absence
+	if {"" != $group_id} { set absence_owner_id "" }
 
-	db_dml update_object "
-		update acs_objects set
-			last_modified = now()
-		where object_id = :absence_id
+	db_dml update_absence "
+		UPDATE im_user_absences SET
+			absence_name = :absence_name,
+			owner_id = :absence_owner_id,
+			start_date = $start_date_sql,
+			end_date = $end_date_sql,
+			duration_days = :duration_days,
+			group_id = :group_id,
+			absence_status_id = :absence_status_id,
+			absence_type_id = :absence_type_id,
+			description = :description,
+			contact_info = :contact_info
+		WHERE
+			absence_id = :absence_id
 	"
 
 	im_dynfield::attribute_store \
 	    -object_type "im_user_absence" \
 	    -object_id $absence_id \
 	    -form_id absence
+
+	db_dml update_object "
+		update acs_objects set
+			last_modified = now(),
+			modifying_user = :current_user_id,
+			modifying_ip = '[ad_conn peeraddr]'
+		where object_id = :absence_id
+	"
+
 	set wf_key [db_string wf "select trim(aux_string1) from im_categories where category_id = :absence_type_id" -default ""]
 	set wf_exists_p [db_string wf_exists "select count(*) from wf_workflows where workflow_key = :wf_key"]
 	if {$wf_exists_p} {
@@ -410,6 +473,9 @@ ad_form -extend -name absence -on_request {
 	ad_script_abort
     }
 
+    # Don't add the creator as a participant of a group absence
+    if {"" != $group_id} { set absence_owner_id "" }
+
     db_dml update_absence "
 		UPDATE im_user_absences SET
 			absence_name = :absence_name,
@@ -431,6 +497,13 @@ ad_form -extend -name absence -on_request {
         -object_id $absence_id \
         -form_id absence
 
+    db_dml update_object "
+		update acs_objects set
+			last_modified = now(),
+			modifying_user = :current_user_id,
+			modifying_ip = '[ad_conn peeraddr]'
+		where object_id = :absence_id
+    "
 
     # Audit the action
     im_audit -object_type im_user_absence -action after_update -object_id $absence_id -status_id $absence_status_id -type_id $absence_type_id
