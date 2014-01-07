@@ -462,6 +462,7 @@ if { ![empty_string_p $where_clause] } {
 set sql "
 select
 	a.*,
+        to_char(start_date,'YYYY-MM-DD') as start_date2,
 	coalesce(absence_name, absence_id::varchar) as absence_name_pretty,
 	substring(a.description from 1 for 40) as description_pretty,
 	substring(a.contact_info from 1 for 40) as contact_info_pretty,
@@ -657,6 +658,7 @@ db_foreach absences_list $selection {
     set absence_status [im_category_from_id $absence_status_id]
     set absence_type [im_category_from_id $absence_type_id]
 
+    ds_comment "$start_date2 :: $start_date"
     set absence_view_url [export_vars -base "$absences_url/new" {absence_id return_url {form_mode "display"}}]
 
     # Calculate the link for the user/group for which the absence is valid

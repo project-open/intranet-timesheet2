@@ -81,15 +81,22 @@ ad_proc -public im_leave_entitlement_absence_balance_component {
 ad_proc -public im_leave_entitlement_remaining_days {
     -user_id:required
     -absence_type_id:required
+    {-approved_p "0"}
 } {
     Returns the number of remaining days for the user of a certain absence type
 } {
 
+    if {!$approved_p} {
+        set approved_sql ""
+    } else {
+        set approved_sql ""
+    }
+
     set vacation_sql "
 	select
-                coalesce((select sum(a.duration_days) as absence_days from im_user_absences a where absence_type_id = category_id and owner_id = :user_id),0) as absence_days,
+                coalesce((select sum(a.duration_days) as absence_days from im_user_absences a where absence_type_id = category_id and owner_id = :user_id $approved_sql),0) as absence_days,
                 category_id,
-                coalesce((select sum(l.entitlement_days) as absence_days from im_user_leave_entitlements l where leave_entitlement_type_id = category_id and owner_id = :user_id),0) as entitlement_days
+                coalesce((select sum(l.entitlement_days) as absence_days from im_user_leave_entitlements l where leave_entitlement_type_id = category_id and owner_id = :user_id $approved_sql),0) as entitlement_days
 	from
 		im_categories c
 	where

@@ -297,7 +297,7 @@ ad_form -extend -name absence -on_request {
     }
     {duration_days
 	{$duration_days <= [im_absence_remaining_days -user_id $absence_owner_id -absence_type_id $absence_type_id] || [lsearch $vacation_category_ids $absence_type_id]<0}
-	"Duration is longer than remaining days"
+	"Duration is longer than remaining days $absence_owner_id $absence_type_id"
     }
     {start_date
 	{"f" != [db_string date_range "select [template::util::date get_property sql_timestamp $end_date] >= [template::util::date get_property sql_timestamp $start_date]"]}

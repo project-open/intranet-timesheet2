@@ -856,7 +856,11 @@ ad_proc -public im_absence_remaining_days {
 } {
     Returns the number of remaining days for the user of a certain absence type
 } {
-
+    if {[im_table_exists im_user_leave_entitlements]} {
+	return [im_leave_entitlement_remaining_days -user_id $user_id -absence_type_id $absence_type_id -approved_p $approved_p]
+	ad_script_abort
+    }
+    
     set current_year [db_string current_year "select to_char(now(), 'YYYY')"]
 
     set start_of_year "$current_year-01-01"
