@@ -27,16 +27,6 @@ $(".po_form_element").each(function(index) {
      });
 });
 
-$( "#timescale" ).change(function() {
-   if ( $( "#timescale" ).val() == 'custom') {
-       $("#start_date_tr").removeClass( "row_hidden" ).addClass("row_visible");
-       $("#end_date_tr").removeClass( "row_hidden" ).addClass("row_visible");
-   } else {
-       $("#start_date_tr").removeClass("row_visible").addClass("row_hidden");
-       $("#end_date_tr").removeClass("row_visible").addClass("row_hidden");
-   };
-});
-
 // Important for 'refreshs'
 $("#timescale").trigger("change");
 
