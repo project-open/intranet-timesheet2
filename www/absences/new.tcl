@@ -457,7 +457,7 @@ ad_form -extend -name absence -on_request {
 	    ad_return_error "Wrong status" "The absence is no longer requested, therefore unable to edit"
 	}
 	set case_id [db_string get_case "select case_id from wf_cases where object_id = :absence_id"]
-	db_1row old_data "select start_date as old_start_date, end_date as old_end_date, absence_type_id as old_absence_type_id from im_user_absences where absence_id = :absence_id"
+	db_1row old_data "select start_date as old_start_date, end_date as old_end_date, absence_type_id as old_absence_type_id, vacation_replacement_id as old_vacation_replacement_id from im_user_absences where absence_id = :absence_id"
     }
 
     set duration_days [im_absence_calculate_duration_days -start_date "[join [template::util::date get_property linear_date_no_time $start_date] "-"]" -end_date "[join [template::util::date get_property linear_date_no_time $end_date] "-"]" -owner_id $absence_owner_id]
@@ -512,11 +512,12 @@ ad_form -extend -name absence -on_request {
 
     # Record the change in the workflow log
     if {$absence_under_wf_control_p} {
-	db_1row new_data "select start_date as new_start_date, end_date as new_end_date, absence_type_id as new_absence_type_id from im_user_absences where absence_id = :absence_id"
+	db_1row new_data "select start_date as new_start_date, end_date as new_end_date, absence_type_id as new_absence_type_id, vacation_replacement_id as new_vacation_replacement_id from im_user_absences where absence_id = :absence_id"
 	set message "[im_name_from_user_id $user_id] modified the absence."
 	if {$new_start_date != $old_start_date} {append message " Start Date changed from $old_start_date to $new_start_date."}
 	if {$new_end_date != $old_end_date} {append message " End Date changed from $old_end_date to $new_end_date."}
 	if {$new_absence_type_id != $old_absence_type_id} {append message " Absence Type changed from [im_category_from_id $old_absence_type_id] to [im_category_from_id $absence_type_id]."}
+	if {$new_vacation_replacement_id != $old_vacation_replacement_id} {append message " Vacation replacement changed from [im_name_from_user_id $old_vacation_replacement_id] to [im_name_from_user_id $new_vacation_replacement_id]."}
 	im_workflow_new_journal -case_id $case_id -action "modify absence" -action_pretty "Modify Absence" -message $message
     }
     # Audit the action
