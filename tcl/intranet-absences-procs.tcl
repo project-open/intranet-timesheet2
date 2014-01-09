@@ -35,6 +35,7 @@ ad_proc -public im_user_absence_type_bank_holiday {} { return 5005 }
 ad_proc -public im_user_absence_status_active {} { return 16000 }
 ad_proc -public im_user_absence_status_deleted {} { return 16002 }
 ad_proc -public im_user_absence_status_requested {} { return 16004 }
+ad_proc -public im_user_absence_status_cancelled {} { return 16005 }
 ad_proc -public im_user_absence_status_rejected {} { return 16006 }
 
 

@@ -57,6 +57,8 @@ if {[info exists absence_id]} {
 
     set old_absence_type_id [db_string type "select absence_type_id from im_user_absences where absence_id = :absence_id" -default 0]
     if {0 != $old_absence_type_id} { set absence_type_id $old_absence_type_id }
+
+    set show_absence_type_p 1
     set absence_type [im_category_from_id $absence_type_id]
 
     if {![ad_form_new_p -key absence_id]} {
@@ -157,7 +159,11 @@ if {[info exists absence_id]} {
 		}
 	    }
 	    if {[eval [list $delete_perm_func -absence_id $absence_id]]} {
-		lappend actions [list [lang::message::lookup {} intranet-timesheet2.Delete Delete] delete]
+		if {[parameter::get_from_package_key -package_key intranet-timesheet2 -parameter "CancelAbsenceP" -default 1]} {
+		    lappend actions [list [lang::message::lookup {} intranet-timesheet2.Cancel Cancel] cancel]
+		} else {
+		    lappend actions [list [lang::message::lookup {} intranet-timesheet2.Delete Delete] delete]
+		}		    
 	    }
 
 	} else {
@@ -166,7 +172,11 @@ if {[info exists absence_id]} {
 		lappend actions [list [lang::message::lookup {} intranet-timesheet2.Edit Edit] edit]
 	    } 
 	    if {$admin} {
-		lappend actions [list [lang::message::lookup {} intranet-timesheet2.Delete Delete] delete]
+		if {[parameter::get_from_package_key -package_key intranet-timesheet2 -parameter "CancelAbsenceP" -default 1]} {
+		    lappend actions [list [lang::message::lookup {} intranet-timesheet2.Cancel Cancel] Cancel]
+		} else {
+		    lappend actions [list [lang::message::lookup {} intranet-timesheet2.Delete Delete] delete]
+		}		    
 	    }
 	}
 
@@ -178,25 +188,44 @@ if {[info exists absence_id]} {
 # ------------------------------------------------------------------
 
 set button_pressed [template::form get_action absence]
-if {"delete" == $button_pressed} {
+switch $button_pressed {
+    delete {
 	db_transaction {
-		callback absence_on_change \
-			-absence_id $absence_id \
-			-absence_type_id "" \
-			-user_id "" \
-			-start_date "" \
-			-end_date "" \
-			-duration_days "" \
-			-transaction_type "remove"
-
-		db_dml del_tokens "delete from wf_tokens where case_id in (select case_id from wf_cases where object_id = :absence_id)"
-		db_dml del_case "delete from wf_cases where object_id = :absence_id"
-		db_string absence_delete "select im_user_absence__delete(:absence_id)"
-		ad_returnredirect $cancel_url
+	    callback absence_on_change \
+		-absence_id $absence_id \
+		-absence_type_id "" \
+		-user_id "" \
+		-start_date "" \
+		-end_date "" \
+		-duration_days "" \
+		-transaction_type "remove"
+	    
+	    db_dml del_tokens "delete from wf_tokens where case_id in (select case_id from wf_cases where object_id = :absence_id)"
+	    db_dml del_case "delete from wf_cases where object_id = :absence_id"
+	    db_string absence_delete "select im_user_absence__delete(:absence_id)"
+	    im_audit -object_type im_user_absence -action after_delete -object_id $absence_id
+	    
+	    ad_returnredirect $cancel_url
 	} on_error {
             ad_return_error "Error deleting absence" "<br>Error:<br>$errmsg<br><br>"
             return
 	}
+    }
+    cancel {
+	# Set the workflow to finished
+	if {$absence_under_wf_control_p} {
+	    set case_id [db_string case "select case_id from wf_cases where object_id = :absence_id"]
+	    
+	    catch {wf_case_cancel -msg "Absence was cancelled by [im_name_from_user_id $user_id]" $case_id}
+	    # Record the change (who cancelled it)
+	    im_workflow_new_journal -case_id $case_id -action "Cancel absence" -action_pretty "Cancel Absence" -message "Absence was cancelled by [im_name_from_user_id $user_id]"
+	}
+
+	# Update the vacation status to cancelled
+	db_dml cancel_absence "update im_user_absences set absence_status_id = [im_user_absence_status_cancelled] where absence_id = :absence_id"
+	im_audit -object_type im_user_absence -action after_delete -object_id $absence_id -status_id [im_user_absence_status_cancelled]
+
+    }
 }
 
 # ------------------------------------------------------------------
@@ -318,6 +347,7 @@ set absence_balance_component_html ""
 set vacation_category_ids [db_list bank_holidays "select child_id from im_category_hierarchy where parent_id = '5000'"]
 lappend vacation_category_ids 5000
 
+
 ad_form -extend -name absence -on_request {
     # Populate elements from local variables
     if {![info exists start_date]} { set start_date [db_string today "select to_char(now(), :date_time_format)"] }
@@ -340,7 +370,7 @@ ad_form -extend -name absence -on_request {
 
     {duration_days
 	{[im_absence_calculate_duration_days -start_date "[join [template::util::date get_property linear_date_no_time $start_date] "-"]" -end_date "[join [template::util::date get_property linear_date_no_time $end_date] "-"]" -owner_id $absence_owner_id] <= [im_absence_remaining_days -user_id $absence_owner_id -absence_type_id $absence_type_id] || [lsearch $vacation_category_ids $absence_type_id]<0}
-	"Duration is longer than remaining days $absence_owner_id $absence_type_id"
+	"Duration is longer than remaining days of [im_absence_remaining_days -user_id $absence_owner_id -absence_type_id $absence_type_id]"
     }
     {start_date
 	{"f" != [db_string date_range "select [template::util::date get_property sql_timestamp $end_date] >= [template::util::date get_property sql_timestamp $start_date]"]}
