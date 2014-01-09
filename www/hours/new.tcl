@@ -41,12 +41,28 @@ ad_page_contract {
 # ---------------------------------------------------------
 
 set show_context_help_p 1
-
 # Should we show debugging information for each project?
 set debug 0
+set current_user_id [ad_maybe_redirect_for_registration]
+set add_hours_all_p [im_permission $current_user_id "add_hours_all"]
+set add_hours_for_direct_reports_p [im_permission $current_user_id "add_hours_for_direct_reports"]
 
-set user_id [ad_maybe_redirect_for_registration]
-if {"" == $user_id_from_search || ![im_permission $user_id "add_hours_all"]} { set user_id_from_search $user_id }
+
+# Is the user allowed to log hours for another user?
+if {"" == $user_id_from_search } { 
+    if {!$add_hours_all_p} {
+	if {$add_hours_for_direct_reports_p} {
+	    set reportees [im_direct_reports_for_user -user_id $current_user_id]
+	    if {[lsearch $reportees $user_id_from_search] < 0} {
+		# User not in reportees - reset to current user
+		set user_id_from_search $current_user_id 
+	    }
+	} else {
+	    # The user has no permission to log hours for others
+	    set user_id_from_search $current_user_id 
+	}
+    }
+}
 set user_name_from_search [db_string uname "select im_name_from_user_id(:user_id_from_search)"]
 
 # ToDo: What if the user_id_from_search is already set???
@@ -149,13 +165,13 @@ if {$internal_note_exists_p} {
 
 
 # Append user-defined menus
-set bind_vars [list user_id $user_id user_id_from_search $user_id_from_search julian_date $julian_date return_url $return_url show_week_p $show_week_p]
+set bind_vars [list user_id $current_user_id user_id_from_search $user_id_from_search julian_date $julian_date return_url $return_url show_week_p $show_week_p]
 set menu_links_html [im_menu_ul_list -no_uls 1 "timesheet_hours_new_admin" $bind_vars]
 
 set different_project_url "other-projects?[export_url_vars julian_date user_id_from_search]"
 
 # Log Absences
-set add_absences_p [im_permission $user_id add_absences]
+set add_absences_p [im_permission $current_user_id add_absences]
 set absences_url [export_vars -base "/intranet-timesheet2/absences/new" {return_url user_id_from_search}]
 set absences_link_text [lang::message::lookup "" intranet-timesheet2.Log_Absences "Log Absences"]
 
@@ -242,7 +258,7 @@ set log_hours_on_solitary_projects_p [parameter::get_from_package_key -package_k
 set task_visibility_scope [parameter::get_from_package_key -package_key "intranet-timesheet2" -parameter TimesheetTaskVisibilityScope -default "sub_project"]
 
 # Can the current user log hours for other users?
-set add_hours_all_p [im_permission $user_id "add_hours_all"]
+set add_hours_all_p [im_permission $current_user_id "add_hours_all"]
 
 # What is a closed status?
 set closed_stati_select "select * from im_sub_categories([im_project_status_closed])"
@@ -459,7 +475,7 @@ switch $task_visibility_scope {
 			UNION
 				-- Select any project or task with explicit membership
 				select  r.object_id_one
-				from    acs_rels r, im_projects p
+				from    acs_rels r
 				where   r.object_id_two = :user_id_from_search
 	"
     }
@@ -1250,13 +1266,13 @@ append left_navbar_html "
             </li>
 "
 
-if {$user_id == $user_id_from_search && $add_absences_p} {
+if {$current_user_id == $user_id_from_search && $add_absences_p} {
     append left_navbar_html "
 	    <li><a href='$absences_url'>$absences_link_text</a></li>
     "
 }
 
-if {[im_permission $user_id_from_search view_projects_all]} {
+if {[im_permission $current_user_id view_projects_all]} {
     append left_navbar_html "
 	    <li><a href='$different_project_url'>#intranet-timesheet2.lt_Add_hours_on_other_pr#</A></li>
     "
