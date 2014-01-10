@@ -32,7 +32,7 @@ ad_page_contract {
     @author Marc Fleischer (marc.fleischer@leinhaeuser-solutions.de)
 
 } {
-    { status_id:integer "16000" }
+    { filter_status_id:integer "" }
     { start_idx:integer 0 }
     { order_by "User" }
     { how_many "" }
@@ -86,6 +86,14 @@ if {!$view_absences_all_p} {
 if {![im_permission $user_id "view_absences"] && !$view_absences_all_p && !$view_absences_direct_reports_p} { 
     ad_return_complaint 1 "You don't have permissions to see absences"
     ad_script_abort
+}
+
+# Support display of all Absences regardless of status in the
+# list. This does not show up in grafik though
+if {$filter_status_id eq ""} {
+    set absence_status_sql ""
+} else {
+    set absence_status_sql "and a.absence_status_id = :filter_status_id"
 }
 
 # Setting list of "direct reports" and "other employees"
@@ -543,7 +551,7 @@ set sql "
 				m.container_id = m.group_id and
 				mr.member_state != 'approved'
 		))
-    and a.absence_status_id = :status_id
+    $absence_status_sql
     $where_clause
 "
 
@@ -590,6 +598,7 @@ ad_form \
 	{start_date:text(text) {label "[_ intranet-timesheet2.Start_Date]"} {html {size 10}} {value "$start_date"} {after_html {<input type="button" style="height:23px; width:23px; background: url('/resources/acs-templating/calendar.gif');" onclick ="return showCalendar('start_date', 'y-m-d');" >}}}
         {timescale:text(select),optional {label "[_ intranet-timesheet2.Timescale]"} {options $timescale_type_list }}
         {absence_type_id:text(select),optional {label "[_ intranet-timesheet2.Absence_Type]"} {options $absence_type_list }}
+        {filter_status_id:text(im_category_tree),optional {label \#intranet-timesheet2.Status\#} {value $filter_status_id} {custom {category_type "Intranet Absence Status" translate_p 1}}}
         {user_selection:text(select),optional {label "[_ intranet-timesheet2.Show_Users]"} {options $user_selection_type_list }}
 }
 
@@ -810,17 +819,20 @@ set left_navbar_html "
 
 # Calendar display for vacation days
 set absence_cube_html ""
-set absence_cube_html [im_absence_cube \
-			   -absence_status_id $status_id \
-			   -absence_type_id $org_absence_type_id \
-			   -user_selection $user_selection \
-			   -timescale $timescale \
-			   -report_start_date $org_start_date \
-			   -report_end_date $org_end_date \
-			   -user_id_from_search $user_id_from_search \
-			   -cost_center_id $cost_center_id \
-			   -user_id $user_id \
-			   -hide_colors_p $hide_colors_p \
-			   -project_id $project_id
-]
-
+ds_comment "$filter_status_id"
+# Do not load the cube if we have multiple status
+#if {$filter_status_id ne ""} {
+    set absence_cube_html [im_absence_cube \
+			       -absence_status_id $filter_status_id \
+			       -absence_type_id $org_absence_type_id \
+			       -user_selection $user_selection \
+			       -timescale $timescale \
+			       -report_start_date $org_start_date \
+			       -report_end_date $org_end_date \
+			       -user_id_from_search $user_id_from_search \
+			       -cost_center_id $cost_center_id \
+			       -user_id $user_id \
+			       -hide_colors_p $hide_colors_p \
+			       -project_id $project_id
+			  ]
+#}

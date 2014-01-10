@@ -898,24 +898,6 @@ ad_proc -public im_absence_remaining_days {
         set approved_sql ""
     }
 
-    set vacation_sql "
-        select
-                coalesce((
-                    select sum(a.duration_days) as absence_days
-                    from im_user_absences a
-                    where absence_type_id = category_id and
-                    owner_id = :user_id and
-                    a.start_date <= :end_of_year and
-                    a.end_date >= :start_of_year
-                    $approved_sql
-                ),0) as absence_days,
-                category_id
-        from
-                im_categories c
-        where
-                category_id = :absence_type_id
-    "
-
     db_1row user_info "select coalesce(vacation_balance,0) as vacation_balance,
                           coalesce(vacation_days_per_year,0) as vacation_days_per_year,
                           coalesce(overtime_balance,0) as overtime_balance,
@@ -940,7 +922,7 @@ ad_proc -public im_absence_remaining_days {
 	}
     }
     
-    db_0or1row absence_info $vacation_sql
+    set absence_days [im_absence_days -owner_id $user_id -absence_type_ids $absence_type_id -start_date $start_of_year -end_date $end_of_year -approved_p $approved_p]
     set remaining_days [expr $entitlement_days - $absence_days]
     return $remaining_days
 }
@@ -949,11 +931,11 @@ ad_proc -public im_absence_days {
     {-owner_id ""}
     {-group_ids ""}
     -absence_type_ids:required
-    -approved:boolean
-    -start_date:required
-    -end_date:required
+    {-approved_p "0"}
+    {-start_date ""}
+    {-end_date ""}
 } {
-    Returns the number of remaining days for the user of a certain absence type
+    Returns the number of absence days for the user or group of a certain absence type
 } {
 
     if {!$approved_p} {
@@ -962,6 +944,13 @@ ad_proc -public im_absence_days {
         set approved_sql ""
     }
 
+    # Assume a long timescale for start/enddate
+    if {$start_date eq ""} {
+	set start_date '1970-01-01'
+    }
+    if {$end_date eq ""} {
+	set end_date '2099-12-31'
+    }
     if {$owner_id ne ""} {
 	# Get the groups the owner belongs to
 	set group_ids [db_list group_options "
@@ -992,6 +981,7 @@ ad_proc -public im_absence_days {
 	select coalesce(sum(a.duration_days),0) as absence_days
 	from im_user_absences a
 	where absence_type_id in ([template::util::tcl_to_sql_list $absence_type_ids]) and
+	absence_status_id in (16000,16004) and
         (owner_id = :owner_id or group_id in ([template::util::tcl_to_sql_list $group_ids])) and
 	a.start_date >= :start_date and
 	a.end_date <= :end_date

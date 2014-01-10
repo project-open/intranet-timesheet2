@@ -92,18 +92,14 @@ ad_proc -public im_leave_entitlement_remaining_days {
         set approved_sql ""
     }
 
-    set vacation_sql "
+    set entitlement_days [db_string entitlement_days "
 	select
-                coalesce((select sum(a.duration_days) as absence_days from im_user_absences a where absence_type_id = category_id and owner_id = :user_id $approved_sql),0) as absence_days,
-                category_id,
-                coalesce((select sum(l.entitlement_days) as absence_days from im_user_leave_entitlements l where leave_entitlement_type_id = category_id and owner_id = :user_id $approved_sql),0) as entitlement_days
-	from
-		im_categories c
-	where
-                category_id = :absence_type_id
-"
+                sum(l.entitlement_days) from im_user_leave_entitlements l where leave_entitlement_type_id = :absence_type_id and owner_id = :user_id $approved_sql" -default 0]
 
-    db_0or1row absence_info $vacation_sql
+    set absence_days [im_absence_days -owner_id $user_id -absence_type_ids $absence_type_id -approved_p $approved_p]
+    ds_comment "$entitlement_days :: $absence_days"
     set remaining_days [expr $entitlement_days - $absence_days]
     return $remaining_days
+
+
 }
