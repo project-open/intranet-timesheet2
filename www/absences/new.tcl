@@ -213,12 +213,12 @@ if {$button_pressed =="delete"} {
 	    db_string absence_delete "select im_user_absence__delete(:absence_id)"
 	    im_audit -object_type im_user_absence -action after_delete -object_id $absence_id
 	    
-	    ad_returnredirect $cancel_url
 	} on_error {
             ad_return_error "Error deleting absence" "<br>Error:<br>$errmsg<br><br>"
             return
 	}
     }
+    ad_returnredirect $cancel_url
 }
 
 # ------------------------------------------------------------------
