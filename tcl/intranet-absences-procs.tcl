@@ -35,7 +35,6 @@ ad_proc -public im_user_absence_type_bank_holiday {} { return 5005 }
 ad_proc -public im_user_absence_status_active {} { return 16000 }
 ad_proc -public im_user_absence_status_deleted {} { return 16002 }
 ad_proc -public im_user_absence_status_requested {} { return 16004 }
-ad_proc -public im_user_absence_status_cancelled {} { return 16005 }
 ad_proc -public im_user_absence_status_rejected {} { return 16006 }
 
 
@@ -217,13 +216,13 @@ ad_proc im_absence_new_page_wf_perm_table { } {
     set act [im_user_absence_status_active]
     set del [im_user_absence_status_deleted]
 
-    set perm_hash(owner-$rej) {v r d w a}
-    set perm_hash(owner-$req) {v r d}
-    set perm_hash(owner-$act) {v r d}
-    set perm_hash(owner-$del) {v r d}
+    set perm_hash(owner-$rej) {v r}
+    set perm_hash(owner-$req) {v r d w}
+    set perm_hash(owner-$act) {v r}
+    set perm_hash(owner-$del) {v r}
 
     set perm_hash(assignee-$rej) {v r}
-    set perm_hash(assignee-$req) {v r}
+    set perm_hash(assignee-$req) {v r w}
     set perm_hash(assignee-$act) {v r}
     set perm_hash(assignee-$del) {v r}
 
@@ -879,11 +878,13 @@ ad_proc -public im_absence_remaining_days {
     -user_id:required
     -absence_type_id:required
     -approved:boolean
+    {-ignore_absence_id ""}
 } {
     Returns the number of remaining days for the user of a certain absence type
+    @param ignore_absence_id Ignore this absence_id when calculating the remaining days.
 } {
     if {[im_table_exists im_user_leave_entitlements]} {
-	return [im_leave_entitlement_remaining_days -user_id $user_id -absence_type_id $absence_type_id -approved_p $approved_p]
+	return [im_leave_entitlement_remaining_days -user_id $user_id -absence_type_id $absence_type_id -approved_p $approved_p -ignore_absence_id $ignore_absence_id]
 	ad_script_abort
     }
     
@@ -922,7 +923,7 @@ ad_proc -public im_absence_remaining_days {
 	}
     }
     
-    set absence_days [im_absence_days -owner_id $user_id -absence_type_ids $absence_type_id -start_date $start_of_year -end_date $end_of_year -approved_p $approved_p]
+    set absence_days [im_absence_days -owner_id $user_id -absence_type_ids $absence_type_id -start_date $start_of_year -end_date $end_of_year -approved_p $approved_p -ignore_absence_id $ignore_absence_id]
     set remaining_days [expr $entitlement_days - $absence_days]
     return $remaining_days
 }
@@ -934,8 +935,10 @@ ad_proc -public im_absence_days {
     {-approved_p "0"}
     {-start_date ""}
     {-end_date ""}
+    {-ignore_absence_id ""}
 } {
     Returns the number of absence days for the user or group of a certain absence type
+    @param ignore_absence_id Ignore this absence_id when calculating the remaining days.
 } {
 
     if {!$approved_p} {
@@ -950,6 +953,14 @@ ad_proc -public im_absence_days {
     }
     if {$end_date eq ""} {
 	set end_date '2099-12-31'
+    }
+
+    # We need to ignore this absence_id from the calculation of
+    # absence days. Usually during an edit
+    if {$ignore_absence_id eq ""} {
+	set ignore_absence_sql ""
+    } else {
+	set ignore_absence_sql "and absence_id != :ignore_absence_id"
     }
     if {$owner_id ne ""} {
 	# Get the groups the owner belongs to
@@ -986,6 +997,7 @@ ad_proc -public im_absence_days {
 	a.start_date >= :start_date and
 	a.end_date <= :end_date
 	$approved_sql
+	$ignore_absence_sql
     "]
 
 }

@@ -82,6 +82,7 @@ ad_proc -public im_leave_entitlement_remaining_days {
     -user_id:required
     -absence_type_id:required
     {-approved_p "0"}
+    {-ignore_absence_id ""}
 } {
     Returns the number of remaining days for the user of a certain absence type
 } {
@@ -96,8 +97,7 @@ ad_proc -public im_leave_entitlement_remaining_days {
 	select
                 sum(l.entitlement_days) from im_user_leave_entitlements l where leave_entitlement_type_id = :absence_type_id and owner_id = :user_id $approved_sql" -default 0]
 
-    set absence_days [im_absence_days -owner_id $user_id -absence_type_ids $absence_type_id -approved_p $approved_p]
-    ds_comment "$entitlement_days :: $absence_days"
+    set absence_days [im_absence_days -owner_id $user_id -absence_type_ids $absence_type_id -approved_p $approved_p -ignore_absence_id $ignore_absence_id]
     set remaining_days [expr $entitlement_days - $absence_days]
     return $remaining_days
 

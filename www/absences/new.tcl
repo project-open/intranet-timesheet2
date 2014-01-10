@@ -150,20 +150,11 @@ if {[info exists absence_id]} {
 	if {$absence_under_wf_control_p} {
 	    set edit_perm_func [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter AbsenceNewPageWfEditButtonPerm -default "im_absence_new_page_wf_perm_edit_button"]
 	    set delete_perm_func [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter AbsenceNewPageWfDeleteButtonPerm -default "im_absence_new_page_wf_perm_delete_button"]
-
-	    if {[eval [list $edit_perm_func -absence_id $absence_id]] || $owner_id == $user_id} {
-		# He seems to be allowed to edit the workflow, though
-		# this should only work while the absence is still requested
-		if {[db_string status_id "select absence_status_id from im_user_absences where absence_id = :absence_id"] == [im_user_absence_status_requested]} {
-		    lappend actions [list [lang::message::lookup {} intranet-timesheet2.Edit Edit] edit]
-		}
+	    if {[eval [list $edit_perm_func -absence_id $absence_id]]} {
+		lappend actions [list [lang::message::lookup {} intranet-timesheet2.Edit Edit] edit]
 	    }
 	    if {[eval [list $delete_perm_func -absence_id $absence_id]]} {
-		if {[parameter::get_from_package_key -package_key intranet-timesheet2 -parameter "CancelAbsenceP" -default 1]} {
-		    lappend actions [list [lang::message::lookup {} intranet-timesheet2.Cancel Cancel] cancel]
-		} else {
-		    lappend actions [list [lang::message::lookup {} intranet-timesheet2.Delete Delete] delete]
-		}		    
+		lappend actions [list [lang::message::lookup {} intranet-timesheet2.Delete Delete] delete]
 	    }
 
 	} else {
@@ -188,8 +179,25 @@ if {[info exists absence_id]} {
 # ------------------------------------------------------------------
 
 set button_pressed [template::form get_action absence]
-switch $button_pressed {
-    delete {
+if {$button_pressed =="delete"} {
+    if {[parameter::get_from_package_key -package_key intranet-timesheet2 -parameter "CancelAbsenceP" -default 1]} {
+
+	# We just cancel the workflow and not delete it
+	im_audit -object_type im_user_absence -action before_cancel -object_id $absence_id -status_id [im_user_absence_status_cancelled]
+
+	# Set the workflow to finished
+	if {$absence_under_wf_control_p} {
+	    set case_id [db_string case "select case_id from wf_cases where object_id = :absence_id"]
+	    
+	    catch {wf_case_cancel -msg "Absence was cancelled by [im_name_from_user_id $user_id]" $case_id}
+	    # Record the change (who cancelled it)
+	}
+
+	# Update the vacation status to cancelled
+	db_dml cancel_absence "update im_user_absences set absence_status_id = [im_user_absence_status_cancelled] where absence_id = :absence_id"
+	im_audit -object_type im_user_absence -action after_cancel -object_id $absence_id -status_id [im_user_absence_status_deleted]
+
+    } else {
 	db_transaction {
 	    callback absence_on_change \
 		-absence_id $absence_id \
@@ -210,21 +218,6 @@ switch $button_pressed {
             ad_return_error "Error deleting absence" "<br>Error:<br>$errmsg<br><br>"
             return
 	}
-    }
-    cancel {
-	# Set the workflow to finished
-	if {$absence_under_wf_control_p} {
-	    set case_id [db_string case "select case_id from wf_cases where object_id = :absence_id"]
-	    
-	    catch {wf_case_cancel -msg "Absence was cancelled by [im_name_from_user_id $user_id]" $case_id}
-	    # Record the change (who cancelled it)
-	    im_workflow_new_journal -case_id $case_id -action "Cancel absence" -action_pretty "Cancel Absence" -message "Absence was cancelled by [im_name_from_user_id $user_id]"
-	}
-
-	# Update the vacation status to cancelled
-	db_dml cancel_absence "update im_user_absences set absence_status_id = [im_user_absence_status_cancelled] where absence_id = :absence_id"
-	im_audit -object_type im_user_absence -action after_delete -object_id $absence_id -status_id [im_user_absence_status_cancelled]
-
     }
 }
 
@@ -299,7 +292,7 @@ ad_form \
     -cancel_url $cancel_url \
     -action $action_url \
     -actions $actions \
-    -has_edit [expr !$write] \
+    -has_edit 1 \
     -mode $form_mode \
     -export $hidden_field_list \
     -form $form_fields
@@ -369,8 +362,8 @@ ad_form -extend -name absence -on_request {
 } -validate {
 
     {duration_days
-	{[im_absence_calculate_duration_days -start_date "[join [template::util::date get_property linear_date_no_time $start_date] "-"]" -end_date "[join [template::util::date get_property linear_date_no_time $end_date] "-"]" -owner_id $absence_owner_id] <= [im_absence_remaining_days -user_id $absence_owner_id -absence_type_id $absence_type_id] || [lsearch $vacation_category_ids $absence_type_id]<0}
-	"Duration is longer than remaining days of [im_absence_remaining_days -user_id $absence_owner_id -absence_type_id $absence_type_id]"
+	{[im_absence_calculate_duration_days -start_date "[join [template::util::date get_property linear_date_no_time $start_date] "-"]" -end_date "[join [template::util::date get_property linear_date_no_time $end_date] "-"]" -owner_id $absence_owner_id] <= [im_absence_remaining_days -user_id $absence_owner_id -ignore_absence_id $absence_id -absence_type_id $absence_type_id] || [lsearch $vacation_category_ids $absence_type_id]<0}
+	"Duration is longer than remaining days of [im_absence_remaining_days -user_id $absence_owner_id -absence_type_id $absence_type_id -ignore_absence_id $absence_id]"
     }
     {start_date
 	{"f" != [db_string date_range "select [template::util::date get_property sql_timestamp $end_date] >= [template::util::date get_property sql_timestamp $start_date]"]}
@@ -384,7 +377,8 @@ ad_form -extend -name absence -on_request {
 			a.absence_type_id = :absence_type_id and
 			a.start_date <= [template::util::date get_property sql_timestamp $start_date] and
                         a.end_date >= [template::util::date get_property sql_timestamp $start_date] and
-                        a.absence_id != :absence_id
+                        a.absence_id != :absence_id and
+                        a.absence_status_id in (16000,16004)
 	   "]}
 	{[lang::message::lookup "" intranet-timesheet2.Absence_Duplicate_Start "There is already an absence with exactly the same owner, type and start date."]}
     }
