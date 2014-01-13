@@ -59,8 +59,10 @@ ad_proc -public im_user_absence_permissions {user_id absence_id view_var read_va
     upvar $admin_var admin
 
     set current_user_id $user_id
+    set view 0
     set read 0
     set write 0
+    set admin 0
 
     # Empty or bad absence_id
     if {"" == $absence_id || ![string is integer $absence_id]} { return "" }
@@ -74,7 +76,9 @@ ad_proc -public im_user_absence_permissions {user_id absence_id view_var read_va
 	from	im_user_absences a
 	where	a.absence_id = $absence_id
     "]} {
+	# Thic can happen if this procedure is called while the absence hasn't yet been created
 	ns_log Error "im_user_absence_permissions: user_id=$user_id, absence_id=$absence_id: Absence not found"
+	return
     }
 
     # Get cached permissions
