@@ -46,7 +46,7 @@ ad_page_contract {
 
 set current_user_id [ad_maybe_redirect_for_registration]
 set add_hours_all_p [im_permission $current_user_id "add_hours_all"]
-set add_hours_for_direct_reports_p [im_permission $current_user_id "add_hours_for_direct_reports"]
+set add_hours_direct_reports_p [im_permission $current_user_id "add_hours_direct_reports"]
 
 
 switch $user_id_from_search {
@@ -56,7 +56,7 @@ switch $user_id_from_search {
     default {
 	# Is the user allowed to log hours for another user?
 	if {!$add_hours_all_p} {
-	    if {$add_hours_for_direct_reports_p} {
+	    if {$add_hours_direct_reports_p} {
 		set reportees [im_user_direct_reports_ids -user_id $current_user_id]
 		if {[lsearch $reportees $user_id_from_search] < 0} {
 		    # User not in reportees - reset to current user

@@ -55,7 +55,9 @@ ad_page_contract {
 
 set current_user_id [ad_maybe_redirect_for_registration]
 set add_hours_all_p [im_permission $current_user_id "add_hours_all"]
-set add_hours_for_direct_reports_p [im_permission $current_user_id "add_hours_for_direct_reports"]
+set add_hours_direct_reports_p [im_permission $current_user_id "add_hours_direct_reports"]
+
+### !!! ToDo: add_hours_direct_reports_p is not used, even though it should be used
 
 # Is the user allowed to log hours for another user?
 if {"" == $user_id_from_search } { 
