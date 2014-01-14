@@ -54,10 +54,15 @@ ad_page_contract {
 # ----------------------------------------------------------
 
 set current_user_id [ad_maybe_redirect_for_registration]
+set add_hours_p [im_permission $current_user_id "add_hours"]
 set add_hours_all_p [im_permission $current_user_id "add_hours_all"]
 set add_hours_direct_reports_p [im_permission $current_user_id "add_hours_direct_reports"]
 
-### !!! ToDo: add_hours_direct_reports_p is not used, even though it should be used
+if {!$add_hours_p} {
+    ad_return_complaint 1 [lang::message::lookup "" intranet-timesheet2.Not_allowed_to_log_hours "You are not allowed to log hours."]
+    ad_script_abort
+}
+
 
 # Is the user allowed to log hours for another user?
 if {"" == $user_id_from_search } { 
