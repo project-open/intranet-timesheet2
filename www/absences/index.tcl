@@ -58,9 +58,9 @@ set current_user_id $user_id
 set subsite_id [ad_conn subsite_id]
 set add_absences_for_group_p [im_permission $user_id "add_absences_for_group"]
 set add_absences_all_p [im_permission $user_id "add_absences_all"]
-set view_absences_all_p [im_permission $user_id "view_absences_all"]
-set view_absences_direct_reports_p [im_permission $user_id "view_absences_direct_reports"]
+set view_absences_all_p [expr [im_permission $user_id "view_absences_all"] || $add_absences_all_p]
 set add_absences_direct_reports_p [im_permission $user_id "add_absences_direct_reports"]
+set view_absences_direct_reports_p [expr [im_permission $user_id "view_absences_direct_reports"] || $add_absences_direct_reports_p]
 set add_absences_p [im_permission $user_id "add_absences"]
 set org_absence_type_id $absence_type_id
 set show_context_help_p 1
@@ -109,6 +109,8 @@ if {!$view_absences_all_p} {
 	set user_selection "mine"
     }
 }
+
+# ad_return_complaint 1 "user_selection=$user_selection, view_absences_all_p=$view_absences_all_p"
 
 
 # ---------------------------------------------------------------
