@@ -437,7 +437,7 @@ set left_navbar_html "
 append left_navbar_html "
     <tr>
         <td>[lang::message::lookup "" intranet-timesheet2.Log_hours_for_user "Log Hours<br>for User"]</td>
-	<td>[im_user_timesheet_select user_id_from_search $user_id_from_search]</td>
+	<td>[im_user_timesheet_hours_select user_id_from_search $user_id_from_search]</td>
     </tr>
 "
 

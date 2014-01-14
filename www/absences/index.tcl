@@ -135,7 +135,7 @@ set absence_view_page "$absences_url/new"
 # Build Drop-down boxes
 # ---------------------------------------------------------------
 
-set user_selection_options [im_user_timesheet_options]
+set user_selection_options [im_user_timesheet_absences_options]
 
 set timescale_types [list \
 			 "all" [lang::message::lookup "" intranet-timesheet2.All "All"] \
