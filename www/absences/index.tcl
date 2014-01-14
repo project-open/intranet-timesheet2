@@ -60,6 +60,7 @@ set add_absences_for_group_p [im_permission $user_id "add_absences_for_group"]
 set add_absences_all_p [im_permission $user_id "add_absences_all"]
 set view_absences_all_p [im_permission $user_id "view_absences_all"]
 set view_absences_direct_reports_p [im_permission $user_id "view_absences_direct_reports"]
+set add_absences_direct_reports_p [im_permission $user_id "add_absences_direct_reports"]
 set add_absences_p [im_permission $user_id "add_absences"]
 set org_absence_type_id $absence_type_id
 set show_context_help_p 1
@@ -429,8 +430,6 @@ ad_form \
 template::element::set_value $form_id start_date $start_date
 template::element::set_value $form_id end_date $end_date
 template::element::set_value $form_id timescale $timescale
-
-# !!!
 template::element::set_value $form_id user_selection $user_selection
 
 eval [template::adp_compile -string {<formtemplate style="tiny-plain-po" id="absence_filter"></formtemplate>}]
@@ -441,9 +440,21 @@ set filter_html $__adp_output
 # ---------------------------------------------------------------
 set for_user_id $current_user_id
 
-if {[string is integer $user_selection] && $add_absences_for_group_p} { 
+if {[string is integer $user_selection]} { 
     # Log for other user "than current user" requires permissions
-    set for_user_id $user_selection
+    # user_selection can be the current_user, a "direct report" or any other user.
+
+    # Permission to log for any user - OK
+    if {$add_absences_all_p} {
+	sset for_user_id $user_selection
+    }
+
+    if {!$add_absences_all_p && $add_absences_direct_reports_p} {
+	set direct_reports [im_user_direct_reports_ids -user_id $current_user_id]
+	if {[lsearch $direct_reports $user_selection] > -1} {
+	    set for_user_id $user_selection
+	}
+    }
 }
 
 set admin_html [im_menu_ul_list "timesheet2_absences" [list user_id_from_search $for_user_id return_url $return_url]]
