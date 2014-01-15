@@ -256,27 +256,11 @@ switch $user_selection {
 	)"
     }
     "direct_reports" {
-	lappend criteria "a.owner_id in (
-		select employee_id from im_employees
-		where (supervisor_id = :current_user_id OR employee_id = :current_user_id)
-	    UNION
-		select	e.employee_id 
-		from	im_employees e,
-			-- Select all departments where the current user is manager
-			(select	cc.cost_center_id,
-				cc.manager_id
-			from	im_cost_centers cc,
-				(select cost_center_code as code,
-					length(cost_center_code) len
-				from	im_cost_centers
-				where	manager_id = :current_user_id
-				) t
-			where	substring(cc.cost_center_code for t.len) = t.code
-			) tt
-		where  (e.department_id = tt.cost_center_id
-		       OR e.employee_id = tt.manager_id)
-	    )"
-    }  
+	set direct_report_ids [im_user_direct_reports_ids -user_id $current_user_id]
+	if {[llength $direct_report_ids] > 0} {
+	    lappend criteria "a.owner_id in ([join $direct_report_ids ","])"
+	}
+    }
     default  {
 	if {[string is integer $user_selection]} {
 	    lappend criteria "a.owner_id = :user_selection"
@@ -448,7 +432,7 @@ if {[string is integer $user_selection]} {
 
     # Permission to log for any user - OK
     if {$add_absences_all_p} {
-	sset for_user_id $user_selection
+	set for_user_id $user_selection
     }
 
     if {!$add_absences_all_p && $add_absences_direct_reports_p} {
