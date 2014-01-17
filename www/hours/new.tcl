@@ -1087,7 +1087,7 @@ template::multirow foreach hours_multirow {
 
 	if { "t" == $edit_hours_p && $log_on_parent_p && !$invoice_id && !$solitary_main_project_p && !$closed_p && !$filter_surpress_output_p && !$blocked_by_wf_p } {
 	    # Write editable entries.
-	    append table_rows "<td>xxx $conf_status_id <input name=hours${i}.$project_id size=5 MAXLENGTH=5 value=\"$hours\"></td>\n"
+	    append table_rows "<td><input name=hours${i}.$project_id size=5 MAXLENGTH=5 value=\"$hours\"></td>\n"
 	    if {!$show_week_p} {
 		append table_rows "<td><input name=notes0.$project_id size=$external_comment_size value=\"[ns_quotehtml [value_if_exists note]]\"></td>\n"
 		if {$internal_note_exists_p} { append table_rows "<td><input name=internal_notes0.$project_id size=$internal_comment_size value=\"[ns_quotehtml [value_if_exists internal_note]]\"></td>\n" }
