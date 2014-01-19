@@ -145,6 +145,7 @@ set tasks_sql "
 		and t.state in ('enabled', 'started')
 		and t.transition_key = tr.transition_key
 		and t.workflow_key = tr.workflow_key
+                and t.workflow_key = 'timesheet_approval_wf'
     "
 
 if {"" != $order_by_clause} {
