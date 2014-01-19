@@ -8,6 +8,8 @@
 
 SELECT acs_log__debug('/packages/intranet-timesheet2/sql/postgresql/upgrade/upgrade-4.0.5.0.4-4.0.5.0.5.sql','');
 
+alter table im_user_absences drop constraint owner_and_start_date_unique;
+
 -- ------------------------------------------------------
 -- Components for timesheet approval
 -- ------------------------------------------------------
