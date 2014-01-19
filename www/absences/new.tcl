@@ -49,6 +49,8 @@ if {$absence_type_id eq 0} {
     set absence_type [im_category_from_id $absence_type_id]
 }
 
+set form_id "absence"
+
 set absence_under_wf_control_p 0
 if {[info exists absence_id]} { 
     # absence_owner_id determines the list of projects per absence and other DynField widgets
@@ -288,7 +290,7 @@ if { [parameter::get -package_id [apm_package_id_from_key intranet-timesheet2] -
 }
 
 ad_form \
-    -name absence \
+    -name $form_id \
     -cancel_url $cancel_url \
     -action $action_url \
     -actions $actions \
@@ -306,9 +308,9 @@ if {!$absence_under_wf_control_p || [im_permission $current_user_id edit_absence
 #   set form_list {{absence_status_id:text(im_category_tree) {mode display} {label "[lang::message::lookup {} intranet-timesheet2.Status Status]"} {custom {category_type "Intranet Absence Status"}}}}
     set form_list {{absence_status_id:text(hidden)}}
 }
-ad_form -extend -name absence -form $form_list
+ad_form -extend -name $form_id -form $form_list
 
-ad_form -extend -name absence -form {
+ad_form -extend -name $form_id -form {
     {start_date:date(date) {label "[_ intranet-timesheet2.Start_Date]"} {format "YYYY-MM-DD"} {after_html {<input type="button" style="height:23px; width:23px; background: url('/resources/acs-templating/calendar.gif');" onclick ="return showCalendarWithDateWidget('start_date', 'y-m-d');" >}}}
     {end_date:date(date) {label "[_ intranet-timesheet2.End_Date]"} {format "YYYY-MM-DD"} {after_html {<input type="button" style="height:23px; width:23px; background: url('/resources/acs-templating/calendar.gif');" onclick ="return showCalendarWithDateWidget('end_date', 'y-m-d');" >}}}
     {duration_days:float(inform) {label "[lang::message::lookup {} intranet-timesheet2.Duration_days {Duration (Days)}]"} {help_text "[lang::message::lookup {} intranet-timesheet2.Duration_days_help {Please specify the absence duration as a number or fraction of days. Example: '1'=one day, '0.5'=half a day)}]"}}
@@ -326,7 +328,7 @@ if {[info exists absence_id]} { set my_absence_id $absence_id }
 set field_cnt [im_dynfield::append_attributes_to_form \
     -object_subtype_id $absence_type_id \
     -object_type "im_user_absence" \
-    -form_id absence \
+    -form_id $form_id \
     -object_id $my_absence_id \
     -form_display_mode $form_mode
 ]
@@ -341,7 +343,7 @@ set vacation_category_ids [db_list bank_holidays "select child_id from im_catego
 lappend vacation_category_ids 5000
 
 
-ad_form -extend -name absence -on_request {
+ad_form -extend -name $form_id -on_request {
     # Populate elements from local variables
     if {![info exists start_date]} { set start_date [db_string today "select to_char(now(), :date_time_format)"] }
     if {![info exists end_date]} { set end_date [db_string today "select to_char(now(), :date_time_format)"] }
@@ -391,6 +393,9 @@ ad_form -extend -name absence -on_request {
     set start_date_sql [template::util::date get_property sql_timestamp $start_date]
     set end_date_sql [template::util::date get_property sql_timestamp $end_date]
     set duration_days [im_absence_calculate_duration_days -start_date "[join [template::util::date get_property linear_date_no_time $start_date] "-"]" -end_date "[join [template::util::date get_property linear_date_no_time $end_date] "-"]" -owner_id $absence_owner_id]
+
+    callback im_user_absence_before_create -object_id $absence_id -status_id $absence_status_id -type_id $absence_type_id
+
     db_transaction {
 	set absence_id [db_string new_absence "
 		SELECT im_user_absence__new(
@@ -435,7 +440,7 @@ ad_form -extend -name absence -on_request {
 	im_dynfield::attribute_store \
 	    -object_type "im_user_absence" \
 	    -object_id $absence_id \
-	    -form_id absence
+	    -form_id $form_id
 
 	db_dml update_object "
 		update acs_objects set
@@ -476,6 +481,10 @@ ad_form -extend -name absence -on_request {
     }
 
 } -edit_data {
+
+    # Audit the action
+    callback im_user_absence_before_edit -object_id $absence_id -status_id $absence_status_id -type_id $absence_type_id
+
     if {$absence_under_wf_control_p} {
 	if {[db_string status_id "select absence_status_id from im_user_absences where absence_id = :absence_id"] != [im_user_absence_status_requested]} {
 	    ad_return_error "Wrong status" "The absence is no longer requested, therefore unable to edit"
@@ -524,7 +533,7 @@ ad_form -extend -name absence -on_request {
     im_dynfield::attribute_store \
         -object_type "im_user_absence" \
         -object_id $absence_id \
-        -form_id absence
+        -form_id $form_id
 
     db_dml update_object "
 		update acs_objects set
