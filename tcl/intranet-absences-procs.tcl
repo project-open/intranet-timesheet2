@@ -250,7 +250,7 @@ ad_proc im_absence_new_page_wf_perm_edit_button {
 		    -perm_table $perm_table
     ]
 
-    ns_log Notice "im_absence_new_page_wf_perm_edit_button absence_id=$absence_id => $perm_set"
+    ns_log Debug "im_absence_new_page_wf_perm_edit_button absence_id=$absence_id => $perm_set"
     return [expr [lsearch $perm_set "w"] > -1]
 }
 
@@ -271,7 +271,7 @@ ad_proc im_absence_new_page_wf_perm_delete_button {
 
 
 
-    ns_log Notice "im_absence_new_page_wf_perm_delete_button absence_id=$absence_id => $perm_set"
+    ns_log Debug "im_absence_new_page_wf_perm_delete_button absence_id=$absence_id => $perm_set"
     return [expr [lsearch $perm_set "d"] > -1]
 }
 
@@ -709,7 +709,7 @@ ad_proc im_absence_cube {
 	    if {[info exists holiday_hash($date_date)]} { append value $holiday_hash($date_date) }
 	    if {$hide_colors_p && $value != "" } {set value "1"}
 	    append table_body [im_absence_cube_render_cell $value]
-	    ns_log NOTICE "intranet-absences-procs::im_absence_cube_render_cell: $value"
+	    ns_log debug "intranet-absences-procs::im_absence_cube_render_cell: $value"
 	}
 	append table_body "</tr>\n"
 	incr row_ctr

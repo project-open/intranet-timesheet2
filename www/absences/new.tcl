@@ -183,7 +183,7 @@ if {$button_pressed =="delete"} {
     if {[parameter::get_from_package_key -package_key intranet-timesheet2 -parameter "CancelAbsenceP" -default 1]} {
 
 	# We just cancel the workflow and not delete it
-	im_audit -object_type im_user_absence -action before_cancel -object_id $absence_id -status_id [im_user_absence_status_cancelled]
+	im_audit -object_type im_user_absence -action before_delete -object_id $absence_id -status_id [im_user_absence_status_cancelled]
 
 	# Set the workflow to finished
 	if {$absence_under_wf_control_p} {
@@ -195,7 +195,7 @@ if {$button_pressed =="delete"} {
 
 	# Update the vacation status to cancelled
 	db_dml cancel_absence "update im_user_absences set absence_status_id = [im_user_absence_status_cancelled] where absence_id = :absence_id"
-	im_audit -object_type im_user_absence -action after_cancel -object_id $absence_id -status_id [im_user_absence_status_deleted]
+	im_audit -object_type im_user_absence -action after_delete -object_id $absence_id -status_id [im_user_absence_status_deleted]
 
     } else {
 	db_transaction {
