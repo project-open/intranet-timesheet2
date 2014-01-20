@@ -382,6 +382,7 @@ ad_form -extend -name absence -on_request {
 		from	im_user_absences a
 		where	a.owner_id = :absence_owner_id and
 			a.absence_type_id = :absence_type_id and
+			a.absence_status_id in (16000,16004) and
 			a.start_date <= [template::util::date get_property sql_timestamp $start_date] and
                         a.end_date >= [template::util::date get_property sql_timestamp $start_date] and
                         a.absence_id != :absence_id
