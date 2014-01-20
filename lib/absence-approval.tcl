@@ -2,7 +2,7 @@
 # Inbox for "Business Objects"
 # ----------------------------------------------------------------------
 
-set view_name "timesheet_approval_inbox"
+set view_name "absence_approval_inbox"
 set order_by_clause ""
 set relationship "assignment_group" 
 set relationships {holding_user assignment_group none} 
@@ -18,6 +18,8 @@ set current_user_id [ad_get_user_id]
 set return_url [im_url_with_query]
 set view_id [db_string get_view_id "select view_id from im_views where view_name=:view_name"]
 set user_is_admin_p [im_is_user_site_wide_or_intranet_admin $current_user_id]
+
+set date_format "YYYY-MM-DD"
 
 set form_vars [ns_conn form]
 if {"" == $form_vars} { set form_vars [ns_set create] }
@@ -130,10 +132,12 @@ set tasks_sql "
 		tr.transition_name,
 		t.holding_user,
 		t.task_id,
-                h.hours
+                to_char(a.start_date, :date_format) as start_date_pretty,
+                to_char(a.end_date, :date_format) as end_date_pretty,
+                a.description
 	from
 		acs_objects o,
-		wf_cases ca left outer join (select sum(hours) as hours, conf_object_id as task_id from im_hours group by conf_object_id) h on h.task_id = ca.object_id,
+		wf_cases ca left outer join im_user_absences a on a.absence_id = ca.object_id,
 		wf_transitions tr,
 		wf_tasks t,
                 wf_task_assignments wta
@@ -145,7 +149,9 @@ set tasks_sql "
 		and t.state in ('enabled', 'started')
 		and t.transition_key = tr.transition_key
 		and t.workflow_key = tr.workflow_key
-                and t.workflow_key = 'timesheet_approval_wf'
+                and t.workflow_key in (select distinct aux_string1 from im_categories where category_type = 'Intranet Absence Type' and aux_string1 is not null)
+                and a.absence_status_id not in (16002,16005)
+                and a.start_date >= now()
     "
 
 if {"" != $order_by_clause} {
@@ -201,11 +207,11 @@ db_foreach tasks $tasks_sql {
     }
     set object_subtype [im_category_from_id $type_id]
     set status [im_category_from_id $status_id]
-    set object_url "[im_biz_object_url $object_id "view"]&return_url=[ns_urlencode $return_url]"
+    set object_url "[export_vars -base "/intranet-timesheet2/absences/new" {{form_mode display} {absence_id $object_id}}]"
     set owner_url [export_vars -base "/intranet/users/view" {return_url {user_id $owner_id}}]
 
-    set approve_url [export_vars -base "/[im_workflow_url]/task" -url {{attributes.confirm_hours_are_the_logged_hours_ok_p t} {action.finish "Task done"} task_id return_url}]
-    set deny_url [export_vars -base "/[im_workflow_url]/task" -url {{attributes.confirm_hours_are_the_logged_hours_ok_p f} {action.finish "Task done"} task_id return_url}]
+    set approve_url [export_vars -base "/[im_workflow_url]/task" -url {{attributes.review_reject_p t} {action.finish "Task done"} task_id return_url}]
+    set deny_url [export_vars -base "/[im_workflow_url]/task" -url {{attributes.review_reject_p f} {action.finish "Task done"} task_id return_url}]
 
     # if this is the creator viewing it, prevent him from approving it
     # himself

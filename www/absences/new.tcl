@@ -49,6 +49,8 @@ if {$absence_type_id eq 0} {
     set absence_type [im_category_from_id $absence_type_id]
 }
 
+set form_id "absence"
+
 set absence_under_wf_control_p 0
 if {[info exists absence_id]} { 
     # absence_owner_id determines the list of projects per absence and other DynField widgets
@@ -150,20 +152,11 @@ if {[info exists absence_id]} {
 	if {$absence_under_wf_control_p} {
 	    set edit_perm_func [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter AbsenceNewPageWfEditButtonPerm -default "im_absence_new_page_wf_perm_edit_button"]
 	    set delete_perm_func [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter AbsenceNewPageWfDeleteButtonPerm -default "im_absence_new_page_wf_perm_delete_button"]
-
-	    if {[eval [list $edit_perm_func -absence_id $absence_id]] || $owner_id == $user_id} {
-		# He seems to be allowed to edit the workflow, though
-		# this should only work while the absence is still requested
-		if {[db_string status_id "select absence_status_id from im_user_absences where absence_id = :absence_id"] == [im_user_absence_status_requested]} {
-		    lappend actions [list [lang::message::lookup {} intranet-timesheet2.Edit Edit] edit]
-		}
+	    if {[eval [list $edit_perm_func -absence_id $absence_id]]} {
+		lappend actions [list [lang::message::lookup {} intranet-timesheet2.Edit Edit] edit]
 	    }
 	    if {[eval [list $delete_perm_func -absence_id $absence_id]]} {
-		if {[parameter::get_from_package_key -package_key intranet-timesheet2 -parameter "CancelAbsenceP" -default 1]} {
-		    lappend actions [list [lang::message::lookup {} intranet-timesheet2.Cancel Cancel] cancel]
-		} else {
-		    lappend actions [list [lang::message::lookup {} intranet-timesheet2.Delete Delete] delete]
-		}		    
+		lappend actions [list [lang::message::lookup {} intranet-timesheet2.Delete Delete] delete]
 	    }
 
 	} else {
@@ -188,8 +181,25 @@ if {[info exists absence_id]} {
 # ------------------------------------------------------------------
 
 set button_pressed [template::form get_action absence]
-switch $button_pressed {
-    delete {
+if {$button_pressed =="delete"} {
+    if {[parameter::get_from_package_key -package_key intranet-timesheet2 -parameter "CancelAbsenceP" -default 1]} {
+
+	# We just cancel the workflow and not delete it
+	callback im_user_absence_before_delete  -object_id $absence_id -status_id [im_user_absence_status_cancelled]
+	
+	# Set the workflow to finished
+	if {$absence_under_wf_control_p} {
+	    set case_id [db_string case "select case_id from wf_cases where object_id = :absence_id"]
+	    
+	    catch {wf_case_cancel -msg "Absence was cancelled by [im_name_from_user_id $user_id]" $case_id}
+	    # Record the change (who cancelled it)
+	}
+
+	# Update the vacation status to cancelled
+	db_dml cancel_absence "update im_user_absences set absence_status_id = [im_user_absence_status_cancelled] where absence_id = :absence_id"
+	im_audit -object_type im_user_absence -action after_delete -object_id $absence_id -status_id [im_user_absence_status_deleted]
+
+    } else {
 	db_transaction {
 	    callback absence_on_change \
 		-absence_id $absence_id \
@@ -205,27 +215,12 @@ switch $button_pressed {
 	    db_string absence_delete "select im_user_absence__delete(:absence_id)"
 	    im_audit -object_type im_user_absence -action after_delete -object_id $absence_id
 	    
-	    ad_returnredirect $cancel_url
 	} on_error {
             ad_return_error "Error deleting absence" "<br>Error:<br>$errmsg<br><br>"
             return
 	}
     }
-    cancel {
-	# Set the workflow to finished
-	if {$absence_under_wf_control_p} {
-	    set case_id [db_string case "select case_id from wf_cases where object_id = :absence_id"]
-	    
-	    catch {wf_case_cancel -msg "Absence was cancelled by [im_name_from_user_id $user_id]" $case_id}
-	    # Record the change (who cancelled it)
-	    im_workflow_new_journal -case_id $case_id -action "Cancel absence" -action_pretty "Cancel Absence" -message "Absence was cancelled by [im_name_from_user_id $user_id]"
-	}
-
-	# Update the vacation status to cancelled
-	db_dml cancel_absence "update im_user_absences set absence_status_id = [im_user_absence_status_cancelled] where absence_id = :absence_id"
-	im_audit -object_type im_user_absence -action after_delete -object_id $absence_id -status_id [im_user_absence_status_cancelled]
-
-    }
+    ad_returnredirect $cancel_url
 }
 
 # ------------------------------------------------------------------
@@ -295,11 +290,11 @@ if { [parameter::get -package_id [apm_package_id_from_key intranet-timesheet2] -
 }
 
 ad_form \
-    -name absence \
+    -name $form_id \
     -cancel_url $cancel_url \
     -action $action_url \
     -actions $actions \
-    -has_edit [expr !$write] \
+    -has_edit 1 \
     -mode $form_mode \
     -export $hidden_field_list \
     -form $form_fields
@@ -313,9 +308,9 @@ if {!$absence_under_wf_control_p || [im_permission $current_user_id edit_absence
 #   set form_list {{absence_status_id:text(im_category_tree) {mode display} {label "[lang::message::lookup {} intranet-timesheet2.Status Status]"} {custom {category_type "Intranet Absence Status"}}}}
     set form_list {{absence_status_id:text(hidden)}}
 }
-ad_form -extend -name absence -form $form_list
+ad_form -extend -name $form_id -form $form_list
 
-ad_form -extend -name absence -form {
+ad_form -extend -name $form_id -form {
     {start_date:date(date) {label "[_ intranet-timesheet2.Start_Date]"} {format "YYYY-MM-DD"} {after_html {<input type="button" style="height:23px; width:23px; background: url('/resources/acs-templating/calendar.gif');" onclick ="return showCalendarWithDateWidget('start_date', 'y-m-d');" >}}}
     {end_date:date(date) {label "[_ intranet-timesheet2.End_Date]"} {format "YYYY-MM-DD"} {after_html {<input type="button" style="height:23px; width:23px; background: url('/resources/acs-templating/calendar.gif');" onclick ="return showCalendarWithDateWidget('end_date', 'y-m-d');" >}}}
     {duration_days:float(inform) {label "[lang::message::lookup {} intranet-timesheet2.Duration_days {Duration (Days)}]"} {help_text "[lang::message::lookup {} intranet-timesheet2.Duration_days_help {Please specify the absence duration as a number or fraction of days. Example: '1'=one day, '0.5'=half a day)}]"}}
@@ -333,7 +328,7 @@ if {[info exists absence_id]} { set my_absence_id $absence_id }
 set field_cnt [im_dynfield::append_attributes_to_form \
     -object_subtype_id $absence_type_id \
     -object_type "im_user_absence" \
-    -form_id absence \
+    -form_id $form_id \
     -object_id $my_absence_id \
     -form_display_mode $form_mode
 ]
@@ -348,7 +343,7 @@ set vacation_category_ids [db_list bank_holidays "select child_id from im_catego
 lappend vacation_category_ids 5000
 
 
-ad_form -extend -name absence -on_request {
+ad_form -extend -name $form_id -on_request {
     # Populate elements from local variables
     if {![info exists start_date]} { set start_date [db_string today "select to_char(now(), :date_time_format)"] }
     if {![info exists end_date]} { set end_date [db_string today "select to_char(now(), :date_time_format)"] }
@@ -369,8 +364,8 @@ ad_form -extend -name absence -on_request {
 } -validate {
 
     {duration_days
-	{[im_absence_calculate_duration_days -start_date "[join [template::util::date get_property linear_date_no_time $start_date] "-"]" -end_date "[join [template::util::date get_property linear_date_no_time $end_date] "-"]" -owner_id $absence_owner_id] <= [im_absence_remaining_days -user_id $absence_owner_id -absence_type_id $absence_type_id] || [lsearch $vacation_category_ids $absence_type_id]<0}
-	"Duration is longer than remaining days of [im_absence_remaining_days -user_id $absence_owner_id -absence_type_id $absence_type_id]"
+	{[im_absence_calculate_duration_days -start_date "[join [template::util::date get_property linear_date_no_time $start_date] "-"]" -end_date "[join [template::util::date get_property linear_date_no_time $end_date] "-"]" -owner_id $absence_owner_id] <= [im_absence_remaining_days -user_id $absence_owner_id -ignore_absence_id $absence_id -absence_type_id $absence_type_id] || [lsearch $vacation_category_ids $absence_type_id]<0}
+	"Duration is longer than remaining days of [im_absence_remaining_days -user_id $absence_owner_id -absence_type_id $absence_type_id -ignore_absence_id $absence_id]"
     }
     {start_date
 	{"f" != [db_string date_range "select [template::util::date get_property sql_timestamp $end_date] >= [template::util::date get_property sql_timestamp $start_date]"]}
@@ -385,7 +380,8 @@ ad_form -extend -name absence -on_request {
 			a.absence_status_id in (16000,16004) and
 			a.start_date <= [template::util::date get_property sql_timestamp $start_date] and
                         a.end_date >= [template::util::date get_property sql_timestamp $start_date] and
-                        a.absence_id != :absence_id
+                        a.absence_id != :absence_id and
+                        a.absence_status_id in (16000,16004)
 	   "]}
 	{[lang::message::lookup "" intranet-timesheet2.Absence_Duplicate_Start "There is already an absence with exactly the same owner, type and start date."]}
     }
@@ -398,6 +394,9 @@ ad_form -extend -name absence -on_request {
     set start_date_sql [template::util::date get_property sql_timestamp $start_date]
     set end_date_sql [template::util::date get_property sql_timestamp $end_date]
     set duration_days [im_absence_calculate_duration_days -start_date "[join [template::util::date get_property linear_date_no_time $start_date] "-"]" -end_date "[join [template::util::date get_property linear_date_no_time $end_date] "-"]" -owner_id $absence_owner_id]
+
+    callback im_user_absence_before_create -object_id $absence_id -status_id $absence_status_id -type_id $absence_type_id
+
     db_transaction {
 	set absence_id [db_string new_absence "
 		SELECT im_user_absence__new(
@@ -442,7 +441,7 @@ ad_form -extend -name absence -on_request {
 	im_dynfield::attribute_store \
 	    -object_type "im_user_absence" \
 	    -object_id $absence_id \
-	    -form_id absence
+	    -form_id $form_id
 
 	db_dml update_object "
 		update acs_objects set
@@ -483,6 +482,10 @@ ad_form -extend -name absence -on_request {
     }
 
 } -edit_data {
+
+    # Audit the action
+    callback im_user_absence_before_edit -object_id $absence_id -status_id $absence_status_id -type_id $absence_type_id
+
     if {$absence_under_wf_control_p} {
 	if {[db_string status_id "select absence_status_id from im_user_absences where absence_id = :absence_id"] != [im_user_absence_status_requested]} {
 	    ad_return_error "Wrong status" "The absence is no longer requested, therefore unable to edit"
@@ -531,7 +534,7 @@ ad_form -extend -name absence -on_request {
     im_dynfield::attribute_store \
         -object_type "im_user_absence" \
         -object_id $absence_id \
-        -form_id absence
+        -form_id $form_id
 
     db_dml update_object "
 		update acs_objects set

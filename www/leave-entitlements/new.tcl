@@ -56,11 +56,6 @@ ad_form -extend -name leave_entitlement -edit_request {
     set booking_date [db_string now "select to_char(now(),'YYYY-MM-DD') from dual"]
 } -validate {
     
-    {entitlement_days
-	{$entitlement_days > 0}
-	"Positive number expected"
-    }
-    
 } -new_data {
     set booking_date_sql [template::util::date get_property sql_timestamp $booking_date]
     db_transaction {

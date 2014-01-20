@@ -35,7 +35,6 @@ ad_proc -public im_user_absence_type_bank_holiday {} { return 5005 }
 ad_proc -public im_user_absence_status_active {} { return 16000 }
 ad_proc -public im_user_absence_status_deleted {} { return 16002 }
 ad_proc -public im_user_absence_status_requested {} { return 16004 }
-ad_proc -public im_user_absence_status_cancelled {} { return 16005 }
 ad_proc -public im_user_absence_status_rejected {} { return 16006 }
 
 
@@ -217,13 +216,13 @@ ad_proc im_absence_new_page_wf_perm_table { } {
     set act [im_user_absence_status_active]
     set del [im_user_absence_status_deleted]
 
-    set perm_hash(owner-$rej) {v r d w a}
-    set perm_hash(owner-$req) {v r d}
+    set perm_hash(owner-$rej) {v r}
+    set perm_hash(owner-$req) {v r d w}
     set perm_hash(owner-$act) {v r d}
-    set perm_hash(owner-$del) {v r d}
+    set perm_hash(owner-$del) {v r}
 
     set perm_hash(assignee-$rej) {v r}
-    set perm_hash(assignee-$req) {v r}
+    set perm_hash(assignee-$req) {v r w}
     set perm_hash(assignee-$act) {v r}
     set perm_hash(assignee-$del) {v r}
 
@@ -251,7 +250,7 @@ ad_proc im_absence_new_page_wf_perm_edit_button {
 		    -perm_table $perm_table
     ]
 
-    ns_log Notice "im_absence_new_page_wf_perm_edit_button absence_id=$absence_id => $perm_set"
+    ns_log Debug "im_absence_new_page_wf_perm_edit_button absence_id=$absence_id => $perm_set"
     return [expr [lsearch $perm_set "w"] > -1]
 }
 
@@ -272,7 +271,7 @@ ad_proc im_absence_new_page_wf_perm_delete_button {
 
 
 
-    ns_log Notice "im_absence_new_page_wf_perm_delete_button absence_id=$absence_id => $perm_set"
+    ns_log Debug "im_absence_new_page_wf_perm_delete_button absence_id=$absence_id => $perm_set"
     return [expr [lsearch $perm_set "d"] > -1]
 }
 
@@ -710,7 +709,7 @@ ad_proc im_absence_cube {
 	    if {[info exists holiday_hash($date_date)]} { append value $holiday_hash($date_date) }
 	    if {$hide_colors_p && $value != "" } {set value "1"}
 	    append table_body [im_absence_cube_render_cell $value]
-	    ns_log NOTICE "intranet-absences-procs::im_absence_cube_render_cell: $value"
+	    ns_log debug "intranet-absences-procs::im_absence_cube_render_cell: $value"
 	}
 	append table_body "</tr>\n"
 	incr row_ctr
@@ -879,11 +878,13 @@ ad_proc -public im_absence_remaining_days {
     -user_id:required
     -absence_type_id:required
     -approved:boolean
+    {-ignore_absence_id ""}
 } {
     Returns the number of remaining days for the user of a certain absence type
+    @param ignore_absence_id Ignore this absence_id when calculating the remaining days.
 } {
     if {[im_table_exists im_user_leave_entitlements]} {
-	return [im_leave_entitlement_remaining_days -user_id $user_id -absence_type_id $absence_type_id -approved_p $approved_p]
+	return [im_leave_entitlement_remaining_days -user_id $user_id -absence_type_id $absence_type_id -approved_p $approved_p -ignore_absence_id $ignore_absence_id]
 	ad_script_abort
     }
     
@@ -897,24 +898,6 @@ ad_proc -public im_absence_remaining_days {
     } else {
         set approved_sql ""
     }
-
-    set vacation_sql "
-        select
-                coalesce((
-                    select sum(a.duration_days) as absence_days
-                    from im_user_absences a
-                    where absence_type_id = category_id and
-                    owner_id = :user_id and
-                    a.start_date <= :end_of_year and
-                    a.end_date >= :start_of_year
-                    $approved_sql
-                ),0) as absence_days,
-                category_id
-        from
-                im_categories c
-        where
-                category_id = :absence_type_id
-    "
 
     db_1row user_info "select coalesce(vacation_balance,0) as vacation_balance,
                           coalesce(vacation_days_per_year,0) as vacation_days_per_year,
@@ -940,7 +923,7 @@ ad_proc -public im_absence_remaining_days {
 	}
     }
     
-    db_0or1row absence_info $vacation_sql
+    set absence_days [im_absence_days -owner_id $user_id -absence_type_ids $absence_type_id -start_date $start_of_year -end_date $end_of_year -approved_p $approved_p -ignore_absence_id $ignore_absence_id]
     set remaining_days [expr $entitlement_days - $absence_days]
     return $remaining_days
 }
@@ -949,11 +932,13 @@ ad_proc -public im_absence_days {
     {-owner_id ""}
     {-group_ids ""}
     -absence_type_ids:required
-    -approved:boolean
-    -start_date:required
-    -end_date:required
+    {-approved_p "0"}
+    {-start_date ""}
+    {-end_date ""}
+    {-ignore_absence_id ""}
 } {
-    Returns the number of remaining days for the user of a certain absence type
+    Returns the number of absence days for the user or group of a certain absence type
+    @param ignore_absence_id Ignore this absence_id when calculating the remaining days.
 } {
 
     if {!$approved_p} {
@@ -962,6 +947,21 @@ ad_proc -public im_absence_days {
         set approved_sql ""
     }
 
+    # Assume a long timescale for start/enddate
+    if {$start_date eq ""} {
+	set start_date '1970-01-01'
+    }
+    if {$end_date eq ""} {
+	set end_date '2099-12-31'
+    }
+
+    # We need to ignore this absence_id from the calculation of
+    # absence days. Usually during an edit
+    if {$ignore_absence_id eq ""} {
+	set ignore_absence_sql ""
+    } else {
+	set ignore_absence_sql "and absence_id != :ignore_absence_id"
+    }
     if {$owner_id ne ""} {
 	# Get the groups the owner belongs to
 	set group_ids [db_list group_options "
@@ -992,10 +992,12 @@ ad_proc -public im_absence_days {
 	select coalesce(sum(a.duration_days),0) as absence_days
 	from im_user_absences a
 	where absence_type_id in ([template::util::tcl_to_sql_list $absence_type_ids]) and
+	absence_status_id in (16000,16004) and
         (owner_id = :owner_id or group_id in ([template::util::tcl_to_sql_list $group_ids])) and
 	a.start_date >= :start_date and
 	a.end_date <= :end_date
 	$approved_sql
+	$ignore_absence_sql
     "]
 
 }
@@ -1031,4 +1033,28 @@ ad_proc -public im_absence_calculate_duration_days {
 	set holiday_days [im_absence_days -start_date $start_date -end_date $end_date -absence_type_ids [im_user_absence_type_bank_holiday] -group_ids [list -2 463]]
     }
     return [expr $total_days - $weekend_days - $holiday_days]
+}
+
+ad_proc -public im_absence_approval_component {
+    -user_id:required
+} {
+    Returns a HTML component showing the vacations
+    for the user
+} {
+    set current_user_id [ad_get_user_id]
+    # This is a sensitive field, so only allows this for the user himself
+    # and for users with HR permissions.
+
+    set read_p 0
+    if {$user_id == $current_user_id} { set read_p 1 }
+    if {[im_permission $current_user_id view_hr]} { set read_p 1 }
+    if {!$read_p} { return "" }
+
+    set params [list \
+		    [list user_id $user_id] \
+		    [list return_url [im_url_with_query]] \
+    ]
+
+    set result [ad_parse_template -params $params "/packages/intranet-timesheet2/lib/absence-approval"]
+    return [string trim $result]
 }
