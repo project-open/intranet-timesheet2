@@ -41,7 +41,7 @@ insert into im_views (view_id, view_name, visible_for)
 values (280, 'absence_approval_inbox', '');
 
 insert into im_view_columns (column_id, view_id, column_name, column_render_tcl, sort_order) 
-values (28000,280,'Approve','"<a class=button href=$approve_url>$next_action_l10n</a>"',0);
+values (28000,280,'Workflow','"<a class=button href=$workflow_url>$next_action_l10n</a>"',0);
 
 insert into im_view_columns (column_id, view_id, column_name, column_render_tcl, sort_order) 
 values (28010,280,'Start Date','"$start_date_pretty"',10);
