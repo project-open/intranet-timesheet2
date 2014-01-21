@@ -484,7 +484,7 @@ ad_form -extend -name $form_id -on_request {
 } -edit_data {
 
     # Audit the action
-    callback im_user_absence_before_edit -object_id $absence_id -status_id $absence_status_id -type_id $absence_type_id
+    callback im_user_absence_before_update -object_id $absence_id -status_id $absence_status_id -type_id $absence_type_id
 
     if {$absence_under_wf_control_p} {
 	if {[db_string status_id "select absence_status_id from im_user_absences where absence_id = :absence_id"] != [im_user_absence_status_requested]} {
