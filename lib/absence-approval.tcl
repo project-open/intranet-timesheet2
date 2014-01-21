@@ -212,6 +212,7 @@ db_foreach tasks $tasks_sql {
 
     set approve_url [export_vars -base "/[im_workflow_url]/task" -url {{attributes.review_reject_p t} {action.finish "Task done"} task_id return_url}]
     set deny_url [export_vars -base "/[im_workflow_url]/task" -url {{attributes.review_reject_p f} {action.finish "Task done"} task_id return_url}]
+    set workflow_url [export_vars -base "/[im_workflow_url]/task" -url {task_id return_url}]
 
     # if this is the creator viewing it, prevent him from approving it
     # himself
