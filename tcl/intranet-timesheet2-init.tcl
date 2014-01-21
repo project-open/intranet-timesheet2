@@ -39,3 +39,13 @@ if {$remind_employees_p} {
     ad_schedule_proc -thread t -schedule_proc ns_schedule_weekly [list 1 7 0] im_timesheet_remind_employees
 }
 
+
+ad_proc -public -callback im_user_absence_on_submit {
+    -form_id:required
+    -object_id:required
+} {
+    This callback allows for additional validations using error_field and error_message upvar variables
+
+    @param object_id ID of the $object_type
+} -
+

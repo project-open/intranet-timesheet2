@@ -393,6 +393,13 @@ ad_form -extend -name $form_id -on_request {
 	{$absence_type_id != [im_user_absence_type_vacation] || [lindex $start_date 0] == [lindex $end_date 0] }
 	{[lang::message::lookup "" intranet-timesheet2.NoVacationTurnOfTheYear "Entry not allowed. Vacation absences need to begin and end in the same year. Please consider creating two entries."]}
     } 
+} -on_submit {
+    
+    callback im_user_absence_on_submit -object_id $absence_id -form_id $form_id
+    if {[exists_and_not_null error_field]} {
+        form set_error $form_id $error_field $error_message
+        break
+    }
 } -new_data {
 
     set start_date_sql [template::util::date get_property sql_timestamp $start_date]
