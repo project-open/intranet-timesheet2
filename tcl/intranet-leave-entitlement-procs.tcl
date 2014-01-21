@@ -103,3 +103,57 @@ ad_proc -public im_leave_entitlement_remaining_days {
 
 
 }
+
+ad_proc -public im_leave_entitlement_create_yearly_vacation {
+    -year
+} {
+    Small Procedure to create the yearly vacation for each user if not already created
+} {
+    set booking_date "${year}-01-01"
+    set leave_entitlement_name "Annual Leave"
+    set leave_entitlement_status_id "16000"
+    set leave_entitlement_type_id "5000"
+    set description "Automatically generated"
+    set user_id [ad_conn user_id]
+    
+    set employee_vacation_list [db_list_of_lists employee_vacation "select employee_id, vacation_days_per_year from im_employees 
+        where employee_status_id = [im_employee_status_active]
+        and vacation_days_per_year is not null
+        and employee_id not in (select owner_id from im_user_leave_entitlements 
+            where booking_date = :booking_date and leave_entitlement_name = :leave_entitlement_name)"]
+    
+    foreach employee_vacation $employee_vacation_list {
+        set leave_entitlement_id [db_nextval acs_object_id_seq]
+        
+        set owner_id [lindex $employee_vacation 0]
+        set entitlement_days [lindex $employee_vacation 0]
+        
+        db_transaction {
+	        set absence_id [db_string new_absence "
+	    	    SELECT im_user_leave_entitlement__new(
+                :leave_entitlement_id,
+                'im_user_leave_entitlement',
+                now(),
+                :user_id,
+                '[ns_conn peeraddr]',
+                null,
+                :leave_entitlement_name,
+                :owner_id,
+                :booking_date,
+                :entitlement_days,
+                :leave_entitlement_status_id,
+                :leave_entitlement_type_id,
+                :description
+                )"]
+
+            db_dml update_object "
+	            update acs_objects set
+			    last_modified = now()
+                where object_id = :absence_id"
+	
+            # Audit the action
+            im_audit -object_type im_user_leave_entitlement -action after_create -object_id $leave_entitlement_id -status_id $leave_entitlement_status_id -type_id $leave_entitlement_type_id
+            ns_log Notice "Entitlement created for $owner_id with $entitlement_days"
+        }
+    }
+}
