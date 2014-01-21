@@ -126,7 +126,7 @@ ad_proc -public im_leave_entitlement_create_yearly_vacation {
         set leave_entitlement_id [db_nextval acs_object_id_seq]
         
         set owner_id [lindex $employee_vacation 0]
-        set entitlement_days [lindex $employee_vacation 0]
+        set entitlement_days [lindex $employee_vacation 1]
         
         db_transaction {
 	        set absence_id [db_string new_absence "
