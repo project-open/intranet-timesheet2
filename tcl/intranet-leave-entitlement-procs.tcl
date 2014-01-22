@@ -153,7 +153,7 @@ ad_proc -public im_leave_entitlement_create_yearly_vacation {
 	
             # Audit the action
             im_audit -object_type im_user_leave_entitlement -action after_create -object_id $leave_entitlement_id -status_id $leave_entitlement_status_id -type_id $leave_entitlement_type_id
-            ns_log Notice "Entitlement created for $owner_id with $entitlement_days"
+            ds_comment "Entitlement created for $owner_id with $entitlement_days"
         }
     }
 }

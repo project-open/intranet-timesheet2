@@ -38,9 +38,9 @@ ad_page_contract {
     { how_many "" }
     { absence_type_id:integer "-1" }
     { user_selection "mine" }
-    { timescale "next_3w" }
+    { timescale "future" }
     { view_name "absence_list_home" }
-    { start_date "" }
+    { filter_start_date "" }
     { user_id_from_search "" }
     { cost_center_id:integer "" }
     { project_id ""}
@@ -72,8 +72,10 @@ if {"" != $project_id} {
     set user_selection $project_id
 }
 
-if {"" == $start_date} {
+if {"" == $filter_start_date} {
     set start_date [db_string today "select now()::date"]
+} else {
+    set start_date $filter_start_date
 }
 
 if {!$view_absences_all_p} {
@@ -309,7 +311,6 @@ foreach { value text } $user_selection_types {
 
 set timescale_types [list \
 			 "all" [lang::message::lookup "" intranet-timesheet2.All "All"] \
-			 "custom" [lang::message::lookup "" intranet-timesheet2.CustomTimescale "Start/End Date"] \
 			 "today" [lang::message::lookup "" intranet-timesheet2.Today "Today"] \
 			 "next_3w" [lang::message::lookup "" intranet-timesheet2.Next_3_Weeks "Next 3 Weeks"] \
 			 "next_3m" [lang::message::lookup "" intranet-timesheet2.Next_3_Month "Next 3 Months"] \
@@ -472,37 +473,35 @@ if { ![empty_string_p $absence_type_id] &&  $absence_type_id != -1 } {
 }
 
 switch $timescale {
-    "all" { 
-	set end_date "2099-12-31"
+    "all" {
+        set start_date "2000-01-01" 
+        set end_date "2099-12-31"
     }
     "today" { 
-	set end_date $start_date
+        set end_date $start_date
     }
     "next_3w" { 
-	set end_date [db_string 3w "select now()::date + 21"]
+        set end_date [db_string 3w "select now()::date + 21"]
     }
     "last_3w" { 
-	set end_date $start_date
-	set start_date [db_string 3w "select to_date(:start_date,'YYYY-MM-DD') - 21"]
+        set end_date $start_date
+        set start_date [db_string 3w "select to_date(:start_date,'YYYY-MM-DD') - 21"]
     }
     "past" { 
-	set end_date $start_date
-	set start_date "2000-01-01"
+        set end_date $start_date
+        set start_date "2000-01-01"
     }
     "future" { 
-	set end_date "2100-01-01"
+        set end_date "2100-01-01"
     }
     "last_3m" { 
-	set end_date $start_date
-	set start_date [db_string 3w "select to_date(:start_date,'YYYY-MM-DD') - 93"]
+        set end_date $start_date
+        set start_date [db_string 3w "select to_date(:start_date,'YYYY-MM-DD') - 93"]
     }
     "next_3m" { 
-	set end_date [db_string 3w "select to_date(:start_date,'YYYY-MM-DD') + 93"]
+        set end_date [db_string 3w "select to_date(:start_date,'YYYY-MM-DD') + 93"]
     }
 }
-
-if {"" == $start_date} { set start_date [parameter::get_from_package_key -package_key "intranet-cost" -parameter DefaultStartDate -default "2000-01-01"] }
-if {"" == $end_date} { set end_date [parameter::get_from_package_key -package_key "intranet-cost" -parameter DefaultEndDate -default "2100-01-01"] }
 
 set org_start_date $start_date
 set org_end_date $end_date
@@ -595,14 +594,14 @@ ad_form \
     -method GET \
     -export {start_idx order_by how_many view_name project_id}\
     -form {
-	{start_date:text(text) {label "[_ intranet-timesheet2.Start_Date]"} {html {size 10}} {value "$start_date"} {after_html {<input type="button" style="height:23px; width:23px; background: url('/resources/acs-templating/calendar.gif');" onclick ="return showCalendar('start_date', 'y-m-d');" >}}}
+	{filter_start_date:text(text) {label "[_ intranet-timesheet2.Start_Date]"} {html {size 10}} {value "$filter_start_date"} {after_html {<input type="button" style="height:23px; width:23px; background: url('/resources/acs-templating/calendar.gif');" onclick ="return showCalendar('filter_start_date', 'y-m-d');" >}}}
         {timescale:text(select),optional {label "[_ intranet-timesheet2.Timescale]"} {options $timescale_type_list }}
         {absence_type_id:text(select),optional {label "[_ intranet-timesheet2.Absence_Type]"} {options $absence_type_list }}
         {filter_status_id:text(im_category_tree),optional {label \#intranet-timesheet2.Status\#} {value $filter_status_id} {custom {category_type "Intranet Absence Status" translate_p 1}}}
         {user_selection:text(select),optional {label "[_ intranet-timesheet2.Show_Users]"} {options $user_selection_type_list }}
 }
 
-template::element::set_value $form_id start_date $start_date
+template::element::set_value $form_id filter_start_date $filter_start_date
 template::element::set_value $form_id timescale $timescale
 
 eval [template::adp_compile -string {<formtemplate style="tiny-plain-po" id="absence_filter"></formtemplate>}]
@@ -728,7 +727,6 @@ db_foreach absences_list $selection {
     set absence_status [im_category_from_id $absence_status_id]
     set absence_type [im_category_from_id $absence_type_id]
 
-    ds_comment "$start_date2 :: $start_date"
     set absence_view_url [export_vars -base "$absences_url/new" {absence_id return_url {form_mode "display"}}]
 
     # Calculate the link for the user/group for which the absence is valid
