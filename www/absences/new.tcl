@@ -498,30 +498,13 @@ ad_form -extend -name $form_id -on_request {
     callback im_user_absence_before_update -object_id $absence_id -status_id $absence_status_id -type_id $absence_type_id
 
     if {$absence_under_wf_control_p} {
-	if {[db_string status_id "select absence_status_id from im_user_absences where absence_id = :absence_id"] != [im_user_absence_status_requested]} {
-	    ad_return_error "Wrong status" "The absence is no longer requested, therefore unable to edit"
-	}
-	set case_id [db_string get_case "select case_id from wf_cases where object_id = :absence_id"]
-	db_1row old_data "select start_date as old_start_date, end_date as old_end_date, absence_type_id as old_absence_type_id, vacation_replacement_id as old_vacation_replacement_id from im_user_absences where absence_id = :absence_id"
+        set case_id [db_string get_case "select case_id from wf_cases where object_id = :absence_id"]
+        db_1row old_data "select start_date as old_start_date, end_date as old_end_date, absence_type_id as old_absence_type_id, vacation_replacement_id as old_vacation_replacement_id from im_user_absences where absence_id = :absence_id"
     }
 
     set duration_days [im_absence_calculate_duration_days -start_date "[join [template::util::date get_property linear_date_no_time $start_date] "-"]" -end_date "[join [template::util::date get_property linear_date_no_time $end_date] "-"]" -owner_id $absence_owner_id]
     set start_date_sql [template::util::date get_property sql_timestamp $start_date]
     set end_date_sql [template::util::date get_property sql_timestamp $end_date]
-
-    # Check the date range
-    set date_range_error_p [db_string date_range "select $end_date_sql >= $start_date_sql"]
-    if {"f" == $date_range_error_p} {
-	ad_return_complaint 1 "<b>Date Range Error</b>:<br>Please revise your start and end date."
-	ad_script_abort
-    }
-
-    # Check the number of absence days per interval
-    set date_range_days [db_string date_range "select date($end_date_sql) - date($start_date_sql) + 1"]
-    if {$duration_days > $date_range_days} {
-	ad_return_complaint 1 "<b>Date Range Error</b>:<br>Duration is longer then date interval."
-	ad_script_abort
-    }
 
     # Don't add the creator as a participant of a group absence
     if {"" != $group_id} { set absence_owner_id "" }
@@ -555,15 +538,20 @@ ad_form -extend -name $form_id -on_request {
 		where object_id = :absence_id
     "
 
-    # Record the change in the workflow log
     if {$absence_under_wf_control_p} {
-	db_1row new_data "select start_date as new_start_date, end_date as new_end_date, absence_type_id as new_absence_type_id, vacation_replacement_id as new_vacation_replacement_id from im_user_absences where absence_id = :absence_id"
-	set message "[im_name_from_user_id $user_id] modified the absence."
-	if {$new_start_date != $old_start_date} {append message " Start Date changed from $old_start_date to $new_start_date."}
-	if {$new_end_date != $old_end_date} {append message " End Date changed from $old_end_date to $new_end_date."}
-	if {$new_absence_type_id != $old_absence_type_id} {append message " Absence Type changed from [im_category_from_id $old_absence_type_id] to [im_category_from_id $absence_type_id]."}
-	if {$new_vacation_replacement_id != $old_vacation_replacement_id} {append message " Vacation replacement changed from [im_name_from_user_id $old_vacation_replacement_id] to [im_name_from_user_id $new_vacation_replacement_id]."}
-	im_workflow_new_journal -case_id $case_id -action "modify absence" -action_pretty "Modify Absence" -message $message
+        # Record the change in the workflow log
+        db_1row new_data "select start_date as new_start_date, end_date as new_end_date, absence_type_id as new_absence_type_id, vacation_replacement_id as new_vacation_replacement_id from im_user_absences where absence_id = :absence_id"
+        set message "[im_name_from_user_id $user_id] modified the absence."
+        if {$new_start_date != $old_start_date} {append message " Start Date changed from $old_start_date to $new_start_date."}
+        if {$new_end_date != $old_end_date} {append message " End Date changed from $old_end_date to $new_end_date."}
+        if {$new_absence_type_id != $old_absence_type_id} {append message " Absence Type changed from [im_category_from_id $old_absence_type_id] to [im_category_from_id $absence_type_id]."}
+        if {$new_vacation_replacement_id != $old_vacation_replacement_id} {append message " Vacation replacement changed from [im_name_from_user_id $old_vacation_replacement_id] to [im_name_from_user_id $new_vacation_replacement_id]."}
+        im_workflow_new_journal -case_id $case_id -action "modify absence" -action_pretty "Modify Absence" -message $message
+
+        # Now move the workflow further
+        set task_id [db_string task "select max(task_id) from wf_tasks where case_id = :case_id"]
+        set journal_id [db_string task "select max(journal_id) from journal_entries where object_id = :case_id"]
+        db_1row finish_task "select workflow_case__finish_task(:task_id,:journal_id) from dual;"
     }
     # Audit the action
     im_audit -object_type im_user_absence -action after_update -object_id $absence_id -status_id $absence_status_id -type_id $absence_type_id
