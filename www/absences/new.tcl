@@ -494,6 +494,11 @@ ad_form -extend -name $form_id -on_request {
 
 } -edit_data {
 
+    # Check if the user still has the permission to edit this absence
+    if {![im_absence_new_page_wf_perm_edit_button -absence_id $absence_id]} {
+        ad_return_error "Not allowed to edit" "You are not allowed to edit this absence anymore. Please go <a href='$return_url'>back</a>."
+    }
+    
     # Audit the action
     callback im_user_absence_before_update -object_id $absence_id -status_id $absence_status_id -type_id $absence_type_id
 
