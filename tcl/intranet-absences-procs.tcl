@@ -1010,7 +1010,9 @@ ad_proc -public im_absence_calculate_duration_days {
     -include_saturday:boolean
 } {
     # First calculate the number of days in the timespan
-    set total_days [db_string date_range "select date('$end_date') - date('$start_date') + 1"]
+    if {[catch {set total_days [db_string date_range "select date('$end_date') - date('$start_date') + 1"]}]} {
+        return -1
+    }
 
     if {$include_saturday_p} {
         set weekend_where_clause "extract('dow' FROM i)=0" 

@@ -372,11 +372,11 @@ ad_form -extend -name $form_id -on_request {
         "[_ intranet-timesheet2.lt_The_calculated_durati][im_absence_calculate_duration_days -start_date \"[join [template::util::date get_property linear_date_no_time $start_date] \"-\"]\" -end_date \"[join [template::util::date get_property linear_date_no_time $end_date] \"-\"]\" -owner_id $absence_owner_id], [_ intranet-timesheet2.not] $duration_days. [_ intranet-timesheet2.Please_ammend]"
     }
     {start_date
-	{"f" != [db_string date_range "select [template::util::date get_property sql_timestamp $end_date] >= [template::util::date get_property sql_timestamp $start_date]"]}
-	"[_ intranet-timesheet2.lt_Please_revise_your_st]"
+        {"f" != [db_string date_range "select [template::util::date get_property sql_timestamp $end_date] >= [template::util::date get_property sql_timestamp $start_date]"]}
+        "[_ intranet-timesheet2.lt_Please_revise_your_st]"
     }
     {start_date
-	{ 0 == [db_string exists "
+	    { 0 == [db_string exists "
 		select	count(*) 
 		from	im_user_absences a
 		where	a.owner_id = :absence_owner_id and
@@ -387,11 +387,11 @@ ad_form -extend -name $form_id -on_request {
                         a.absence_id != :absence_id and
                         a.absence_status_id in (16000,16004)
 	   "]}
-	{[lang::message::lookup "" intranet-timesheet2.Absence_Duplicate_Start "There is already an absence with exactly the same owner, type and start date."]}
+	    {[lang::message::lookup "" intranet-timesheet2.Absence_Duplicate_Start "There is already an absence with exactly the same owner, type and start date."]}
     }
     {end_date
-	{$absence_type_id != [im_user_absence_type_vacation] || [lindex $start_date 0] == [lindex $end_date 0] }
-	{[lang::message::lookup "" intranet-timesheet2.NoVacationTurnOfTheYear "Entry not allowed. Vacation absences need to begin and end in the same year. Please consider creating two entries."]}
+	    {$absence_type_id != [im_user_absence_type_vacation] || [lindex $start_date 0] == [lindex $end_date 0] }
+	    {[lang::message::lookup "" intranet-timesheet2.NoVacationTurnOfTheYear "Entry not allowed. Vacation absences need to begin and end in the same year. Please consider creating two entries."]}
     } 
 } -on_submit {
     
