@@ -3,4 +3,5 @@
 	    <%= $table_body_html %>
 	</table>
 
-<ul><li> <a href="@new_leave_entitlement_url;noquote@">Add new leave entitlement</A></li></ul>
+<ul><li> <a href="@new_leave_entitlement_url;noquote@">#intranet-timesheet2.lt_Add_new_leave_entitle#</A></li></ul>
+

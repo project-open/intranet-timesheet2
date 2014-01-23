@@ -2,9 +2,9 @@
 <table width=100%>
 <tbody>
 <tr>
-<td class="rowtitle">Attibute Type</td>
-<td class="rowtitle">Remaining Days</td>
-<td class="rowtitle">Requested Days</td>
+<td class="rowtitle">#intranet-timesheet2.Attibute_Type#</td>
+<td class="rowtitle">#intranet-timesheet2.Remaining_Days#</td>
+<td class="rowtitle">#intranet-timesheet2.Requested_Days#</td>
 </tr>
 <multiple name="absence_balance">
   <if @absence_balance.requested_days@ eq "0" and @absence_balance.remaining_days@ eq "0">
@@ -20,4 +20,5 @@
 </tbody>
 </table>
 </if>
+
 

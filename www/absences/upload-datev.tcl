@@ -1,6 +1,6 @@
 # packages/intranet-timesheet2/www/absences/upload-datev.tcl
 #
-# Copyright (C) 2013 cognovÃ­s GmbH
+# Copyright (C) 2013 cognovís GmbH
 #
 # This program is free software. You can redistribute it
 # and/or modify it under the terms of the GNU General

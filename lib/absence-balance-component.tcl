@@ -40,13 +40,15 @@ set page_title [lang::message::lookup "" intranet-timesheet2.Vacation_Balance "V
 set absence_base_url "/intranet-timesheet2/absences"
 set return_url [im_url_with_query]
 set user_view_url "/intranet/users/view"
-ds_comment "user_id:: $user_id"
+ds_comment "[_ intranet-timesheet2.user_id_user_id]"
+
 set current_year [db_string current_year "select to_char(now(), 'YYYY')"]
 
 # Ignore the balance for bank holidays
 
 set bank_holiday_category_ids [db_list bank_holidays "select child_id from im_category_hierarchy where parent_id = '5005'"]
 lappend bank_holiday_category_ids 5005
+
 
 if {[db_table_exists im_user_leave_entitlements]} {
 set vacation_sql "

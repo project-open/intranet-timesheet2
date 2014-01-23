@@ -37,6 +37,7 @@
   <msg key="Apr">Apr</msg>
   <msg key="April">April</msg>
   <msg key="Associated_reports">Associated Reports</msg>
+  <msg key="Attibute_Type">Attibute Type</msg>
   <msg key="Aug">Aug</msg>
   <msg key="August">August</msg>
   <msg key="B">B</msg>
@@ -157,6 +158,7 @@
   <msg key="Logging_hours_has_been_closed">Logging hours has been closed</msg>
   <msg key="lt_A_total_of_total_hour">A total of %total_hours_str% units have been spent on this project.</msg>
   <msg key="lt_Add_hours_on_other_pr">Add hours on other projects</msg>
+  <msg key="lt_Add_new_leave_entitle">Add new leave entitlement</msg>
   <msg key="lt_All_the_fields_should">All the fields should be filled before submiting.</msg>
   <msg key="lt_All_the_fields_should_1">All the fields should be filled before %action%.</msg>
   <msg key="lt_based_select_hours_pe">%based_select% hours per week</msg>
@@ -207,6 +209,9 @@ of those units were billed hourly, for a total amount of</msg>
   <msg key="lt_No_time_logged_on_any">No time logged on any projects</msg>
   <msg key="lt_No_units_have_been_lo">No units have been logged by any user</msg>
   <msg key="lt_num_hours_hours_logge">%num_hours% hours logged in the last %number_days_string%:</msg>
+  <msg key="lt_Please_contact_the_pr">Please contact the project manager of your project(s) to include you in 
+	    the list of project members.
+	&quot;] %&gt;</msg>
   <msg key="lt_Please_notify_your_ma">Please notify your manager or system administrator.</msg>
   <msg key="lt_Please_select_a_proje">Please select a project</msg>
   <msg key="lt_Rate_Per_Km_Spain_02_">Rate Per Km. Spain: 0,2 Eur ; France: 0,3 Eur</msg>
@@ -317,6 +322,8 @@ of those units were billed hourly, for a total amount of</msg>
   <msg key="Rates">Rates</msg>
   <msg key="Real">Real</msg>
   <msg key="Reassign_logged_hours">Reassign logged hours</msg>
+  <msg key="Remaining_Days">Remaining Days</msg>
+  <msg key="Requested_Days">Requested Days</msg>
   <msg key="Restrict_date">Restrict date</msg>
   <msg key="S">S</msg>
   <msg key="Saturday">Saturday</msg>
@@ -374,6 +381,7 @@ of those units were billed hourly, for a total amount of</msg>
   <msg key="Units_on_one_project">Units on one project</msg>
   <msg key="User">User</msg>
   <msg key="User_does_not_exist">User does not exist</msg>
+  <msg key="user_id_user_id">user_id:: %user_id%</msg>
   <msg key="user_not_logged_in">user not logged in</msg>
   <msg key="Users">Users</msg>
   <msg key="V">V</msg>
