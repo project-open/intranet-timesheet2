@@ -94,8 +94,9 @@ ad_proc -public im_leave_entitlement_remaining_days {
     }
 
     set entitlement_days [db_string entitlement_days "
-	select
-                sum(l.entitlement_days) from im_user_leave_entitlements l where leave_entitlement_type_id = :absence_type_id and owner_id = :user_id $approved_sql" -default 0]
+	    select sum(l.entitlement_days) 
+        from im_user_leave_entitlements l 
+        where leave_entitlement_type_id = :absence_type_id and owner_id = :user_id $approved_sql" -default 0]
 
     set absence_days [im_absence_days -owner_id $user_id -absence_type_ids $absence_type_id -approved_p $approved_p -ignore_absence_id $ignore_absence_id]
     set remaining_days [expr $entitlement_days - $absence_days]

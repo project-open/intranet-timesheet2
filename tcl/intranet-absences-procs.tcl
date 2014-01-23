@@ -986,8 +986,6 @@ ad_proc -public im_absence_days {
     } else {
 	set owner_sql "group_id is not null and"
     }
-
-    set absence_type_ids [im_sub_categories $absence_type_ids]
         
     return [db_string absence_sql "
 	select coalesce(sum(a.duration_days),0) as absence_days
@@ -1036,9 +1034,9 @@ ad_proc -public im_absence_calculate_duration_days {
 
     if {$owner_id ne ""} {
         # Get public holidays
-        set holiday_days [im_absence_days -start_date $start_date -end_date $end_date -absence_type_ids [im_user_absence_type_bank_holiday] -owner_id $owner_id]
+        set holiday_days [im_absence_days -start_date $start_date -end_date $end_date -absence_type_ids [im_sub_categories [im_user_absence_type_bank_holiday]] -owner_id $owner_id]
     } else {
-        set holiday_days [im_absence_days -start_date $start_date -end_date $end_date -absence_type_ids [im_user_absence_type_bank_holiday] -group_ids [list -2 463]]
+        set holiday_days [im_absence_days -start_date $start_date -end_date $end_date -absence_type_ids [im_sub_categories [im_user_absence_type_bank_holiday]] -group_ids [list -2 463]]
     }
     return [expr $total_days - $weekend_days - $holiday_days]
 }
