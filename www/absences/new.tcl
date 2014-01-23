@@ -549,9 +549,12 @@ ad_form -extend -name $form_id -on_request {
         im_workflow_new_journal -case_id $case_id -action "modify absence" -action_pretty "Modify Absence" -message $message
 
         # Now move the workflow further
-        set task_id [db_string task "select max(task_id) from wf_tasks where case_id = :case_id"]
-        set journal_id [db_string task "select max(journal_id) from journal_entries where object_id = :case_id"]
-        db_1row finish_task "select workflow_case__finish_task(:task_id,:journal_id) from dual;"
+        # This is allowed only if the owner edits it AND the status is rejected
+        if {$absence_status_id == [im_user_absence_status_rejected] && $owner_id == $user_id} {
+            set task_id [db_string task "select max(task_id) from wf_tasks where case_id = :case_id"]
+            set journal_id [db_string task "select max(journal_id) from journal_entries where object_id = :case_id"]
+            db_1row finish_task "select workflow_case__finish_task(:task_id,:journal_id) from dual;"
+        }
     }
     # Audit the action
     im_audit -object_type im_user_absence -action after_update -object_id $absence_id -status_id $absence_status_id -type_id $absence_type_id
