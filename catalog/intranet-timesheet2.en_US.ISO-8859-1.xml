@@ -179,6 +179,7 @@ number of kilometers. Amount can be entered with either &lt;B&gt;&quot;.&quot;&l
 
 (American) or &lt;B&gt;&quot;,&quot;&lt;/B&gt; (European) for the decimal point</msg>
   <msg key="lt_Display_all_hours_on_">Display all hours on all projects</msg>
+  <msg key="lt_Duration_is_longer_th">Duration is longer than remaining days of</msg>
   <msg key="lt_Error_in_project_entr">Error in project entry</msg>
   <msg key="lt_For_Vacation_Sickness">For Vacation, Sickness and Training, select the Task Human resources.</msg>
   <msg key="lt_For_Vacation_Sickness_1">For Vacation, Sickness, Holiday (State, Region &amp; City) and Training, select the Task Human resources.</msg>
@@ -213,6 +214,7 @@ of those units were billed hourly, for a total amount of</msg>
 	    the list of project members.
 	&quot;] %&gt;</msg>
   <msg key="lt_Please_notify_your_ma">Please notify your manager or system administrator.</msg>
+  <msg key="lt_Please_revise_your_st">Please revise your start and end date.</msg>
   <msg key="lt_Please_select_a_proje">Please select a project</msg>
   <msg key="lt_Rate_Per_Km_Spain_02_">Rate Per Km. Spain: 0,2 Eur ; France: 0,3 Eur</msg>
   <msg key="lt_REMEMBER_total_of_10_">REMEMBER: total of 10 units per day, all the days!! (no weekends)</msg>
@@ -221,6 +223,7 @@ of those units were billed hourly, for a total amount of</msg>
   <msg key="lt_Select_the_proyects_y">Select the proyects you want to send:</msg>
   <msg key="lt_Show_only_projects_wi">Show only projects with required report?</msg>
   <msg key="lt_Starting_September_20">Starting September 2002 a new Time dedication logging system is being used. Please read the</msg>
+  <msg key="lt_The_calculated_durati">The calculated duration is actually</msg>
   <msg key="lt_There_are_currently_n">There are currently no entries matching the selected criteria</msg>
   <msg key="lt_There_are_currently_n_1">There are currently no projects for you to log you hours.</msg>
   <msg key="lt_There_are_no_projects">There are no projects for which to add hours.</msg>
@@ -285,6 +288,7 @@ of those units were billed hourly, for a total amount of</msg>
   <msg key="No_Users_found">No Users found!</msg>
   <msg key="No_users_found">No users found</msg>
   <msg key="none">none</msg>
+  <msg key="not">not</msg>
   <msg key="Not_member_of_project">You are not a member of this project.</msg>
   <msg key="Not_Member_of_Projects">You are not a member of any open project.</msg>
   <msg key="Notes">Notes:</msg>
@@ -308,6 +312,7 @@ of those units were billed hourly, for a total amount of</msg>
   <msg key="Paid_by_Co">Paid by Co.?</msg>
   <msg key="Past">Past</msg>
   <msg key="Percentage">Percentage</msg>
+  <msg key="Please_ammend">Please ammend</msg>
   <msg key="Printer_Friendly">Printer-friendly version</msg>
   <msg key="Project">Project</msg>
   <msg key="Project_br_Name">Project&lt;br&gt;Name</msg>

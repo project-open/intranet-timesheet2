@@ -365,15 +365,15 @@ ad_form -extend -name $form_id -on_request {
 
     {duration_days
 	{[im_absence_calculate_duration_days -start_date "[join [template::util::date get_property linear_date_no_time $start_date] "-"]" -end_date "[join [template::util::date get_property linear_date_no_time $end_date] "-"]" -owner_id $absence_owner_id] <= [im_absence_remaining_days -user_id $absence_owner_id -ignore_absence_id $absence_id -absence_type_id $absence_type_id] || [lsearch $vacation_category_ids $absence_type_id]<0}
-	"Duration is longer than remaining days of [im_absence_remaining_days -user_id $absence_owner_id -absence_type_id $absence_type_id -ignore_absence_id $absence_id]"
+	"[_ intranet-timesheet2.lt_Duration_is_longer_th][im_absence_remaining_days -user_id $absence_owner_id -absence_type_id $absence_type_id -ignore_absence_id $absence_id]"
     }
     {duration_days
         {[im_absence_calculate_duration_days -start_date "[join [template::util::date get_property linear_date_no_time $start_date] "-"]" -end_date "[join [template::util::date get_property linear_date_no_time $end_date] "-"]" -owner_id $absence_owner_id] == $duration_days}
-        "The calculated duration is actually [im_absence_calculate_duration_days -start_date \"[join [template::util::date get_property linear_date_no_time $start_date] \"-\"]\" -end_date \"[join [template::util::date get_property linear_date_no_time $end_date] \"-\"]\" -owner_id $absence_owner_id], not $duration_days. Please ammend"
+        "[_ intranet-timesheet2.lt_The_calculated_durati][im_absence_calculate_duration_days -start_date \"[join [template::util::date get_property linear_date_no_time $start_date] \"-\"]\" -end_date \"[join [template::util::date get_property linear_date_no_time $end_date] \"-\"]\" -owner_id $absence_owner_id], [_ intranet-timesheet2.not] $duration_days. [_ intranet-timesheet2.Please_ammend]"
     }
     {start_date
 	{"f" != [db_string date_range "select [template::util::date get_property sql_timestamp $end_date] >= [template::util::date get_property sql_timestamp $start_date]"]}
-	"Please revise your start and end date."
+	"[_ intranet-timesheet2.lt_Please_revise_your_st]"
     }
     {start_date
 	{ 0 == [db_string exists "
