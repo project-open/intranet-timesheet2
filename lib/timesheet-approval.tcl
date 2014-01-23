@@ -204,8 +204,8 @@ db_foreach tasks $tasks_sql {
     set object_url "[im_biz_object_url $object_id "view"]&return_url=[ns_urlencode $return_url]"
     set owner_url [export_vars -base "/intranet/users/view" {return_url {user_id $owner_id}}]
 
-    set approve_url [export_vars -base "/[im_workflow_url]/task" -url {{attributes.confirm_hours_are_the_logged_hours_ok_p t} {action.finish "Task done"} task_id return_url}]
-    set deny_url [export_vars -base "/[im_workflow_url]/task" -url {{attributes.confirm_hours_are_the_logged_hours_ok_p f} {action.finish "Task done"} task_id return_url}]
+    set approve_url [export_vars -base "/[im_workflow_url]/task" -url {{attributes.confirm_hours_are_the_logged_hours_ok_p t} {action.finish "Task done"} {autoprocess_p 1} task_id return_url}]
+    set deny_url [export_vars -base "/[im_workflow_url]/task" -url {{attributes.confirm_hours_are_the_logged_hours_ok_p f} {action.finish "Task done"} {autoprocess_p 1} task_id return_url}]
 
     # if this is the creator viewing it, prevent him from approving it
     # himself
