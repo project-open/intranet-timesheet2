@@ -1007,10 +1007,16 @@ ad_proc -public im_absence_calculate_duration_days {
     {-owner_id ""}
     -start_date:required
     -end_date:required
+    -include_saturday:boolean
 } {
     # First calculate the number of days in the timespan
     set total_days [db_string date_range "select date('$end_date') - date('$start_date') + 1"]
 
+    if {$include_saturday_p} {
+        set weekend_where_clause "extract('dow' FROM i)=0" 
+    } else {
+        set weekend_where_clause "extract('dow' FROM i)=0 or extract('dow' FROM i)=6"
+    }
     # Now substract the number of weekends
     set weekend_days [db_string date_range "
 	SELECT count(*)
@@ -1023,15 +1029,14 @@ ad_proc -public im_absence_calculate_duration_days {
 		      )) AS t(\"start\", \"finish\")
 	      ) AS j
 	WHERE
-	extract('dow' FROM i)=0
-	or extract('dow' FROM i)=6
+        $weekend_where_clause
     "]
 
     if {$owner_id ne ""} {
-	# Get public holidays
-	set holiday_days [im_absence_days -start_date $start_date -end_date $end_date -absence_type_ids [im_user_absence_type_bank_holiday] -owner_id $owner_id]
+        # Get public holidays
+        set holiday_days [im_absence_days -start_date $start_date -end_date $end_date -absence_type_ids [im_user_absence_type_bank_holiday] -owner_id $owner_id]
     } else {
-	set holiday_days [im_absence_days -start_date $start_date -end_date $end_date -absence_type_ids [im_user_absence_type_bank_holiday] -group_ids [list -2 463]]
+        set holiday_days [im_absence_days -start_date $start_date -end_date $end_date -absence_type_ids [im_user_absence_type_bank_holiday] -group_ids [list -2 463]]
     }
     return [expr $total_days - $weekend_days - $holiday_days]
 }
