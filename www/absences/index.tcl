@@ -383,6 +383,8 @@ set absences_types [linsert $absences_types 0 [lang::message::lookup "" intranet
 set absences_types [linsert $absences_types 0 -1]
 set absence_type_list [list]
 foreach { value text } $absences_types {
+    # Visible Check on the category
+    if {![im_category_visible_p -category_id $value]} {continue}
     regsub -all " " $text "_" category_key
     set text [lang::message::lookup "" intranet-core.$category_key $text]
     lappend absence_type_list [list $text $value]

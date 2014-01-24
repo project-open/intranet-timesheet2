@@ -41,20 +41,16 @@ set focus "absence.var_name"
 set date_format "YYYY-MM-DD"
 set date_time_format "YYYY MM DD"
 if {![exists_and_not_null absence_type_id]} {set absence_type_id 0}
-if {$absence_type_id eq 0} {
-    set show_absence_type_p 1
-    set absence_type "Absence"
-} else {
-    set show_absence_type_p 0
-    set absence_type [im_category_from_id $absence_type_id]
-}
 
 set form_id "absence"
+set wf_key [db_string wf "select trim(aux_string1) from im_categories where category_id = :absence_type_id" -default ""]
+set wf_exists_p [db_string wf_exists "select count(*) from wf_workflows where workflow_key = :wf_key"]
 
 set absence_under_wf_control_p 0
 if {[info exists absence_id]} { 
     # absence_owner_id determines the list of projects per absence and other DynField widgets
     # it defaults to user_id when creating a new absence
+
     set absence_owner_id [db_string absence_owner "select owner_id from im_user_absences where absence_id = :absence_id" -default ""]
 
     set old_absence_type_id [db_string type "select absence_type_id from im_user_absences where absence_id = :absence_id" -default 0]
@@ -72,12 +68,33 @@ if {[info exists absence_id]} {
     }
 
     set absence_under_wf_control_p [db_string wf_control "
-	select	count(*)
-	from	wf_cases
-	where	object_id = :absence_id
+	    select	count(*)
+        from	wf_cases
+        where	object_id = :absence_id
     "]
+} else {
+    # Check if we have no absence_type_id or if no permissions on the category
+    # If this is the case,redirect
+    set redirect_p 0
+    if {0 == $absence_type_id} { 
+        set redirect_p 1
+    } else {
+        #still need to check for permissions
+        if {![im_category_visible_p -category_id $absence_type_id]} {set redirect_p 1}
+    }
+    if {$redirect_p} {
+    	ad_returnredirect [export_vars -base "/intranet/biz-object-type-select" { 
+    	    user_id_from_search 
+    	    {object_type "im_user_absence"} 
+    	    {return_url $current_url} 
+    	    {type_id_var "absence_type_id"} 
+    	}]
+    }
 }
 
+set show_absence_type_p 0
+
+set absence_type [im_category_from_id $absence_type_id]
 set add_absences_for_group_p [im_permission $current_user_id "add_absences_for_group"]
 
 if {[exists_and_not_null user_id_from_search]} {
@@ -118,20 +135,6 @@ if {![im_permission $current_user_id "add_absences"]} {
     <li>[_ intranet-timesheet2.lt_You_dont_have_suffici]"
 }
 
-# Redirect if the type of the object hasn't been defined and
-# if there are DynFields specific for subtypes.
-if {0 == $absence_type_id && ![info exists absence_id]} {
-    set all_same_p [im_dynfield::subtype_have_same_attributes_p -object_type "im_user_absence"]
-    set all_same_p 0
-    if {!$all_same_p} {
-	ad_returnredirect [export_vars -base "/intranet/biz-object-type-select" { 
-	    user_id_from_search 
-	    {object_type "im_user_absence"} 
-	    {return_url $current_url} 
-	    {type_id_var "absence_type_id"} 
-	}]
-    }
-}
 
 #	    {pass_through_variables "object_type type_id_var return_url" }
 
@@ -302,7 +305,7 @@ ad_form \
 # ad_return_complaint 1 $write
 
 
-if {!$absence_under_wf_control_p || [im_permission $current_user_id edit_absence_status]} {
+if {(!$absence_under_wf_control_p && !$wf_exists_p) || [im_permission $current_user_id edit_absence_status]} {
     set form_list {{absence_status_id:text(im_category_tree) {label "[lang::message::lookup {} intranet-timesheet2.Status Status]"} {custom {category_type "Intranet Absence Status"}}}}
 } else {
 #   set form_list {{absence_status_id:text(im_category_tree) {mode display} {label "[lang::message::lookup {} intranet-timesheet2.Status Status]"} {custom {category_type "Intranet Absence Status"}}}}
@@ -462,8 +465,6 @@ ad_form -extend -name $form_id -on_request {
 		where object_id = :absence_id
 	"
 
-	set wf_key [db_string wf "select trim(aux_string1) from im_categories where category_id = :absence_type_id" -default ""]
-	set wf_exists_p [db_string wf_exists "select count(*) from wf_workflows where workflow_key = :wf_key"]
 	if {$wf_exists_p} {
 	    set context_key ""
 	    set case_id [wf_case_new \
@@ -473,7 +474,7 @@ ad_form -extend -name $form_id -on_request {
 			]
 
 	    # Determine the first task in the case to be executed and start+finisch the task.
-            im_workflow_skip_first_transition -case_id $case_id
+        im_workflow_skip_first_transition -case_id $case_id
 	}
 	
 	# Callback 
