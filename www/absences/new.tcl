@@ -187,41 +187,43 @@ set button_pressed [template::form get_action absence]
 if {$button_pressed =="delete"} {
     if {[parameter::get_from_package_key -package_key intranet-timesheet2 -parameter "CancelAbsenceP" -default 1]} {
 
-	# We just cancel the workflow and not delete it
-	callback im_user_absence_before_delete  -object_id $absence_id -status_id [im_user_absence_status_cancelled]
+	    # We just cancel the workflow and not delete it
+        callback im_user_absence_before_delete  -object_id $absence_id -status_id [im_user_absence_status_cancelled]
 	
-	# Set the workflow to finished
-	if {$absence_under_wf_control_p} {
-	    set case_id [db_string case "select case_id from wf_cases where object_id = :absence_id"]
+        # Set the workflow to finished
+        if {$absence_under_wf_control_p} {
+	        set case_id [db_string case "select case_id from wf_cases where object_id = :absence_id"]
 	    
-	    catch {wf_case_cancel -msg "Absence was cancelled by [im_name_from_user_id $user_id]" $case_id}
-	    # Record the change (who cancelled it)
-	}
+            if {[catch {wf_case_cancel -msg "Absence was cancelled by [im_name_from_user_id $user_id]" $case_id}]} {
+                #Record the change manually, as the workflow did fail (probably because the case is already closed
+                im_workflow_new_journal -case_id $case_id -action "cancel absence" -action_pretty "Cancel Absence" -message "Absence was cancelled by [im_name_from_user_id $user_id]"
+            }
+        }
 
-	# Update the vacation status to cancelled
-	db_dml cancel_absence "update im_user_absences set absence_status_id = [im_user_absence_status_cancelled] where absence_id = :absence_id"
-	im_audit -object_type im_user_absence -action after_delete -object_id $absence_id -status_id [im_user_absence_status_deleted]
+        # Update the vacation status to cancelled
+        db_dml cancel_absence "update im_user_absences set absence_status_id = [im_user_absence_status_cancelled] where absence_id = :absence_id"
+        im_audit -object_type im_user_absence -action after_delete -object_id $absence_id -status_id [im_user_absence_status_deleted]
 
     } else {
-	db_transaction {
-	    callback absence_on_change \
-		-absence_id $absence_id \
-		-absence_type_id "" \
-		-user_id "" \
-		-start_date "" \
-		-end_date "" \
-		-duration_days "" \
-		-transaction_type "remove"
+        db_transaction {
+	        callback absence_on_change \
+            -absence_id $absence_id \
+            -absence_type_id "" \
+            -user_id "" \
+            -start_date "" \
+            -end_date "" \
+            -duration_days "" \
+            -transaction_type "remove"
 	    
-	    db_dml del_tokens "delete from wf_tokens where case_id in (select case_id from wf_cases where object_id = :absence_id)"
-	    db_dml del_case "delete from wf_cases where object_id = :absence_id"
-	    db_string absence_delete "select im_user_absence__delete(:absence_id)"
-	    im_audit -object_type im_user_absence -action after_delete -object_id $absence_id
+            db_dml del_tokens "delete from wf_tokens where case_id in (select case_id from wf_cases where object_id = :absence_id)"
+            db_dml del_case "delete from wf_cases where object_id = :absence_id"
+            db_string absence_delete "select im_user_absence__delete(:absence_id)"
+            im_audit -object_type im_user_absence -action after_delete -object_id $absence_id
 	    
-	} on_error {
+        } on_error {
             ad_return_error "Error deleting absence" "<br>Error:<br>$errmsg<br><br>"
             return
-	}
+        }
     }
     ad_returnredirect $cancel_url
 }
