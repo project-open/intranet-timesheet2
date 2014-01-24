@@ -140,18 +140,17 @@ set tasks_sql "
 		wf_cases ca left outer join im_user_absences a on a.absence_id = ca.object_id,
 		wf_transitions tr,
 		wf_tasks t,
-                wf_task_assignments wta
+        wf_task_assignments wta
 	where
-                wta.task_id = t.task_id
-                and (wta.party_id = :user_id or o.creation_user = :user_id)
+        wta.task_id = t.task_id
+        and (wta.party_id = :user_id or o.creation_user = :user_id)
 		and o.object_id = ca.object_id
 		and ca.case_id = t.case_id
 		and t.state in ('enabled', 'started')
 		and t.transition_key = tr.transition_key
 		and t.workflow_key = tr.workflow_key
-                and t.workflow_key in (select distinct aux_string1 from im_categories where category_type = 'Intranet Absence Type' and aux_string1 is not null)
-                and a.absence_status_id not in (16002,16005)
-                and a.start_date >= now()
+        and t.workflow_key in (select distinct aux_string1 from im_categories where category_type = 'Intranet Absence Type' and aux_string1 is not null)
+        and a.absence_status_id not in (16002,16005)
     "
 
 if {"" != $order_by_clause} {
