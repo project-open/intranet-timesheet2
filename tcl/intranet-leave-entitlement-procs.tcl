@@ -1,6 +1,6 @@
 # packages/intranet-timesheet2/tcl/intranet-leave-entitlement-procs.tcl
 
-## Copyright (c) 2011, cognovís GmbH, Hamburg, Germany
+## Copyright (c) 2011, cognovis GmbH, Hamburg, Germany
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
@@ -82,7 +82,7 @@ ad_proc -public im_leave_entitlement_remaining_days {
     -user_id:required
     -absence_type_id:required
     {-approved_p "0"}
-    {-ignore_absence_id ""}
+    {-ignore_absence_ids ""}
 } {
     Returns the number of remaining days for the user of a certain absence type
 } {
@@ -98,7 +98,7 @@ ad_proc -public im_leave_entitlement_remaining_days {
         from im_user_leave_entitlements l 
         where leave_entitlement_type_id = :absence_type_id and owner_id = :user_id $approved_sql" -default 0]
 
-    set absence_days [im_absence_days -owner_id $user_id -absence_type_ids $absence_type_id -approved_p $approved_p -ignore_absence_id $ignore_absence_id]
+    set absence_days [im_absence_days -owner_id $user_id -absence_type_ids $absence_type_id -approved_p $approved_p -ignore_absence_ids $ignore_absence_ids]
     set remaining_days [expr $entitlement_days - $absence_days]
     return $remaining_days
 
