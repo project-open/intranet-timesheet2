@@ -326,8 +326,8 @@ ad_form -extend -name $form_id -form {
     {duration_days:float(text) {label "[lang::message::lookup {} intranet-timesheet2.Duration_days {Duration (Days)}]"} {help_text "[lang::message::lookup {} intranet-timesheet2.Duration_days_help {Please specify the absence duration as a number or fraction of days. Example: '1'=one day, '0.5'=half a day)}]"}}
     {description:text(textarea),optional {label "[_ intranet-timesheet2.Description]"} {html {cols 40}}}
     {contact_info:text(textarea),optional {label "[_ intranet-timesheet2.Contact_Info]"} {html {cols 40}}}
-    {old_start_date:text(hidden)}
-    {old_end_date:text(hidden)}
+    {old_start_date:text(hidden),optional}
+    {old_end_date:text(hidden),optional}
 }
 
 # ------------------------------------------------------------------
