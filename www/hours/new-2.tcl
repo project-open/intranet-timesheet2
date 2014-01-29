@@ -341,6 +341,7 @@ foreach j $weekly_logging_days {
     ns_log Notice "hours/new2: day=$i, screen_hours_hash=[array get screen_hours_hash]"
     ns_log Notice "hours/new2: day=$i, action_hash=[array get action_hash]"
 
+
     # Execute the actions
     foreach project_id [array names action_hash] {
 
@@ -351,10 +352,17 @@ foreach j $weekly_logging_days {
 	ns_log Notice "hours/new-2: im_timesheet_conf_object_delete -project_id $project_id -user_id $user_id_from_search -day_julian $day_julian"
 
 	if {$wf_installed_p} {
-	    im_timesheet_conf_object_delete \
-		-project_id $project_id \
-		-user_id $user_id_from_search \
-		-day_julian $day_julian
+
+# !!!
+#	    im_timesheet_conf_object_delete \
+#		-project_id $project_id \
+#		-user_id $user_id_from_search \
+#		-day_julian $day_julian
+
+	    set modified_julians [list]
+	    if {[info exists modified_projects_hash($project_id)]} { set modified_julians $ modified_projects_hash($project_id) }
+	    lappend modified_julians $day_julian
+	    set modified_projects_hash($project_id) $modified_julians
 	}
 
 	# Delete any cost elements related to the hour.
@@ -514,6 +522,24 @@ foreach j $weekly_logging_days {
 	}
     }
     incr i
+}
+
+
+
+# ----------------------------------------------------------
+# Notify supervisor about modified hours in the past
+# ----------------------------------------------------------
+
+if {$wf_installed_p && [llength [array names modified_projects_hash]] > 0} {
+    set notify_supervisor_p [parameter::get_from_package_key -package_key intranet-timesheet2-workflow -parameter "NotifySupervisorDeleteConfObjectP" -default 0]
+    if {$notify_supervisor_p} {
+	set uid $user_id_from_search
+	if {"" == $uid} { set uid $current_user_id }
+
+	im_timesheet_conf_object_notify_supervisor \
+	    -user_id $uid \
+	    -modified_projects_tuples [array get modified_projects_hash]
+    }
 }
 
 
