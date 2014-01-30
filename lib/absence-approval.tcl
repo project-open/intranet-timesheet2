@@ -143,7 +143,7 @@ set tasks_sql "
         wf_task_assignments wta
 	where
         wta.task_id = t.task_id
-        and (wta.party_id = :user_id or o.creation_user = :user_id)
+        and (wta.party_id = :user_id or o.creation_user = :user_id or wta.party_id in (select group_id from group_member_map where member_id = :user_id))
 		and o.object_id = ca.object_id
 		and ca.case_id = t.case_id
 		and t.state in ('active','enabled', 'started')
