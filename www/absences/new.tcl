@@ -201,7 +201,7 @@ if {$button_pressed =="delete"} {
         }
 
         # Update the vacation status to cancelled
-        db_dml cancel_absence "update im_user_absences set absence_status_id = [im_user_absence_status_cancelled] where absence_id = :absence_id"
+        db_dml cancel_absence "update im_user_absences set absence_status_id = [im_user_absence_status_deleted] where absence_id = :absence_id"
         im_audit -object_type im_user_absence -action after_delete -object_id $absence_id -status_id [im_user_absence_status_deleted]
 
         db_1row absence_info "select to_char(start_date,'YYYY-MM-DD') as start_date, to_char(end_date,'YYYY-MM-DD') as end_date from im_user_absences where absence_id = :absence_id"
