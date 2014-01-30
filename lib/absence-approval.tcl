@@ -146,10 +146,11 @@ set tasks_sql "
         and (wta.party_id = :user_id or o.creation_user = :user_id)
 		and o.object_id = ca.object_id
 		and ca.case_id = t.case_id
-		and t.state in ('enabled', 'started')
+		and t.state in ('active','enabled', 'started')
 		and t.transition_key = tr.transition_key
 		and t.workflow_key = tr.workflow_key
-        and t.workflow_key in (select distinct aux_string1 from im_categories where category_type = 'Intranet Absence Type' and aux_string1 is not null)
+        and (t.workflow_key in (select distinct aux_string1 from im_categories where category_type = 'Intranet Absence Type' and aux_string1 is not null) or
+             t.workflow_key = 'vacation_storno_wf')
         and a.absence_status_id not in (16002,16005)
     "
 

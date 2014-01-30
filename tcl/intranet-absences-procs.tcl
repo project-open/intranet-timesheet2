@@ -36,7 +36,6 @@ ad_proc -public im_user_absence_status_active {} { return 16000 }
 ad_proc -public im_user_absence_status_deleted {} { return 16002 }
 ad_proc -public im_user_absence_status_requested {} { return 16004 }
 ad_proc -public im_user_absence_status_rejected {} { return 16006 }
-ad_proc -public im_user_absence_status_cancelled {} { return 16005 }
 
 
 
@@ -1122,8 +1121,7 @@ ad_proc -public im_absence_dates {
                 from    im_user_absences 
                 where   start_date <= to_date(:end_date,'YYYY-MM-DD') and
                         end_date >= to_date(:start_date,'YYYY-MM-DD') and
-                        absence_status_id != [im_user_absence_status_deleted] and
-                        absence_status_id != [im_user_absence_status_cancelled] 
+                        absence_status_id != [im_user_absence_status_deleted]
                         $owner_sql
                         $ignore_absence_sql
             ) j where :end_date >=i and i >= :start_date order by absence_id, date" {

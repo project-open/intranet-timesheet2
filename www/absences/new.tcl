@@ -188,7 +188,7 @@ if {$button_pressed =="delete"} {
     if {[parameter::get_from_package_key -package_key intranet-timesheet2 -parameter "CancelAbsenceP" -default 1]} {
 
 	    # We just cancel the workflow and not delete it
-        callback im_user_absence_before_delete  -object_id $absence_id -status_id [im_user_absence_status_cancelled]
+        callback im_user_absence_before_delete  -object_id $absence_id -status_id [im_user_absence_status_deleted]
 	
         # Set the workflow to finished
         if {$absence_under_wf_control_p} {
