@@ -1,7 +1,7 @@
 # packages/intranet-timesheet2/www/absences/upload-datev-2.tcl
 #
 #
-# Copyright (c) 2013, cognovís GmbH, Hamburg, Germany
+# Copyright (c) 2013, cognovis GmbH, Hamburg, Germany
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
@@ -206,7 +206,7 @@ foreach csv_line_fields $values_list_of_lists {
 # touched in the last 10 minutes as they will not have been in the
 # upload file
 
-set deleted_absence_ids [db_list deleted_absences "select absence_id from im_user_absences, acs_objects where absence_id = object_id and acs_objects.last_modified < now() - interval '10 minutes' and absence_type_id in (5000,5001,5006,5007) and absence_status_id = :absence_status_id and to_char(start_date,'YYYY') = :year"]
+set deleted_absence_ids [db_list deleted_absences "select absence_id from im_user_absences, acs_objects where absence_id = object_id and acs_objects.last_modified < now() - interval '10 minutes' and absence_type_id in (5000,5001,5006) and absence_status_id = :absence_status_id and to_char(start_date,'YYYY') = :year"]
 
 foreach deleted_absence_id $deleted_absence_ids {
     db_dml delete_absence "update im_user_absences set absence_status_id = [im_absence_status_deleted] where absence_id = :deleted_absence_id"
