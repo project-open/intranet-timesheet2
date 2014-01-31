@@ -149,33 +149,30 @@ set actions [list]
 # These buttons only make sense if the absences already exists.
 
 if {[info exists absence_id]} {
-    set owner_id [db_string abs_ex "select owner_id from im_user_absences where absence_id = :absence_id" -default 0]
-    if {$owner_id} {
-
-	if {$absence_under_wf_control_p} {
-	    set edit_perm_func [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter AbsenceNewPageWfEditButtonPerm -default "im_absence_new_page_wf_perm_edit_button"]
-	    set delete_perm_func [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter AbsenceNewPageWfDeleteButtonPerm -default "im_absence_new_page_wf_perm_delete_button"]
-	    if {[eval [list $edit_perm_func -absence_id $absence_id]]} {
-		lappend actions [list [lang::message::lookup {} intranet-timesheet2.Edit Edit] edit]
-	    }
-	    if {[eval [list $delete_perm_func -absence_id $absence_id]]} {
-		lappend actions [list [lang::message::lookup {} intranet-timesheet2.Delete Delete] delete]
-	    }
-
-	} else {
-	    # No workflow control - enable buttons
-	    if {$write} {
-		lappend actions [list [lang::message::lookup {} intranet-timesheet2.Edit Edit] edit]
-	    } 
-	    if {$admin} {
-		if {[parameter::get_from_package_key -package_key intranet-timesheet2 -parameter "CancelAbsenceP" -default 1]} {
-		    lappend actions [list [lang::message::lookup {} intranet-timesheet2.Cancel Cancel] delete]
-		} else {
-		    lappend actions [list [lang::message::lookup {} intranet-timesheet2.Delete Delete] delete]
-		}		    
-	    }
-	}
-
+    set owner_id [db_string abs_ex "select owner_id from im_user_absences where absence_id = :absence_id" -default ""]
+    if {"" != $owner_id} {
+        if {$absence_under_wf_control_p} {
+	        set edit_perm_func [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter AbsenceNewPageWfEditButtonPerm -default "im_absence_new_page_wf_perm_edit_button"]
+            set delete_perm_func [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter AbsenceNewPageWfDeleteButtonPerm -default "im_absence_new_page_wf_perm_delete_button"]
+            if {[eval [list $edit_perm_func -absence_id $absence_id]]} {
+	            lappend actions [list [lang::message::lookup {} intranet-timesheet2.Edit Edit] edit]
+            }
+            if {[eval [list $delete_perm_func -absence_id $absence_id]]} {
+                lappend actions [list [lang::message::lookup {} intranet-timesheet2.Delete Delete] delete]
+            }
+        } else {
+	        # No workflow control - enable buttons
+            if {$write} {
+                lappend actions [list [lang::message::lookup {} intranet-timesheet2.Edit Edit] edit]
+            } 
+            if {$admin} {
+                if {[parameter::get_from_package_key -package_key intranet-timesheet2 -parameter "CancelAbsenceP" -default 1]} {
+		            lappend actions [list [lang::message::lookup {} intranet-timesheet2.Cancel Cancel] delete]
+                } else {
+		            lappend actions [list [lang::message::lookup {} intranet-timesheet2.Delete Delete] delete]
+                }		    
+	        }
+	   }
     }
 }
 
@@ -205,7 +202,8 @@ if {$button_pressed =="delete"} {
         im_audit -object_type im_user_absence -action after_delete -object_id $absence_id -status_id [im_user_absence_status_deleted]
 
         db_1row absence_info "select to_char(start_date,'YYYY-MM-DD') as start_date, to_char(end_date,'YYYY-MM-DD') as end_date from im_user_absences where absence_id = :absence_id"
-        set affected_absence_ids [im_absence_dates -start_date $start_date -end_date $end_date -owner_id $absence_owner_id -type absence_ids]
+        set affected_absence_ids [im_absence_dates -start_date $start_date -end_date $end_date -owner_id $absence_owner_id -type absence_ids -ignore_absence_ids $absence_id]
+        ns_log Notice "AFFECTED :: $affected_absence_ids"
         foreach affected_absence_id $affected_absence_ids {        
             im_absence_update_duration_days -absence_id $affected_absence_id
         }
@@ -581,18 +579,16 @@ ad_form -extend -name $form_id -on_request {
     
     set start_date "[join [template::util::date get_property linear_date_no_time $start_date] "-"]"
     set end_date "[join [template::util::date get_property linear_date_no_time $end_date] "-"]"    
-    set affected_absence_ids [im_absence_dates -start_date $start_date -end_date $end_date -owner_id $absence_owner_id -type absence_ids]
+    set affected_absence_ids [im_absence_dates -start_date $start_date -end_date $end_date -owner_id $absence_owner_id -type absence_ids -ignore_absence_ids $absence_id]
     if {$old_start_date ne ""} {
-        set old_affected_absence_ids [im_absence_dates -start_date $old_start_date -end_date $old_end_date -owner_id 32988 -type absence_ids]
+        set old_affected_absence_ids [im_absence_dates -start_date $old_start_date -end_date $old_end_date -owner_id 32988 -type absence_ids -ignore_absence_ids $absence_id]
         set affected_absence_ids [concat $affected_absence_ids $old_affected_absence_ids]
-    }
-    ns_log Notice "Afffected $affected_absence_ids"
-    foreach affected_absence_id $affected_absence_ids {        
-        im_absence_update_duration_days -absence_id $affected_absence_id
     }
 
     # Recalculate all affected absences
-    im_absence_update_duration_days -absence_id $absence_id -ignore_absence_ids $affected_absence_ids
+    foreach affected_absence_id $affected_absence_ids {        
+        im_absence_update_duration_days -absence_id $affected_absence_id
+    }
 
     ad_returnredirect $return_url
     ad_script_abort
