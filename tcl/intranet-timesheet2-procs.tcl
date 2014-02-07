@@ -751,3 +751,40 @@ ad_proc get_unconfirmed_hours_for_period {
     "
     return [db_string get_unconfirmed_hours $sql -default 0]
 }
+
+
+ad_proc -public im_hour_nuke {
+    { -current_user_id ""}
+    hour_id
+} {
+    Delete an im_hour entry and depending objects.
+    This function is currently only used by the REST interface
+} {
+    if {![db_0or1row hour_info "
+	select	*
+	from	im_hours h
+	where	hour_id = :hour_id
+    "]} {
+	ns_log Error "im_hour_nuke: Did not find im_hour with hour_id=$hour_id"
+	return
+    }
+
+    # Delete any confirmation objects and therefore force the user to re-submit
+    # possibly already confirmed hours:
+    if {[im_column_exists im_hours conf_object_id]} {
+	if {"" != $conf_object_id} {
+	    db_string delete_conf_object "select im_timesheet_conf_object__delete(:conf_object_id) from dual"
+	}
+    }
+
+    # Delete the cost item that represents the im_hour entry
+    if {"" != $cost_id} {
+	db_string delete_hour_cost "SELECT im_cost__delete(:cost_id) from dual"
+    }
+
+    # Delete the actual im_hours entry
+    db_string delete_hour_cost "delete from im_hours where hour_id = :hour_id"
+
+    return $hour_id
+}
+
