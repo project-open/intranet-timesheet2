@@ -123,6 +123,9 @@ set linecount 0
 set first_date [lindex [lindex $values_list_of_lists 0] 8]
 set year [lindex [split $first_date "."] 2]
 
+# We only deal with approved absences
+set absence_status_id [im_user_absence_status_active]
+
 foreach csv_line_fields $values_list_of_lists {
     incr linecount
     
@@ -144,19 +147,16 @@ foreach csv_line_fields $values_list_of_lists {
 	continue
     }
 
-    # We only deal with approved absences
-    set absence_status_id [im_absence_status_active]
-
     # Translate the absence_type
     switch $absence_type {
-	U { set absence_type_id 5000}
-	GZ { set absence_type_id 5006}
-	BT { set absence_type_id 5007}
-	default { set absence_type_id 5001}
+	    U { set absence_type_id 5000}
+	    GZ { set absence_type_id 5006}
+	    BT { set absence_type_id 5007}
+	    default { set absence_type_id 5001}
     }
 
     # Check if we know of this absence
-    set absence_id [db_string absence_id "select absence_id from im_user_absences where owner_id = :employee_id and start_date = to_date(:absence_start,'DD.MM.YYYY')" -default 0]
+    set absence_id [db_string absence_id "select absence_id from im_user_absences where owner_id = :employee_id and start_date = to_date(:absence_start,'DD.MM.YYYY') limit 1" -default 0]
     
     if {$absence_id} {
 	# Absence is to be updated
@@ -209,7 +209,7 @@ foreach csv_line_fields $values_list_of_lists {
 set deleted_absence_ids [db_list deleted_absences "select absence_id from im_user_absences, acs_objects where absence_id = object_id and acs_objects.last_modified < now() - interval '10 minutes' and absence_type_id in (5000,5001,5006) and absence_status_id = :absence_status_id and to_char(start_date,'YYYY') = :year"]
 
 foreach deleted_absence_id $deleted_absence_ids {
-    db_dml delete_absence "update im_user_absences set absence_status_id = [im_absence_status_deleted] where absence_id = :deleted_absence_id"
+    db_dml delete_absence "update im_user_absences set absence_status_id = [im_user_absence_status_deleted] where absence_id = :deleted_absence_id"
     ns_write "<li>Cancelled vacation: $deleted_absence_id"
 }
 
