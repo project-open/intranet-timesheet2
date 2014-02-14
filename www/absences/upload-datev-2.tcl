@@ -143,8 +143,8 @@ foreach csv_line_fields $values_list_of_lists {
     set employee_id [db_string employee "select employee_id from im_employees where personnel_number = :personnel_number" -default ""]
     
     if {"" == $employee_id} {
-	ns_write "<li>Error: Can't find employee \"$employee_name\" with personnel number $personnel_number<br>"
-	continue
+	    ns_write "<li>Error: Can't find employee \"$employee_name\" with personnel number $personnel_number<br>"
+	    continue
     }
 
     # Translate the absence_type
@@ -159,15 +159,15 @@ foreach csv_line_fields $values_list_of_lists {
     set absence_id [db_string absence_id "select absence_id from im_user_absences where owner_id = :employee_id and start_date = to_date(:absence_start,'DD.MM.YYYY') limit 1" -default 0]
     
     if {$absence_id} {
-	# Absence is to be updated
-	db_dml update_absence "update im_user_absences set end_date = to_date(:absence_end,'DD.MM.YYYY'), duration_days = :duration_days, absence_type_id = :absence_type_id, absence_status_id = :absence_status_id, absence_name = :employee_name where absence_id = :absence_id"
+        # Absence is to be updated
+	    db_dml update_absence "update im_user_absences set end_date = to_date(:absence_end,'DD.MM.YYYY'), duration_days = :duration_days, absence_type_id = :absence_type_id, absence_status_id = :absence_status_id, absence_name = :employee_name where absence_id = :absence_id"
 	
-	# Update the last modified date 
-	db_dml update_date "update acs_objects set last_modified = now() where object_id = :absence_id"
-	im_audit -object_type im_user_absence -action after_create -object_id $absence_id -status_id $absence_status_id -type_id $absence_type_id
+        # Update the last modified date 
+	    db_dml update_date "update acs_objects set last_modified = now() where object_id = :absence_id"
+        # im_audit -object_type im_user_absence -action after_update -object_id $absence_id -status_id $absence_status_id -type_id $absence_type_id
     } else {
-	# Create new absence
-	set absence_id [db_string new_absence "
+	    # Create new absence
+        set absence_id [db_string new_absence "
 		SELECT im_user_absence__new(
 			null,
 			'im_user_absence',
@@ -184,22 +184,21 @@ foreach csv_line_fields $values_list_of_lists {
 			null,
 			null
 		)
-	"]
+        "]
 
-	db_dml update_absence "
+        db_dml update_absence "
 		update im_user_absences	set
 			duration_days = :duration_days
 		where absence_id = :absence_id
-	"
+        "
 
-	db_dml update_object "
+        db_dml update_object "
 		update acs_objects set
 			last_modified = now()
 		where object_id = :absence_id
-	"
+        "
+        #im_audit -object_type im_user_absence -action after_create -object_id $absence_id -status_id $absence_status_id -type_id $absence_type_id	
     }
-
-    im_audit -object_type im_user_absence -action after_create -object_id $absence_id -status_id $absence_status_id -type_id $absence_type_id	
 }
 
 # Now it is time to set all absences to deleted which where not
