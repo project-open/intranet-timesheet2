@@ -63,12 +63,10 @@ if {"" == $user_id_from_search } {
 		# User not in reportees - reset to current user
 		set user_id_from_search $current_user_id 
 	    }
-	} else {
-	    # The user has no permission to log hours for others
-	    set user_id_from_search $current_user_id 
 	}
     }
 }
+if {"" == $user_id_from_search } { set user_id_from_search $current_user_id }
 set user_name_from_search [db_string uname "select im_name_from_user_id(:user_id_from_search)"]
 
 # ToDo: What if the user_id_from_search is already set???
