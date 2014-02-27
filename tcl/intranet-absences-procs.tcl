@@ -941,66 +941,7 @@ ad_proc -public im_absence_days {
     @param ignore_absence_id Ignore this absence_id when calculating the remaining days.
 } {
 
-    if {!$approved_p} {
-        set approved_sql ""
-    } else {
-        set approved_sql ""
-    }
-
-    # Assume a long timescale for start/enddate
-    if {$start_date eq ""} {
-	set start_date '1970-01-01'
-    }
-    if {$end_date eq ""} {
-	set end_date '2099-12-31'
-    }
-
-    # We need to ignore this absence_id from the calculation of
-    # absence days. Usually during an edit
-    if {$ignore_absence_ids eq ""} {
-	    set ignore_absence_sql ""
-    } else {
-        set ignore_absence_sql "and absence_id not in ([template::util::tcl_to_sql_list $ignore_absence_ids])"
-    }
-    
-    if {$owner_id ne ""} {
-        # Get the groups the owner belongs to
-        set group_ids [db_list group_options "
-            select	g.group_id
-            from	groups g,
-		            acs_objects o,
-                    acs_rels r
-            where	g.group_id = o.object_id and
-                    o.object_type in ('im_profile', 'im_biz_object_group') and
-                    r.object_id_one = g.group_id and
-                    r.object_id_two = :owner_id
-            order by g.group_name
-         "]
-
-         # Add registered_users
-         lappend group_ids "-2"
-
-         set owner_sql "(owner_id = :owner_id or group_id in ([template::util::tcl_to_sql_list $group_ids])) and"
-    } elseif {$group_ids ne ""} {
-        # We try to find the holidays for the group of users
-        set owner_sql "group_id in ([template::util::tcl_to_sql_list $group_ids]) and"
-    } else {
-        # We try to find the holidays for any group
-        set owner_sql "group_id is not null and"
-    }
-            
-    return [db_string absence_sql "
-        select  coalesce(sum(a.duration_days),0) as absence_days
-        from    im_user_absences a
-        where   absence_type_id in ([template::util::tcl_to_sql_list $absence_type_ids]) and
-                absence_status_id in (16000,16004) and
-                (owner_id = :owner_id or group_id in ([template::util::tcl_to_sql_list $group_ids])) and
-                a.start_date >= :start_date and
-                a.end_date <= :end_date
-                $approved_sql
-                $ignore_absence_sql
-    "]
-
+    return [im_absence_dates -owner_id $owner_id -group_ids $group_ids -start_date $start_date -end_date $end_date -absence_type_ids $absence_type_ids -ignore_absence_ids $ignore_absence_ids -type "sum"]
 }
 
 
@@ -1051,10 +992,11 @@ ad_proc -public im_absence_week_days {
 ad_proc -public im_absence_dates {
     {-owner_id ""}
     {-group_ids ""}
-    -start_date:required
-    -end_date:required
-    {-exclude_week_days ""}
+    {-start_date ""}
+    {-end_date ""}
+    {-exclude_week_days {0 6}}
     {-absence_type_ids ""}
+    {-absence_status_id ""}
     {-ignore_absence_ids ""}
     {-type "dates"}
 } {
@@ -1067,13 +1009,16 @@ ad_proc -public im_absence_dates {
     @param off_days Days which we do not count in our calculation. That is usually Saturday and Sunday (weekends), but might be other dates as well
     @param include_personal Should we include personal vacations in the calculation? Usually we don't, as they are e.g. sickness
     @param ignore_absence_id Ignore this absence_id when calculating the dates. This is helpful if we edit an existing absence and want to get the other days the user is off
+    @param type "dates" which is default returns the dates. "sum" returns the actual amount of days and "absence_ids" lists the absences which fall in this timeframe
 } {
-    if {$exclude_week_days eq ""} {
-        set off_dates [list]
-    } else {
-        set off_dates [im_absence_week_days -week_day_list $exclude_week_days -start_date $start_date -end_date $end_date]
+    # Assume a long timescale for start/enddate
+    if {$start_date eq ""} {
+        set start_date "1970-01-01"
     }
-    
+    if {$end_date eq ""} {
+	    set end_date "2099-12-31"
+    }
+
     # If we have an owner_id limit the absences to only this owner and the group the owner belongs to
     
     if {$owner_id ne ""} {
@@ -1111,31 +1056,46 @@ ad_proc -public im_absence_dates {
         set ignore_absence_sql "and absence_id not in ([template::util::tcl_to_sql_list $ignore_absence_ids])"
     }
     
+    # Check for the absence types
+    if {""==$absence_type_ids} {
+        set absence_type_sql ""
+    } else {
+        set absence_type_sql "and absence_type_id in ([template::util::tcl_to_sql_list $absence_type_ids])"
+    }
+    
+    if {"" == $absence_status_id} {
+        set absence_status_sql "absence_status_id != [im_user_absence_status_deleted]"
+    } else {
+        set absence_status_sql "absence_status_id = $absence_status_id"
+    } 
+
     set absence_days [list]
     set absence_ids [list]
-    # Now we need to find the absences which already exist in this timeframe and extract the dates it is occurring
+
+    #   Define the days of the week we look into
+    set days_of_week [list 0 1 2 3 4 5 6]
     
-    db_foreach absence_day "
-        select  to_char(i,'YYYY-MM-DD') as date, absence_id
-        from (select    generate_series(start_date,end_date,'1 day') AS I, absence_id
+    if {$exclude_week_days ne ""} {
+        foreach exclude_day $exclude_week_days {
+            set days_of_week  [lsearch -inline -all -not -exact $days_of_week $exclude_day]
+        }
+    }    
+
+    # Now we need to find the absences which already exist in this timeframe and extract the dates it is occurring 
+    db_foreach absence_ids "select absence_id, to_char(start_date,'YYYY-MM-DD') as absence_start_date, to_char(end_date,'YYYY-MM-DD') as absence_end_date
                 from    im_user_absences 
                 where   start_date <= to_date(:end_date,'YYYY-MM-DD') and
                         end_date >= to_date(:start_date,'YYYY-MM-DD') and
-                        absence_status_id != [im_user_absence_status_deleted]
+                        $absence_status_sql
+                        $absence_type_sql
                         $owner_sql
-                        $ignore_absence_sql
-            ) j where :end_date >=i and i >= :start_date order by absence_id, date" {
-                # Check if the absence days is one of the off days
-                if {[lsearch $off_dates $date] < 0} {
-                    if {[lsearch $absence_days $date] < 0} {
-                        lappend absence_days $date
-                        if {[lsearch $absence_ids $absence_id]} {
-                            lappend absence_ids $absence_id
-                        }
-                    }
-                }
-            }
-
+                        $ignore_absence_sql 
+                        " {
+        # Get the days for this absence based on the start and end_date
+        lappend absence_ids $absence_id
+        set absence_days [concat $absence_days [im_absence_week_days -week_day_list $days_of_week -start_date $absence_start_date -end_date $absence_end_date]]
+    }
+    
     # Absence Days now contains all the dates which he has already off
     if {$type == "dates"} {
         return [lsort $absence_days]
@@ -1147,12 +1107,15 @@ ad_proc -public im_absence_dates {
 }
 
 ad_proc -public im_absence_calculate_absence_days {
-    -owner_id:required
+    {-owner_id ""}
+    {-group_ids ""}
     -start_date:required
     -end_date:required
     {-ignore_absence_ids ""}
     {-exclude_week_days {0 6}}
     {-type "duration"}
+    {-absence_type_ids ""}
+    {-absence_status_id ""}
 } {
     Calculate the needed dates for an absence
     @param owner_id Owner for whom we calculate the actual absence
@@ -1162,6 +1125,7 @@ ad_proc -public im_absence_calculate_absence_days {
     @param ignore_absence_id Ignore this absence_id when calculating the dates. This is helpful if we edit an existing absence and want to get the other days the user is off
     @param type duration will return the sum of the days needed, dates will return the actual dates
 } {
+    
     # Get a list of dates in the range
     set dates_in_range [db_list date_range "
 	SELECT to_char(i,'YYYY-MM-DD')
@@ -1182,7 +1146,7 @@ ad_proc -public im_absence_calculate_absence_days {
     }
     
     # Get the existing absence dates in the interval
-    set existing_absence_dates [im_absence_dates -owner_id $owner_id -start_date $start_date -end_date $end_date -ignore_absence_ids $ignore_absence_ids -exclude_week_days $exclude_week_days]
+    set existing_absence_dates [im_absence_dates -owner_id $owner_id -group_ids $group_ids -start_date $start_date -end_date $end_date -ignore_absence_ids $ignore_absence_ids -exclude_week_days $exclude_week_days -absence_type_ids $absence_type_ids -absence_status_id $absence_status_id]
 
     # Join the dates together
     set existing_absence_dates [concat $existing_absence_dates $off_dates]
