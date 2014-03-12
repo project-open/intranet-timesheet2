@@ -419,8 +419,13 @@ ad_form -extend -name $form_id -on_request {
 
     callback im_user_absence_before_create -object_id $absence_id -status_id $absence_status_id -type_id $absence_type_id
 
+<<<<<<< HEAD
 	set absence_id [db_string new_absence "
 		SELECT im_user_absence__new(
+=======
+    set absence_id [db_string new_absence "
+			SELECT im_user_absence__new(
+>>>>>>> 190696d0306fa2df811d8a5f40fbcdebf8bc24ed
 			:absence_id,
 			'im_user_absence',
 			now(),
@@ -440,10 +445,10 @@ ad_form -extend -name $form_id -on_request {
 		)
 	"]
 
-	# Don't add the creator as a participant of a group absence
-	if {"" != $group_id} { set absence_owner_id "" }
-
-	db_dml update_absence "
+    # Don't add the creator as a participant of a group absence
+    if {"" != $group_id} { set absence_owner_id "" }
+    
+    db_dml update_absence "
 		UPDATE im_user_absences SET
 			absence_name = :absence_name,
 			owner_id = :absence_owner_id,
@@ -459,34 +464,28 @@ ad_form -extend -name $form_id -on_request {
 			absence_id = :absence_id
 	"
 
-	im_dynfield::attribute_store \
-	    -object_type "im_user_absence" \
-	    -object_id $absence_id \
-	    -form_id $form_id
-
-	db_dml update_object "
+    im_dynfield::attribute_store \
+	-object_type "im_user_absence" \
+	-object_id $absence_id \
+	-form_id $form_id
+    
+    db_dml update_object "
 		update acs_objects set
 			last_modified = now(),
 			modifying_user = :current_user_id,
 			modifying_ip = '[ad_conn peeraddr]'
 		where object_id = :absence_id
-	"
+    "
 
-	if {$wf_exists_p} {
-	    set context_key ""
-	    set case_id [wf_case_new \
-			     $wf_key \
-			     $context_key \
-			     $absence_id
-			]
-
-	    # Determine the first task in the case to be executed and start+finisch the task.
-        im_workflow_skip_first_transition -case_id $case_id
-	}
+    if {$wf_exists_p} {
+	set context_key ""
+	set case_id [wf_case_new \
+			 $wf_key \
+			 $context_key \
+			 $absence_id
+		    ]
 	
-	# Callback 
-	ns_log Notice "Callback: Calling callback 'absence_on_change' "
-	
+<<<<<<< HEAD
 	callback absence_on_change \
 	    -absence_id $absence_id \
 	    -absence_type_id $absence_type_id \
@@ -498,6 +497,26 @@ ad_form -extend -name $form_id -on_request {
 
 	# Audit the action
 	im_audit -object_type im_user_absence -action after_create -object_id $absence_id -status_id $absence_status_id -type_id $absence_type_id
+=======
+	# Determine the first task in the case to be executed and start+finisch the task.
+        im_workflow_skip_first_transition -case_id $case_id
+    }
+    
+    # Callback 
+    ns_log Notice "Callback: Calling callback 'absence_on_change' "
+    
+    callback absence_on_change \
+	-absence_id $absence_id \
+	-absence_type_id $absence_type_id \
+	-user_id $absence_owner_id \
+	-start_date $start_date_sql \
+	-end_date $end_date_sql \
+	-duration_days $duration_days \
+	-transaction_type "add"
+    
+    # Audit the action
+    im_audit -object_type im_user_absence -action after_create -object_id $absence_id -status_id $absence_status_id -type_id $absence_type_id
+>>>>>>> 190696d0306fa2df811d8a5f40fbcdebf8bc24ed
 
 } -edit_data {
 

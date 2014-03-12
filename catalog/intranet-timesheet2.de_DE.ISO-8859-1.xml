@@ -30,6 +30,7 @@
   <msg key="AMOUNTS">Beträge</msg>
   <msg key="and_absences_hours">und %absences_hours% Stunden Absenzen</msg>
   <msg key="Apply">Bestätigen</msg>
+  <msg key="Apr">April</msg>
   <msg key="April">April</msg>
   <msg key="Associated_reports">Beteiligte Berichte</msg>
   <msg key="Aug">Aug</msg>
@@ -59,6 +60,7 @@
   <msg key="context">Kontext</msg>
   <msg key="Country">Land</msg>
   <msg key="Currency">Währung</msg>
+  <msg key="Customers">Kunde</msg>
   <msg key="D">D</msg>
   <msg key="Daily_project_notes">Tägliche Projektnotizen</msg>
   <msg key="Date">Datum</msg>
@@ -85,6 +87,7 @@
   <msg key="Edit">Ändern</msg>
   <msg key="Edit_Absence">Abwesenheit bearbeiten</msg>
   <msg key="Employee">Mitarbeiter</msg>
+  <msg key="Employees">Mitarbeiter</msg>
   <msg key="End_Date">Endedatum</msg>
   <msg key="Ending">Ende</msg>
   <msg key="equals">ist gleich</msg>
@@ -242,10 +245,12 @@
   <msg key="New_Absence">Neue Abwesenheit</msg>
   <msg key="New_Absence_Type">Neue %absence_type% </msg>
   <msg key="New_Bank_Holiday">Neuer Feiertag</msg>
+  <msg key="New_Other_Absence">Neuer Sonderurlaub</msg>
+  <msg key="New_Overtime_Absence">Neuer Zeitausgleichstag</msg>
   <msg key="New_Personal_Absence">Neue Abwesenheit (privat)</msg>
   <msg key="New_Sick_Leave">Neue Abwesenheit (Krankheit)</msg>
   <msg key="New_Travel_Absence">Neue Abwesenheit (Reise)</msg>
-  <msg key="New_Vacation_Absence">Neu Abwesenheit (Urlaub)</msg>
+  <msg key="New_Vacation_Absence">Neuer Erholungsurlaub</msg>
   <msg key="Next_3_Month">Nächste 3 Monate</msg>
   <msg key="Next_3_Weeks">Nächste 3 Wochen</msg>
   <msg key="Next_Month">Nächster Monat</msg>
