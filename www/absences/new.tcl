@@ -364,14 +364,13 @@ ad_form -extend -name $form_id -on_request {
     if {![info exists absence_status_id]} { set absence_status_id [im_user_absence_status_active] }
     
     template::element::set_value absence vacation_replacement_id [db_string supervisor "select supervisor_id from im_employees where employee_id = :absence_owner_id" -default $current_user_id]
-} -select_query {
-
-	select	a.*, to_char(a.start_date,'YYYY-MM-DD') as old_start_date, to_char(a.end_date,'YYYY-MM-DD') as old_end_date,
+} -edit_request {
+    db_1row absence "	select	a.*, to_char(a.start_date,'YYYY-MM-DD') as old_start_date, to_char(a.end_date,'YYYY-MM-DD') as old_end_date,
 		a.owner_id as absence_owner_id
 	from	im_user_absences a
-	where	absence_id = :absence_id
-
-    
+	where	absence_id = :absence_id"
+    set duration_days [im_absence_calculate_absence_days -start_date "$old_start_date" -end_date $old_end_date -owner_id $absence_owner_id -absence_status_id 16000 -ignore_absence_ids $absence_id]
+         
 } -validate {
 
     #--------------------------
@@ -384,11 +383,11 @@ ad_form -extend -name $form_id -on_request {
     # Then we make a check if the duration given by the user is actually correct and give direct feedback.
     
     {duration_days
-        {[im_absence_calculate_absence_days -start_date "[join [template::util::date get_property linear_date_no_time $start_date] "-"]" -end_date "[join [template::util::date get_property linear_date_no_time $end_date] "-"]" -owner_id $absence_owner_id -ignore_absence_ids $absence_id] == $duration_days}
+        {[im_absence_calculate_absence_days -start_date "[join [template::util::date get_property linear_date_no_time $start_date] "-"]" -end_date "[join [template::util::date get_property linear_date_no_time $end_date] "-"]" -owner_id $absence_owner_id -ignore_absence_ids $absence_id -absence_status_id 16000] == $duration_days}
         "[_ intranet-timesheet2.lt_The_calculated_durati] [im_absence_calculate_absence_days -start_date \"[join [template::util::date get_property linear_date_no_time $start_date] \"-\"]\" -end_date \"[join [template::util::date get_property linear_date_no_time $end_date] \"-\"]\" -owner_id $absence_owner_id -ignore_absence_ids $absence_id], [_ intranet-timesheet2.not] $duration_days. [_ intranet-timesheet2.Please_ammend]"
     }
     {duration_days
-	{[lsearch [im_sub_categories [im_user_absence_type_vacation]] $absence_type_id] > -1 && [im_absence_calculate_absence_days -start_date "[join [template::util::date get_property linear_date_no_time $start_date] "-"]" -end_date "[join [template::util::date get_property linear_date_no_time $end_date] "-"]" -owner_id $absence_owner_id -ignore_absence_ids $absence_id] <= [im_absence_remaining_days -user_id $absence_owner_id -ignore_absence_ids $absence_id -absence_type_id $absence_type_id] || [lsearch $vacation_category_ids $absence_type_id]<0}
+	{[lsearch [im_sub_categories [im_user_absence_type_vacation]] $absence_type_id] > -1 && [im_absence_calculate_absence_days -absence_status_id 16000 -start_date "[join [template::util::date get_property linear_date_no_time $start_date] "-"]" -end_date "[join [template::util::date get_property linear_date_no_time $end_date] "-"]" -owner_id $absence_owner_id -ignore_absence_ids $absence_id] <= [im_absence_remaining_days -user_id $absence_owner_id -ignore_absence_ids $absence_id -absence_type_id $absence_type_id] || [lsearch $vacation_category_ids $absence_type_id]<0}
 	"[_ intranet-timesheet2.lt_Duration_is_longer_th] [im_absence_remaining_days -user_id $absence_owner_id -absence_type_id $absence_type_id -ignore_absence_ids $absence_id]"
     } 
     {start_date
@@ -420,9 +419,8 @@ ad_form -extend -name $form_id -on_request {
 
     callback im_user_absence_before_create -object_id $absence_id -status_id $absence_status_id -type_id $absence_type_id
 
-    db_transaction {
-	set absence_id [db_string new_absence "
-		SELECT im_user_absence__new(
+    set absence_id [db_string new_absence "
+			SELECT im_user_absence__new(
 			:absence_id,
 			'im_user_absence',
 			now(),
@@ -442,10 +440,10 @@ ad_form -extend -name $form_id -on_request {
 		)
 	"]
 
-	# Don't add the creator as a participant of a group absence
-	if {"" != $group_id} { set absence_owner_id "" }
-
-	db_dml update_absence "
+    # Don't add the creator as a participant of a group absence
+    if {"" != $group_id} { set absence_owner_id "" }
+    
+    db_dml update_absence "
 		UPDATE im_user_absences SET
 			absence_name = :absence_name,
 			owner_id = :absence_owner_id,
@@ -461,46 +459,45 @@ ad_form -extend -name $form_id -on_request {
 			absence_id = :absence_id
 	"
 
-	im_dynfield::attribute_store \
-	    -object_type "im_user_absence" \
-	    -object_id $absence_id \
-	    -form_id $form_id
-
-	db_dml update_object "
+    im_dynfield::attribute_store \
+	-object_type "im_user_absence" \
+	-object_id $absence_id \
+	-form_id $form_id
+    
+    db_dml update_object "
 		update acs_objects set
 			last_modified = now(),
 			modifying_user = :current_user_id,
 			modifying_ip = '[ad_conn peeraddr]'
 		where object_id = :absence_id
-	"
+    "
 
-	if {$wf_exists_p} {
-	    set context_key ""
-	    set case_id [wf_case_new \
-			     $wf_key \
-			     $context_key \
-			     $absence_id
-			]
-
-	    # Determine the first task in the case to be executed and start+finisch the task.
+    if {$wf_exists_p} {
+	set context_key ""
+	set case_id [wf_case_new \
+			 $wf_key \
+			 $context_key \
+			 $absence_id
+		    ]
+	
+	# Determine the first task in the case to be executed and start+finisch the task.
         im_workflow_skip_first_transition -case_id $case_id
-	}
-	
-	# Callback 
-	ns_log Notice "Callback: Calling callback 'absence_on_change' "
-	
-	callback absence_on_change \
-	    -absence_id $absence_id \
-	    -absence_type_id $absence_type_id \
-	    -user_id $absence_owner_id \
-	    -start_date $start_date_sql \
-	    -end_date $end_date_sql \
-	    -duration_days $duration_days \
-	    -transaction_type "add"
-
-	# Audit the action
-	im_audit -object_type im_user_absence -action after_create -object_id $absence_id -status_id $absence_status_id -type_id $absence_type_id
     }
+    
+    # Callback 
+    ns_log Notice "Callback: Calling callback 'absence_on_change' "
+    
+    callback absence_on_change \
+	-absence_id $absence_id \
+	-absence_type_id $absence_type_id \
+	-user_id $absence_owner_id \
+	-start_date $start_date_sql \
+	-end_date $end_date_sql \
+	-duration_days $duration_days \
+	-transaction_type "add"
+    
+    # Audit the action
+    im_audit -object_type im_user_absence -action after_create -object_id $absence_id -status_id $absence_status_id -type_id $absence_type_id
 
 } -edit_data {
 
@@ -579,16 +576,6 @@ ad_form -extend -name $form_id -on_request {
     
     set start_date "[join [template::util::date get_property linear_date_no_time $start_date] "-"]"
     set end_date "[join [template::util::date get_property linear_date_no_time $end_date] "-"]"    
-    set affected_absence_ids [im_absence_dates -start_date $start_date -end_date $end_date -owner_id $absence_owner_id -type absence_ids -ignore_absence_ids $absence_id]
-    if {$old_start_date ne ""} {
-        set old_affected_absence_ids [im_absence_dates -start_date $old_start_date -end_date $old_end_date -owner_id 32988 -type absence_ids -ignore_absence_ids $absence_id]
-        set affected_absence_ids [concat $affected_absence_ids $old_affected_absence_ids]
-    }
-
-    # Recalculate all affected absences
-    foreach affected_absence_id $affected_absence_ids {        
-        im_absence_update_duration_days -absence_id $affected_absence_id
-    }
 
     ad_returnredirect $return_url
     ad_script_abort
