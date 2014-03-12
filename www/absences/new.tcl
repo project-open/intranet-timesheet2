@@ -419,7 +419,6 @@ ad_form -extend -name $form_id -on_request {
 
     callback im_user_absence_before_create -object_id $absence_id -status_id $absence_status_id -type_id $absence_type_id
 
-    db_transaction {
 	set absence_id [db_string new_absence "
 		SELECT im_user_absence__new(
 			:absence_id,
@@ -499,7 +498,6 @@ ad_form -extend -name $form_id -on_request {
 
 	# Audit the action
 	im_audit -object_type im_user_absence -action after_create -object_id $absence_id -status_id $absence_status_id -type_id $absence_type_id
-    }
 
 } -edit_data {
 
