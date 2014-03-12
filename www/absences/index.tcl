@@ -732,7 +732,7 @@ db_foreach absences_list $selection {
     set absence_view_url [export_vars -base "$absences_url/new" {absence_id return_url {form_mode "display"}}]
 
     set duration_days [im_absence_calculate_absence_days -absence_id $absence_id]
-    ds_comment "$absence_id :: $duration_days"
+
     # Calculate the link for the user/group for which the absence is valid
     set user_link "<a href=\"[export_vars -base "/intranet/users/view" {{user_id $owner_id}}]\">$owner_name</a>"
     if {"" != $group_id} { set user_link [im_profile::profile_name_from_id -profile_id $group_id] }

@@ -46,39 +46,57 @@ set current_year [db_string current_year "select to_char(now(), 'YYYY')"]
 
 # Ignore the balance for bank holidays
 
-set bank_holiday_category_ids [db_list bank_holidays "select child_id from im_category_hierarchy where parent_id = '5005'"]
-lappend bank_holiday_category_ids 5005
+set vacation_category_ids [im_sub_categories 5000]
 
-
-set category_ids [db_list categories "
+set exclude_category_ids [db_list categories "
 	select
                 category_id
 	from
 		im_categories c
 	where
-                category_type = 'Intranet Absence Type' and category_id not in ([template::util::tcl_to_sql_list $bank_holiday_category_ids])
+                category_type = 'Intranet Absence Type' and category_id not in ([template::util::tcl_to_sql_list $vacation_category_ids])
 "]
 
+
 set absence_type_html ""
-foreach category_id $category_ids {
+foreach category_id $vacation_category_ids {
     
     set entitlement_days [db_string entitlement_days "select sum(l.entitlement_days) as absence_days from im_user_leave_entitlements l where leave_entitlement_type_id = :category_id and owner_id = :user_id" -default 0]
 	set absence_type [im_category_from_id $category_id]
-    
-    set requested_days [im_absence_dates -absence_status_id 16004 -absence_type_ids $category_id -owner_id $user_id -type "sum"]
 
 	# Check if we have a workflow and then only use the approved days
 	set wf_key [db_string wf "select trim(aux_string1) from im_categories where category_id = :category_id" -default ""]
 	set wf_exists_p [db_string wf_exists "select count(*) from wf_workflows where workflow_key = :wf_key"]
+    set off_dates [im_absence_dates -absence_status_id 16000 -absence_type_ids $exclude_category_ids -owner_id $user_id -type "dates"]
+    set requested_dates [list]
 
 	if {$wf_exists_p} {
-        set approved_absence_days [im_absence_dates -absence_status_id 16000 -absence_type_ids $category_id -owner_id $user_id -type "sum"]
-	    set remaining_days [expr $entitlement_days - $approved_absence_days]
+        set absence_dates [im_absence_dates -absence_status_id 16000 -absence_type_ids $category_id -owner_id $user_id -type "dates"]
+        set requested_dates [im_absence_dates -absence_status_id 16004 -absence_type_ids $category_id -owner_id $user_id -type "dates"]
 	} else {
-        set absence_days [im_absence_dates -absence_type_ids $category_id -owner_id $user_id -type "sum"]
-	    set remaining_days [expr $entitlement_days - $absence_days]
-	    set requested_days 0
+        set absence_dates [im_absence_dates -absence_type_ids $category_id -owner_id $user_id -type "dates"]
 	}
+    
+    ds_comment "balance:: $off_dates"
+    # Calculate the absence days
+    set required_dates [list]
+    foreach date $absence_dates {
+        if {[lsearch $off_dates $date]<0} {
+            lappend required_dates $date
+        }
+    }
+    set absence_days [llength $required_dates]
+    
+    # Calculate the requested dates
+    set required_dates [list]
+    foreach date $requested_dates {
+        if {[lsearch $off_dates $date]<0} {
+            lappend required_dates $date
+        }
+    }
+    set requested_days [llength $required_dates]
+    
+    set remaining_days [expr $entitlement_days - $absence_days]
     
     if {$remaining_days != 0 || $requested_days !=0} {
     append absence_type_html "    

@@ -1084,18 +1084,18 @@ ad_proc -public im_absence_dates {
     # Now we need to find the absences which already exist in this timeframe and extract the dates it is occurring 
     db_foreach absence_ids "select absence_id, to_char(start_date,'YYYY-MM-DD') as absence_start_date, to_char(end_date,'YYYY-MM-DD') as absence_end_date
                 from    im_user_absences 
-                where   start_date <= to_date(:end_date,'YYYY-MM-DD') and
+                where   (start_date <= to_date(:end_date,'YYYY-MM-DD') and
                         end_date >= to_date(:start_date,'YYYY-MM-DD') and
                         $absence_status_sql
                         $absence_type_sql
-                        $owner_sql
+                        $owner_sql)
                         $ignore_absence_sql
                         " {
         # Get the days for this absence based on the start and end_date
         lappend absence_ids $absence_id
         set absence_days [concat $absence_days [im_absence_week_days -week_day_list $days_of_week -start_date $absence_start_date -end_date $absence_end_date]]
     }
-    
+     
     # Remove duplicates
     set absence_days [lsort -unique $absence_days]
     
@@ -1118,8 +1118,9 @@ ad_proc -public im_absence_calculate_absence_days {
     {-absence_id ""}
     {-exclude_week_days {0 6}}
     {-type "duration"}
-    {-absence_type_ids ""}
+    {-absence_type_id ""}
     {-absence_status_id ""}
+    {-substract_absence_type_ids ""}
 } {
     Calculate the needed dates for an absence
     @param owner_id Owner for whom we calculate the actual absence
@@ -1130,24 +1131,63 @@ ad_proc -public im_absence_calculate_absence_days {
     @param absence_id In case we only want to look at one absence_id, then we need to make sure to calculate the duration correctly. It will be appended to the ignore_absence_ids for calculation
     @param type duration will return the sum of the days needed, dates will return the actual dates
 } {
-    
+   
+    # Check if we calculate the days for an existing absence
     if {$absence_id ne ""} {
         lappend ignore_absence_ids $absence_id
+        db_1row absence_data "select absence_type_id, owner_id, group_id from im_user_absences where absence_id = :absence_id"
         
-        # Additionally ignore any absence which has a later start date & creation date and is of type vacation.
+        # If we have an owner_id limit the absences to only this owner and the group the owner belongs to
+        if {$owner_id ne ""} {
+            # Get the groups the owner belongs to
+            set group_ids [db_list group_options "
+                select	g.group_id
+                from	groups g,
+    		            acs_objects o,
+                        acs_rels r
+                where	g.group_id = o.object_id and
+                        o.object_type in ('im_profile', 'im_biz_object_group') and
+                        r.object_id_one = g.group_id and
+                        r.object_id_two = :owner_id
+                order by g.group_name
+             "]
+
+             # Add registered_users
+             lappend group_ids "-2"
+
+             set owner_sql "and (owner_id = :owner_id or group_id in ([template::util::tcl_to_sql_list $group_ids]))"
+        } elseif {$group_ids ne ""} {
+            # We try to find the holidays for the group of users
+            set owner_sql "and group_id in ([template::util::tcl_to_sql_list $group_ids])"
+        } else {
+            # We try to find the holidays for any group
+            set owner_sql "and group_id is not null"
+        }
+        
+        # Check if we have a workflow
+        set wf_key [db_string wf "select trim(aux_string1) from im_categories where category_id = :absence_type_id" -default ""]
+        set wf_exists_p [db_string wf_exists "select count(*) from wf_workflows where workflow_key = :wf_key"]
+        if {$wf_exists_p} {
+            set absence_status_sql "and absence_status_id != [im_user_absence_status_active]"
+        } else {
+            set absence_status_sql "and absence_status_id != [im_user_absence_status_deleted]"
+        } 
+        
+        # Additionally ignore any absence which has an older creation date and is of the same type.
         db_foreach ignoreable_absences "select object_id from acs_objects o, im_user_absences ua
             where o.object_id = ua.absence_id
-            and ua.absence_type_id in ([template::util::tcl_to_sql_list [im_sub_categories [im_user_absence_type_vacation]]])
-            and (start_date > (select start_date from im_user_absences where absence_id = :absence_id) or (
-                    start_date = (select start_date from im_user_absences where absence_id = :absence_id)
-                    and o.last_modified >= (select last_modified from acs_objects where object_id = :absence_id)
-                    )
-                )
+            and ua.absence_type_id = :absence_type_id
+            and o.last_modified > (select last_modified from acs_objects where object_id = :absence_id)
+            and absence_id not in ([template::util::tcl_to_sql_list $ignore_absence_ids])
+            $absence_status_sql
+            $owner_sql
         " {
             lappend ignore_absence_ids $object_id
         }
+                
         db_1row absence "select owner_id,start_date,end_date from im_user_absences where absence_id = :absence_id"
     } 
+    
     # Get a list of dates in the range
     set dates_in_range [db_list date_range "
 	SELECT to_char(i,'YYYY-MM-DD')
@@ -1166,14 +1206,23 @@ ad_proc -public im_absence_calculate_absence_days {
     } else {
         set off_dates [im_absence_week_days -week_day_list $exclude_week_days -start_date $start_date -end_date $end_date]
     }
-    
 
-    # Get the existing absence dates in the interval
-    set existing_absence_dates [im_absence_dates -owner_id $owner_id -group_ids $group_ids -start_date $start_date -end_date $end_date -ignore_absence_ids $ignore_absence_ids -exclude_week_days $exclude_week_days -absence_type_ids $absence_type_ids -absence_status_id $absence_status_id]
+    # If we have an ignore_absence_type_id then ignore the type
+    if {$absence_type_id eq ""} {
+        set absence_type_ids ""
+    } else {
+        set absence_type_ids [db_list higher_prio "select category_id from im_categories where category_type = 'Intranet Absence Type' and sort_order > (select sort_order from im_categories where category_id = :absence_type_id)"]
+        lappend absence_type_ids $absence_type_id
+    }
+    
+    
+    # Get the existing absence dates in the interval for any higher category
+    set existing_absence_dates [im_absence_dates -owner_id $owner_id -group_ids $group_ids -start_date $start_date -end_date $end_date -ignore_absence_ids $ignore_absence_ids -exclude_week_days $exclude_week_days -absence_type_ids $absence_type_ids -absence_status_id 16000]
+
 
     # Join the dates together
     set existing_absence_dates [concat $existing_absence_dates $off_dates]
-    
+        
     # Now check for each date in the range whether we need to take vacation then
     set required_dates [list]
     foreach date $dates_in_range {

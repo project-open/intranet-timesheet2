@@ -279,7 +279,12 @@ if {$add_absences_for_group_p} {
     #set group_options [im_profile::profile_options_all -translate_p 1]
     #ad_return_complaint 1 "$group_options <br> $group_options2"
 
+    # Add the registered user group for all
+    set group_options [linsert $group_options 0 [list "[lang::message::lookup {} intranet-core.All {All}]" "-2"]]
+    
+    # Add empty in case someone can 
     set group_options [linsert $group_options 0 [list "" ""]]
+    
     lappend form_fields	{group_id:text(select),optional {label "[lang::message::lookup {} intranet-timesheet2.Valid_for_Group {Valid for Group}]"} {options $group_options}}
 } else {
     # The user doesn't have the right to specify absences for groups - set group_id to NULL
@@ -419,13 +424,8 @@ ad_form -extend -name $form_id -on_request {
 
     callback im_user_absence_before_create -object_id $absence_id -status_id $absence_status_id -type_id $absence_type_id
 
-<<<<<<< HEAD
 	set absence_id [db_string new_absence "
 		SELECT im_user_absence__new(
-=======
-    set absence_id [db_string new_absence "
-			SELECT im_user_absence__new(
->>>>>>> 190696d0306fa2df811d8a5f40fbcdebf8bc24ed
 			:absence_id,
 			'im_user_absence',
 			now(),
@@ -478,27 +478,14 @@ ad_form -extend -name $form_id -on_request {
     "
 
     if {$wf_exists_p} {
-	set context_key ""
-	set case_id [wf_case_new \
+	    set context_key ""
+	    set case_id [wf_case_new \
 			 $wf_key \
 			 $context_key \
 			 $absence_id
-		    ]
+		]
 	
-<<<<<<< HEAD
-	callback absence_on_change \
-	    -absence_id $absence_id \
-	    -absence_type_id $absence_type_id \
-	    -user_id $absence_owner_id \
-	    -start_date $start_date_sql \
-	    -end_date $end_date_sql \
-	    -duration_days $duration_days \
-	    -transaction_type "add"
-
-	# Audit the action
-	im_audit -object_type im_user_absence -action after_create -object_id $absence_id -status_id $absence_status_id -type_id $absence_type_id
-=======
-	# Determine the first task in the case to be executed and start+finisch the task.
+	    # Determine the first task in the case to be executed and start+finisch the task.
         im_workflow_skip_first_transition -case_id $case_id
     }
     
@@ -516,7 +503,6 @@ ad_form -extend -name $form_id -on_request {
     
     # Audit the action
     im_audit -object_type im_user_absence -action after_create -object_id $absence_id -status_id $absence_status_id -type_id $absence_type_id
->>>>>>> 190696d0306fa2df811d8a5f40fbcdebf8bc24ed
 
 } -edit_data {
 
