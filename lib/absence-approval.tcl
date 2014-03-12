@@ -123,7 +123,8 @@ append table_header_html "</tr>\n"
 set tasks_sql "
 	select
 		o.object_id,
-		o.creation_user as owner_id,
+		o.creation_user as creation_user,
+        a.owner_id,
 		o.creation_date,
 		im_name_from_user_id(o.creation_user) as owner_name,
 		acs_object__name(o.object_id) as object_name,

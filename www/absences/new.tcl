@@ -99,10 +99,10 @@ set add_absences_for_group_p [im_permission $current_user_id "add_absences_for_g
 
 if {[exists_and_not_null user_id_from_search]} {
     if {![exists_and_not_null absence_owner_id]} {
-	set absence_owner_id $user_id_from_search
+        set absence_owner_id $user_id_from_search
     }
     if {$user_id_from_search != $current_user_id && $add_absences_for_group_p == 0} {
-	set user_id_from_search $current_user_id
+        set user_id_from_search $current_user_id
     }
 
     if {![exists_and_not_null absence_owner_id]} { set absence_owner_id $user_id_from_search }

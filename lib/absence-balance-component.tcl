@@ -40,7 +40,6 @@ set page_title [lang::message::lookup "" intranet-timesheet2.Vacation_Balance "V
 set absence_base_url "/intranet-timesheet2/absences"
 set return_url [im_url_with_query]
 set user_view_url "/intranet/users/view"
-ds_comment "[_ intranet-timesheet2.user_id_user_id]"
 
 set current_year [db_string current_year "select to_char(now(), 'YYYY')"]
 
