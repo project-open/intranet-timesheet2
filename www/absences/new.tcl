@@ -190,7 +190,7 @@ if {$button_pressed =="delete"} {
 	
         # Set the workflow to finished
         if {$absence_under_wf_control_p} {
-	        set case_id [db_string case "select case_id from wf_cases where object_id = :absence_id"]
+	        set case_id [db_string case "select min(case_id) from wf_cases where object_id = :absence_id"]
 	    
             if {[catch {wf_case_cancel -msg "Absence was cancelled by [im_name_from_user_id $user_id]" $case_id}]} {
                 #Record the change manually, as the workflow did fail (probably because the case is already closed
@@ -516,7 +516,7 @@ ad_form -extend -name $form_id -on_request {
     callback im_user_absence_before_update -object_id $absence_id -status_id $absence_status_id -type_id $absence_type_id
 
     if {$absence_under_wf_control_p} {
-        set case_id [db_string get_case "select case_id from wf_cases where object_id = :absence_id"]
+        set case_id [db_string get_case "select min(case_id) from wf_cases where object_id = :absence_id"]
         db_1row old_data "select start_date as old_start_date, end_date as old_end_date, absence_type_id as old_absence_type_id, vacation_replacement_id as old_vacation_replacement_id from im_user_absences where absence_id = :absence_id"
     }
 
