@@ -212,7 +212,7 @@ set absence_view_page "$absences_url/new"
 if {!$view_absences_all_p} { 
     set user_selection_types [list "mine" "Mine"] 
 } else {
-    set user_selection_types [list "all" "All" "mine" "Mine"]
+    set user_selection_types [list "mine" "Mine" "all" "All"]
 }
 
 

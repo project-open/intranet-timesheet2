@@ -500,10 +500,13 @@ ad_proc im_absence_cube {
 
     set criteria [list]
     if {"" != $absence_type_id && 0 != $absence_type_id} {
-	lappend criteria "a.absence_type_id = '$absence_type_id'"
+        lappend criteria "a.absence_type_id = '$absence_type_id'"
     }
     if {"" != $absence_status_id && 0 != $absence_status_id} {
-	lappend criteria "a.absence_status_id = '$absence_status_id'"
+        lappend criteria "a.absence_status_id = '$absence_status_id'"
+    } else {
+        # Only display active status if no other status was selected
+        lappend criteria "a.absence_status_id = '[im_user_absence_status_active]'"
     }
 
     switch $user_selection {
