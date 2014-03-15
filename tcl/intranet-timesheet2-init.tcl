@@ -49,3 +49,23 @@ ad_proc -public -callback im_user_absence_on_submit {
     @param object_id ID of the $object_type
 } -
 
+ad_proc -public -callback im_user_absence_new_button_pressed {
+    {-button_pressed:required}
+} {
+    This callback is executed after we checked the pressed buttons but before the normal delete / cancel check is executed. 
+    
+    This allows you to add additional activities based on the actions defined e.g. in the im_user_absence_new_actions. As it is called before delete / cancel you can
+    have more actions defined.
+
+} - 
+
+
+ad_proc -public -callback im_user_absence_new_actions {
+} {
+    This callback is executed after we build the actions for the new absence form
+    
+    This allows you to extend in the uplevel the form with any additional actions you might want to add.
+
+} - 
+
+

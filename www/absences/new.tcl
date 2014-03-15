@@ -166,21 +166,22 @@ if {[info exists absence_id]} {
                 lappend actions [list [lang::message::lookup {} intranet-timesheet2.Edit Edit] edit]
             } 
             if {$admin} {
-                if {[parameter::get_from_package_key -package_key intranet-timesheet2 -parameter "CancelAbsenceP" -default 1]} {
-		            lappend actions [list [lang::message::lookup {} intranet-timesheet2.Cancel Cancel] delete]
-                } else {
-		            lappend actions [list [lang::message::lookup {} intranet-timesheet2.Delete Delete] delete]
-                }		    
+		        lappend actions [list [lang::message::lookup {} intranet-timesheet2.Delete Delete] delete]
 	        }
 	   }
     }
 }
+
+callback im_user_absence_new_actions
 
 # ------------------------------------------------------------------
 # Delete pressed?
 # ------------------------------------------------------------------
 
 set button_pressed [template::form get_action absence]
+
+callback im_user_absence_new_button_pressed -button_pressed $button_pressed
+
 if {$button_pressed =="delete"} {
     if {[parameter::get_from_package_key -package_key intranet-timesheet2 -parameter "CancelAbsenceP" -default 1]} {
 
@@ -356,7 +357,6 @@ set absence_balance_component_html ""
 # We need to find out the vacation_ids to enable the check
 set vacation_category_ids [db_list bank_holidays "select child_id from im_category_hierarchy where parent_id = '5000'"]
 lappend vacation_category_ids 5000
-
 
 ad_form -extend -name $form_id -on_request {
     # Populate elements from local variables
