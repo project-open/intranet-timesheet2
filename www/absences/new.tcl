@@ -48,6 +48,9 @@ set wf_exists_p [db_string wf_exists "select count(*) from wf_workflows where wo
 
 set absence_under_wf_control_p 0
 if {[info exists absence_id]} { 
+    
+    callback im_user_absence_perm_check -absence_id $absence_id
+    
     # absence_owner_id determines the list of projects per absence and other DynField widgets
     # it defaults to user_id when creating a new absence
 

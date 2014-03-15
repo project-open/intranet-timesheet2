@@ -68,4 +68,13 @@ ad_proc -public -callback im_user_absence_new_actions {
 
 } - 
 
+ad_proc -public -callback im_user_absence_perm_check {
+    {-absence_id:required}
+} {
+    This callback is executed first time we determine that we have an absence_id
+    
+    This allows you to add additional permission checks, especially against ID guessing.
+
+} - 
+
 
