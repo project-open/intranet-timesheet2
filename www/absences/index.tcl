@@ -36,7 +36,7 @@ ad_page_contract {
     { start_idx:integer 0 }
     { order_by "User" }
     { how_many "" }
-    { absence_type_id:integer "-1" }
+    { absence_type_id:integer "5000" }
     { user_selection "mine" }
     { timescale "future" }
     { view_name "absence_list_home" }
@@ -494,7 +494,7 @@ switch $timescale {
         set start_date "2000-01-01"
     }
     "future" { 
-        set end_date "2100-01-01"
+        set end_date [db_string max_end_date "select max(end_date) from im_user_absences"]
     }
     "last_3m" { 
         set end_date $start_date
@@ -598,7 +598,7 @@ ad_form \
     -form {
 	{filter_start_date:text(text) {label "[_ intranet-timesheet2.Start_Date]"} {html {size 10}} {value "$filter_start_date"} {after_html {<input type="button" style="height:23px; width:23px; background: url('/resources/acs-templating/calendar.gif');" onclick ="return showCalendar('filter_start_date', 'y-m-d');" >}}}
         {timescale:text(select),optional {label "[_ intranet-timesheet2.Timescale]"} {options $timescale_type_list }}
-        {absence_type_id:text(select),optional {label "[_ intranet-timesheet2.Absence_Type]"} {options $absence_type_list }}
+        {absence_type_id:text(select),optional {label "[_ intranet-timesheet2.Absence_Type]"} {value $absence_type_id} {options $absence_type_list }}
         {filter_status_id:text(im_category_tree),optional {label \#intranet-timesheet2.Status\#} {value $filter_status_id} {custom {category_type "Intranet Absence Status" translate_p 1}}}
         {user_selection:text(select),optional {label "[_ intranet-timesheet2.Show_Users]"} {options $user_selection_type_list }}
 }

@@ -422,6 +422,42 @@ ad_proc im_absence_cube_render_cell {
     }
 }
 
+ad_proc -public im_absence_day_list {
+    {-date_format:required}
+    {-num_days:required}
+    {-report_start_date:required}
+} {
+    get a day_list
+} {
+    return [util_memoize [list im_absence_day_list_helper -date_format $date_format -num_days $num_days -report_start_date $report_start_date]]
+}
+
+ad_proc -public im_absence_day_list_helper {
+    {-date_format:required}
+    {-num_days:required}
+    {-report_start_date:required}
+} {
+    get a day_list
+} {
+        
+    set day_list [list]
+    for {set i 0} {$i < $num_days} {incr i} {
+        db_1row date_info "
+        	    select 
+        		to_char(:report_start_date::date + :i::integer, :date_format) as date_date,
+        		to_char(:report_start_date::date + :i::integer, 'Day') as date_day,
+        		to_char(:report_start_date::date + :i::integer, 'dd') as date_day_of_month,
+        		to_char(:report_start_date::date + :i::integer, 'Mon') as date_month,
+        		to_char(:report_start_date::date + :i::integer, 'YYYY') as date_year,
+        		to_char(:report_start_date::date + :i::integer, 'Dy') as date_weekday
+                "
+
+        set date_month [lang::message::lookup "" intranet-timesheet2.$date_month $date_month]
+        lappend day_list [list $date_date $date_day_of_month $date_month $date_year]
+    }
+    return $day_list
+}
+
 ad_proc im_absence_cube {
     {-num_days 21}
     {-absence_status_id "" }
@@ -489,7 +525,7 @@ ad_proc im_absence_cube {
     }
 
     if { "" == $report_end_date } {
-	set report_end_date [db_string end_date "select :report_start_date::date + :num_days::integer"]	
+        set report_end_date [db_string end_date "select :report_start_date::date + :num_days::integer"]	
     }
 
     if {-1 == $absence_type_id} { set absence_type_id "" }
@@ -565,25 +601,12 @@ ad_proc im_absence_cube {
     
     # Initialize the hash for holidays.
     array set holiday_hash {}
-    set day_list [list]
     
-    for {set i 0} {$i < $num_days} {incr i} {
-	db_1row date_info "
-	    select 
-		to_char(:report_start_date::date + :i::integer, :date_format) as date_date,
-		to_char(:report_start_date::date + :i::integer, 'Day') as date_day,
-		to_char(:report_start_date::date + :i::integer, 'dd') as date_day_of_month,
-		to_char(:report_start_date::date + :i::integer, 'Mon') as date_month,
-		to_char(:report_start_date::date + :i::integer, 'YYYY') as date_year,
-		to_char(:report_start_date::date + :i::integer, 'Dy') as date_weekday
-        "
-
-	set date_month [lang::message::lookup "" intranet-timesheet2.$date_month $date_month]
-
-	if {$date_weekday == "Sat" || $date_weekday == "Sun"} { set holiday_hash($date_date) 5 }
-	lappend day_list [list $date_date $date_day_of_month $date_month $date_year]
+    foreach weekend_date [im_absence_week_days -start_date $report_start_date -end_date [db_string end_date "select to_char(to_date(:report_start_date,:date_format) + interval '$num_days days', :date_format)"]] {
+        set holiday_hash($weekend_date) 5
     }
-
+    set day_list [im_absence_day_list -date_format $date_format -num_days $num_days -report_start_date $report_start_date]
+    
     # ---------------------------------------------------------------
     # Determine Left Dimension
     # ---------------------------------------------------------------
@@ -962,6 +985,21 @@ ad_proc -public im_absence_week_days {
     @param end_date End of the interval
     @param week_day_list List of weekdays, where 0 = Sunday and 6 = Saturday. Defaults to the weekend (Saturday and Sunday, 6 & 0)
 } {
+    return [util_memoize [list im_absence_week_days_helper -start_date $start_date -end_date $end_date -week_day_list $week_day_list -type $type]]
+}
+
+ad_proc -public im_absence_week_days_helper {
+    -start_date:required
+    -end_date:required
+    {-week_day_list {0 6}}
+    {-type "dates"}
+} {
+    Given a list of week_days, return the actual dates for those week_days
+    
+    @param start_date Start of the interval
+    @param end_date End of the interval
+    @param week_day_list List of weekdays, where 0 = Sunday and 6 = Saturday. Defaults to the weekend (Saturday and Sunday, 6 & 0)
+} {
     # Now substract the off days
     set week_day_clause_list [list]
     foreach week_day $week_day_list {
@@ -987,11 +1025,10 @@ ad_proc -public im_absence_week_days {
     } else {
         return [llength $dates]
     }
-    
-    ns_log Notice "DATES $dates"
 }
 
 #### Procedure to calculate the days to take given a start and end date
+
 ad_proc -public im_absence_dates {
     {-owner_id ""}
     {-group_ids ""}
@@ -1026,17 +1063,7 @@ ad_proc -public im_absence_dates {
     
     if {$owner_id ne ""} {
         # Get the groups the owner belongs to
-        set group_ids [db_list group_options "
-            select	g.group_id
-            from	groups g,
-		            acs_objects o,
-                    acs_rels r
-            where	g.group_id = o.object_id and
-                    o.object_type in ('im_profile', 'im_biz_object_group') and
-                    r.object_id_one = g.group_id and
-                    r.object_id_two = :owner_id
-            order by g.group_name
-         "]
+        set group_ids [im_biz_object_memberships -member_id $owner_id]
 
          # Add registered_users
          lappend group_ids "-2"
@@ -1112,6 +1139,25 @@ ad_proc -public im_absence_dates {
     }
 }
 
+ad_proc -public im_absence_wf_exists_p {
+    {-absence_type_id:required}
+} {
+    # Check if a workflow exists for this type
+} {
+    return [util_memoize [list im_absence_wf_exists_p_helper -absence_type_id $absence_type_id] 120]
+}
+
+ad_proc -public im_absence_wf_exists_p_helper {
+    {-absence_type_id:required}
+} {
+    # Check if a workflow exists for this type
+} {
+    set wf_key [db_string wf "select trim(aux_string1) from im_categories where category_id = :absence_type_id" -default ""]
+    set wf_exists_p [db_string wf_exists "select count(*) from wf_workflows where workflow_key = :wf_key"]
+    return $wf_exists_p
+}
+
+
 ad_proc -public im_absence_calculate_absence_days {
     {-owner_id ""}
     {-group_ids ""}
@@ -1143,17 +1189,7 @@ ad_proc -public im_absence_calculate_absence_days {
         # If we have an owner_id limit the absences to only this owner and the group the owner belongs to
         if {$owner_id ne ""} {
             # Get the groups the owner belongs to
-            set group_ids [db_list group_options "
-                select	g.group_id
-                from	groups g,
-    		            acs_objects o,
-                        acs_rels r
-                where	g.group_id = o.object_id and
-                        o.object_type in ('im_profile', 'im_biz_object_group') and
-                        r.object_id_one = g.group_id and
-                        r.object_id_two = :owner_id
-                order by g.group_name
-             "]
+            set group_ids [im_biz_object_memberships -member_id $owner_id]
 
              # Add registered_users
              lappend group_ids "-2"
@@ -1168,8 +1204,7 @@ ad_proc -public im_absence_calculate_absence_days {
         }
         
         # Check if we have a workflow
-        set wf_key [db_string wf "select trim(aux_string1) from im_categories where category_id = :absence_type_id" -default ""]
-        set wf_exists_p [db_string wf_exists "select count(*) from wf_workflows where workflow_key = :wf_key"]
+        set wf_exists_p [im_absence_wf_exists_p -absence_type_id $absence_type_id]
         if {$wf_exists_p} {
             set absence_status_sql "and absence_status_id != [im_user_absence_status_active]"
         } else {
@@ -1192,16 +1227,7 @@ ad_proc -public im_absence_calculate_absence_days {
     } 
     
     # Get a list of dates in the range
-    set dates_in_range [db_list date_range "
-	SELECT to_char(i,'YYYY-MM-DD')
-	FROM (
-	      SELECT generate_series(start, finish, '1 day') AS i
-	      FROM
-	      (VALUES(
-		      '$start_date'::date,
-		      '$end_date'::date
-		      )) AS t(\"start\", \"finish\")
-	      ) AS j"]
+    set dates_in_range [im_absence_week_days -week_day_list [list 0 1 2 3 4 5 6] -start_date $start_date -end_date $end_date]
 
     # Get the list of dates which are excluded
     if {$exclude_week_days eq ""} {
@@ -1252,8 +1278,7 @@ ad_proc -public im_absence_update_duration_days {
     set duration_days [im_absence_calculate_absence_days -owner_id $owner_id -start_date $start_date -end_date $end_date -ignore_absence_ids $ignore_absence_ids -exclude_week_days $exclude_week_days]
     if {$duration_days != $old_duration_days} {
         db_dml update_duration "update im_user_absences set duration_days = :duration_days where absence_id = :absence_id"
-        set wf_key [db_string wf "select trim(aux_string1) from im_categories where category_id = :absence_type_id" -default ""]
-        set wf_exists_p [db_string wf_exists "select count(*) from wf_workflows where workflow_key = :wf_key"]
+        set wf_exists_p [im_absence_wf_exists_p -absence_type_id $absence_type_id]
         if {$wf_exists_p} {
             set case_id [db_string case "select case_id from wf_cases where object_id = :absence_id"]
             #Record the change manually, as the workflow did fail (probably because the case is already closed
