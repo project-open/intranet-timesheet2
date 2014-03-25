@@ -1114,8 +1114,8 @@ ad_proc -public im_absence_dates {
     # Now we need to find the absences which already exist in this timeframe and extract the dates it is occurring 
     db_foreach absence_ids "select absence_id, to_char(start_date,'YYYY-MM-DD') as absence_start_date, to_char(end_date,'YYYY-MM-DD') as absence_end_date
                 from    im_user_absences 
-                where   (start_date <= to_date(:end_date,'YYYY-MM-DD') and
-                        end_date >= to_date(:start_date,'YYYY-MM-DD') and
+                where   (start_date::date <= :end_date and
+                        end_date::date >= :start_date and
                         $absence_status_sql
                         $absence_type_sql
                         $owner_sql)
@@ -1247,7 +1247,6 @@ ad_proc -public im_absence_calculate_absence_days {
     
     # Get the existing absence dates in the interval for any higher category
     set existing_absence_dates [im_absence_dates -owner_id $owner_id -group_ids $group_ids -start_date $start_date -end_date $end_date -ignore_absence_ids $ignore_absence_ids -exclude_week_days $exclude_week_days -absence_type_ids $absence_type_ids -absence_status_id 16000]
-
 
     # Join the dates together
     set existing_absence_dates [concat $existing_absence_dates $off_dates]
