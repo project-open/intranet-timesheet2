@@ -85,24 +85,76 @@ ad_proc -public im_leave_entitlement_remaining_days {
     {-ignore_absence_ids ""}
 } {
     Returns the number of remaining days for the user of a certain absence type
+    
+    @approved_p Only calculate based on the approved vacation days
+} {
+    return [util_memoize [list im_leave_entitlement_remaining_days_helper -absence_type_id $absence_type_id -user_id $user_id -approved_p $approved_p -ignore_absence_ids $ignore_absence_ids] 5]
+}
+
+
+ad_proc -public im_leave_entitlement_remaining_days_helper {
+    -user_id:required
+    -absence_type_id:required
+    {-approved_p "0"}
+    {-ignore_absence_ids ""}
+} {
+    Returns the number of remaining days for the user of a certain absence type
+    
+    @approved_p Only calculate based on the approved vacation days
 } {
 
-    if {!$approved_p} {
-        set approved_sql ""
-    } else {
-        set approved_sql ""
+    set entitlement_days [db_string entitlement_days "select sum(l.entitlement_days) as absence_days from im_user_leave_entitlements l where leave_entitlement_type_id = :absence_type_id and owner_id = :user_id" -default 0]
+	set absence_type [im_category_from_id $absence_type_id]
+
+    # Ignore the balance for bank holidays
+
+    set vacation_category_ids [im_sub_categories 5000]
+    set exclude_category_ids [db_list categories "
+    	select
+                    category_id
+    	from
+    		im_categories c
+    	where
+                    category_type = 'Intranet Absence Type' and category_id not in ([template::util::tcl_to_sql_list $vacation_category_ids])
+    "]
+    
+	# Check if we have a workflow and then only use the approved days
+	set wf_key [db_string wf "select trim(aux_string1) from im_categories where category_id = :absence_type_id" -default ""]
+	set wf_exists_p [db_string wf_exists "select count(*) from wf_workflows where workflow_key = :wf_key"]
+    set off_dates [im_absence_dates -absence_status_id 16000 -absence_type_ids $exclude_category_ids -owner_id $user_id -type "dates" -ignore_absence_ids $ignore_absence_ids]
+    set requested_dates [list]
+
+	if {$wf_exists_p} {
+        set absence_dates [im_absence_dates -absence_status_id 16000 -absence_type_ids $absence_type_id -owner_id $user_id -type "dates" -ignore_absence_ids $ignore_absence_ids]
+        set requested_dates [im_absence_dates -absence_status_id 16004 -absence_type_ids $absence_type_id -owner_id $user_id -type "dates" -ignore_absence_ids $ignore_absence_ids]
+	} else {
+        set absence_dates [im_absence_dates -absence_type_ids $absence_type_id -owner_id $user_id -type "dates" -ignore_absence_ids $ignore_absence_ids]
+	}
+    
+    # Calculate the absence days
+    set required_dates [list]
+    foreach date $absence_dates {
+        if {[lsearch $off_dates $date]<0} {
+            lappend required_dates $date
+        }
     }
-
-    set entitlement_days [db_string entitlement_days "
-	    select sum(l.entitlement_days) 
-        from im_user_leave_entitlements l 
-        where leave_entitlement_type_id = :absence_type_id and owner_id = :user_id $approved_sql" -default 0]
-
-    set absence_days [im_absence_days -owner_id $user_id -absence_type_ids $absence_type_id -approved_p $approved_p -ignore_absence_ids $ignore_absence_ids]
+    set absence_days [llength $required_dates]
+    
+    # Calculate the requested dates
+    set required_dates [list]
+    foreach date $requested_dates {
+        if {[lsearch $off_dates $date]<0} {
+            lappend required_dates $date
+        }
+    }
+    set requested_days [llength $required_dates]
+    
     set remaining_days [expr $entitlement_days - $absence_days]
-    return $remaining_days
-
-
+    
+    if {!$approved_p} {
+        # We need to substract the requested days as well
+        set remaining_days [expr $remaining_days - $requested_days]
+    }
 }
 
 ad_proc -public im_leave_entitlement_create_yearly_vacation {
