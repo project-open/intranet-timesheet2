@@ -1205,7 +1205,7 @@ ad_proc -public im_absence_calculate_absence_days {
         
         # Check if we have a workflow
         set wf_exists_p [im_absence_wf_exists_p -absence_type_id $absence_type_id]
-        if {$wf_exists_p} {
+        if {!$wf_exists_p} {
             set absence_status_sql "and absence_status_id != [im_user_absence_status_active]"
         } else {
             set absence_status_sql "and absence_status_id != [im_user_absence_status_deleted]"
