@@ -68,7 +68,7 @@ if {!$add_hours_p} {
 if {"" == $user_id_from_search } { 
     if {!$add_hours_all_p} {
 	if {[im_permission $current_user_id "add_hours_all"]} {
-	    set reportees [im_direct_reports_for_user -user_id $current_user_id]
+	    set reportees [im_user_direct_reports_ids -user_id $current_user_id]
 	} else {
 	    # The user has no permission
 	    set user_id_from_search $current_user_id 

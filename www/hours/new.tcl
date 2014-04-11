@@ -58,7 +58,7 @@ if {!$add_hours_p} {
 if {"" == $user_id_from_search } { 
     if {!$add_hours_all_p} {
 	if {$add_hours_direct_reports_p} {
-	    set reportees [im_direct_reports_for_user -user_id $current_user_id]
+	    set reportees [im_user_direct_reports_ids -user_id $current_user_id]
 	    if {[lsearch $reportees $user_id_from_search] < 0} {
 		# User not in reportees - reset to current user
 		set user_id_from_search $current_user_id 
