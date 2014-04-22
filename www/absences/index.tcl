@@ -80,8 +80,8 @@ if {"" == $filter_start_date} {
 
 if {!$view_absences_all_p} {
     switch $user_selection {
-	all - employees {set user_selection "mine"}
-	providers - customers {set user_selection "mine"}
+        all - employees {set user_selection "mine"}
+        providers - customers {set user_selection "mine"}
     }
 }
 
@@ -140,17 +140,17 @@ set user_name $user_selection
 if {[string is integer $user_selection]} {
     # Find out the object_type
     set object_type [db_string object_type "select object_type from acs_objects where object_id = :user_selection" -default ""]
-    ds_comment "Type: $object_type"
     switch $object_type {
 	im_cost_center {
 	    set user_name [im_cost_center_name $user_selection]
 	    # Allow the manager to see the department
-	    if {![im_manager_of_cost_center_p -user_id $user_id -cost_center_id $user_selection] && !$view_absences_all_p} {
-		# Not a manager => Only see yourself
-		set user_selection "mine"
+        ns_log Notice "User:: $user_id $user_selection"
+	    if {![im_manager_of_cost_center_p -user_id $current_user_id -cost_center_id $user_selection] && !$view_absences_all_p} {
+            # Not a manager => Only see yourself
+            set user_selection "mine"
 	    } else {
-		set cost_center_id $user_selection
-		set user_selection "cost_center"
+            set cost_center_id $user_selection
+            set user_selection "cost_center"
 	    }
 	}
 	user {
@@ -174,7 +174,7 @@ if {[string is integer $user_selection]} {
 	}
 	im_project {
 	    # Permission Check
-	    set project_manager_p [im_biz_object_member_p -role_id 1301 $user_id $project_id]
+	    set project_manager_p [im_biz_object_member_p -role_id 1301 $current_user_id $project_id]
 	    if {!$project_manager_p && !$view_absences_all_p} {
 		set user_selection "mine"
 	    } else {
@@ -450,10 +450,10 @@ if { ![empty_string_p $user_selection] } {
 	"cost_center" {
 	    set cost_center_list [im_cost_center_options -parent_id $cost_center_id]
 	    set cost_center_ids [list $cost_center_id]
-            foreach cost_center $cost_center_list {
-		lappend cost_center_ids [lindex $cost_center 1]
-            }
-	    lappend criteria "a.owner_id in (select employee_id from im_employees where department_id in ([template::util::tcl_to_sql_list $cost_center_ids]) and employee_status_id = [im_employee_status_active])"
+        foreach cost_center $cost_center_list {
+		    lappend cost_center_ids [lindex $cost_center 1]
+        }
+	    lappend criteria "a.owner_id in (select employee_id from im_employees where department_id in ([template::util::tcl_to_sql_list $cost_center_ids]) and employee_status_id = [im_employee_status_active] union select :current_user_id from dual)"
 	}
 	"project" {
 	    set project_ids [im_project_subproject_ids -project_id $project_id]
