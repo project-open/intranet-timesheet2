@@ -900,6 +900,38 @@ ad_proc -public im_absence_user_component {
     return [string trim $result]
 }
 
+ad_proc -public im_absence_info_component {
+    -absence_id:required
+} {
+    Returns a HTML component showing the info about an absence
+} {
+    set current_user_id [ad_get_user_id]
+
+
+    set params [list \
+		    [list absence_id $absence_id] \
+		    [list return_url [im_url_with_query]] \
+    ]
+
+    set result [ad_parse_template -params $params "/packages/intranet-timesheet2/lib/absence-info"]
+    return [string trim $result]
+}
+
+ad_proc -public im_absence_balance_component {
+    -user_id:required
+} {
+    Returns a HTML component showing the absence balance for a user
+} {
+
+    set params [list \
+		    [list user_id $user_id] \
+		    [list return_url [im_url_with_query]] \
+    ]
+
+    set result [ad_parse_template -params $params "/packages/intranet-timesheet2/lib/absence-balance-component"]
+    return [string trim $result]
+}
+
 ad_proc -public im_absence_remaining_days {
     -user_id:required
     -absence_type_id:required

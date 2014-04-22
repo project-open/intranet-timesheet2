@@ -76,7 +76,6 @@ foreach category_id $vacation_category_ids {
         set absence_dates [im_absence_dates -absence_type_ids $category_id -owner_id $user_id -type "dates"]
 	}
     
-    ds_comment "balance:: $off_dates"
     # Calculate the absence days
     set required_dates [list]
     foreach date $absence_dates {

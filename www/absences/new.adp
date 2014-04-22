@@ -12,26 +12,13 @@
   <tr valign="top">
     <td width="50%">
       <%= [im_box_header $page_title] %>
-@absence_balance_component_html;noquote@
       <formtemplate id="absence"></formtemplate></font>
       <%= [im_box_footer] %>
-
-<if @form_mode@ eq "display" >
-      <%= [im_component_bay left] %>
-</if>
 
     </td>
     <td width="50%">
 
-<if @form_mode@ eq "display" >
-      <%= [im_component_bay right] %>
-</if>
-
-
+    <%= [im_component_bay right] %>
     </td>
   </tr>
 </table>
-
-<if @form_mode@ eq "display" >
-      <%= [im_component_bay bottom] %>
-</if>

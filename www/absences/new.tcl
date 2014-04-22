@@ -24,6 +24,7 @@ if {![info exists panel_p]} {
     }
 }
 
+#if {$form_mode == "display"} {ad_returnredirect [export_vars -base "view" -url {absence_id}]}
 if {![info exists enable_master_p]} { set enable_master_p 1}
 
 # ------------------------------------------------------------------
@@ -182,7 +183,7 @@ callback im_user_absence_new_actions
 # ------------------------------------------------------------------
 
 set button_pressed [template::form get_action absence]
-
+ds_comment "button: $button_pressed"
 callback im_user_absence_new_button_pressed -button_pressed $button_pressed
 
 if {$button_pressed =="delete"} {
@@ -371,6 +372,7 @@ ad_form -extend -name $form_id -on_request {
     if {![info exists absence_type_id]} { set absence_type_id [im_user_absence_type_vacation] }
     if {![info exists absence_status_id]} { set absence_status_id [im_user_absence_status_active] }
     
+} -new_request {
     template::element::set_value absence vacation_replacement_id [db_string supervisor "select supervisor_id from im_employees where employee_id = :absence_owner_id" -default $current_user_id]
 } -edit_request {
     db_1row absence "	select	a.*, to_char(a.start_date,'YYYY-MM-DD') as old_start_date, to_char(a.end_date,'YYYY-MM-DD') as old_end_date,
@@ -515,13 +517,23 @@ ad_form -extend -name $form_id -on_request {
         ad_script_abort
     }
     
-    # Audit the action
-    callback im_user_absence_before_update -object_id $absence_id -status_id $absence_status_id -type_id $absence_type_id
-
     if {$absence_under_wf_control_p} {
         set case_id [db_string get_case "select min(case_id) from wf_cases where object_id = :absence_id"]
         db_1row old_data "select start_date as old_start_date, end_date as old_end_date, absence_type_id as old_absence_type_id, vacation_replacement_id as old_vacation_replacement_id from im_user_absences where absence_id = :absence_id"
+    } else {
+        # Find out if it should be under workflow control and then add the workflow
+        if {"" != $wf_key} {
+    	    set case_id [wf_case_new \
+    			 $wf_key \
+    			 "" \
+    			 $absence_id
+    		]
+            wf_case_cancel -msg "Cancelling workflow for old created absence" $case_id
+        }
     }
+
+    # Audit the action
+    callback im_user_absence_before_update -object_id $absence_id -status_id $absence_status_id -type_id $absence_type_id
 
     set duration_days [im_absence_calculate_absence_days -start_date "[join [template::util::date get_property linear_date_no_time $start_date] "-"]" -end_date "[join [template::util::date get_property linear_date_no_time $end_date] "-"]" -owner_id $absence_owner_id -ignore_absence_ids $absence_id]
     set start_date_sql [template::util::date get_property sql_timestamp $start_date]
