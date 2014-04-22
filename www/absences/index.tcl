@@ -298,14 +298,14 @@ if {"" != $cost_center_options} {
 
 # All
 if {$add_absences_all_p || $view_absences_all_p} {
-    lappend user_selection_types [list [lang::message::lookup "" intranet-timesheet2.Employees "Employees"] "employees"] 
-    lappend user_selection_types [list [lang::message::lookup "" intranet-timesheet2.Providers "Providers"] "providers"] 
-    lappend user_selection_types [list [lang::message::lookup "" intranet-timesheet2.Customers "Customers"] "customers"]     
+    lappend user_selection_types "employees"
+    lappend user_selection_types [lang::message::lookup "" intranet-timesheet2.Employees "Employees"] 
+    lappend user_selection_types "providers"
+    lappend user_selection_types [lang::message::lookup "" intranet-timesheet2.Providers "Providers"] 
+    lappend user_selection_types "customers"   
+    lappend user_selection_types [lang::message::lookup "" intranet-timesheet2.Customers "Customers"] 
 }
 
-foreach { value text } $user_selection_types {
-    lappend user_selection_type_list [list $text $value]
-}
 
 # ---------- / setting filter 'User selection' ------------- # 
 
@@ -461,12 +461,19 @@ if { ![empty_string_p $user_selection] } {
 	}
 	"user" {
 	    lappend criteria "a.owner_id=:user_id"
+        lappend user_selection_types "$user_id"
+        lappend user_selection_types "[im_name_from_user_id $user_id]" 
 	}	    
 	default  {
 	    # We shouldn't even be here, so just display his/her own ones
 	    lappend criteria "a.owner_id = :current_user_id"
 	}
     }
+}
+
+
+foreach { value text } $user_selection_types {
+    lappend user_selection_type_list [list $text $value]
 }
 
 if { ![empty_string_p $absence_type_id] &&  $absence_type_id != -1 } {
