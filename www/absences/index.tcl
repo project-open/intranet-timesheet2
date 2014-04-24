@@ -125,14 +125,13 @@ if { $view_absences_direct_reports_p || $add_absences_all_p || $view_absences_al
 		name
     "
     db_foreach emps $emp_sql {
-	if { $supervisor_id == $current_user_id } {
-	    lappend direct_reports_list [list "&nbsp;&nbsp;$name" $user_id]
-	} else {
-	    lappend other_employees_list [list "&nbsp;&nbsp;$name" $user_id]
-	}
+        if { $supervisor_id == $current_user_id } {
+	        lappend direct_reports_list [list "&nbsp;&nbsp;$name" $user_id]
+        } else {
+	        lappend other_employees_list [list "&nbsp;&nbsp;$name" $user_id]
+        }
     }
 }
-
 
 set user_name $user_selection
 
@@ -394,8 +393,6 @@ foreach { value text } $absences_types {
 # 5. Generate SQL Query
 # ---------------------------------------------------------------
 
-ns_log Notice "xxx: user_selection=$user_selection"
-
 
 # Now let's generate the sql query
 set criteria [list]
@@ -427,25 +424,8 @@ if { ![empty_string_p $user_selection] } {
 		    lappend criteria "a.owner_id in (
 			select employee_id from im_employees
 			where supervisor_id = :current_user_id 
-                        and employee_status_id = [im_employee_status_active]
-		    UNION
-			select	e.employee_id 
-			from	im_employees e,
-				-- Select all departments where the current user is manager
-				(select	cc.cost_center_id,
-					cc.manager_id
-				from	im_cost_centers cc,
-					(select cost_center_code as code,
-						length(cost_center_code) len
-					from	im_cost_centers
-					where	manager_id = :current_user_id
-					) t
-				where	substring(cc.cost_center_code for t.len) = t.code
-				) tt
-			where  (e.department_id = tt.cost_center_id
-			       OR e.employee_id = tt.manager_id)
-                        and employee_status_id = [im_employee_status_active]
-		    )"
+                        and employee_status_id = [im_employee_status_active])
+		   "
 	}  
 	"cost_center" {
 	    set cost_center_list [im_cost_center_options -parent_id $cost_center_id]
