@@ -360,7 +360,7 @@ foreach j $weekly_logging_days {
 #		-day_julian $day_julian
 
 	    set modified_julians [list]
-	    if {[info exists modified_projects_hash($project_id)]} { set modified_julians $ modified_projects_hash($project_id) }
+	    if {[info exists modified_projects_hash($project_id)]} { set modified_julians $modified_projects_hash($project_id) }
 	    lappend modified_julians $day_julian
 	    set modified_projects_hash($project_id) $modified_julians
 	}
