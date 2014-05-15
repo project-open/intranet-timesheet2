@@ -135,6 +135,7 @@ if { $view_absences_direct_reports_p || $add_absences_all_p || $view_absences_al
 
 set user_name $user_selection
 
+set user_selection_type $user_selection
 # Check if we have a user_id or a department_id
 if {[string is integer $user_selection]} {
     # Find out the object_type
@@ -146,10 +147,11 @@ if {[string is integer $user_selection]} {
         ns_log Notice "User:: $user_id $user_selection"
 	    if {![im_manager_of_cost_center_p -user_id $current_user_id -cost_center_id $user_selection] && !$view_absences_all_p} {
             # Not a manager => Only see yourself
-            set user_selection "mine"
+            set user_selection_type "mine"
 	    } else {
             set cost_center_id $user_selection
-            set user_selection "cost_center"
+            set user_selection_type "cost_center"
+            set user_selection_id $cost_center_id
 	    }
 	}
 	user {
@@ -158,29 +160,32 @@ if {[string is integer $user_selection]} {
 
 	    # Check for permissions if we are allowed to see this user
 	    if {$view_absences_all_p} {
-		# He can see all users
-		set user_selection "user"
+            # He can see all users
+            set user_selection_type "user"
 	    } elseif {[im_manager_of_user_p -manager_id $current_user_id -user_id $user_id]} {
-		# He is a manager of the user
-		set user_selection "user"
+            # He is a manager of the user
+            set user_selection_type "user"
+            set user_selection_id $user_id
 	    } elseif {[im_supervisor_of_employee_p -supervisor_id $current_user_id -employee_id $user_id]} {
-		# He is a supervisor of the user
-		set user_selection "user"
+            # He is a supervisor of the user
+            set user_selection_type "user"
+            set user_selection_id $user_id
 	    } else {
-		# He is cheating
-		set user_selection "mine"
+            # He is cheating
+            set user_selection_type "mine"
 	    }	      
 	}
 	im_project {
+        set project_id $user_selection
 	    # Permission Check
 	    set project_manager_p [im_biz_object_member_p -role_id 1301 $current_user_id $project_id]
 	    if {!$project_manager_p && !$view_absences_all_p} {
-		set user_selection "mine"
+            set user_selection_type "mine"
 	    } else {
-		set project_id $user_selection
-		set user_name [db_string project_name "select project_name from im_projects where project_id = :project_id" -default ""]
-		set hide_colors_p 1
-		set user_selection "project"
+            set user_name [db_string project_name "select project_name from im_projects where project_id = :project_id" -default ""]
+            set hide_colors_p 1
+            set user_selection_type "project"
+            set user_selection_id $project_id
 	    }
 	}
 	default {
@@ -204,6 +209,8 @@ set return_url [im_url_with_query]
 set user_view_page "/intranet/users/view"
 set absence_view_page "$absences_url/new"
 
+############################################################
+#                                                          #
 # ---------- setting filter 'User selection' ------------- # 
 
 # Users can only see their own absences, unless they have a special permission
@@ -294,6 +301,20 @@ if {"" != $cost_center_options} {
 #	lappend user_selection_types $name
 #}
 
+# Deal with project managers and display their projects in this list
+
+db_foreach manager_of_project_ids "select distinct r.object_id_one, p.project_name
+	from acs_rels r, im_biz_object_members bom, im_projects p
+	where r.object_id_two = :current_user_id
+    and r.rel_id = bom.rel_id
+    and p.project_id = r.object_id_one
+    and bom.object_role_id = [im_biz_object_role_project_manager]
+    union select project_id,project_name from im_projects where project_id=:project_id" {
+    
+    lappend user_selection_types $object_id_one
+    lappend user_selection_types $project_name
+
+}
 
 # All
 if {$add_absences_all_p || $view_absences_all_p} {
@@ -397,8 +418,8 @@ foreach { value text } $absences_types {
 # Now let's generate the sql query
 set criteria [list]
 set bind_vars [ns_set create]
-if { ![empty_string_p $user_selection] } {
-    switch $user_selection {
+if { ![empty_string_p $user_selection_type] } {
+    switch $user_selection_type {
 	"all" {
 	    # Nothing.
 	}
@@ -451,6 +472,10 @@ if { ![empty_string_p $user_selection] } {
     }
 }
 
+if {$hide_colors_p} {
+    # Show only approved and requested
+    lappend criteria "a.absence_status_id in ([im_user_absence_status_active],[im_user_absence_status_requested])"
+}
 
 foreach { value text } $user_selection_types {
     lappend user_selection_type_list [list $text $value]
@@ -565,7 +590,7 @@ set selection "$sql $order_by_clause"
 
 
 
-# ad_return_complaint 1 "<pre>$selection</pre>"
+#ad_return_complaint 1 "<pre>$selection :: $user_selection</pre>"
 
 # ---------------------------------------------------------------
 # 6. Format the Filter
@@ -581,13 +606,13 @@ ad_form \
     -mode $form_mode \
     -actions [list [list [lang::message::lookup {} intranet-timesheet2.Edit Edit] edit]] \
     -method GET \
-    -export {start_idx order_by how_many view_name project_id}\
+    -export {start_idx order_by how_many view_name}\
     -form {
 	{filter_start_date:text(text) {label "[_ intranet-timesheet2.Start_Date]"} {html {size 10}} {value "$filter_start_date"} {after_html {<input type="button" style="height:23px; width:23px; background: url('/resources/acs-templating/calendar.gif');" onclick ="return showCalendar('filter_start_date', 'y-m-d');" >}}}
         {timescale:text(select),optional {label "[_ intranet-timesheet2.Timescale]"} {options $timescale_type_list }}
         {absence_type_id:text(select),optional {label "[_ intranet-timesheet2.Absence_Type]"} {value $absence_type_id} {options $absence_type_list }}
         {filter_status_id:text(im_category_tree),optional {label \#intranet-timesheet2.Status\#} {value $filter_status_id} {custom {category_type "Intranet Absence Status" translate_p 1}}}
-        {user_selection:text(select),optional {label "[_ intranet-timesheet2.Show_Users]"} {options $user_selection_type_list }}
+        {user_selection:text(select),optional {label "[_ intranet-timesheet2.Show_Users]"} {options $user_selection_type_list} {value $user_selection}}
 }
 
 template::element::set_value $form_id filter_start_date $filter_start_date
@@ -808,7 +833,6 @@ set left_navbar_html "
 
 # Calendar display for vacation days
 set absence_cube_html ""
-ds_comment "$filter_status_id"
 # Do not load the cube if we have multiple status
 #if {$filter_status_id ne ""} {
     set absence_cube_html [im_absence_cube \
