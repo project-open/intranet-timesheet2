@@ -475,6 +475,69 @@ ad_proc im_absence_cube {
     Returns a rendered cube with a graphical absence display
     for users.
 } {
+   
+    set current_user_id [ad_get_user_id]
+    set view_absences_all_p [im_permission $current_user_id "view_absences_all"]
+    set user_selection_type $user_selection
+    
+    if {[string is integer $user_selection]} {
+        # Find out the object_type
+        set object_type [db_string object_type "select object_type from acs_objects where object_id = :user_selection" -default ""]
+        switch $object_type {
+    	im_cost_center {
+    	    set user_name [im_cost_center_name $user_selection]
+    	    # Allow the manager to see the department
+            ns_log Notice "User:: $user_id $user_selection"
+    	    if {![im_manager_of_cost_center_p -user_id $current_user_id -cost_center_id $user_selection] && !$view_absences_all_p} {
+                # Not a manager => Only see yourself
+                set user_selection_type "mine"
+    	    } else {
+                set cost_center_id $user_selection
+                set user_selection_type "cost_center"
+                set user_selection_id $cost_center_id
+    	    }
+    	}
+    	user {
+    	    set user_name [im_name_from_user_id $user_selection]
+    	    set user_id $user_selection
+
+    	    # Check for permissions if we are allowed to see this user
+    	    if {$view_absences_all_p} {
+                # He can see all users
+                set user_selection_type "user"
+    	    } elseif {[im_manager_of_user_p -manager_id $current_user_id -user_id $user_id]} {
+                # He is a manager of the user
+                set user_selection_type "user"
+                set user_selection_id $user_id
+    	    } elseif {[im_supervisor_of_employee_p -supervisor_id $current_user_id -employee_id $user_id]} {
+                # He is a supervisor of the user
+                set user_selection_type "user"
+                set user_selection_id $user_id
+    	    } else {
+                # He is cheating
+                set user_selection_type "mine"
+    	    }	      
+    	}
+    	im_project {
+            set project_id $user_selection
+    	    # Permission Check
+    	    set project_manager_p [im_biz_object_member_p -role_id 1301 $current_user_id $project_id]
+    	    if {!$project_manager_p && !$view_absences_all_p} {
+                set user_selection_type "mine"
+    	    } else {
+                set user_name [db_string project_name "select project_name from im_projects where project_id = :project_id" -default ""]
+                set hide_colors_p 1
+                set user_selection_type "project"
+                set user_selection_id $project_id
+    	    }
+    	}
+    	default {
+    	    ad_return_complaint 1 "Invalid User Selection:<br>Value '$user_selection' is not a user_id, project_id, department_id or one of {mine|all|employees|providers|customers|direct reports}."
+    	}
+        }
+    }
+
+    ds_comment "user :: $user_selection_type :: $user_selection"
     switch $timescale {
 	today { 
 	    return ""
@@ -515,7 +578,6 @@ ad_proc im_absence_cube {
 
     set user_url "/intranet/users/view"
     set date_format "YYYY-MM-DD"
-    set current_user_id [ad_get_user_id]
     set bgcolor(0) " class=roweven "
     set bgcolor(1) " class=rowodd "
     set name_order [parameter::get -package_id [apm_package_id_from_key intranet-core] -parameter "NameOrder" -default 1]
@@ -543,9 +605,10 @@ ad_proc im_absence_cube {
     } else {
         # Only display active status if no other status was selected
         lappend criteria "a.absence_status_id = '[im_user_absence_status_active]'"
+        
     }
 
-    switch $user_selection {
+    switch $user_selection_type {
 	"all" {
 	    # Nothing.
 	}
@@ -571,18 +634,21 @@ ad_proc im_absence_cube {
 	    lappend criteria "a.owner_id in (select employee_id from im_employees where supervisor_id = :current_user_id and employee_status_id = '454')"
 	}  
 	"cost_center" {
+        set cost_center_id $user_selection_id
 	    set cost_center_list [im_cost_center_options -parent_id $cost_center_id]
 	    set cost_center_ids [list $cost_center_id]
-            foreach cost_center $cost_center_list {
-		lappend cost_center_ids [lindex $cost_center 1]
-            }
+        foreach cost_center $cost_center_list {
+		    lappend cost_center_ids [lindex $cost_center 1]
+        }
 	    lappend criteria "a.owner_id in (select employee_id from im_employees where department_id in ([template::util::tcl_to_sql_list $cost_center_ids]) and employee_status_id = '454')"
 	}
 	"project" {
+        set project_id $user_selection_id
 	    set project_ids [im_project_subproject_ids -project_id $project_id]
 	    lappend criteria "a.owner_id in (select object_id_two from acs_rels where object_id_one in ([template::util::tcl_to_sql_list $project_ids]))"
 	}
 	"user" {
+        set user_id $user_selection_id
 	    lappend criteria "a.owner_id=:user_id"
 	}	    
 	default  {
@@ -695,6 +761,22 @@ ad_proc im_absence_cube {
                 date_trunc('day',d.d) between date_trunc('day',a.start_date) and date_trunc('day',a.end_date) and 
 		mm.group_id = a.group_id
 		$where_clause
+      UNION
+    -- Absences for bridge days
+    	select	a.absence_type_id,
+    		mm.member_id as owner_id,
+    		d.d
+    	from	im_user_absences a,
+    		users u,
+    		group_distinct_member_map mm,
+    		(select im_day_enumerator as d from im_day_enumerator(:report_start_date, :report_end_date)) d
+    	where	mm.member_id = u.user_id and
+    		a.start_date <= :report_end_date::date and
+    		a.end_date >= :report_start_date::date and
+            date_trunc('day',d.d) between date_trunc('day',a.start_date) and date_trunc('day',a.end_date) and 
+    		mm.group_id = a.group_id and
+    		a.absence_type_id in ([template::util::tcl_to_sql_list [im_sub_categories [im_user_absence_type_bank_holiday]]]) and
+            a.absence_status_id = '[im_user_absence_status_active]'
     "
 
     # ToDo: re-factor so that color codes also work in case of more than 10 absence types
