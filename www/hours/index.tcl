@@ -184,7 +184,7 @@ set hours_for_this_month 0.0
 set unconfirmed_hours_for_this_week 0.0
 set unconfirmed_hours_for_this_month 0.0
 
-set absence_list [absence_list_for_user_and_time_period $user_id_from_search $first_julian_date $last_julian_date]
+set absence_list [absence_list_for_user_and_time_period -only_active $user_id_from_search $first_julian_date $last_julian_date]
 set absence_index 0
 set curr_absence ""
 

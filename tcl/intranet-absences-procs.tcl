@@ -65,11 +65,16 @@ ad_proc -public im_user_absence_permissions {user_id absence_id view_var read_va
 }
 
 
-ad_proc absence_list_for_user_and_time_period {user_id first_julian_date last_julian_date} {
+ad_proc absence_list_for_user_and_time_period {
+    {-only_active:boolean}
+    user_id first_julian_date last_julian_date} {
     For a given user and time period, this proc returns a list 
     of elements where each element corresponds to one day and describes its
     "work/vacation type".
 } {
+    
+    if {$only_active_p} {append active_sql "and absence_status_id = [im_user_absence_status_active]"} else {set active_sql ""}
+    
     # Select all vacation periods that have at least one day
     # in the given time period.
     set sql "
@@ -87,6 +92,7 @@ ad_proc absence_list_for_user_and_time_period {user_id first_julian_date last_ju
 		group_id is null and
 		start_date <= to_date(:last_julian_date,'J') and
 		end_date   >= to_date(:first_julian_date,'J')
+        $active_sql
     UNION
 	-- Absences via groups - Check if the user is a member of group_id
 	select
@@ -111,8 +117,8 @@ ad_proc absence_list_for_user_and_time_period {user_id first_julian_date last_ju
 		) and
 		start_date <= to_date(:last_julian_date,'J') and
 		end_date   >= to_date(:first_julian_date,'J')
+        $active_sql
     "
-
 
     # Initialize array with "" elements.
     for {set i $first_julian_date} {$i<=$last_julian_date} {incr i} {
