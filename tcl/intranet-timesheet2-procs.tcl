@@ -192,6 +192,8 @@ ad_proc -public im_timesheet_home_component {user_id} {
     Creates a HTML table showing a box with basic statistics about
     the current project and a link to log the users hours.
 } {
+    if {[im_security_alert_check_integer -location im_timesheet_home_component -message "SQL Injection Attempt" -value $user_id]} { set user_id 0 }
+
     # skip the entire component if the user doesn't have
     # the permission to log hours
     set add_hours [im_permission $user_id "add_hours"]
@@ -302,6 +304,7 @@ ad_proc -public im_timesheet_project_component {user_id project_id} {
     Creates a HTML table showing a box with basic statistics about
     the current project and a link to log the users hours.
 } {
+    if {[im_security_alert_check_integer -location im_timesheet_home_component -message "SQL Injection Attempt" -value $user_id]} { set user_id 0 }
     im_project_permissions $user_id $project_id view read write admin
     if { ![info exists return_url] } {
 	set return_url "[ad_conn url]?[ad_conn query]"
@@ -342,7 +345,7 @@ ad_proc -public im_timesheet_project_component {user_id project_id} {
 	set redirect_p [parameter::get -package_id [im_package_timesheet2_id] -parameter "TimesheetRedirectProjectIfEmptyHoursP" -default 0]
 	set num_days [parameter::get -package_id [im_package_timesheet2_id] -parameter "TimesheetRedirectNumDays" -default 7]
 	set expected_hours [parameter::get -package_id [im_package_timesheet2_id] -parameter "TimesheetRedirectNumHoursInDays" -default 32]
-	set available_perc [util_memoize "db_string percent_available \"select availability from im_employees where employee_id = $user_id\" -default 100" 60]
+	set available_perc [util_memoize [list db_string percent_available "select availability from im_employees where employee_id = $user_id" -default 100]]
 	if {"" == $available_perc} { set available_perc 100 }
 	set expected_hours [expr $expected_hours * $available_perc / 100]
         set num_hours [im_timesheet_hours_sum -user_id $user_id -number_days $num_days]
