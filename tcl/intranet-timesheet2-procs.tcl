@@ -27,7 +27,7 @@ ad_library {
 ad_proc -public im_package_timesheet2_id {} {
     Returns the package id of the intranet-timesheet2 package
 } {
-    return [util_memoize "im_package_timesheet2_id_helper"]
+    return [util_memoize im_package_timesheet2_id_helper]
 }
 
 ad_proc -private im_package_timesheet2_id_helper {} {
@@ -118,7 +118,7 @@ ad_proc -public im_timesheet2_sync_timesheet_costs {
 			and day = :day
 	"
 
-	set cost_center_id [util_memoize "im_costs_default_cost_center_for_user $hour_user_id" 5]
+	set cost_center_id [util_memoize [list im_costs_default_cost_center_for_user $hour_user_id] 5]
 
         db_dml cost_update "
 	        update  im_costs set
@@ -209,7 +209,7 @@ ad_proc -public im_timesheet_home_component {user_id} {
     set redirect_p [parameter::get -package_id [im_package_timesheet2_id] -parameter "TimesheetRedirectHomeIfEmptyHoursP" -default 0]
     set num_days [parameter::get -package_id [im_package_timesheet2_id] -parameter "TimesheetRedirectNumDays" -default 7]
     set expected_hours [parameter::get -package_id [im_package_timesheet2_id] -parameter "TimesheetRedirectNumHoursInDays" -default 32]
-    set available_perc [util_memoize "db_string percent_available \"select availability from im_employees where employee_id = $user_id\" -default 100" 60]
+    set available_perc [util_memoize [list db_string percent_available "select availability from im_employees where employee_id = $user_id" -default 100] 60]
     if {"" == $available_perc} { set available_perc 100 }
     set expected_hours [expr $expected_hours * $available_perc / 100]
 
