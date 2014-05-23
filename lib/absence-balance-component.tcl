@@ -66,12 +66,12 @@ foreach category_id $vacation_category_ids {
 	# Check if we have a workflow and then only use the approved days
 	set wf_key [db_string wf "select trim(aux_string1) from im_categories where category_id = :category_id" -default ""]
 	set wf_exists_p [db_string wf_exists "select count(*) from wf_workflows where workflow_key = :wf_key"]
-    set off_dates [im_absence_dates -absence_status_id 16000 -absence_type_ids $exclude_category_ids -owner_id $user_id -type "dates"]
+    set off_dates [im_absence_dates -absence_status_id [im_user_absence_status_active] -absence_type_ids $exclude_category_ids -owner_id $user_id -type "dates"]
     set requested_dates [list]
 
 	if {$wf_exists_p} {
-        set absence_dates [im_absence_dates -absence_status_id 16000 -absence_type_ids $category_id -owner_id $user_id -type "dates"]
-        set requested_dates [im_absence_dates -absence_status_id 16004 -absence_type_ids $category_id -owner_id $user_id -type "dates"]
+        set absence_dates [im_absence_dates -absence_status_id [im_user_absence_status_active] -absence_type_ids $category_id -owner_id $user_id -type "dates"]
+        set requested_dates [im_absence_dates -absence_status_id [im_user_absence_status_requested] -absence_type_ids $category_id -owner_id $user_id -type "dates"]
 	} else {
         set absence_dates [im_absence_dates -absence_type_ids $category_id -owner_id $user_id -type "dates"]
 	}

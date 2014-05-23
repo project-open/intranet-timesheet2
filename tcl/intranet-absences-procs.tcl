@@ -73,7 +73,7 @@ ad_proc absence_list_for_user_and_time_period {
     "work/vacation type".
 } {
     
-    if {$only_active_p} {append active_sql "and absence_status_id = [im_user_absence_status_active]"} else {set active_sql ""}
+    if {$only_active_p} {append active_sql "and absence_status_id in ([template::util::tcl_to_sql_list [im_sub_categories [im_user_absence_status_active]]])"} else {set active_sql ""}
     
     # Select all vacation periods that have at least one day
     # in the given time period.
@@ -219,22 +219,24 @@ ad_proc im_absence_new_page_wf_perm_table { } {
 } {
     set req [im_user_absence_status_requested]
     set rej [im_user_absence_status_rejected]
-    set act [im_user_absence_status_active]
     set del [im_user_absence_status_deleted]
-
+    
+    foreach act_cat_id [im_sub_categories [im_user_absence_status_active]] {
+        set perm_hash(owner-$act_cat_id) {v r d}
+        set perm_hash(assignee-$act_cat_id) {v r}
+        set perm_hash(hr-$act_cat_id) {v r d w a}    
+    }
+    
     set perm_hash(owner-$rej) {v r}
     set perm_hash(owner-$req) {v r d w}
-    set perm_hash(owner-$act) {v r d}
     set perm_hash(owner-$del) {v r}
 
     set perm_hash(assignee-$rej) {v r w}
     set perm_hash(assignee-$req) {v r w}
-    set perm_hash(assignee-$act) {v r}
     set perm_hash(assignee-$del) {v r}
 
     set perm_hash(hr-$rej) {v r d w a}
     set perm_hash(hr-$req) {v r d w a}
-    set perm_hash(hr-$act) {v r d w a}
     set perm_hash(hr-$del) {v r d w a}
 
     return [array get perm_hash]
@@ -607,10 +609,10 @@ ad_proc im_absence_cube {
         lappend criteria "a.absence_type_id = '$absence_type_id'"
     }
     if {"" != $absence_status_id && 0 != $absence_status_id} {
-        lappend criteria "a.absence_status_id = '$absence_status_id'"
+        lappend criteria "a.absence_status_id in ([template::util::tcl_to_sql_list [im_sub_categories $absence_status_id]])"
     } else {
         # Only display active status if no other status was selected
-        lappend criteria "a.absence_status_id = '[im_user_absence_status_active]'"
+        lappend criteria "a.absence_status_id in ([template::util::tcl_to_sql_list [im_sub_categories [im_user_absence_status_active]]])"
         
     }
 
@@ -782,7 +784,7 @@ ad_proc im_absence_cube {
             date_trunc('day',d.d) between date_trunc('day',a.start_date) and date_trunc('day',a.end_date) and 
     		mm.group_id = a.group_id and
     		a.absence_type_id in ([template::util::tcl_to_sql_list [im_sub_categories [im_user_absence_type_bank_holiday]]]) and
-            a.absence_status_id = '[im_user_absence_status_active]'
+            a.absence_status_id in ([template::util::tcl_to_sql_list [im_sub_categories [im_user_absence_status_active]]])
     "
 
     # ToDo: re-factor so that color codes also work in case of more than 10 absence types
@@ -1216,7 +1218,7 @@ ad_proc -public im_absence_dates {
     if {"" == $absence_status_id} {
         set absence_status_sql "absence_status_id != [im_user_absence_status_deleted]"
     } else {
-        set absence_status_sql "absence_status_id = $absence_status_id"
+        set absence_status_sql "absence_status_id in ([template::util::tcl_to_sql_list [im_sub_categories $absence_status_id]])"
     } 
 
     set absence_days [list]
@@ -1288,7 +1290,6 @@ ad_proc -public im_absence_calculate_absence_days {
     {-exclude_week_days {0 6}}
     {-type "duration"}
     {-absence_type_id ""}
-    {-absence_status_id ""}
     {-substract_absence_type_ids ""}
 } {
     Calculate the needed dates for an absence
@@ -1326,7 +1327,7 @@ ad_proc -public im_absence_calculate_absence_days {
         # Check if we have a workflow
         set wf_exists_p [im_absence_wf_exists_p -absence_type_id $absence_type_id]
         if {!$wf_exists_p} {
-            set absence_status_sql "and absence_status_id != [im_user_absence_status_active]"
+            set absence_status_sql "and absence_status_id not in ([template::util::tcl_to_sql_list [im_sub_categories [im_user_absence_status_active]]])"
         } else {
             set absence_status_sql "and absence_status_id != [im_user_absence_status_deleted]"
         } 
@@ -1366,7 +1367,7 @@ ad_proc -public im_absence_calculate_absence_days {
     
     
     # Get the existing absence dates in the interval for any higher category
-    set existing_absence_dates [im_absence_dates -owner_id $owner_id -group_ids $group_ids -start_date $start_date -end_date $end_date -ignore_absence_ids $ignore_absence_ids -exclude_week_days $exclude_week_days -absence_type_ids $absence_type_ids -absence_status_id 16000]
+    set existing_absence_dates [im_absence_dates -owner_id $owner_id -group_ids $group_ids -start_date $start_date -end_date $end_date -ignore_absence_ids $ignore_absence_ids -exclude_week_days $exclude_week_days -absence_type_ids $absence_type_ids -absence_status_id [im_user_absence_status_active]]
 
     # Join the dates together
     set existing_absence_dates [concat $existing_absence_dates $off_dates]

@@ -121,12 +121,12 @@ ad_proc -public im_leave_entitlement_remaining_days_helper {
 	# Check if we have a workflow and then only use the approved days
 	set wf_key [db_string wf "select trim(aux_string1) from im_categories where category_id = :absence_type_id" -default ""]
 	set wf_exists_p [db_string wf_exists "select count(*) from wf_workflows where workflow_key = :wf_key"]
-    set off_dates [im_absence_dates -absence_status_id 16000 -absence_type_ids $exclude_category_ids -owner_id $user_id -type "dates" -ignore_absence_ids $ignore_absence_ids]
+    set off_dates [im_absence_dates -absence_status_id [im_user_absence_status_active] -absence_type_ids $exclude_category_ids -owner_id $user_id -type "dates" -ignore_absence_ids $ignore_absence_ids]
     set requested_dates [list]
 
 	if {$wf_exists_p} {
-        set absence_dates [im_absence_dates -absence_status_id 16000 -absence_type_ids $absence_type_id -owner_id $user_id -type "dates" -ignore_absence_ids $ignore_absence_ids]
-        set requested_dates [im_absence_dates -absence_status_id 16004 -absence_type_ids $absence_type_id -owner_id $user_id -type "dates" -ignore_absence_ids $ignore_absence_ids]
+        set absence_dates [im_absence_dates -absence_status_id [im_user_absence_status_active] -absence_type_ids $absence_type_id -owner_id $user_id -type "dates" -ignore_absence_ids $ignore_absence_ids]
+        set requested_dates [im_absence_dates -absence_status_id [im_user_absence_status_requested] -absence_type_ids $absence_type_id -owner_id $user_id -type "dates" -ignore_absence_ids $ignore_absence_ids]
 	} else {
         set absence_dates [im_absence_dates -absence_type_ids $absence_type_id -owner_id $user_id -type "dates" -ignore_absence_ids $ignore_absence_ids]
 	}
@@ -164,7 +164,7 @@ ad_proc -public im_leave_entitlement_create_yearly_vacation {
 } {
     set booking_date "${year}-01-01"
     set leave_entitlement_name "Annual Leave"
-    set leave_entitlement_status_id "16000"
+    set leave_entitlement_status_id "[im_user_absence_status_active]"
     set leave_entitlement_type_id "5000"
     set description "Automatically generated"
     set user_id [ad_conn user_id]
