@@ -69,7 +69,6 @@ if {"" != $owner_id} {
     if {$absence_under_wf_control_p} {
         set edit_perm_func [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter AbsenceNewPageWfEditButtonPerm -default "im_absence_new_page_wf_perm_edit_button"]
         set delete_perm_func [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter AbsenceNewPageWfDeleteButtonPerm -default "im_absence_new_page_wf_perm_delete_button"] 
-        ds_comment "$delete_perm_func"
         if {[eval [list $edit_perm_func -absence_id $absence_id]]} {
             append actions_html "<input type=\"submit\" name=\"formbutton:edit\" value=\"[lang::message::lookup {} intranet-timesheet2.Edit Edit]\">"
         }

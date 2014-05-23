@@ -1300,7 +1300,7 @@ ad_proc -public im_absence_calculate_absence_days {
     @param absence_id In case we only want to look at one absence_id, then we need to make sure to calculate the duration correctly. It will be appended to the ignore_absence_ids for calculation
     @param type duration will return the sum of the days needed, dates will return the actual dates
 } {
-   
+       
     # Check if we calculate the days for an existing absence
     if {$absence_id ne ""} {
         lappend ignore_absence_ids $absence_id
@@ -1343,7 +1343,7 @@ ad_proc -public im_absence_calculate_absence_days {
             lappend ignore_absence_ids $object_id
         }
                 
-        db_1row absence "select owner_id,start_date,end_date from im_user_absences where absence_id = :absence_id"
+        db_1row absence "select owner_id,start_date,end_date, duration_days from im_user_absences where absence_id = :absence_id"
     } 
     
     # Get a list of dates in the range
@@ -1376,6 +1376,16 @@ ad_proc -public im_absence_calculate_absence_days {
     foreach date $dates_in_range {
         if {[lsearch $existing_absence_dates $date]<0} {
             lappend required_dates $date
+        }
+    }
+    
+    # Update the duration in the database for compatability reasons
+    set new_duration [llength $required_dates]
+    if {$absence_id ne ""} {
+        # Check if duration changed
+        if {[expr $new_duration - $duration_days] != 0} {
+            # Update the duration in the database
+            db_dml update_duration "update im_user_absences set duration_days = :new_duration where absence_id = :absence_id"
         }
     }
     
