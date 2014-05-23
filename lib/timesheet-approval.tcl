@@ -130,7 +130,8 @@ set tasks_sql "
 		tr.transition_name,
 		t.holding_user,
 		t.task_id,
-                h.hours
+        wta.party_id as assignee_id,
+        h.hours
 	from
 		acs_objects o,
 		wf_cases ca left outer join (select sum(hours) as hours, conf_object_id as task_id from im_hours group by conf_object_id) h on h.task_id = ca.object_id,
@@ -209,10 +210,10 @@ db_foreach tasks $tasks_sql {
 
     # if this is the creator viewing it, prevent him from approving it
     # himself
-    if {$owner_id == $user_id} {
-	set approve_url [export_vars -base "/[im_workflow_url]/task" {return_url task_id}]
-	set next_action_l10n "View"
-	set deny_url ""
+    if {$owner_id == $user_id && $assignee_id != $user_id} {
+        set approve_url [export_vars -base "/[im_workflow_url]/task" {return_url task_id}]
+        set next_action_l10n "View"
+        set deny_url ""
     }
 
 
