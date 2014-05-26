@@ -83,12 +83,14 @@ ad_proc -public im_leave_entitlement_remaining_days {
     -absence_type_id:required
     {-approved_p "0"}
     {-ignore_absence_ids ""}
+    {-booking_date ""}
 } {
     Returns the number of remaining days for the user of a certain absence type
     
-    @approved_p Only calculate based on the approved vacation days
+    @param approved_p Only calculate based on the approved vacation days
+    @param booking_date Define which leave entitlements should be included. Defaults to current date (everything earned up until today)
 } {
-    return [util_memoize [list im_leave_entitlement_remaining_days_helper -absence_type_id $absence_type_id -user_id $user_id -approved_p $approved_p -ignore_absence_ids $ignore_absence_ids] 5]
+    return [util_memoize [list im_leave_entitlement_remaining_days_helper -absence_type_id $absence_type_id -user_id $user_id -approved_p $approved_p -ignore_absence_ids $ignore_absence_ids -booking_date $booking_date] 5]
 }
 
 
@@ -97,15 +99,32 @@ ad_proc -public im_leave_entitlement_remaining_days_helper {
     -absence_type_id:required
     {-approved_p "0"}
     {-ignore_absence_ids ""}
+    {-booking_date ""}
 } {
-    Returns the number of remaining days for the user of a certain absence type
+    Returns the number of remaining days for the user of a certain absence type for the year in which the absence is requested.
     
-    @approved_p Only calculate based on the approved vacation days
+    @param approved_p Only calculate based on the approved vacation days
+    @param booking_date Define which leave entitlements should be included. Defaults to current date (everything earned up until today)
 } {
 
-    set entitlement_days [db_string entitlement_days "select sum(l.entitlement_days) as absence_days from im_user_leave_entitlements l where leave_entitlement_type_id = :absence_type_id and owner_id = :user_id" -default 0]
+    if {$booking_date eq ""} {
+        # Limit to view only for one year
+        set eoy [db_string eoy "select to_char(now(),'YYYY-12-31') from dual"]
+        set soy [db_string eoy "select to_char(now(),'YYYY-01-01') from dual"]
+        set booking_date_sql "booking_date <= now() and to_date(:soy,'YYYY-MM-DD') <= booking_date"
+        
+    } else {
+        set soy [db_string eoy "select to_char(:booking_date::date,'YYYY-01-01') from dual"]
+        set eoy [db_string eoy "select to_char(:booking_date::date,'YYYY-12-31') from dual"]        
+        set booking_date_sql "booking_date <= to_date(:booking_date,'YYYY-MM-DD') and to_date(:soy,'YYYY-MM-DD') <= booking_date"
+    }
+    set entitlement_days [db_string entitlement_days "select sum(l.entitlement_days) as absence_days from im_user_leave_entitlements l where leave_entitlement_type_id = :absence_type_id and owner_id = :user_id and $booking_date_sql" -default 0]    
+    
 	set absence_type [im_category_from_id $absence_type_id]
 
+
+    # Exclude vacations in future years
+    
     # Ignore the balance for bank holidays
 
     set vacation_category_ids [im_sub_categories 5000]
@@ -121,16 +140,16 @@ ad_proc -public im_leave_entitlement_remaining_days_helper {
 	# Check if we have a workflow and then only use the approved days
 	set wf_key [db_string wf "select trim(aux_string1) from im_categories where category_id = :absence_type_id" -default ""]
 	set wf_exists_p [db_string wf_exists "select count(*) from wf_workflows where workflow_key = :wf_key"]
-    set off_dates [im_absence_dates -absence_status_id [im_user_absence_status_active] -absence_type_ids $exclude_category_ids -owner_id $user_id -type "dates" -ignore_absence_ids $ignore_absence_ids]
+    set off_dates [im_absence_dates -start_date $soy -end_date $eoy -absence_status_id [im_user_absence_status_active] -absence_type_ids $exclude_category_ids -owner_id $user_id -type "dates" -ignore_absence_ids $ignore_absence_ids]
     set requested_dates [list]
 
 	if {$wf_exists_p} {
-        set absence_dates [im_absence_dates -absence_status_id [im_user_absence_status_active] -absence_type_ids $absence_type_id -owner_id $user_id -type "dates" -ignore_absence_ids $ignore_absence_ids]
-        set requested_dates [im_absence_dates -absence_status_id [im_user_absence_status_requested] -absence_type_ids $absence_type_id -owner_id $user_id -type "dates" -ignore_absence_ids $ignore_absence_ids]
+        set absence_dates [im_absence_dates -start_date $soy -end_date $eoy -absence_status_id [im_user_absence_status_active] -absence_type_ids $absence_type_id -owner_id $user_id -type "dates" -ignore_absence_ids $ignore_absence_ids]
+        set requested_dates [im_absence_dates -start_date $soy -end_date $eoy -absence_status_id [im_user_absence_status_requested] -absence_type_ids $absence_type_id -owner_id $user_id -type "dates" -ignore_absence_ids $ignore_absence_ids]
 	} else {
-        set absence_dates [im_absence_dates -absence_type_ids $absence_type_id -owner_id $user_id -type "dates" -ignore_absence_ids $ignore_absence_ids]
+        set absence_dates [im_absence_dates -start_date $soy -end_date $eoy -absence_type_ids $absence_type_id -owner_id $user_id -type "dates" -ignore_absence_ids $ignore_absence_ids]
 	}
-    
+
     # Calculate the absence days
     set required_dates [list]
     foreach date $absence_dates {

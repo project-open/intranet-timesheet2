@@ -1027,12 +1027,14 @@ ad_proc -public im_absence_remaining_days {
     -absence_type_id:required
     -approved:boolean
     {-ignore_absence_ids ""}
+    {-booking_date ""}
 } {
     Returns the number of remaining days for the user of a certain absence type
     @param ignore_absence_id Ignore this absence_id when calculating the remaining days.
+    @param booking_date Parameter to be used for leave entitlements to define which leave entitlements should be included. Defaults to current date (everything earned up until today)
 } {
     if {[im_table_exists im_user_leave_entitlements]} {
-	    return [im_leave_entitlement_remaining_days -user_id $user_id -absence_type_id $absence_type_id -approved_p $approved_p -ignore_absence_ids $ignore_absence_ids]
+	    return [im_leave_entitlement_remaining_days -user_id $user_id -absence_type_id $absence_type_id -approved_p $approved_p -ignore_absence_ids $ignore_absence_ids -booking_date $booking_date]
         ad_script_abort
     }
     
@@ -1173,12 +1175,13 @@ ad_proc -public im_absence_dates {
     @param ignore_absence_id Ignore this absence_id when calculating the dates. This is helpful if we edit an existing absence and want to get the other days the user is off
     @param type "dates" which is default returns the dates. "sum" returns the actual amount of days and "absence_ids" lists the absences which fall in this timeframe
 } {
-    # Assume a long timescale for start/enddate
+    # Assume current year for start/enddate
+    set current_year [dt_systime -format "%Y"]
     if {$start_date eq ""} {
-        set start_date "1970-01-01"
+        set start_date "${current_year}-01-01"
     }
     if {$end_date eq ""} {
-	    set end_date "2099-12-31"
+	    set end_date "${current_year}-12-31"
     }
 
     # If we have an owner_id limit the absences to only this owner and the group the owner belongs to

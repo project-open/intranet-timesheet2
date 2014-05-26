@@ -60,7 +60,7 @@ set exclude_category_ids [db_list categories "
 set absence_type_html ""
 foreach category_id $vacation_category_ids {
     
-    set entitlement_days [db_string entitlement_days "select sum(l.entitlement_days) as absence_days from im_user_leave_entitlements l where leave_entitlement_type_id = :category_id and owner_id = :user_id" -default 0]
+    set entitlement_days [db_string entitlement_days "select sum(l.entitlement_days) as absence_days from im_user_leave_entitlements l where leave_entitlement_type_id = :category_id and owner_id = :user_id and to_char(booking_date,'YYYY') = to_char(now(),'YYYY')" -default 0]
 	set absence_type [im_category_from_id $category_id]
 
 	# Check if we have a workflow and then only use the approved days
