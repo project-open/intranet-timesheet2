@@ -11,6 +11,7 @@
 <table width="100%">
   <tr valign="top">
     <td width="50%">
+      <%= [im_component_bay left] %>
       <%= [im_box_header $page_title] %>
       <formtemplate id="absence"></formtemplate></font>
       <%= [im_box_footer] %>
