@@ -37,11 +37,8 @@ set return_url [im_url_with_query]
 set current_url [ns_conn url]
 set current_user_id [ad_maybe_redirect_for_registration]
 
-set owner_id [db_string owner "select owner_id from im_user_absences where absence_id=:absence_id" -default 0]
-if {!$owner_id} {
-    ad_return_complaint 1 "<b>Error: The selected absence (#$absence_id) does not exist</b>:<br>The absence has probably been deleted by its owner recently."
-    ad_script_abort
-}
+set owner_id [db_string owner "select owner_id from im_user_absences where absence_id=:absence_id" -default ""]
+if {"" == $owner_id} {set owner_id $current_user_id}
 
 callback im_user_absence_perm_check -absence_id $absence_id
 im_user_absence_permissions $current_user_id $absence_id view read write admin
