@@ -107,15 +107,19 @@ ad_proc -public im_leave_entitlement_remaining_days_helper {
     @param booking_date Define which leave entitlements should be included. Defaults to current date (everything earned up until today)
 } {
 
+    set current_year [dt_systime -format "%Y"]
+
     if {$booking_date eq ""} {
         # Limit to view only for one year
-        set eoy [db_string eoy "select to_char(now(),'YYYY-12-31') from dual"]
-        set soy [db_string eoy "select to_char(now(),'YYYY-01-01') from dual"]
+        set eoy "${current_year}-12-31"
+        set soy "${current_year}-01-01"
         set booking_date_sql "booking_date <= now() and to_date(:soy,'YYYY-MM-DD') <= booking_date"
         
     } else {
-        set soy [db_string eoy "select to_char(:booking_date::date,'YYYY-01-01') from dual"]
-        set eoy [db_string eoy "select to_char(:booking_date::date,'YYYY-12-31') from dual"]        
+        # Check if the booking date is in a future year
+        set booking_year [string range $booking_date 0 3]
+        set soy "${booking_year}-01-01"      
+        set eoy "${booking_year}-12-31"        
         set booking_date_sql "booking_date <= to_date(:booking_date,'YYYY-MM-DD') and to_date(:soy,'YYYY-MM-DD') <= booking_date"
     }
     set entitlement_days [db_string entitlement_days "select sum(l.entitlement_days) as absence_days from im_user_leave_entitlements l where leave_entitlement_type_id = :absence_type_id and owner_id = :user_id and $booking_date_sql" -default 0]    
@@ -150,6 +154,7 @@ ad_proc -public im_leave_entitlement_remaining_days_helper {
         set absence_dates [im_absence_dates -start_date $soy -end_date $eoy -absence_type_ids $absence_type_id -owner_id $user_id -type "dates" -ignore_absence_ids $ignore_absence_ids]
 	}
 
+    ds_comment "Reqeusted:: $requested_dates"
     # Calculate the absence days
     set required_dates [list]
     foreach date $absence_dates {

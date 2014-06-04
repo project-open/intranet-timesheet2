@@ -56,7 +56,7 @@ set exclude_category_ids [db_list categories "
                 category_type = 'Intranet Absence Type' and category_id not in ([template::util::tcl_to_sql_list $vacation_category_ids])
 "]
 
-
+ns_log Notice "Resetting :: $current_year"
 set absence_type_html ""
 foreach category_id $vacation_category_ids {
     
@@ -96,12 +96,15 @@ foreach category_id $vacation_category_ids {
     
     set remaining_days [expr $entitlement_days - $absence_days]
     
+    ns_log Notice "Categories :: $category_id :: $entitlement_days :: $absence_days :: $requested_days :: $remaining_days"
+    
     if {$remaining_days != 0 || $requested_days !=0} {
-    append absence_type_html "    
-    <tr>
-      <td align='left' valign='top' class='attribute' width='20%'>$absence_type</td>
-      <td align='left' valign='top' class='value'>$remaining_days</td>
-      <td align='left' valign='top' class='value'>$requested_days</td>
-    </tr>"}
+        append absence_type_html "    
+        <tr>
+          <td align='left' valign='top' class='attribute' width='20%'>$absence_type</td>
+          <td align='left' valign='top' class='value'>$remaining_days</td>
+          <td align='left' valign='top' class='value'>$requested_days</td>
+        </tr>"
+    }
 }
 

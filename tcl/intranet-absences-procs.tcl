@@ -1175,6 +1175,7 @@ ad_proc -public im_absence_dates {
     @param ignore_absence_id Ignore this absence_id when calculating the dates. This is helpful if we edit an existing absence and want to get the other days the user is off
     @param type "dates" which is default returns the dates. "sum" returns the actual amount of days and "absence_ids" lists the absences which fall in this timeframe
 } {
+    ds_comment "Abensece:: $absence_status_id"
     # Assume current year for start/enddate
     set current_year [dt_systime -format "%Y"]
     if {$start_date eq ""} {
@@ -1308,7 +1309,7 @@ ad_proc -public im_absence_calculate_absence_days {
     # Check if we calculate the days for an existing absence
     if {$absence_id ne ""} {
         lappend ignore_absence_ids $absence_id
-        db_1row absence_data "select absence_type_id, owner_id, group_id from im_user_absences where absence_id = :absence_id"
+        db_1row absence_data "select absence_type_id, absence_status_id, owner_id, group_id from im_user_absences where absence_id = :absence_id"
         
         # If we have an owner_id limit the absences to only this owner and the group the owner belongs to
         if {$owner_id ne ""} {
@@ -1339,6 +1340,7 @@ ad_proc -public im_absence_calculate_absence_days {
         db_foreach ignoreable_absences "select object_id from acs_objects o, im_user_absences ua
             where o.object_id = ua.absence_id
             and ua.absence_type_id = :absence_type_id
+            and ua.absence_status_id = :absence_status_id
             and o.last_modified > (select last_modified from acs_objects where object_id = :absence_id)
             and absence_id not in ([template::util::tcl_to_sql_list $ignore_absence_ids])
             $absence_status_sql
