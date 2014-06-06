@@ -108,26 +108,32 @@ ad_proc -public im_leave_entitlement_remaining_days_helper {
 } {
 
     set current_year [dt_systime -format "%Y"]
-
-    if {$booking_date eq ""} {
-        # Limit to view only for one year
-        set eoy "${current_year}-12-31"
-        set soy "${current_year}-01-01"
-        set booking_date_sql "booking_date <= now() and to_date(:soy,'YYYY-MM-DD') <= booking_date"
-        
-    } else {
-        # Check if the booking date is in a future year
+    set eoy "${current_year}-12-31"
+    set soy "${current_year}-01-01"
+    
+    # By default calculate all entitlements from the past
+    set booking_date_sql "booking_date <= to_date(:eoy,'YYYY-MM-DD')"
+    
+    # Calculate against all absences in the past
+    set date_sql "start_date::date <=:eoy"
+    
+    if {$booking_date ne ""} {
         set booking_year [string range $booking_date 0 3]
-        set soy "${booking_year}-01-01"      
-        set eoy "${booking_year}-12-31"        
-        set booking_date_sql "booking_date <= to_date(:booking_date,'YYYY-MM-DD') and to_date(:soy,'YYYY-MM-DD') <= booking_date"
+        if {$booking_year > $current_year} {
+            set eoy "${booking_year}-12-31"
+            set soy "${booking_year}-01-01"
+
+            # This is a booking for a future year
+            # Only calculate entitlements for that year
+            set booking_date_sql "booking_date <= to_date(:eoy,'YYYY-MM-DD') and to_date(:soy,'YYYY-MM-DD') <= booking_date"
+            set date_sql "start_date::date <=:eoy and end_date::date >=:soy"
+        }
     }
-    set entitlement_days [db_string entitlement_days "select sum(l.entitlement_days) as absence_days from im_user_leave_entitlements l where leave_entitlement_type_id = :absence_type_id and owner_id = :user_id and $booking_date_sql" -default 0]    
+    
+    
+    set entitlement_days [db_string entitlement_days "select coalesce(sum(l.entitlement_days),0) as absence_days from im_user_leave_entitlements l where leave_entitlement_type_id = :absence_type_id and owner_id = :user_id and $booking_date_sql" -default 0]    
     
 	set absence_type [im_category_from_id $absence_type_id]
-
-
-    # Exclude vacations in future years
     
     # Ignore the balance for bank holidays
 
@@ -144,41 +150,49 @@ ad_proc -public im_leave_entitlement_remaining_days_helper {
 	# Check if we have a workflow and then only use the approved days
 	set wf_key [db_string wf "select trim(aux_string1) from im_categories where category_id = :absence_type_id" -default ""]
 	set wf_exists_p [db_string wf_exists "select count(*) from wf_workflows where workflow_key = :wf_key"]
-    set off_dates [im_absence_dates -start_date $soy -end_date $eoy -absence_status_id [im_user_absence_status_active] -absence_type_ids $exclude_category_ids -owner_id $user_id -type "dates" -ignore_absence_ids $ignore_absence_ids]
-    set requested_dates [list]
+    
+    # We need to ignore this absence_id from the calculation of
+    # absence days. Usually during an edit
+    if {$ignore_absence_ids eq ""} {
+	    set ignore_absence_sql ""
+    } else {
+        set ignore_absence_sql "and absence_id not in ([template::util::tcl_to_sql_list $ignore_absence_ids])"
+    }
+    
+    if {$wf_exists_p} {
+        set absence_days [db_string absence_days "select coalesce(sum(duration_days),0)
+            from im_user_absences 
+            where $date_sql
+            and absence_status_id in ([template::util::tcl_to_sql_list [im_sub_categories [im_user_absence_status_active]]])
+            and absence_type_id = :absence_type_id
+            and owner_id = :user_id
+            $ignore_absence_sql" -default 0]
+        set requested_days [db_string requested_days "select coalesce(sum(duration_days),0) 
+            from im_user_absences 
+            where $date_sql
+            and absence_type_id = :absence_type_id
+            and absence_status_id in ([template::util::tcl_to_sql_list [im_sub_categories [im_user_absence_status_requested]]])
+            and owner_id = :user_id
+            $ignore_absence_sql" -default 0]
 
-	if {$wf_exists_p} {
-        set absence_dates [im_absence_dates -start_date $soy -end_date $eoy -absence_status_id [im_user_absence_status_active] -absence_type_ids $absence_type_id -owner_id $user_id -type "dates" -ignore_absence_ids $ignore_absence_ids]
-        set requested_dates [im_absence_dates -start_date $soy -end_date $eoy -absence_status_id [im_user_absence_status_requested] -absence_type_ids $absence_type_id -owner_id $user_id -type "dates" -ignore_absence_ids $ignore_absence_ids]
-	} else {
-        set absence_dates [im_absence_dates -start_date $soy -end_date $eoy -absence_type_ids $absence_type_id -owner_id $user_id -type "dates" -ignore_absence_ids $ignore_absence_ids]
-	}
+        set remaining_days [expr $entitlement_days - $absence_days]
 
-    ds_comment "Reqeusted:: $requested_dates"
-    # Calculate the absence days
-    set required_dates [list]
-    foreach date $absence_dates {
-        if {[lsearch $off_dates $date]<0} {
-            lappend required_dates $date
+        if {!$approved_p} {
+            # We need to substract the requested days as well
+            set remaining_days [expr $remaining_days - $requested_days]
         }
-    }
-    set absence_days [llength $required_dates]
-    
-    # Calculate the requested dates
-    set required_dates [list]
-    foreach date $requested_dates {
-        if {[lsearch $off_dates $date]<0} {
-            lappend required_dates $date
-        }
-    }
-    set requested_days [llength $required_dates]
-    
-    set remaining_days [expr $entitlement_days - $absence_days]
-    
-    if {!$approved_p} {
-        # We need to substract the requested days as well
-        set remaining_days [expr $remaining_days - $requested_days]
-    }
+    } else {
+        set absence_days [db_string absence_days "select coalesce(sum(duration),0)
+            from im_user_absences 
+            where $date_sql
+            and absence_type_id = :absence_type_id
+            and absence_status_id in ([template::util::tcl_to_sql_list [im_sub_categories [im_user_absence_status_active]]])
+            and owner_id = :user_id
+            $ignore_absence_sql" -default 0]
+        set remaining_days [expr $entitlement_days - $absence_days]
+    } 
+        
+    return $remaining_days
 }
 
 ad_proc -public im_leave_entitlement_create_yearly_vacation {

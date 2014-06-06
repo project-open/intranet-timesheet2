@@ -41,7 +41,13 @@ set absence_base_url "/intranet-timesheet2/absences"
 set return_url [im_url_with_query]
 set user_view_url "/intranet/users/view"
 
-set current_year [db_string current_year "select to_char(now(), 'YYYY')"]
+set current_year [dt_systime -format "%Y"]
+
+# Limit to view only for one year
+set eoy "${current_year}-12-31"
+set soy "${current_year}-01-01"
+set booking_date_sql "booking_date <= now() and to_date(:soy,'YYYY-MM-DD') <= booking_date"
+    
 
 # Ignore the balance for bank holidays
 
@@ -56,47 +62,45 @@ set exclude_category_ids [db_list categories "
                 category_type = 'Intranet Absence Type' and category_id not in ([template::util::tcl_to_sql_list $vacation_category_ids])
 "]
 
-ns_log Notice "Resetting :: $current_year"
 set absence_type_html ""
 foreach category_id $vacation_category_ids {
     
-    set entitlement_days [db_string entitlement_days "select sum(l.entitlement_days) as absence_days from im_user_leave_entitlements l where leave_entitlement_type_id = :category_id and owner_id = :user_id and to_char(booking_date,'YYYY') = to_char(now(),'YYYY')" -default 0]
+    set entitlement_days [db_string entitlement_days "select coalesce(sum(l.entitlement_days),0) as absence_days from im_user_leave_entitlements l where leave_entitlement_type_id = :category_id and owner_id = :user_id and to_char(booking_date,'YYYY') <= to_char(now(),'YYYY')" -default 0]
 	set absence_type [im_category_from_id $category_id]
 
 	# Check if we have a workflow and then only use the approved days
 	set wf_key [db_string wf "select trim(aux_string1) from im_categories where category_id = :category_id" -default ""]
 	set wf_exists_p [db_string wf_exists "select count(*) from wf_workflows where workflow_key = :wf_key"]
-    set off_dates [im_absence_dates -absence_status_id [im_user_absence_status_active] -absence_type_ids $exclude_category_ids -owner_id $user_id -type "dates"]
-    set requested_dates [list]
 
-	if {$wf_exists_p} {
-        set absence_dates [im_absence_dates -absence_status_id [im_user_absence_status_active] -absence_type_ids $category_id -owner_id $user_id -type "dates"]
-        set requested_dates [im_absence_dates -absence_status_id [im_user_absence_status_requested] -absence_type_ids $category_id -owner_id $user_id -type "dates"]
-	} else {
-        set absence_dates [im_absence_dates -absence_type_ids $category_id -owner_id $user_id -type "dates"]
-	}
-    
-    # Calculate the absence days
-    set required_dates [list]
-    foreach date $absence_dates {
-        if {[lsearch $off_dates $date]<0} {
-            lappend required_dates $date
-        }
-    }
-    set absence_days [llength $required_dates]
-    
-    # Calculate the requested dates
-    set required_dates [list]
-    foreach date $requested_dates {
-        if {[lsearch $off_dates $date]<0} {
-            lappend required_dates $date
-        }
-    }
-    set requested_days [llength $required_dates]
-    
-    set remaining_days [expr $entitlement_days - $absence_days]
-    
-    ns_log Notice "Categories :: $category_id :: $entitlement_days :: $absence_days :: $requested_days :: $remaining_days"
+    if {$wf_exists_p} {
+        set absence_days [db_string absence_days "select coalesce(sum(duration_days),0)
+            from im_user_absences 
+            where start_date::date <= :eoy 
+            and absence_type_id = :category_id
+            and absence_status_id in ([template::util::tcl_to_sql_list [im_sub_categories [im_user_absence_status_active]]])
+            and owner_id = :user_id" -default 0]
+        set requested_days [db_string requested_days "select coalesce(sum(duration_days),0)
+            from im_user_absences 
+            where start_date::date <= :eoy 
+            and absence_type_id = :category_id
+            and absence_status_id in ([template::util::tcl_to_sql_list [im_sub_categories [im_user_absence_status_requested]]])
+            and owner_id = :user_id" -default 0]
+
+        set remaining_days [expr $entitlement_days - $absence_days]
+
+        # We need to substract the requested days as well
+        set remaining_days [expr $remaining_days - $requested_days]
+    } else {
+        set absence_days [db_string absence_days "select coalesce(sum(duration),0)
+            from im_user_absences 
+            where start_date::date <= :eoy 
+            and absence_type_id = :category_id
+            and absence_status_id in ([template::util::tcl_to_sql_list [im_sub_categories [im_user_absence_status_active]]])
+            and owner_id = :user_id
+            $ignore_absence_sql" -default 0]
+        set remaining_days [expr $entitlement_days - $absence_days]
+        set requested_days 0
+    } 
     
     if {$remaining_days != 0 || $requested_days !=0} {
         append absence_type_html "    

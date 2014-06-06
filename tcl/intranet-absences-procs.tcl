@@ -1306,6 +1306,14 @@ ad_proc -public im_absence_calculate_absence_days {
     @param type duration will return the sum of the days needed, dates will return the actual dates
 } {
        
+    set absence_status_id ""
+    
+    # does the absence exist?
+    if {![db_string absence_exists_p "select 1 from im_user_absences where absence_id = :absence_id" -default 0]} {
+        set absence_id ""
+    }
+    
+    
     # Check if we calculate the days for an existing absence
     if {$absence_id ne ""} {
         lappend ignore_absence_ids $absence_id
@@ -1341,7 +1349,7 @@ ad_proc -public im_absence_calculate_absence_days {
             where o.object_id = ua.absence_id
             and ua.absence_type_id = :absence_type_id
             and ua.absence_status_id = :absence_status_id
-            and o.last_modified > (select last_modified from acs_objects where object_id = :absence_id)
+            and o.creation_date > (select creation_date from acs_objects where object_id = :absence_id)
             and absence_id not in ([template::util::tcl_to_sql_list $ignore_absence_ids])
             $absence_status_sql
             $owner_sql
@@ -1350,7 +1358,7 @@ ad_proc -public im_absence_calculate_absence_days {
         }
                 
         db_1row absence "select owner_id,start_date,end_date, duration_days from im_user_absences where absence_id = :absence_id"
-    } 
+    }
     
     # Get a list of dates in the range
     set dates_in_range [im_absence_week_days -week_day_list [list 0 1 2 3 4 5 6] -start_date $start_date -end_date $end_date]
@@ -1376,7 +1384,13 @@ ad_proc -public im_absence_calculate_absence_days {
 
     # Join the dates together
     set existing_absence_dates [concat $existing_absence_dates $off_dates]
-        
+
+    # If this is a requested absence, append the requested days as existing absences as well
+    if {[lsearch $absence_status_id [im_sub_categories [im_user_absence_status_requested]]]>-1} {
+        set requested_absence_dates [im_absence_dates -owner_id $owner_id -group_ids $group_ids -start_date $start_date -end_date $end_date -ignore_absence_ids $ignore_absence_ids -exclude_week_days $exclude_week_days -absence_type_ids $absence_type_ids -absence_status_id [im_user_absence_status_requested]]
+        set existing_absence_dates [concat $existing_absence_dates $requested_absence_dates]        
+    }
+    
     # Now check for each date in the range whether we need to take vacation then
     set required_dates [list]
     foreach date $dates_in_range {

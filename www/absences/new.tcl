@@ -394,11 +394,11 @@ ad_form -extend -name $form_id -on_request {
     # Then we make a check if the duration given by the user is actually correct and give direct feedback.
     
     {duration_days
-        {[im_absence_calculate_absence_days -start_date "[join [template::util::date get_property linear_date_no_time $start_date] "-"]" -end_date "[join [template::util::date get_property linear_date_no_time $end_date] "-"]" -owner_id $absence_owner_id -ignore_absence_ids $absence_id] == $duration_days}
-        "[_ intranet-timesheet2.lt_The_calculated_durati] [im_absence_calculate_absence_days -start_date \"[join [template::util::date get_property linear_date_no_time $start_date] \"-\"]\" -end_date \"[join [template::util::date get_property linear_date_no_time $end_date] \"-\"]\" -owner_id $absence_owner_id -ignore_absence_ids $absence_id], [_ intranet-timesheet2.not] $duration_days. [_ intranet-timesheet2.Please_ammend]"
+        {[im_absence_calculate_absence_days -start_date "[join [template::util::date get_property linear_date_no_time $start_date] "-"]" -end_date "[join [template::util::date get_property linear_date_no_time $end_date] "-"]" -owner_id $absence_owner_id -ignore_absence_ids $absence_id -absence_id $absence_id] == $duration_days}
+        "[_ intranet-timesheet2.lt_The_calculated_durati] [im_absence_calculate_absence_days -start_date \"[join [template::util::date get_property linear_date_no_time $start_date] \"-\"]\" -end_date \"[join [template::util::date get_property linear_date_no_time $end_date] \"-\"]\" -owner_id $absence_owner_id -ignore_absence_ids $absence_id -absence_id $absence_id], [_ intranet-timesheet2.not] $duration_days. [_ intranet-timesheet2.Please_ammend]"
     }
     {duration_days
-	{[lsearch [im_sub_categories [im_user_absence_type_vacation]] $absence_type_id] > -1 && [im_absence_calculate_absence_days -start_date "[join [template::util::date get_property linear_date_no_time $start_date] "-"]" -end_date "[join [template::util::date get_property linear_date_no_time $end_date] "-"]" -owner_id $absence_owner_id -ignore_absence_ids $absence_id] <= [im_absence_remaining_days -user_id $absence_owner_id -ignore_absence_ids $absence_id -absence_type_id $absence_type_id -booking_date "[join [template::util::date get_property linear_date_no_time $end_date] "-"]"] || [lsearch $vacation_category_ids $absence_type_id]<0}
+	{[lsearch [im_sub_categories [im_user_absence_type_vacation]] $absence_type_id] > -1 && [im_absence_calculate_absence_days -start_date "[join [template::util::date get_property linear_date_no_time $start_date] "-"]" -end_date "[join [template::util::date get_property linear_date_no_time $end_date] "-"]" -owner_id $absence_owner_id -ignore_absence_ids $absence_id -absence_id $absence_id] <= [im_absence_remaining_days -user_id $absence_owner_id -ignore_absence_ids $absence_id -absence_type_id $absence_type_id -booking_date "[join [template::util::date get_property linear_date_no_time $end_date] "-"]"] || [lsearch $vacation_category_ids $absence_type_id]<0}
 	"[_ intranet-timesheet2.lt_Duration_is_longer_th] [im_absence_remaining_days -user_id $absence_owner_id -absence_type_id $absence_type_id -ignore_absence_ids $absence_id -booking_date \"[join [template::util::date get_property linear_date_no_time $end_date] \"-\"]\"]"
     } 
     {start_date
@@ -426,7 +426,7 @@ ad_form -extend -name $form_id -on_request {
 
     set start_date_sql [template::util::date get_property sql_timestamp $start_date]
     set end_date_sql [template::util::date get_property sql_timestamp $end_date]
-    set duration_days [im_absence_calculate_absence_days -start_date "[join [template::util::date get_property linear_date_no_time $start_date] "-"]" -end_date "[join [template::util::date get_property linear_date_no_time $end_date] "-"]" -owner_id $absence_owner_id]
+    set duration_days [im_absence_calculate_absence_days -start_date "[join [template::util::date get_property linear_date_no_time $start_date] "-"]" -end_date "[join [template::util::date get_property linear_date_no_time $end_date] "-"]" -owner_id $absence_owner_id -absence_id $absence_id]
 
     callback im_user_absence_before_create -object_id $absence_id -status_id $absence_status_id -type_id $absence_type_id
 
@@ -536,7 +536,7 @@ ad_form -extend -name $form_id -on_request {
     # Audit the action
     callback im_user_absence_before_update -object_id $absence_id -status_id $absence_status_id -type_id $absence_type_id
 
-    set duration_days [im_absence_calculate_absence_days -start_date "[join [template::util::date get_property linear_date_no_time $start_date] "-"]" -end_date "[join [template::util::date get_property linear_date_no_time $end_date] "-"]" -owner_id $absence_owner_id -ignore_absence_ids $absence_id]
+    set duration_days [im_absence_calculate_absence_days -start_date "[join [template::util::date get_property linear_date_no_time $start_date] "-"]" -end_date "[join [template::util::date get_property linear_date_no_time $end_date] "-"]" -owner_id $absence_owner_id -ignore_absence_ids $absence_id -absence_id $absence_id]
     set start_date_sql [template::util::date get_property sql_timestamp $start_date]
     set end_date_sql [template::util::date get_property sql_timestamp $end_date]
 
