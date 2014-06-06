@@ -15,6 +15,8 @@ nsv_set intranet_timesheet2 timesheet_synchronizer_p 0
 # Check for imports of external im_hours entries every every X minutes
 ad_schedule_proc -thread t [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter SyncHoursInterval -default 59 ] im_timesheet2_sync_timesheet_costs
 
+ad_schedule_proc -thread t -schedule_proc ns_schedule_weekly im_absence_update_duration_days
+
 # Callbacks 
 ad_proc -public -callback absence_on_change {
     {-absence_id:required}

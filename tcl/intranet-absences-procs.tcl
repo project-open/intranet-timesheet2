@@ -1417,25 +1417,12 @@ ad_proc -public im_absence_calculate_absence_days {
 }
 
 ad_proc -public im_absence_update_duration_days {
-    {-absence_id}
-    {-exclude_week_days {0 6}}
-    {-ignore_absence_ids ""}
+    {-interval "2 months"}
 } {
-    db_1row absence_info "select to_char(start_date,'YYYY-MM-DD') as start_date, to_char(end_date,'YYYY-MM-DD') as end_date, owner_id, absence_type_id, duration_days as old_duration_days from im_user_absences where absence_id = :absence_id"
-    
-    lappend ignore_absence_ids $absence_id
-    set duration_days [im_absence_calculate_absence_days -owner_id $owner_id -start_date $start_date -end_date $end_date -ignore_absence_ids $ignore_absence_ids -exclude_week_days $exclude_week_days]
-    if {$duration_days != $old_duration_days} {
-        db_dml update_duration "update im_user_absences set duration_days = :duration_days where absence_id = :absence_id"
-        set wf_exists_p [im_absence_wf_exists_p -absence_type_id $absence_type_id]
-        if {$wf_exists_p} {
-            set case_id [db_string case "select case_id from wf_cases where object_id = :absence_id"]
-            #Record the change manually, as the workflow did fail (probably because the case is already closed
-            im_workflow_new_journal -case_id $case_id -action "modify absence" -action_pretty "Modify Absence" -message "Absence was modified by [im_name_from_user_id [ad_conn user_id]], duration changed from $old_duration_days to $duration_days"
-        }
-        return "1"
-    } else {
-        return 0
+    set absence_ids [db_list absences "select absence_id from im_user_absences,acs_objects where absence_id = object_id and creation_date > now() - interval :interval"]
+    foreach absence_id $absence_ids {
+        set duration_days [im_absence_calculate_absence_days -absence_id $absence_id]
+        ns_log Notice "Updateing Absence $absence_id to $duration_days"
     }
 }
 
