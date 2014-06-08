@@ -538,6 +538,7 @@ ad_proc im_absence_cube {
     {-absence_status_id "" }
     {-absence_type_id "" }
     {-user_selection "" }
+    {-timescale "" }
     {-report_start_date "" }
     {-report_end_date "" }
     {-user_id_from_search "" }

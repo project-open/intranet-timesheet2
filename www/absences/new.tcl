@@ -33,7 +33,10 @@ if {![info exists enable_master_p]} { set enable_master_p 1}
 
 set user_id [ad_maybe_redirect_for_registration]
 set current_user_id $user_id
+
+if {"" == $user_id_from_search} {set user_id_from_search $current_user_id}
 set owner_id $user_id_from_search
+
 set action_url "/intranet-timesheet2/absences/new"
 set cancel_url "/intranet-timesheet2/absences/index"
 set current_url [im_url_with_query]

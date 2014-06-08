@@ -11,6 +11,7 @@ set admin_p [im_is_user_site_wide_or_intranet_admin $user_id]
 set view_name "leave_entitlement_list" 
 set name_order [parameter::get -package_id [apm_package_id_from_key intranet-core] -parameter "NameOrder" -default 1]
 set date_format "YYYY-MM-DD"
+set user_name [im_name_from_user_id $user_id]
 set page_title "[lang::message::lookup "" intranet-timesheet2.Absences_for_user "Absences for %user_name%"]"
 set owner_id $user_id_from_search
 

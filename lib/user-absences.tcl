@@ -11,6 +11,7 @@ set hr_p [im_user_is_hr_p $user_id]
 set view_name "absence_list_home" 
 set name_order [parameter::get -package_id [apm_package_id_from_key intranet-core] -parameter "NameOrder" -default 1]
 set date_format "YYYY-MM-DD"
+set user_name [im_name_from_user_id $user_id]
 set page_title "[lang::message::lookup "" intranet-timesheet2.Absences_for_user "Absences for %user_name%"]"
 
 # Check permissions. "See details" is an additional check for
