@@ -59,12 +59,14 @@ set current_user_id $user_id
 set subsite_id [ad_conn subsite_id]
 set add_absences_for_group_p [im_permission $user_id "add_absences_for_group"]
 set add_absences_all_p [im_permission $user_id "add_absences_all"]
-set view_absences_all_p [im_permission $user_id "view_absences_all"]
-set view_absences_direct_reports_p [im_permission $user_id "view_absences_direct_reports"]
+set view_absences_all_p [expr [im_permission $user_id "view_absences_all"] || $add_absences_all_p]
+set add_absences_direct_reports_p [im_permission $user_id "add_absences_direct_reports"]
+set view_absences_direct_reports_p [expr [im_permission $user_id "view_absences_direct_reports"] || $add_absences_direct_reports_p]
 set add_absences_p [im_permission $user_id "add_absences"]
 set org_absence_type_id $absence_type_id
 set show_context_help_p 1
 set name_order [parameter::get -package_id [apm_package_id_from_key intranet-core] -parameter "NameOrder" -default 1]
+
 set hide_colors_p 0
 
 # Support if we pass a project_id in
@@ -84,6 +86,14 @@ if {!$view_absences_all_p} {
         providers - customers {set user_selection "mine"}
     }
 }
+
+set today [db_string today "select now()::date"]
+
+set all_user_options [im_user_options -include_empty_p 0 -group_name "Employees"]
+set direct_reports_options [im_user_direct_reports_options -user_id $current_user_id]
+set direct_report_ids [im_user_direct_reports_ids -user_id $current_user_id]
+
+if {"" != $user_id_from_search} { set user_selection $user_id_from_search }
 
 if {![im_permission $user_id "view_absences"] && !$view_absences_all_p && !$view_absences_direct_reports_p} { 
     ad_return_complaint 1 "You don't have permissions to see absences"
@@ -198,14 +208,8 @@ set page_title "[lang::message::lookup "" intranet-timesheet2.Absences_for_user 
 set context [list $page_title]
 set context_bar [im_context_bar $page_title]
 set page_focus "im_header_form.keywords"
-
-# Link "New absence" can't become easily a dynamic link manageable 
-# with ADMIN->MENUS due to feature "logging absences for other users" 
-# So let's make it configurable  
 set absences_url [parameter::get -package_id [apm_package_id_from_key intranet-timesheet2] -parameter "AbsenceURL" -default "/intranet-timesheet2/absences"]
-
 set return_url [im_url_with_query]
-
 set user_view_page "/intranet/users/view"
 set absence_view_page "$absences_url/new"
 
@@ -327,6 +331,11 @@ if {$add_absences_all_p || $view_absences_all_p} {
     lappend user_selection_types [lang::message::lookup "" intranet-timesheet2.Customers "Customers"] 
 }
 
+# ---------------------------------------------------------------
+# Build Drop-down boxes
+# ---------------------------------------------------------------
+
+set user_selection_options [im_user_timesheet_absences_options]
 
 # ---------- / setting filter 'User selection' ------------- # 
 
@@ -415,7 +424,6 @@ foreach { value text } $absences_types {
 # 5. Generate SQL Query
 # ---------------------------------------------------------------
 
-
 # Now let's generate the sql query
 set criteria [list]
 set bind_vars [ns_set create]
@@ -483,8 +491,7 @@ foreach { value text } $user_selection_types {
 }
 
 if { ![empty_string_p $absence_type_id] &&  $absence_type_id != -1 } {
-     #ns_set put $bind_vars absence_type_id $absence_type_id
-     lappend criteria "a.absence_type_id = :absence_type_id"
+    lappend criteria "a.absence_type_id = :absence_type_id"
 }
 
 switch $timescale {
@@ -618,6 +625,7 @@ ad_form \
 
 template::element::set_value $form_id filter_start_date $filter_start_date
 template::element::set_value $form_id timescale $timescale
+template::element::set_value $form_id user_selection $user_selection
 
 eval [template::adp_compile -string {<formtemplate style="tiny-plain-po" id="absence_filter"></formtemplate>}]
 set filter_html $__adp_output
@@ -627,9 +635,21 @@ set filter_html $__adp_output
 # ---------------------------------------------------------------
 set for_user_id $current_user_id
 
-if {[string is integer $user_selection] && $add_absences_for_group_p} { 
+if {[string is integer $user_selection]} { 
     # Log for other user "than current user" requires permissions
-    set for_user_id $user_selection
+    # user_selection can be the current_user, a "direct report" or any other user.
+
+    # Permission to log for any user - OK
+    if {$add_absences_all_p} {
+	set for_user_id $user_selection
+    }
+
+    if {!$add_absences_all_p && $add_absences_direct_reports_p} {
+	set direct_reports [im_user_direct_reports_ids -user_id $current_user_id]
+	if {[lsearch $direct_reports $user_selection] > -1} {
+	    set for_user_id $user_selection
+	}
+    }
 }
 
 set admin_html [im_menu_ul_list "timesheet2_absences" [list user_id_from_search $for_user_id return_url $return_url]]
@@ -833,10 +853,20 @@ set left_navbar_html "
 # ---------------------------------------------------------------
 
 # Calendar display for vacation days
-set absence_cube_html ""
-# Do not load the cube if we have multiple status
-#if {$filter_status_id ne ""} {
-    set absence_cube_html [im_absence_cube \
+
+switch $timescale {
+    today { 
+	# Just skip(?)
+	set absence_cube_html ""
+    }
+    all { 
+	set absence_cube_html [lang::message::lookup "" intranet-timesheet2.AbsenceCubeNotShownAllAbsences "Graphical view of absences not available for Timescale option 'All'. Please choose a different option."]
+    }
+    past { 
+	set absence_cube_html [lang::message::lookup "" intranet-timesheet2.AbsenceCubeNotShownPastAbsences "Graphical view of absences not available for Timescale option 'Past'. Please choose a different option."]
+    }
+    default {
+	set absence_cube_html [im_absence_cube \
 			       -absence_status_id $filter_status_id \
 			       -absence_type_id $org_absence_type_id \
 			       -user_selection $user_selection \
@@ -847,6 +877,8 @@ set absence_cube_html ""
 			       -cost_center_id $cost_center_id \
 			       -user_id $user_id \
 			       -hide_colors_p $hide_colors_p \
-			       -project_id $project_id
+			       -project_id $project_id \
 			  ]
-#}
+    }
+}
+

@@ -49,12 +49,32 @@ callback im_timesheet_hours_new_redirect \
 # ---------------------------------------------------------
 
 set show_context_help_p 1
-
 # Should we show debugging information for each project?
 set debug 0
+set current_user_id [ad_maybe_redirect_for_registration]
+set add_hours_p [im_permission $current_user_id "add_hours"]
+set add_hours_all_p [im_permission $current_user_id "add_hours_all"]
+set add_hours_direct_reports_p [im_permission $current_user_id "add_hours_direct_reports"]
 
-set user_id [ad_maybe_redirect_for_registration]
-if {"" == $user_id_from_search || ![im_permission $user_id "add_hours_all"]} { set user_id_from_search $user_id }
+if {!$add_hours_p} {
+    ad_return_complaint 1 [lang::message::lookup "" intranet-timesheet2.Not_allowed_to_log_hours "You are not allowed to log hours."]
+    ad_script_abort
+}
+
+
+# Is the user allowed to log hours for another user?
+if {"" == $user_id_from_search } { 
+    if {!$add_hours_all_p} {
+	if {$add_hours_direct_reports_p} {
+	    set reportees [im_user_direct_reports_ids -user_id $current_user_id]
+	    if {[lsearch $reportees $user_id_from_search] < 0} {
+		# User not in reportees - reset to current user
+		set user_id_from_search $current_user_id 
+	    }
+	}
+    }
+}
+if {"" == $user_id_from_search } { set user_id_from_search $current_user_id }
 set user_name_from_search [db_string uname "select im_name_from_user_id(:user_id_from_search)"]
 
 # ToDo: What if the user_id_from_search is already set???
@@ -92,7 +112,7 @@ set collapse_sql "select object_id, open_p from im_biz_object_tree_status where 
 db_foreach collapse $collapse_sql {set collapsed_hash($object_id) $open_p }
 
 # Check if WF package is installed
-set workflow_installed_p [llength [info proc [db_string get_package_id "select package_id from apm_packages where package_key = 'intranet-timesheet2-workflow'" -default 0]]]
+set workflow_installed_p [util_memoize [list db_string timesheet_wf "select count(*) from apm_enabled_package_versions where package_key = 'intranet-timesheet2-workflow'"]]
 
 # Should entry form show or hide elements?
 set default_is_fold_in_p [parameter::get -package_id [apm_package_id_from_key intranet-timesheet2] -parameter "EntryFormDefaultIsFoldIn" -default 0]
@@ -157,13 +177,13 @@ if {$internal_note_exists_p} {
 
 
 # Append user-defined menus
-set bind_vars [list user_id $user_id user_id_from_search $user_id_from_search julian_date $julian_date return_url $return_url show_week_p $show_week_p]
+set bind_vars [list user_id $current_user_id user_id_from_search $user_id_from_search julian_date $julian_date return_url $return_url show_week_p $show_week_p]
 set menu_links_html [im_menu_ul_list -no_uls 1 "timesheet_hours_new_admin" $bind_vars]
 
 set different_project_url "other-projects?[export_url_vars julian_date user_id_from_search]"
 
 # Log Absences
-set add_absences_p [im_permission $user_id add_absences]
+set add_absences_p [im_permission $current_user_id add_absences]
 set absences_url [export_vars -base "/intranet-timesheet2/absences/new" {return_url user_id_from_search}]
 set absences_link_text [lang::message::lookup "" intranet-timesheet2.Log_Absences "Log Absences"]
 
@@ -252,7 +272,7 @@ set log_hours_on_solitary_projects_p [parameter::get_from_package_key -package_k
 set task_visibility_scope [parameter::get_from_package_key -package_key "intranet-timesheet2" -parameter TimesheetTaskVisibilityScope -default "sub_project"]
 
 # Can the current user log hours for other users?
-set add_hours_all_p [im_permission $user_id "add_hours_all"]
+set add_hours_all_p [im_permission $current_user_id "add_hours_all"]
 
 # What is a closed status?
 set closed_stati_select "select * from im_sub_categories([im_project_status_closed])"
@@ -488,7 +508,7 @@ switch $task_visibility_scope {
 			UNION
 				-- Select any project or task with explicit membership
 				select  r.object_id_one
-				from    acs_rels r, im_projects p
+				from    acs_rels r
 				where   r.object_id_two = :user_id_from_search
 	"
     }
@@ -513,7 +533,7 @@ set child_project_sql "
 				where	h.user_id = :user_id_from_search
 					and $h_day_in_dayweek
 			    UNION
-			        -- Project with hours on it plus any of its superiors
+				-- Project with hours on it plus any of its superiors
 				select	main_p.project_id
 				from	im_hours h,
 					im_projects p,
@@ -544,9 +564,6 @@ set child_project_sql "
 
 set sort_integer 0
 set sort_legacy  0
-
-# ad_return_complaint 1 $list_sort_order
-
 switch $list_sort_order {
     name { 
 	set sort_order "lower(children.project_name)"
@@ -566,7 +583,7 @@ switch $list_sort_order {
 
 set exclude_closed_tickets_sql ""
 if {[db_table_exists im_tickets]} { 
-   set exclude_closed_tickets_sql "
+    set exclude_closed_tickets_sql "
 		and coalesce(
 			(select ticket_status_id from im_tickets t where t.ticket_id = children.project_id),
 			0
@@ -645,19 +662,19 @@ if { $workflow_installed_p } {
 }
 
 set hours_sql "
-        select
-                h.*,
-                to_char(h.day, 'J') as julian_day,
-                $conf_status_sql
-                p.project_id
-                $material_sql
-        from
-                im_hours h,
-                im_projects p
-        where
-                h.project_id = p.project_id and
-                h.user_id = :user_id_from_search and
-                $h_day_in_dayweek
+	select
+		h.*,
+		to_char(h.day, 'J') as julian_day,
+		$conf_status_sql
+		p.project_id
+		$material_sql
+	from
+		im_hours h,
+		im_projects p
+	where
+		h.project_id = p.project_id and
+		h.user_id = :user_id_from_search and
+		$h_day_in_dayweek
 "
 db_foreach hours_hash $hours_sql {
     set key "$project_id-$julian_day"
@@ -666,14 +683,13 @@ db_foreach hours_hash $hours_sql {
     set hours_note($key) $note
     set hours_internal_note($key) $internal_note
     if {"" != $invoice_id} {
-        set hours_invoice_hash($key) $invoice_id
+	set hours_invoice_hash($key) $invoice_id
     }
     if {$materials_p} {
 	set hours_material_id($key) $material_id
 	set hours_material($key) $material
     }
 }
-
 
 # ---------------------------------------------------------
 # Get the list of open projects with direct membership
@@ -711,13 +727,13 @@ db_foreach open_projects $open_projects_sql {
 # ---------------------------------------------------------
 
 set has_children_sql "
-        select  parent_p.project_id as parent_id,
+	select  parent_p.project_id as parent_id,
 		child_p.project_id as child_id
-        from
+	from
 		im_projects main_p,
 		im_projects parent_p,
 		im_projects child_p
-        where
+	where
 		main_p.project_id in ($parent_project_sql) and
 		tree_ancestor_key(parent_p.tree_sortkey, 1) = main_p.tree_sortkey and
 		child_p.parent_id = parent_p.project_id
@@ -799,72 +815,72 @@ template::multirow foreach hours_multirow {
 
     #-- -----------------------------------------------------------------------------------------------
     #-- The following code block does nothing but setting the variable 
-    #--          filter_surpress_output_p
+    #--	  filter_surpress_output_p
     #-- which is used to determine the visibility of a row based on the search filter 
     #-- -----------------------------------------------------------------------------------------------
 
     if { "" != $search_task } {
-	   set search_task [string trim $search_task]
-	   if { !$showing_child_elements_p || $ctr==0 } {
-		  if { [string first [string tolower $search_task] [string tolower $project_name]] == -1 } {
-			 set filter_surpress_output_p 1
-		  } else {
-			 # Set mode
-			 set showing_child_elements_p 1
-			 # Save vars
-			 set last_level_shown $subproject_level
-			 set level_entered_in_showing_child_elements $subproject_level
-			 set top_project_id_saved $top_project_id
-		  }
-	   } else {
-		  # In mode "Show child elements"
-            if { $top_project_id_saved != $top_project_id } {
-                # New top parent project
-                # Reset
-                set showing_child_elements_p 0
-                # Save vars
-                set top_project_id_saved $top_project_id
-			 
-                if { [string first [string tolower $search_task] [string tolower $project_name]] == -1 } {
-				set filter_surpress_output_p 1
-                } else {
-                    # Set mode & last_level_shown
-                    set showing_child_elements_p 1
-				set level_entered_in_showing_child_elements $subproject_level
-                    set last_level_shown $subproject_level
-                }
-            } else {
-                if { $subproject_level == $last_level_shown } {
-				if { $level_entered_in_showing_child_elements >= $subproject_level} {
-				    # reset last_level_shown
-				    # Check for searchstring
-				    if { [string first [string tolower $search_task] [string tolower $project_name]] == -1 } {
-					   set filter_surpress_output_p 1
-				    } else {
-                            set last_level_shown $subproject_level
-				    }			
-				} else {
-				    set last_level_shown $subproject_level
-				}
-                } elseif { $subproject_level > $last_level_shown } {
-				# show in all cases
-				set last_level_shown $subproject_level
-                } else {
-				if { $level_entered_in_showing_child_elements >= $subproject_level} {
-				    # ns_log NOTICE "/intranet-timesheet2/www/hours/new:: Check for searchstring"
-				    if { [string first [string tolower $search_task] [string tolower $project_name]] == -1 } {
-					   set showing_child_elements_p 0
-					   set filter_surpress_output_p 1
-				    } else {
-					   set last_level_shown $subproject_level
-				    }
-				} else {
-				    set last_level_shown $subproject_level
-				}
-			 }
-		  }
-	   }
-        set top_project_id_saved $top_project_id
+	set search_task [string trim $search_task]
+	if { !$showing_child_elements_p || $ctr==0 } {
+	    if { [string first [string tolower $search_task] [string tolower $project_name]] == -1 } {
+		set filter_surpress_output_p 1
+	    } else {
+		# Set mode
+		set showing_child_elements_p 1
+		# Save vars
+		set last_level_shown $subproject_level
+		set level_entered_in_showing_child_elements $subproject_level
+		set top_project_id_saved $top_project_id
+	    }
+	} else {
+	    # In mode "Show child elements"
+	    if { $top_project_id_saved != $top_project_id } {
+		# New top parent project
+		# Reset
+		set showing_child_elements_p 0
+		# Save vars
+		set top_project_id_saved $top_project_id
+		
+		if { [string first [string tolower $search_task] [string tolower $project_name]] == -1 } {
+		    set filter_surpress_output_p 1
+		} else {
+		    # Set mode & last_level_shown
+		    set showing_child_elements_p 1
+		    set level_entered_in_showing_child_elements $subproject_level
+		    set last_level_shown $subproject_level
+		}
+	    } else {
+		if { $subproject_level == $last_level_shown } {
+		    if { $level_entered_in_showing_child_elements >= $subproject_level} {
+			# reset last_level_shown
+			# Check for searchstring
+			if { [string first [string tolower $search_task] [string tolower $project_name]] == -1 } {
+			    set filter_surpress_output_p 1
+			} else {
+			    set last_level_shown $subproject_level
+			}			
+		    } else {
+			set last_level_shown $subproject_level
+		    }
+		} elseif { $subproject_level > $last_level_shown } {
+		    # show in all cases
+		    set last_level_shown $subproject_level
+		} else {
+		    if { $level_entered_in_showing_child_elements >= $subproject_level} {
+			# ns_log NOTICE "/intranet-timesheet2/www/hours/new:: Check for searchstring"
+			if { [string first [string tolower $search_task] [string tolower $project_name]] == -1 } {
+			    set showing_child_elements_p 0
+			    set filter_surpress_output_p 1
+			} else {
+			    set last_level_shown $subproject_level
+			}
+		    } else {
+			set last_level_shown $subproject_level
+		    }
+		}
+	    }
+	}
+	set top_project_id_saved $top_project_id
     }
     
     # --------------------------------------------- 
@@ -876,21 +892,21 @@ template::multirow foreach hours_multirow {
 
     # Check for log_p - if the project is in one of the closed states
     switch $task_visibility_scope {
-	   "main_project" - "specified" {
-		  # Membership is this specific project not necessary - just check status
-		  set log_p 1
-		  if {[lsearch -exact $closed_stati $project_status_id] > -1} { set log_p 0 }
-	   }
-	   "sub_project" {
-		  # Control is with subprojects, tasks are always considered open.
-		  set log_p [info exists member_projects_hash($project_id)]
-		  if {$project_type_id == [im_project_type_task]} { set log_p 1 }
-		  if {$project_type_id == [im_project_type_ticket]} { set log_p 1 }
-	   }
-	   "task" {
-		  # Control is with each task individually
-		  set log_p [info exists member_projects_hash($project_id)]
-	   }
+	"main_project" - "specified" {
+	    # Membership is this specific project not necessary - just check status
+	    set log_p 1
+	    if {[lsearch -exact $closed_stati $project_status_id] > -1} { set log_p 0 }
+	}
+	"sub_project" {
+	    # Control is with subprojects, tasks are always considered open.
+	    set log_p [info exists member_projects_hash($project_id)]
+	    if {$project_type_id == [im_project_type_task]} { set log_p 1 }
+	    if {$project_type_id == [im_project_type_ticket]} { set log_p 1 }
+	}
+	"task" {
+	    # Control is with each task individually
+	    set log_p [info exists member_projects_hash($project_id)]
+	}
     }
 
     # --------------------------------------------- 
@@ -939,9 +955,9 @@ template::multirow foreach hours_multirow {
     # Change back from a closed branch to an open branch
     set pnam [string range $project_name 0 10]
     if {$subproject_level <= $closed_level} {
-	   ns_log Notice "new: $pnam: action: reset to open"
-	   set closed_status [im_project_status_open]
-	   set closed_level 0
+	ns_log Notice "new: $pnam: action: reset to open"
+	set closed_status [im_project_status_open]
+	set closed_level 0
     }
 
     ns_log Notice "new: $pnam: p=$project_id, depth=$subproject_level, closed_level=$closed_level, status=$project_status"
@@ -950,9 +966,9 @@ template::multirow foreach hours_multirow {
     # Remember at what level this has happened to undo the change
     # once we're at the same level again:
     if {!$log_p && $closed_status == [im_project_status_open]} {
-	   ns_log Notice "new: $pnam: action: set to closed: log_p=$log_p, vis=$task_visibility_scope"
-	   set closed_status [im_project_status_closed]
-	   set closed_level $subproject_level
+	ns_log Notice "new: $pnam: action: set to closed: log_p=$log_p, vis=$task_visibility_scope"
+	set closed_status [im_project_status_closed]
+	set closed_level $subproject_level
     }
 
     # ---------------------------------------------
@@ -967,29 +983,29 @@ template::multirow foreach hours_multirow {
     set level $subproject_level
     set dots_for_filter ""
     while {$level > 0} {
-	   set indent "$nbsps$indent"
-	   set level [expr $level-1]
-	   append dots_for_filter "."
+	set indent "$nbsps$indent"
+	set level [expr $level-1]
+	append dots_for_filter "."
     }
 
-   # ------------------------------------------------------------------------------------------
-   # Insert intermediate header for every top-project
-   # ------------------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------------------
+    # Insert intermediate header for every top-project
+    # ------------------------------------------------------------------------------------------
 
     if {$parent_project_nr != $old_parent_project_nr } { 
-	   set project_name "<b>$project_name</b>"
-	   set project_nr "<b>$project_nr</b>"
-	   # Save information if Top Project has been shown 
-	   # If Top Project is not shown because of filter, we have to add this info to the task/subproject 
-	   # task or subproject 
-	   if { !$filter_surpress_output_p } { 
-		  set top_parent_shown_p 1 
-		  # Add an empty line after every main project
-		  append table_rows "<tr class='rowplain @@visibility-class@@'><td colspan=99>&nbsp;</td></tr>\n" 
-	   } else { 
-		  set top_parent_shown_p 0	
-	   }
-	   set old_parent_project_nr $parent_project_nr
+	set project_name "<b>$project_name</b>"
+	set project_nr "<b>$project_nr</b>"
+	# Save information if Top Project has been shown 
+	# If Top Project is not shown because of filter, we have to add this info to the task/subproject 
+	# task or subproject 
+	if { !$filter_surpress_output_p } { 
+	    set top_parent_shown_p 1 
+	    # Add an empty line after every main project
+	    append table_rows "<tr class='rowplain @@visibility-class@@'><td colspan=99>&nbsp;</td></tr>\n" 
+	} else { 
+	    set top_parent_shown_p 0	
+	}
+	set old_parent_project_nr $parent_project_nr
     }
 
    # Make sure to surpress closed projects
@@ -1003,15 +1019,15 @@ template::multirow foreach hours_multirow {
     if {$show_project_nr_p} { set ptitle "$project_nr - $project_name" } else { set ptitle $project_name }
 
     if { !$filter_surpress_output_p } { 
-	   if { !$top_parent_shown_p && $project_id != $top_project_id && "" != $search_task } {
-		  # This row only serves as "title" row showing the top-parent project in case a "string search filter" us used  
-		  append table_rows "<tr $tr_class([expr $ctr % 2])>\n<td>@@fold-icon-class@@"
-		  append table_rows "<strong><a href='/intranet/projects/view?project_id=$top_project_id' style='text-decoration: none'>
-                                        <span style='color:\#A9D0F5'>$top_parent_project_name $dots_for_filter</span></a></strong><br>"
-		  append table_rows "</td></tr>"
-		  set top_parent_shown_p 1
-	   }	
-	   append table_rows "<tr $tr_class([expr $ctr % 2]) id=\"${project_id}\" hidden_by=\"@@hidden_by@@\" fold_status=\"@@fold_status@@\" >\n<td><nobr>$indent @@fold-icon-class@@ <a href=\"$project_url\">$ptitle</a></nobr></td>\n" 
+	if { !$top_parent_shown_p && $project_id != $top_project_id && "" != $search_task } {
+	    # This row only serves as "title" row showing the top-parent project in case a "string search filter" us used  
+	    append table_rows "<tr $tr_class([expr $ctr % 2])>\n<td>@@fold-icon-class@@"
+	    append table_rows "<strong><a href='/intranet/projects/view?project_id=$top_project_id' style='text-decoration: none'>
+					<span style='color:\#A9D0F5'>$top_parent_project_name $dots_for_filter</span></a></strong><br>"
+	    append table_rows "</td></tr>"
+	    set top_parent_shown_p 1
+	}	
+	append table_rows "<tr $tr_class([expr $ctr % 2]) id=\"${project_id}\" hidden_by=\"@@hidden_by@@\" fold_status=\"@@fold_status@@\" >\n<td><nobr>$indent @@fold-icon-class@@ <a href=\"$project_url\">$ptitle</a></nobr></td>\n" 
     }
 
     # ------------------------------------------------------------------------------
@@ -1019,32 +1035,32 @@ template::multirow foreach hours_multirow {
     # ------------------------------------------------------------------------------
     set help_text ""
     if {$closed_p && (!$user_is_project_member_p && $project_is_task_p)} { 
-	   append help_text [lang::message::lookup "" intranet-timesheet2.Nolog_closed_p "The project or one of its parents has been closed or requires membership. "] 
+	append help_text [lang::message::lookup "" intranet-timesheet2.Nolog_closed_p "The project or one of its parents has been closed or requires membership. "] 
     }
     if {![string eq "t" $edit_hours_p]} { append help_text [lang::message::lookup "" intranet-timesheet2.Nolog_edit_hours_p "The time period has been closed for editing. "] }
     if {!$log_on_parent_p} { append help_text [lang::message::lookup "" intranet-timesheet2.Nolog_log_on_parent_p "This project has sub-projects or tasks. "] }
     if {$solitary_main_project_p} { 
-	   append help_text [lang::message::lookup "" intranet-timesheet2.Nolog_solitary_main_project_p "This is a 'solitary' main project. Your system is configured in such a way, that you can't log hours on it. "] 
+	append help_text [lang::message::lookup "" intranet-timesheet2.Nolog_solitary_main_project_p "This is a 'solitary' main project. Your system is configured in such a way, that you can't log hours on it. "] 
     }
-   
+    
     # Not a member: This isn't relevant in all modes:
     switch $task_visibility_scope {
-        "main_project" - "specified" {
-		  # user_is_project_member_p not relevant at all.
-		  set show_member_p 0
-        }
-        "sub_project" {
-		  # user_is_project_member_p only relevant for projects, not for tasks,
-		  # because it is the "controlling" (sub-) project that determines.
-		  set show_member_p [expr !$project_is_task_p]
-        }
-        "task" {
-		  # user_is_project_member_p relevant everywhere
-		  set show_member_p 1
-        }
-	   default { 
-		  set show_member_p 0
-	   }
+	"main_project" - "specified" {
+	    # user_is_project_member_p not relevant at all.
+	    set show_member_p 0
+	}
+	"sub_project" {
+	    # user_is_project_member_p only relevant for projects, not for tasks,
+	    # because it is the "controlling" (sub-) project that determines.
+	    set show_member_p [expr !$project_is_task_p]
+	}
+	"task" {
+	    # user_is_project_member_p relevant everywhere
+	    set show_member_p 1
+	}
+	default { 
+	    set show_member_p 0
+	}
     }
 
     if {$show_member_p && !$user_is_project_member_p} { append help_text [lang::message::lookup "" intranet-timesheet2.Not_member_of_project "You are not a member of this project. "] }
@@ -1056,7 +1072,7 @@ template::multirow foreach hours_multirow {
 
     set debug_html ""
     if {$debug} {
-	   set debug_html "
+	set debug_html "
 	<nobr>
 	sol=$solitary_main_project_p,
 	mem=$user_is_project_member_p,
@@ -1145,53 +1161,53 @@ template::multirow foreach hours_multirow {
 
     # Some organizations might prefer to show elements as "folded in" by default
     if { $default_is_fold_in_p } {
-        if { ![info exists collapsed_hash($project_id)] } {
-            set collapsed_hash($project_id) c
-        }
+	if { ![info exists collapsed_hash($project_id)] } {
+	    set collapsed_hash($project_id) c
+	}
     }
 
     # Add icon fold-in/fold-out after first <td> on main project level & define visibility  
     if { "" == $search_task } {
-	   # SET VISIBILITY 
-	   # Always show if Top_Parent 
-	   if { [info exists has_parent_hash($project_id)] } {
-		  set parent_ids [tree_list_get_all_parents $tree_parent_child_list $project_id ""]
-		  foreach id $parent_ids {
-			 if { [info exists collapsed_hash($id)] && "c" == $collapsed_hash($id) } {
-				regsub -all "@@hidden_by@@" $table_rows "$id" table_rows
-				regsub -all "@@visibility-class@@" $table_rows "row_hidden" table_rows
-				break
-			 }
-		  }
-		  # If already replaced w/ for-each loop above, this has no effect
-		  regsub -all "@@hidden_by@@" $table_rows "" table_rows
-		  regsub -all "@@visibility-class@@" $table_rows "row_visible" table_rows
-	   } else {
-		  # This project as no parents, must be a Top-Project --> always show
-            regsub -all "@@hidden_by@@" $table_rows "" table_rows
-            regsub -all "@@visibility-class@@" $table_rows "row_visible" table_rows
-	   }
+	# SET VISIBILITY 
+	# Always show if Top_Parent 
+	if { [info exists has_parent_hash($project_id)] } {
+	    set parent_ids [tree_list_get_all_parents $tree_parent_child_list $project_id ""]
+	    foreach id $parent_ids {
+		if { [info exists collapsed_hash($id)] && "c" == $collapsed_hash($id) } {
+		    regsub -all "@@hidden_by@@" $table_rows "$id" table_rows
+		    regsub -all "@@visibility-class@@" $table_rows "row_hidden" table_rows
+		    break
+		}
+	    }
+	    # If already replaced w/ for-each loop above, this has no effect
+	    regsub -all "@@hidden_by@@" $table_rows "" table_rows
+	    regsub -all "@@visibility-class@@" $table_rows "row_visible" table_rows
+	} else {
+	    # This project as no parents, must be a Top-Project --> always show
+	    regsub -all "@@hidden_by@@" $table_rows "" table_rows
+	    regsub -all "@@visibility-class@@" $table_rows "row_visible" table_rows
+	}
 
-	   # SET ICON & FOLD-STATUS 	   
-	   # Set icon only when task has children 
-	   if { [info exists has_children_hash($project_id)] } {
-		  set in_out "in" ; # "minus"
-		  set fold_status "o" 
-		  if { [info exists collapsed_hash($project_id)] && "c" == $collapsed_hash($project_id) } {
-			 set in_out "out"
-			 set fold_status "c"
-		  } 
-		  regsub -all "@@fold-icon-class@@" $table_rows "<input class=\"fold_${in_out}_link\" id=\"lnk$project_id\" type=\"button\" value=\"\" onclick=\"toggle_visibility('lnk$project_id', '${project_id}');\">" table_rows	   
-		  regsub -all "@@fold_status@@" $table_rows $fold_status table_rows		  
-	   } else {
-		  regsub -all "@@fold-icon-class@@" $table_rows "\\&nbsp;\\&nbsp;\\&nbsp;" table_rows
-		  regsub -all "@@fold_status@@" $table_rows "o" table_rows
-	   }
-   } else {
-	   # Search Mode - show everything  
-	   regsub -all "@@fold-icon-class@@" $table_rows "" table_rows
-	   regsub -all "@@visibility-class@@" $table_rows "row_visible" table_rows
-   }
+	# SET ICON & FOLD-STATUS 	   
+	# Set icon only when task has children 
+	if { [info exists has_children_hash($project_id)] } {
+	    set in_out "in" ; # "minus"
+	    set fold_status "o" 
+	    if { [info exists collapsed_hash($project_id)] && "c" == $collapsed_hash($project_id) } {
+		set in_out "out"
+		set fold_status "c"
+	    } 
+	    regsub -all "@@fold-icon-class@@" $table_rows "<input class=\"fold_${in_out}_link\" id=\"lnk$project_id\" type=\"button\" value=\"\" onclick=\"toggle_visibility('lnk$project_id', '${project_id}');\">" table_rows	   
+	    regsub -all "@@fold_status@@" $table_rows $fold_status table_rows		  
+	} else {
+	    regsub -all "@@fold-icon-class@@" $table_rows "\\&nbsp;\\&nbsp;\\&nbsp;" table_rows
+	    regsub -all "@@fold_status@@" $table_rows "o" table_rows
+	}
+    } else {
+	# Search Mode - show everything  
+	regsub -all "@@fold-icon-class@@" $table_rows "" table_rows
+	regsub -all "@@visibility-class@@" $table_rows "row_visible" table_rows
+    }
 
     append results $table_rows 
 
@@ -1240,9 +1256,9 @@ foreach j $weekly_logging_days {
 
 set left_navbar_html "
       <div class='filter-block'>
-        <div class='filter-title'>
+	<div class='filter-title'>
 	    Timesheet Filters
-        </div>
+	</div>
 
 	<form action=new method=GET>
 	<!-- don't include return_url in the export_form_vars, as it includes the old user -->
@@ -1278,24 +1294,24 @@ append left_navbar_html "
 
 append left_navbar_html "
       <div class='filter-block'>
-         <div class='filter-title'>
-            #intranet-timesheet2.Other_Options#
-         </div>
+	 <div class='filter-title'>
+	    #intranet-timesheet2.Other_Options#
+	 </div>
 	 <ul>
 	    <li>
 	      <a href='$different_date_url'>
-	        #intranet-timesheet2.lt_Log_hours_for_a_diffe#
+		#intranet-timesheet2.lt_Log_hours_for_a_diffe#
 	      </a>
-            </li>
+	    </li>
 "
 
-if {$user_id == $user_id_from_search && $add_absences_p} {
+if {$current_user_id == $user_id_from_search && $add_absences_p} {
     append left_navbar_html "
 	    <li><a href='$absences_url'>$absences_link_text</a></li>
     "
 }
 
-if {[im_permission $user_id_from_search view_projects_all]} {
+if {[im_permission $current_user_id view_projects_all]} {
     append left_navbar_html "
 	    <li><a href='$different_project_url'>#intranet-timesheet2.lt_Add_hours_on_other_pr#</A></li>
     "
@@ -1310,6 +1326,6 @@ append left_navbar_html "
 	    <!-- Dynamically added menu links -->
 	    $menu_links_html
 
-         </ul>
+	 </ul>
       </div>
 "

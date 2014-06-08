@@ -46,10 +46,35 @@ ad_page_contract {
 
 set current_user_id [ad_maybe_redirect_for_registration]
 set add_hours_all_p [im_permission $current_user_id "add_hours_all"]
-set add_hours_for_subordinates_p [im_permission $current_user_id "add_hours_for_subordinates"]
+set add_hours_direct_reports_p [im_permission $current_user_id "add_hours_direct_reports"]
 
-if {"" == $user_id_from_search || !$add_hours_all_p} { set user_id_from_search $current_user_id }
-set user_name [im_name_from_user_id $user_id_from_search]
+
+switch $user_id_from_search {
+    "" - all - mine - direct_reports - employees - customers - providers { 
+	set user_id_from_search $current_user_id 
+    }
+    default {
+	# Is the user allowed to log hours for another user?
+	if {!$add_hours_all_p} {
+	    if {$add_hours_direct_reports_p} {
+		set reportees [im_user_direct_reports_ids -user_id $current_user_id]
+		if {[lsearch $reportees $user_id_from_search] < 0} {
+		    # User not in reportees - reset to current user
+		    set user_id_from_search $current_user_id 
+		}
+	    } else {
+		# The user has no permission to log hours for others
+		set user_id_from_search $current_user_id 
+	    }
+	}
+    }
+}
+
+
+set user_name $user_id_from_search
+if {[string is integer $user_id_from_search]} {
+    set user_name [im_name_from_user_id $user_id_from_search]
+}
 
 # Eliminate "message" from return_url, which causes trouble in some places
 if {"" == $return_url} {
@@ -59,14 +84,6 @@ if {"" == $return_url} {
         append return_url "?$query"
     }
 }
-
-# ---- Check write permissions ---- 
-# Site Wide Admins can log hours for everybody
-set write_p [im_is_user_site_wide_or_intranet_admin $current_user_id]
-# User can do anything with its own hours
-if {$current_user_id == $user_id_from_search} { set write_p 1 }
-# Check for privilege "Add Hours All" 
-if { $add_hours_all_p } { set write_p 1 }
 
 set page_title [lang::message::lookup "" intranet-timesheet2.Timesheet_for_user_name "Timesheet for %user_name%"]
 set context_bar [im_context_bar "[_ intranet-timesheet2.Hours]"]
@@ -157,19 +174,15 @@ calendar_get_info_from_db $date
 # --------------------------------------------------------------
 # Grab all the hours from im_hours
 set sql "
-	select 
-		to_char(day, 'J') as julian_date, 
+	select	to_char(day, 'J') as julian_date, 
 		sum(hours) as hours
-	from
-		im_hours
-	where
-		user_id = :user_id_from_search
+	from	im_hours
+	where	user_id = :user_id_from_search
 		and day between to_date(:first_julian_date, 'J') and to_date(:last_julian_date, 'J') 
 		$project_restriction
 	group by 
 		to_char(day, 'J')
 "
-
 db_foreach hours_logged $sql {
     set users_hours($julian_date) $hours
 }
@@ -233,7 +246,7 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
 	set hours_for_this_month [expr $hours_for_this_month + $users_hours($current_date)]
     } else {
 	if { $timesheet_entry_blocked_p } {
-		set hours "<span class='log_hours'>[lang::message::lookup "" intranet-timesheet2.Nolog_Workflow_In_Progress "0 hours"]</span>"
+	    set hours "<span class='log_hours'>[lang::message::lookup "" intranet-timesheet2.Nolog_Workflow_In_Progress "0 hours"]</span>"
 	} else {
 	    ns_log NOTICE "TS: Not Blocked: $current_date"
 	    if { [string first $week_day $weekly_logging_days] != -1 } {
@@ -253,30 +266,29 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
     set curr_absence [lindex $absence_list $absence_index]
     if {"" != $curr_absence} { set curr_absence "<br>$curr_absence" }
 
-    if {$write_p} {
-	set hours_url [export_vars -base "new" {user_id_from_search {julian_date $current_date} show_week_p return_url project_id project_id}]
+    set hours_url [export_vars -base "new" {user_id_from_search {julian_date $current_date} show_week_p return_url project_id project_id}]
 
-	if { [string first $week_day $weekly_logging_days] != -1 } {
-		set hours "<a href=$hours_url>$hours</a>"
-	} else {
-		set hours "$hours"
-	}
+    if { [string first $week_day $weekly_logging_days] != -1 } {
+	set hours "<a href=$hours_url>$hours</a>"
+    } else {
+	set hours "$hours"
+    }
 
-	if {$column_ctr == 1 && $show_link_log_hours_for_week_p } {
-	    set log_hours_for_the_week_html "<br>
+    if {$column_ctr == 1 && $show_link_log_hours_for_week_p } {
+	set log_hours_for_the_week_html "<br>
                 <a href=[export_vars -base "new" {user_id_from_search {julian_date $current_date} {show_week_p 1} return_url}]
                 ><span class='log_hours'>[lang::message::lookup "" intranet-timesheet2.Log_hours_for_the_week "Log hours for the week"]</span></a>
  	    "
-	} else {
-	    set log_hours_for_the_week_html ""
-	}
+    } else {
+	set log_hours_for_the_week_html ""
+    }
 
-        if { [info exists users_hours($current_date)] } {
-	    if { [info exists unconfirmed_hours($current_date)] && $confirm_timesheet_hours_p } {
-		set no_unconfirmed_hours [get_unconfirmed_hours_for_period $current_user_id $current_date $current_date]  
-                if { 0 == $no_unconfirmed_hours || "" == $no_unconfirmed_hours } {
-		    	# ns_log notice "There are no unconfirmed hours: [info exists hash_conf_object_id($julian_date)]"
-                        set wf_actice_case_sql "
+    if { [info exists users_hours($current_date)] } {
+	if { [info exists unconfirmed_hours($current_date)] && $confirm_timesheet_hours_p } {
+	    set no_unconfirmed_hours [get_unconfirmed_hours_for_period $user_id_from_search $current_date $current_date]  
+	    if {0 == $no_unconfirmed_hours || "" == $no_unconfirmed_hours} {
+		# ns_log notice "There are no unconfirmed hours: [info exists hash_conf_object_id($julian_date)]"
+		set wf_actice_case_sql "
                                 select count(*)
                                 from im_hours h, wf_cases c
                                 where   c.object_id = h.conf_object_id and
@@ -284,29 +296,27 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
                                         c.state <> 'finished' and
                                         h.user_id = $user_id_from_search
                         "
-                        set no_wf_cases [db_string no_wf_cases $wf_actice_case_sql]
-                        if { $no_wf_cases > 0 } {
-                                set html "<span id='hours_confirmed_yellow'>$hours</span>$curr_absence$log_hours_for_the_week_html"
-                        } else {
-                                set html "<span id='hours_confirmed_green'>$hours</span>$curr_absence$log_hours_for_the_week_html"
-                        }
-                 } else {
-		     set html "${hours}${curr_absence}<br>" 
-			if { $confirm_timesheet_hours_p } {
-				append html "[lang::message::lookup "" intranet-timesheet2.ToConfirm "To confirm"]:&nbsp;"
-				append html "<span id='hours_confirmed_red'>${no_unconfirmed_hours}&nbsp;[_ intranet-timesheet2.hours]</span>"
-			}	
-		     append html "$log_hours_for_the_week_html"
-                 }
+		set no_wf_cases [db_string no_wf_cases $wf_actice_case_sql]
+		if { $no_wf_cases > 0 } {
+		    set html "<span id='hours_confirmed_yellow'>$hours</span>$curr_absence$log_hours_for_the_week_html"
+		} else {
+		    set html "<span id='hours_confirmed_green'>$hours</span>$curr_absence$log_hours_for_the_week_html"
+		}
 	    } else {
-		set html "${hours}${curr_absence}$log_hours_for_the_week_html"
+		set html "${hours}${curr_absence}<br>" 
+		if {$confirm_timesheet_hours_p} {
+		    append html "[lang::message::lookup "" intranet-timesheet2.ToConfirm "To confirm"]:&nbsp;"
+		    append html "<span id='hours_confirmed_red'>${no_unconfirmed_hours}&nbsp;[_ intranet-timesheet2.hours]</span>"
+		}	
+		append html "$log_hours_for_the_week_html"
 	    }
-        } else {
-		set html "${hours}${curr_absence}$log_hours_for_the_week_html"
-        }
+	} else {
+	    set html "${hours}${curr_absence}$log_hours_for_the_week_html"
+	}
     } else {
-        set html "$curr_absence$log_hours_for_the_week_html"
+	set html "${hours}${curr_absence}$log_hours_for_the_week_html"
     }
+
 
     # Render 
     if {($column_ctr == 7 || $current_date_ansi == $last_day_of_month_ansi) && $show_last_confirm_button_p } {
@@ -329,8 +339,9 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
 		set end_date_julian_wf $current_date    
 	    }
 
-	    set no_unconfirmed_hours [get_unconfirmed_hours_for_period $current_user_id $start_date_julian_wf $end_date_julian_wf]
-	    # ns_log Debug "Create weekly CONFIRM button: start: $start_date_julian_wf, end: $start_date_julian_wf, No. unconfirmed Hours $no_unconfirmed_hours, confirm: $confirm_timesheet_hours_p" 
+	    set no_unconfirmed_hours [get_unconfirmed_hours_for_period $user_id_from_search $start_date_julian_wf $end_date_julian_wf]
+
+	    # ns_log NOTICE "Create weekly CONFIRM button: start: $start_date_julian_wf, end: $start_date_julian_wf, No. unconfirmed Hours $no_unconfirmed_hours, confirm: $confirm_timesheet_hours_p" 
 	    if {$confirm_timesheet_hours_p && (0 < $no_unconfirmed_hours || "" != $no_unconfirmed_hours) } {
 		set base_url_confirm_wf "/intranet-timesheet2-workflow/conf-objects/new-timesheet-workflow"  
 		set conf_url [export_vars -base $base_url_confirm_wf { {user_id $user_id_from_search} {start_date_julian $start_date_julian_wf} {end_date_julian $end_date_julian_wf } return_url}]
@@ -427,21 +438,12 @@ set left_navbar_html "
 	</tr>
 "
 
-if {$add_hours_all_p} {
-    append left_navbar_html "
-        <tr>
-            <td>[lang::message::lookup "" intranet-timesheet2.Log_hours_for_user "Log Hours<br>for User"]</td>
-            <td>[im_user_select -include_empty_p 1 -include_empty_name "" user_id_from_search $user_id_from_search]</td>
-        </tr>
-    "
-} elseif { $add_hours_for_subordinates_p } {
-    append left_navbar_html "
-        <tr>
-            <td>[lang::message::lookup "" intranet-timesheet2.Log_hours_for_user "Log Hours<br>for User"]</td>
-	    <td>[im_subordinates_select -include_empty_p 1 -include_empty_name "" -user_id $user_id_from_search user_id_from_search ""]</td>
-        </tr>
-    "
-}
+append left_navbar_html "
+    <tr>
+        <td>[lang::message::lookup "" intranet-timesheet2.Log_hours_for_user "Log Hours<br>for User"]</td>
+	<td>[im_user_timesheet_hours_select user_id_from_search $user_id_from_search]</td>
+    </tr>
+"
 
 append left_navbar_html "
 	<tr><td></td><td><input type=submit value='#acs-kernel.common_Go#'></td></tr>
@@ -459,16 +461,25 @@ append left_navbar_html "
 "
 
 # Add Absences link
+
+if {$current_user_id != $user_id_from_search} {
+    set absences_list_url [export_vars -base "/intranet-timesheet2/absences/index" {return_url user_id_from_search}]
+    set absences_list_link_text [lang::message::lookup "" intranet-timesheet2.Absences_for_user_name "Absences for %user_name%"]
+    append left_navbar_html "
+	    <li><a href='$absences_list_url'>$absences_list_link_text</a></li>
+    "
+}
+
 set add_absences_p [im_permission $current_user_id add_absences]
 if {$add_absences_p} {
     set absences_url [export_vars -base "/intranet-timesheet2/absences/new" {return_url user_id_from_search}]
-    set absences_link_text [lang::message::lookup "" intranet-timesheet2.Log_Absences "Log Absences"]
+    set absences_link_text [lang::message::lookup "" intranet-timesheet2.Log_Absences_for_user_name "Log Absences for %user_name%"]
     append left_navbar_html "
 	    <li><a href='$absences_url'>$absences_link_text</a></li>
     "
 }
 
-if {![empty_string_p $return_url]} {
+if {![empty_string_p $return_url] && ![regexp {^/intranet-timesheet2/hours/index} $return_url]} {
     append left_navbar_html "
 	    <li><a href='$return_url'>#intranet-timesheet2.lt_Return_to_previous_pa#</a></li>
     "

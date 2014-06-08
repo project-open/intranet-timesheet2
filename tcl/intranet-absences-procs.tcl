@@ -45,23 +45,92 @@ ad_proc -public im_user_absence_status_rejected {} { return 16006 }
 
 ad_proc -public im_user_absence_permissions {user_id absence_id view_var read_var write_var admin_var} {
     Fill the "by-reference" variables read, write and admin
-    with the permissions of $user_id on $absence_id
+    with the permissions of $user_id on $absence_id. 
+    Normally, a user is allowed to see and modify his own
+    absences. Managers may gain additional rights with
+    the privileges view_absences_all and view_absences_direct_reports.
+    Absences under workflow control are a special case: Editing
+    if normally not allowed, unless the user has the permission
+    edit_absence_status.
 } {
     upvar $view_var view
     upvar $read_var read
     upvar $write_var write
     upvar $admin_var admin
-    
-    set view 1
-    set read 1
-    set write 1
-    set admin 1
-    
-    # No read - no write...
-    if {!$read} {
-        set write 0
-        set admin 0
+
+    set current_user_id $user_id
+    set view 0
+    set read 0
+    set write 0
+    set admin 0
+
+    # Empty or bad absence_id
+    if {"" == $absence_id || ![string is integer $absence_id]} { return "" }
+
+    # Get cached absence info
+    if {![db_0or1row absence_info "
+	select	a.owner_id,
+		a.group_id,
+		a.vacation_replacement_id,
+		(select count(*) from wf_cases wfc where wfc.object_id = a.absence_id) as wf_count
+	from	im_user_absences a
+	where	a.absence_id = $absence_id
+    "]} {
+	# Thic can happen if this procedure is called while the absence hasn't yet been created
+	ns_log Error "im_user_absence_permissions: user_id=$user_id, absence_id=$absence_id: Absence not found"
+	return
     }
+
+    # Get cached permissions
+    set add_absences_p [im_permission $current_user_id "add_absences"]
+    set add_absences_all_p [im_permission $current_user_id "add_absences_all"]
+    set add_absences_direct_reports_p [im_permission $current_user_id "add_absences_direct_reports"]
+    set view_absences_p [im_permission $current_user_id "view_absences"]
+    set view_absences_all_p [im_permission $current_user_id "view_absences_all"]
+    set view_absences_direct_reports_p [im_permission $current_user_id "view_absences_direct_reports"]
+    set edit_absence_status [im_permission $current_user_id "edit_absence_status"]
+
+    # The owner and administrators can always read and write
+    if {$current_user_id == $owner_id || $add_absences_all_p} {
+	set read 1
+	set write 1
+    }
+
+    # Vacation replacement and admins can always read
+    if {$view_absences_all_p || $current_user_id == $vacation_replacement_id} {
+	set read 1
+    }
+
+    # Certain managers can read/write the absences of their direct reports:
+    if {!$read && $view_absences_direct_reports_p} {
+	# Get the direct reports of current_user_id (cached in the library)
+	set current_user_direct_reports [im_user_direct_reports_ids -user_id $current_user_id]
+	if {[lsearch $current_user_direct_reports $owner_id] > -1} {
+	    set read 1
+	}
+    }
+
+    if {!$write && $add_absences_direct_reports_p} {
+	# Get the direct reports of current_user_id (cached in the library)
+	set current_user_direct_reports [im_user_direct_reports_ids -user_id $current_user_id]
+	if {[lsearch $current_user_direct_reports $owner_id] > -1} {
+	    set read 1
+	}
+    }
+
+    # Absence under Workflow control: Don't allow to modify
+    # outside the workflow
+    if {$wf_count} {
+	# Special permission for users to modify an absence 
+	# even under workflow control
+	if {!$edit_absence_status} {
+	    set write 0
+	}
+    }
+
+    if {!$read} { set write 0 }
+    set view $read
+    set admin $write
 }
 
 
@@ -298,8 +367,6 @@ ad_proc im_absence_cube_color_list { } {
 ad_proc im_absence_cube_color_list_helper { } {
     Returns the list of colors for the various types of absences
 } {
-
-
     # define default color set 
     set color_list {
         EC9559
@@ -471,7 +538,6 @@ ad_proc im_absence_cube {
     {-absence_status_id "" }
     {-absence_type_id "" }
     {-user_selection "" }
-    {-timescale "" }
     {-report_start_date "" }
     {-report_end_date "" }
     {-user_id_from_search "" }
@@ -545,7 +611,6 @@ ad_proc im_absence_cube {
         }
     }
 
-    ds_comment "user :: $user_selection_type :: $user_selection"
     switch $timescale {
 	today { 
 	    return ""
@@ -590,18 +655,34 @@ ad_proc im_absence_cube {
     set bgcolor(1) " class=rowodd "
     set name_order [parameter::get -package_id [apm_package_id_from_key intranet-core] -parameter "NameOrder" -default 1]
 
+    # ---------------------------------------------------------------
+    # Limit the number of users and days
+    # ---------------------------------------------------------------
+
     if {"" == $report_start_date || "2000-01-01" == $report_start_date} {
 	set report_start_date [db_string start_date "select now()::date"]
     }
 
-    if { "" == $report_end_date } {
-        set report_end_date [db_string end_date "select :report_start_date::date + :num_days::integer"]	
+    if {"" == $report_end_date} {
+	set report_end_date [db_string end_date "select :report_start_date::date + 21"]	
+    }
+
+    if {[catch {
+	set num_days [db_string get_number_days "select (:report_end_date::date - :report_start_date::date)" -default 0]
+	incr num_days
+    } err_msg]} {
+	set num_days 21
+    }
+
+    if {$num_days > 370} {
+	return [lang::message::lookup "" intranet-timesheet2.AbsenceCubeNotShownGreateOneYear "Graphical view of absences only available for periods less than 1 year"]
     }
 
     if {-1 == $absence_type_id} { set absence_type_id "" }
 
+
     # ---------------------------------------------------------------
-    # Limit the number of users and days
+    # Calculate SQL
     # ---------------------------------------------------------------
 
     set criteria [list]
@@ -624,22 +705,47 @@ ad_proc im_absence_cube {
 	    lappend criteria "u.user_id = :current_user_id"
 	}
 	"employees" {
-	    lappend criteria "a.owner_id in (select employee_id from im_employees)"
+	    lappend criteria "u.user_id IN (
+		select	m.member_id
+		from	group_approved_member_map m
+		where	m.group_id = [im_employee_group_id]
+	    )"
 	}
 	"providers" {
-	    lappend criteria "u.user_id IN (select	m.member_id 
-							from	group_approved_member_map m 
-							where	m.group_id = [im_freelance_group_id]
-							)"
+	    lappend criteria "u.user_id IN (
+		select	m.member_id 
+		from	group_approved_member_map m 
+		where	m.group_id = [im_freelance_group_id]
+	    )"
 	}
 	"customers" {
-	    lappend criteria "u.user_id IN (select	m.member_id
-                                                        from	group_approved_member_map m
-                                                        where	m.group_id = [im_customer_group_id]
-                                                        )"
+	    lappend criteria "u.user_id IN (
+		select	m.member_id
+		from	group_approved_member_map m
+		where	m.group_id = [im_customer_group_id]
+	    )"
 	}
 	"direct_reports" {
-	    lappend criteria "a.owner_id in (select employee_id from im_employees where supervisor_id = :current_user_id and employee_status_id = '454')"
+	    lappend criteria "a.owner_id in (
+		select employee_id from im_employees
+		where (supervisor_id = :current_user_id OR employee_id = :current_user_id)
+	    UNION
+		select	e.employee_id 
+		from	im_employees e,
+			-- Select all departments where the current user is manager
+			(select	cc.cost_center_id,
+				cc.manager_id
+			from	im_cost_centers cc,
+				(select cost_center_code as code,
+					length(cost_center_code) len
+				from	im_cost_centers
+				where	manager_id = :current_user_id
+				) t
+			where	substring(cc.cost_center_code for t.len) = t.code
+			) tt
+		where  (e.department_id = tt.cost_center_id
+		       OR e.employee_id = tt.manager_id)
+	    )"
 	}  
 	"cost_center" {
         set cost_center_id $user_selection_id

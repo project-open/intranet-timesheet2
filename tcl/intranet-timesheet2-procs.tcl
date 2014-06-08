@@ -27,7 +27,7 @@ ad_library {
 ad_proc -public im_package_timesheet2_id {} {
     Returns the package id of the intranet-timesheet2 package
 } {
-    return [util_memoize "im_package_timesheet2_id_helper"]
+    return [util_memoize im_package_timesheet2_id_helper]
 }
 
 ad_proc -private im_package_timesheet2_id_helper {} {
@@ -118,7 +118,7 @@ ad_proc -public im_timesheet2_sync_timesheet_costs {
 			and day = :day
 	"
 
-	set cost_center_id [util_memoize "im_costs_default_cost_center_for_user $hour_user_id" 5]
+	set cost_center_id [util_memoize [list im_costs_default_cost_center_for_user $hour_user_id] 5]
 
         db_dml cost_update "
 	        update  im_costs set
@@ -192,6 +192,8 @@ ad_proc -public im_timesheet_home_component {user_id} {
     Creates a HTML table showing a box with basic statistics about
     the current project and a link to log the users hours.
 } {
+    if {[im_security_alert_check_integer -location im_timesheet_home_component -message "SQL Injection Attempt" -value $user_id]} { set user_id 0 }
+
     # skip the entire component if the user doesn't have
     # the permission to log hours
     set add_hours [im_permission $user_id "add_hours"]
@@ -207,7 +209,7 @@ ad_proc -public im_timesheet_home_component {user_id} {
     set redirect_p [parameter::get -package_id [im_package_timesheet2_id] -parameter "TimesheetRedirectHomeIfEmptyHoursP" -default 0]
     set num_days [parameter::get -package_id [im_package_timesheet2_id] -parameter "TimesheetRedirectNumDays" -default 7]
     set expected_hours [parameter::get -package_id [im_package_timesheet2_id] -parameter "TimesheetRedirectNumHoursInDays" -default 32]
-    set available_perc [util_memoize "db_string percent_available \"select availability from im_employees where employee_id = $user_id\" -default 100" 60]
+    set available_perc [util_memoize [list db_string percent_available "select availability from im_employees where employee_id = $user_id" -default 100] 60]
     if {"" == $available_perc} { set available_perc 100 }
     set expected_hours [expr $expected_hours * $available_perc / 100]
 
@@ -302,6 +304,7 @@ ad_proc -public im_timesheet_project_component {user_id project_id} {
     Creates a HTML table showing a box with basic statistics about
     the current project and a link to log the users hours.
 } {
+    if {[im_security_alert_check_integer -location im_timesheet_home_component -message "SQL Injection Attempt" -value $user_id]} { set user_id 0 }
     im_project_permissions $user_id $project_id view read write admin
     if { ![info exists return_url] } {
 	set return_url "[ad_conn url]?[ad_conn query]"
@@ -351,7 +354,7 @@ ad_proc -public im_timesheet_project_component {user_id project_id} {
 	set redirect_p [parameter::get -package_id [im_package_timesheet2_id] -parameter "TimesheetRedirectProjectIfEmptyHoursP" -default 0]
 	set num_days [parameter::get -package_id [im_package_timesheet2_id] -parameter "TimesheetRedirectNumDays" -default 7]
 	set expected_hours [parameter::get -package_id [im_package_timesheet2_id] -parameter "TimesheetRedirectNumHoursInDays" -default 32]
-	set available_perc [util_memoize "db_string percent_available \"select availability from im_employees where employee_id = $user_id\" -default 100" 60]
+	set available_perc [util_memoize [list db_string percent_available "select availability from im_employees where employee_id = $user_id" -default 100]]
 	if {"" == $available_perc} { set available_perc 100 }
 	set expected_hours [expr $expected_hours * $available_perc / 100]
         set num_hours [im_timesheet_hours_sum -user_id $user_id -number_days $num_days]
@@ -1018,3 +1021,39 @@ ad_proc -public im_timesheet_remind_employees {
         }
     }
 }
+
+ad_proc -public im_hour_nuke {
+    { -current_user_id ""}
+    hour_id
+} {
+    Delete an im_hour entry and depending objects.
+    This function is currently only used by the REST interface
+} {
+    if {![db_0or1row hour_info "
+	select	*
+	from	im_hours h
+	where	hour_id = :hour_id
+    "]} {
+	ns_log Error "im_hour_nuke: Did not find im_hour with hour_id=$hour_id"
+	return
+    }
+
+    # Delete any confirmation objects and therefore force the user to re-submit
+    # possibly already confirmed hours:
+    if {[im_column_exists im_hours conf_object_id]} {
+	if {"" != $conf_object_id} {
+	    db_string delete_conf_object "select im_timesheet_conf_object__delete(:conf_object_id) from dual"
+	}
+    }
+
+    # Delete the cost item that represents the im_hour entry
+    if {"" != $cost_id} {
+	db_string delete_hour_cost "SELECT im_cost__delete(:cost_id) from dual"
+    }
+
+    # Delete the actual im_hours entry
+    db_string delete_hour_cost "delete from im_hours where hour_id = :hour_id"
+
+    return $hour_id
+}
+

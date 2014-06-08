@@ -53,8 +53,28 @@ ad_page_contract {
 # Security / setting user
 # ----------------------------------------------------------
 
-set user_id [ad_maybe_redirect_for_registration]
-if {"" == $user_id_from_search || ![im_permission $user_id "add_hours_all"]} { set user_id_from_search $user_id }
+set current_user_id [ad_maybe_redirect_for_registration]
+set add_hours_p [im_permission $current_user_id "add_hours"]
+set add_hours_all_p [im_permission $current_user_id "add_hours_all"]
+set add_hours_direct_reports_p [im_permission $current_user_id "add_hours_direct_reports"]
+
+if {!$add_hours_p} {
+    ad_return_complaint 1 [lang::message::lookup "" intranet-timesheet2.Not_allowed_to_log_hours "You are not allowed to log hours."]
+    ad_script_abort
+}
+
+
+# Is the user allowed to log hours for another user?
+if {"" == $user_id_from_search } { 
+    if {!$add_hours_all_p} {
+	if {[im_permission $current_user_id "add_hours_all"]} {
+	    set reportees [im_user_direct_reports_ids -user_id $current_user_id]
+	} else {
+	    # The user has no permission
+	    set user_id_from_search $current_user_id 
+	}
+    }
+}
 
 # ----------------------------------------------------------
 # Default
@@ -62,9 +82,7 @@ if {"" == $user_id_from_search || ![im_permission $user_id "add_hours_all"]} { s
 
 set date_format "YYYY-MM-DD"
 set default_currency [ad_parameter -package_id [im_package_cost_id] "DefaultCurrency" "" "EUR"]
-set wf_installed_p [util_memoize "db_string timesheet_wf \"select count(*) from apm_enabled_package_versions where package_key = 'intranet-timesheet2-workflow'\""]
-set conf_objects_installed_p [llength [info procs im_timesheet_conf_object_delete]]
-
+set wf_installed_p [util_memoize [list db_string timesheet_wf "select count(*) from apm_enabled_package_versions where package_key = 'intranet-timesheet2-workflow'"]]
 set materials_p [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter HourLoggingWithMaterialsP -default 0]
 set material_name ""
 set material_id ""
@@ -83,6 +101,7 @@ set check_all_hours_with_comment [parameter::get_from_package_key -package_key i
 
 # Accept some cache inconsistencies? Experimental!
 set performance_mode_p [parameter::get_from_package_key -package_key acs-kernel -parameter "PerformanceModeP" -default 0]
+
 
 # ----------------------------------------------------------
 # Simple 'Callback' for custom validation 
@@ -330,6 +349,7 @@ foreach j $weekly_logging_days {
     ns_log Notice "hours/new2: day=$i, screen_hours_hash=[array get screen_hours_hash]"
     ns_log Notice "hours/new2: day=$i, action_hash=[array get action_hash]"
 
+
     # Execute the actions
     foreach project_id [array names action_hash] {
 
@@ -337,18 +357,25 @@ foreach j $weekly_logging_days {
 
 	# For all actions: We modify the hours that the person has logged that week, 
 	# so we need to reset/delete the TimesheetConfObject.
-	ns_log Notice "hours/new-2: im_timesheet_conf_object_delete -project_id $project_id -user_id $user_id -day_julian $day_julian"
+	ns_log Notice "hours/new-2: im_timesheet_conf_object_delete -project_id $project_id -user_id $user_id_from_search -day_julian $day_julian"
 
-	if {$wf_installed_p && $conf_objects_installed_p} {
-	    im_timesheet_conf_object_delete \
-		-project_id $project_id \
-		-user_id $user_id_from_search \
-		-day_julian $day_julian
+	if {$wf_installed_p} {
+
+# !!!
+#	    im_timesheet_conf_object_delete \
+#		-project_id $project_id \
+#		-user_id $user_id_from_search \
+#		-day_julian $day_julian
+
+	    set modified_julians [list]
+	    if {[info exists modified_projects_hash($project_id)]} { set modified_julians $modified_projects_hash($project_id) }
+	    lappend modified_julians $day_julian
+	    set modified_projects_hash($project_id) $modified_julians
 	}
 
 	# Delete any cost elements related to the hour.
 	# This time project_id refers to the specific (sub-) project.
-	ns_log Notice "hours/new-2: im_timesheet_costs_delete -project_id $project_id -user_id $user_id -day_julian $day_julian"
+	ns_log Notice "hours/new-2: im_timesheet_costs_delete -project_id $project_id -user_id $user_id_from_search -day_julian $day_julian"
 	im_timesheet_costs_delete \
 	    -project_id $project_id \
 	    -user_id $user_id_from_search \
@@ -464,7 +491,7 @@ foreach j $weekly_logging_days {
 			im_hours h
 		where	
 			parent.parent_id is null and
-			h.user_id = :user_id and
+			h.user_id = :user_id_from_search and
 			h.day::date = to_date(:day_julian,'J') and
 			children.tree_sortkey between 
 				parent.tree_sortkey and 
@@ -488,7 +515,7 @@ foreach j $weekly_logging_days {
 		update im_hours set days = days * :correction_factor
 		where
 			day = to_date(:day_julian,'J') and
-			user_id = :user_id and
+			user_id = :user_id_from_search and
 			project_id in (
 				select	children.project_id
 				from	im_projects parent,
@@ -502,7 +529,25 @@ foreach j $weekly_logging_days {
 
 	}
     }
-incr i
+    incr i
+}
+
+
+
+# ----------------------------------------------------------
+# Notify supervisor about modified hours in the past
+# ----------------------------------------------------------
+
+if {$wf_installed_p && [llength [array names modified_projects_hash]] > 0} {
+    set notify_supervisor_p [parameter::get_from_package_key -package_key intranet-timesheet2-workflow -parameter "NotifySupervisorDeleteConfObjectP" -default 0]
+    if {$notify_supervisor_p} {
+	set uid $user_id_from_search
+	if {"" == $uid} { set uid $current_user_id }
+
+	im_timesheet_conf_object_notify_supervisor \
+	    -user_id $uid \
+	    -modified_projects_tuples [array get modified_projects_hash]
+    }
 }
 
 
@@ -555,7 +600,12 @@ if {$sync_cost_item_immediately_p} {
 	im_timesheet_update_timesheet_cache -project_id $project_id
 	# Create timesheet cost_items for all modified projects
 	im_timesheet2_sync_timesheet_costs -project_id $project_id
+
     }
+
+    # Fraber 140103: !!!
+    # The cost updates don't get promoted to the main project 
+    im_cost_cache_sweeper
 }
 
 

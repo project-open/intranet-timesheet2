@@ -123,6 +123,7 @@ if {![info exists absence_id]} {
 
 if {[exists_and_not_null user_id_from_search]} {
     set user_from_search_name [db_string name "select im_name_from_user_id(:user_id_from_search)" -default ""]
+    append page_title " "
     append page_title [lang::message::lookup "" intranet-timesheet2.for_username " for %user_from_search_name%"]
 }
 
@@ -301,10 +302,10 @@ if {$add_absences_for_group_p} {
 set hidden_field_list [list]
 if { [parameter::get -package_id [apm_package_id_from_key intranet-timesheet2] -parameter "RequireAbsenceTypeInUrlP" -default 0] } {
     lappend hidden_field_list [list absence_type_id $absence_type_id] 
-    lappend hidden_field_list [list user_id $user_id] 
+    lappend hidden_field_list [list user_id $current_user_id] 
     lappend hidden_field_list [list return_url $return_url]
 } else {
-    lappend hidden_field_list [list user_id $user_id]
+    lappend hidden_field_list [list user_id $current_user_id]
     lappend hidden_field_list [list return_url $return_url]
 }
 
@@ -371,8 +372,11 @@ ad_form -extend -name $form_id -on_request {
     if {![info exists absence_owner_id] || 0 == $absence_owner_id} { set absence_owner_id $user_id_from_search }
     if {![info exists absence_owner_id] || 0 == $absence_owner_id} { set absence_owner_id $current_user_id }
     if {![info exists absence_type_id]} { set absence_type_id [im_user_absence_type_vacation] }
-    if {![info exists absence_status_id]} { set absence_status_id [im_user_absence_status_active] }
-    
+    if {![info exists absence_status_id]} { set absence_status_id [im_user_absence_status_requested] }
+    if {![info exists user_id_from_search]} { set user_id_from_search "" }
+    if { $current_user_id != $user_id_from_search && ![im_permission $current_user_id "add_absences_all"] } {
+	set user_id_from_search $current_user_id
+    }    
 } -new_request {
     template::element::set_value absence vacation_replacement_id [db_string supervisor "select supervisor_id from im_employees where employee_id = :absence_owner_id" -default $current_user_id]
 } -edit_request {
@@ -435,7 +439,7 @@ ad_form -extend -name $form_id -on_request {
 			:absence_id,
 			'im_user_absence',
 			now(),
-			:user_id,
+			:current_user_id,
 			'[ns_conn peeraddr]',
 			null,
 
