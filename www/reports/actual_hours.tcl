@@ -295,34 +295,39 @@ append __output "<table:table-row table:style-name=\"ro1\">\n$__header_defs</tab
 
 set user_list [list]
 db_foreach projects_info_query "
-    select username,project_name,personnel_number,p.project_id,employee_id,project_nr,company_id
+    select username,project_name,personnel_number,p.project_id,employee_id,project_nr,company_id, p.project_type_id
     $view_arr(extra_selects_sql)
     from im_projects p, im_employees e, users u,$possible_projects_sql h
     $view_arr(extra_froms_sql)
     where u.user_id = h.user_id
     and p.project_id = h.project_id
     and e.employee_id = h.user_id
-    and p.project_type_id not in (100,101)
     $view_arr(extra_wheres_sql)
-    group by username,project_name,personnel_number,employee_id,p.project_id,project_nr,company_id
+    group by username,project_name,personnel_number,employee_id,p.project_id,project_nr,company_id, p.project_type_id
     $view_arr(extra_group_by_sql)
     order by $order_by
 " {
+    #  If we have a ticket or a task we should not show this as a potential project in the report
+    # Therefore we will search for the parent_id which must be a project.
+    if {$project_type_id eq 100 || $project_type_id eq 101} {
+        # Task or ticket, aggregate
+        set project_id [db_string parent "select parent_id from im_projects where project_id = :project_id" -default $project_id]
+    }
     if {[lsearch $user_list $employee_id] < 0} {
-	lappend user_list $employee_id
-	set user_pretty($employee_id) $username_pretty
-	set user_projects($employee_id) [list]
+        lappend user_list $employee_id
+        set user_pretty($employee_id) $username_pretty
+        set user_projects($employee_id) [list]
     }
     lappend user_projects($employee_id) $project_id
     set user_project "${employee_id}-${project_id}"
     set table_body($user_project) ""
     set xls_body($user_project) ""
     foreach column_var $view_arr(column_vars) {
-	# HTML
-	append table_body($user_project) "<td>[expr $column_var]</td>"
+        # HTML
+        append table_body($user_project) "<td>[expr $column_var]</td>"
 
-	# and XLS
-	append xls_body($user_project) " <table:table-cell office:value-type=\"string\"><text:p>[expr $column_var]</text:p></table:table-cell>\n"
+        # and XLS
+        append xls_body($user_project) " <table:table-cell office:value-type=\"string\"><text:p>[expr $column_var]</text:p></table:table-cell>\n"
     }
 }
 
@@ -398,19 +403,19 @@ foreach user_id $user_list {
 	    
 	    # Approved comes from the category type "Intranet Timesheet Conf Status"
 	    if {$approved_only_p && [apm_package_installed_p "intranet-timesheet2-workflow"]} {
-		set timescale_value_sql "select sum(hours) as sum_hours,$timescale_sql as timescale_header
- 	        from im_hours, im_timesheet_conf_objects tco
-                where tco.conf_id = im_hours.conf_object_id and tco.conf_status_id = 17010
-		and user_id = :user_id
-                and project_id in (	
-              	   select p.project_id
-		   from im_projects p, im_projects parent_p
-                   where parent_p.project_id = :project_id
-                   and p.tree_sortkey between parent_p.tree_sortkey and tree_right(parent_p.tree_sortkey)
-                   and p.project_status_id not in (82)
-		)		   
-		group by timescale_header
-                order by timescale_header
+            set timescale_value_sql "select sum(hours) as sum_hours,$timescale_sql as timescale_header
+ 	                                   from im_hours, im_timesheet_conf_objects tco
+                                      where tco.conf_id = im_hours.conf_object_id and tco.conf_status_id = 17010
+                                        and user_id = :user_id
+                                        and project_id in (	
+                                                select p.project_id
+                                                from im_projects p, im_projects parent_p
+                                                where parent_p.project_id = :project_id
+                                                and p.tree_sortkey between parent_p.tree_sortkey and tree_right(parent_p.tree_sortkey)
+                                                and p.project_status_id not in (82)
+                                            )		   
+                                   group by timescale_header
+                                   order by timescale_header
          "
 	    } else {
 		set timescale_value_sql "select sum(hours) as sum_hours,$timescale_sql as timescale_header
