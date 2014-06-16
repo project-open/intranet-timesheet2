@@ -181,6 +181,7 @@ set holydays [list]
 set sql_from [list]
 set sql_from2 [list]
 
+set active_absence_status_ids [im_sub_categories [im_user_absence_status_active]]
 for { set i [expr $duration - 1]  } { $i >= 0 } { incr i -1 } {
 	set col_sql "
     select 
@@ -211,7 +212,8 @@ for { set i [expr $duration - 1]  } { $i >= 0 } { incr i -1 } {
     	where
     		to_date('$i_date', :date_format) between 
     			trunc(to_date(to_char(start_date,:date_format),:date_format),'Day') and 
-    			trunc(to_date(to_char(end_date,:date_format),:date_format),'Day')
+    			trunc(to_date(to_char(end_date,:date_format),:date_format),'Day') and
+                absence_status_id in ([template::util::tcl_to_sql_list $active_absence_status_ids])
     "
     lappend sql_from2 "select to_date('$i_date', :date_format) as day from dual\n"
 
