@@ -30,6 +30,7 @@ ad_page_contract {
     { absence_type_id "[im_user_absence_type_vacation]"}
     { view_type "" }
     { department_id ""}
+    { order_by "" }
 }
 
 
@@ -49,6 +50,7 @@ set today [lindex [split [ns_localsqltimestamp] " "] 0]
 set page_title "[_ intranet-timesheet2.Leave_entitlements]"
 set context_bar [im_context_bar $page_title]
 set return_url [im_url_with_query]
+set name_order [parameter::get -package_id [apm_package_id_from_key intranet-core] -parameter "NameOrder" -default 1]
 
 # Put security code in here.
 
@@ -106,8 +108,11 @@ db_foreach column_list_sql $column_sql {
         if {"" != $extra_select} { lappend extra_selects $extra_select }
         if {"" != $extra_from} { lappend extra_froms $extra_from }
         if {"" != $extra_where} { lappend extra_wheres $extra_where }
-        if {"" != $order_by_clause && $order_by==$column_name} {
-            set view_order_by_clause $order_by_clause
+        if {"" != $order_by_clause} {
+            set order_by_p([lang::util::localize $column_name]) 1
+            if {$order_by==$column_name} {
+                set view_order_by_clause $order_by_clause
+            }
         }
     }
 }
@@ -167,9 +172,10 @@ if {![im_user_is_hr_p $user_id]} {
 }
 
 
-set order_by_clause "order by lower(project_nr) DESC"
 if {$view_order_by_clause != ""} {
     set order_by_clause "order by $view_order_by_clause"
+} else {
+    set order_by_clause "order by owner_name"
 }
 
 set where_clause [join $criteria " and "]
@@ -209,7 +215,7 @@ set soy "${booking_year}-01-01"
 # Fill Has values for each employee that is visible
 set active_category_ids [template::util::tcl_to_sql_list [im_sub_categories [im_user_absence_status_active]]]
 set requested_category_ids [template::util::tcl_to_sql_list [im_sub_categories [im_user_absence_status_requested]]]
-set sql "select employee_id,im_cost_center_name_from_id(department_id) as department_name, (
+set sql "select employee_id,im_name_from_user_id(employee_id,:name_order) as owner_name,im_cost_center_name_from_id(department_id) as department_name, (
         select coalesce(sum(duration_days),0) from im_user_absences
         where start_date::date <= to_date(:eoy,'YYYY-MM-DD')
         and absence_status_id in ($active_category_ids)
@@ -250,6 +256,7 @@ set sql "select employee_id,im_cost_center_name_from_id(department_id) as depart
     where	c.user_id = e.employee_id
         and c.member_state = 'approved'
     $criteria
+    $order_by_clause
 "
 
 # ---------------------------------------------------------------
@@ -284,7 +291,7 @@ set table_header_html ""
 # Format the header names with links that modify the
 # sort order of the SQL query.
 #
-set url "remaining_vacation?"
+set url "remaining-vacation?"
 set query_string [export_ns_set_vars url [list order_by]]
 if { ![empty_string_p $query_string] } {
     append url "$query_string&"
@@ -296,7 +303,11 @@ foreach col $column_headers {
     set wrench_html [lindex $column_headers_admin $ctr]
     regsub -all " " $col "_" col_txt
     set col_txt [lang::message::lookup "" intranet-core.$col_txt $col]
-	append table_header_html "<td class=rowtitle><a href=\"${url}order_by=[ns_urlencode $col]\">$col_txt</a>$wrench_html</td>\n"
+    if {[info exists order_by_p($col)]} {
+        append table_header_html "<td class=rowtitle><a href=\"${url}order_by=[ns_urlencode $col]\">$col_txt</a>$wrench_html</td>\n"
+    } else {
+        append table_header_html "<td class=rowtitle>$col_txt $wrench_html</td>\n"
+    }
     incr ctr
 }
 append table_header_html "</tr>\n"

@@ -21,11 +21,11 @@ delete from im_views where view_id = 1013;
 insert into im_views (view_id, view_name, view_label) 
 values (291, 'remaining_vacation_list', 'Remaining Vacation');
 
-insert into im_view_columns (column_id, view_id, column_name, column_render_tcl, sort_order, variable_name) 
-values (29100,291,'Owner','"<a href=''/intranet-timesheet2/absences/index?user_selection=$employee_id&timescale=all&absence_type_id=$absence_type_id''>$owner_name</a>"',0,'owner_name');
+insert into im_view_columns (column_id, view_id, column_name, column_render_tcl, sort_order, variable_name,order_by_clause) 
+values (29100,291,'Owner','"<a href=''/intranet-timesheet2/absences/index?user_selection=$employee_id&timescale=all&absence_type_id=$absence_type_id''>$owner_name</a>"',0,'owner_name','owner_name');
 
-insert into im_view_columns (column_id, view_id, column_name, column_render_tcl, sort_order,variable_name) 
-values (29110,291,'Department Name','"$department_name"',10,'department_name');
+insert into im_view_columns (column_id, view_id, column_name, column_render_tcl, sort_order,variable_name,order_by_clause) 
+values (29110,291,'Department Name','"$department_name"',10,'department_name','department_name');
 
 insert into im_view_columns (column_id, view_id, column_name, column_render_tcl, sort_order,variable_name) 
 values (29112,291,'Total Absence Days','$total_absence_days',12,'total_absence_days');
