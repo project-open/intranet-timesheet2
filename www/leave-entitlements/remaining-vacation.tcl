@@ -168,7 +168,7 @@ set criteria [list]
 # If the user isn't HR, we can only see employees where the current user is the supervisor
 if {![im_user_is_hr_p $user_id]} {
     # Only HR can view all users, everyone only the users he is supervising
-    lappend criteria "and owner_id in (select employee_id from im_employees where supervisor_id = :user_id)"
+    lappend extra_wheres "employee_id in (select employee_id from im_employees where supervisor_id = :user_id)"
 }
 
 
@@ -211,6 +211,7 @@ if { ![empty_string_p $extra_where] } {
 set booking_year [string range $reference_date 0 3]
 set eoy "${booking_year}-12-31"
 set soy "${booking_year}-01-01"
+
 
 # Fill Has values for each employee that is visible
 set active_category_ids [template::util::tcl_to_sql_list [im_sub_categories [im_user_absence_status_active]]]
@@ -255,7 +256,7 @@ set sql "select employee_id,im_name_from_user_id(employee_id,:name_order) as own
     from im_employees e, cc_users c
     where	c.user_id = e.employee_id
         and c.member_state = 'approved'
-    $criteria
+    $extra_where
     $order_by_clause
 "
 
