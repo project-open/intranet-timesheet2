@@ -7,7 +7,7 @@
   <msg key="Absence">Absence</msg>
   <msg key="Absence_absence_type">Absence Type</msg>
   <msg key="Absence_Duplicate_Start">Duplicate Start</msg>
-  <msg key="Absence_Name">Name</msg>
+  <msg key="Absence_Name">Title</msg>
   <msg key="Absence_status_3letter_Req">Req</msg>
   <msg key="Absence_Type">Absence Type:</msg>
   <msg key="Absence_Type_1">Absence Type</msg>
@@ -37,7 +37,7 @@
   <msg key="Apr">Apr</msg>
   <msg key="April">April</msg>
   <msg key="Associated_reports">Associated Reports</msg>
-  <msg key="Attibute_Type">Attibute Type</msg>
+  <msg key="Attibute_Type">Attribute Type</msg>
   <msg key="Aug">Aug</msg>
   <msg key="August">August</msg>
   <msg key="B">B</msg>
@@ -114,7 +114,7 @@
   <msg key="Filter">Filter</msg>
   <msg key="Filter_Absences">Filter Absences</msg>
   <msg key="Filter_Tasks">Filter Tasks</msg>
-  <msg key="for_username">for username</msg>
+  <msg key="for_username"> for %user_from_search_name%</msg>
   <msg key="For_which_project">For which project:</msg>
   <msg key="Friday">Friday</msg>
   <msg key="From">From:</msg>
@@ -145,7 +145,7 @@
   <msg key="June">June</msg>
   <msg key="K">K</msg>
   <msg key="L">L</msg>
-  <msg key="Last_3_Month">last 3 month</msg>
+  <msg key="Last_3_Month">Last 3 month</msg>
   <msg key="Last_3_months">Last 3 months</msg>
   <msg key="Last_3_Weeks">Last 3 weeks</msg>
   <msg key="Local">Local</msg>
@@ -265,7 +265,7 @@ of those units were billed hourly, for a total amount of</msg>
         please %log_them_now_link% log them now</msg>
   <msg key="lt_You_logged_num_hours_">You logged %num_hours% hour(s) in the last 7 days.</msg>
   <msg key="M">M</msg>
-  <msg key="Mar">March</msg>
+  <msg key="Mar">Mar</msg>
   <msg key="March">March</msg>
   <msg key="May">May</msg>
   <msg key="Mine">Mine</msg>
@@ -277,8 +277,11 @@ of those units were billed hourly, for a total amount of</msg>
   <msg key="New_Absence">New Absence</msg>
   <msg key="New_Absence_Type">New %absence_type%</msg>
   <msg key="New_Bank_Holiday">New Bank Holiday</msg>
+  <msg key="New_Bridge_Day">New Bridge Day</msg>
+  <msg key="New_Overtime_Absence">New Overtime Absence</msg>
   <msg key="New_Personal_Absence">New Personal Absence</msg>
   <msg key="New_Sick_Leave">New Sick Leave</msg>
+  <msg key="New_Special_Leave">New Special Leave</msg>
   <msg key="New_Travel_Absence">New Travel Absence</msg>
   <msg key="New_Vacation_Absence">New Vacation Absence</msg>
   <msg key="Next_3_Month">Next 3 month</msg>
