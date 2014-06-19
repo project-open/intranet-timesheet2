@@ -188,7 +188,7 @@ callback im_user_absence_new_actions
 # ------------------------------------------------------------------
 
 set button_pressed [template::form get_action absence]
-ds_comment "button: $button_pressed"
+
 callback im_user_absence_new_button_pressed -button_pressed $button_pressed
 
 if {$button_pressed =="delete"} {

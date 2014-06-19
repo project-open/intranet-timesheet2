@@ -68,6 +68,14 @@ ad_proc -public -callback im_user_absence_new_actions {
 
 } - 
 
+ad_proc -public -callback im_user_absence_info_actions {
+} {
+    This callback is executed after we build the actions for the absence info page
+    
+    This allows you to extend in the uplevel the form with any additional actions you might want to add.
+
+} - 
+
 ad_proc -public -callback im_user_absence_perm_check {
     {-absence_id:required}
 } {

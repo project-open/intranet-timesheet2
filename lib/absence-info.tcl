@@ -86,6 +86,7 @@ if {"" != $owner_id} {
    }
 }
 
+callback im_user_absence_info_actions 
 
 
 # ---------------------------------------------------------------
