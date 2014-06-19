@@ -334,8 +334,8 @@ if {(!$absence_under_wf_control_p && !$wf_exists_p) || [im_permission $current_u
 ad_form -extend -name $form_id -form $form_list
 
 ad_form -extend -name $form_id -form {
-    {start_date:date(date) {label "[_ intranet-timesheet2.Start_Date]"} {format "YYYY-MM-DD"} {after_html {<input type="button" style="height:23px; width:23px; background: url('/resources/acs-templating/calendar.gif');" onclick ="return showCalendarWithDateWidget('start_date', 'y-m-d');" >}}}
-    {end_date:date(date) {label "[_ intranet-timesheet2.End_Date]"} {format "YYYY-MM-DD"} {after_html {<input type="button" style="height:23px; width:23px; background: url('/resources/acs-templating/calendar.gif');" onclick ="return showCalendarWithDateWidget('end_date', 'y-m-d');" >}}}
+    {start_date:date(date) {label "[_ intranet-timesheet2.Start_Date]"} {after_html {<input type="button" style="height:23px; width:23px; background: url('/resources/acs-templating/calendar.gif');" onclick ="return showCalendarWithDateWidget('start_date', 'y-m-d');" >}}}
+    {end_date:date(date) {label "[_ intranet-timesheet2.End_Date]"} {after_html {<input type="button" style="height:23px; width:23px; background: url('/resources/acs-templating/calendar.gif');" onclick ="return showCalendarWithDateWidget('end_date', 'y-m-d');" >}}}
     {duration_days:float(text) {label "[lang::message::lookup {} intranet-timesheet2.Duration_days {Duration (Days)}]"} {help_text "[lang::message::lookup {} intranet-timesheet2.Duration_days_help {Please specify the absence duration as a number or fraction of days. Example: '1'=one day, '0.5'=half a day)}]"}}
     {description:text(textarea),optional {label "[_ intranet-timesheet2.Description]"} {html {cols 40}}}
     {contact_info:text(textarea),optional {label "[_ intranet-timesheet2.Contact_Info]"} {html {cols 40}}}
@@ -387,6 +387,8 @@ ad_form -extend -name $form_id -on_request {
 		a.owner_id as absence_owner_id
 	from	im_user_absences a
 	where	absence_id = :absence_id"
+    set start_date [template::util::date::from_ansi $old_start_date "YYYY-MM-DD"]
+    set end_date [template::util::date::from_ansi $old_end_date "YYYY-MM-DD"]
     set duration_days [im_absence_calculate_absence_days -start_date "$old_start_date" -end_date $old_end_date -owner_id $absence_owner_id -ignore_absence_ids $absence_id]
          
 } -validate {
@@ -612,7 +614,7 @@ ad_form -extend -name $form_id -on_request {
 # Absence Balance Component
 set params [list \
 		[list user_id $absence_owner_id] \
-		[list return_url [im_url_with_query]] \
+#		[list return_url [im_url_with_query]] \
 	       ]
 
 set absence_balance_component_html [ad_parse_template -params $params "/packages/intranet-timesheet2/lib/absence-balance-component"]
