@@ -1464,7 +1464,10 @@ ad_proc -public im_absence_calculate_absence_days {
             lappend ignore_absence_ids $object_id
         }
                 
-        db_1row absence "select owner_id,start_date,end_date, duration_days from im_user_absences where absence_id = :absence_id"
+        db_1row absence "select owner_id, duration_days from im_user_absences where absence_id = :absence_id"
+        if {$end_date eq "" && $start_date eq ""} {
+            db_1row absence "select start_date, end_date from im_user_absences where absence_id = :absence_id"
+        }
     }
     
     # Get a list of dates in the range
