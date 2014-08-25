@@ -138,7 +138,7 @@ set absence_view_page "$absences_url/new"
 # Build Drop-down boxes
 # ---------------------------------------------------------------
 
-set user_selection_options [im_user_timesheet_absences_options]
+set user_selection_options [im_user_timesheet_absences_options -enable_groups_p 1]
 
 set timescale_types [list \
 			 "all" [lang::message::lookup "" intranet-timesheet2.All "All"] \
@@ -226,34 +226,19 @@ foreach { value text } $absences_types {
 
 # Now let's generate the sql query
 set criteria [list]
+# Compatibility with older version
+switch $user_selection {
+    "employees" { set user_selection [im_employee_group_id] }
+    "providers" { set user_selection [im_freelance_group_id] }
+    "customers" { set user_selection [im_customer_group_id] }
+}
+
 switch $user_selection {
     "all" {
 	# Nothing.
     }
     "mine" {
 	lappend criteria "(a.owner_id = :current_user_id OR a.group_id in (select group_id from group_member_map where member_id = :current_user_id))"
-    }
-    "employees" {
-	lappend criteria "a.owner_id IN (
-		select	m.member_id
-		from	group_approved_member_map m
-		where	m.group_id = [im_employee_group_id]
-	)"
-	
-    }
-    "providers" {
-	lappend criteria "a.owner_id IN (
-		select	m.member_id 
-		from	group_approved_member_map m 
-		where	m.group_id = [im_freelance_group_id]
-	)"
-    }
-    "customers" {
-	lappend criteria "a.owner_id IN (
-		select	m.member_id
-		from	group_approved_member_map m
-		where	m.group_id = [im_customer_group_id]
-	)"
     }
     "direct_reports" {
 	set direct_report_ids [im_user_direct_reports_ids -user_id $current_user_id]
@@ -262,10 +247,25 @@ switch $user_selection {
 	}
     }
     default  {
-	if {[string is integer $user_selection]} {
+	# Now we assume that user_selection is an integer representing some kind of object
+	if {![string is integer $user_selection]} {
+	    ad_return_complaint 1 "Invalid User Selection:<br>Value '$user_selection' is not a user_id or one of {mine|all|direct_reports}."
+	}
+
+	# Check for Groups
+	set user_select_group_p [util_memoize [list db_string user_select_group_p "select count(*) from groups where group_id = $user_selection"]]
+	if {$user_select_group_p} {
+	    lappend criteria "a.owner_id IN (
+		select	m.member_id
+		from	group_approved_member_map m
+		where	m.group_id = $user_selection
+	    )"
+	}
+
+	# Check for individual user
+	set user_select_user_p [util_memoize [list db_string user_select_group_p "select count(*) from persons where person_id = $user_selection"]]
+	if {$user_select_user_p} {
 	    lappend criteria "a.owner_id = :user_selection"
-	} else {
-	    ad_return_complaint 1 "Invalid User Selection:<br>Value '$user_selection' is not a user_id or one of {mine|all|employees|providers|customers|direct reports}."
 	}
     }
 }
