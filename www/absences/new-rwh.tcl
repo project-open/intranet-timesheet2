@@ -122,6 +122,6 @@ ad_form -extend -name $form_id -on_request {
     
 } -after_submit {
 
-    ad_returnredirect [export_vars -base "/intranet-timesheet2/absences/index" -url {{user_selection_id $owner_id} {timescale all} {absence_type_id $absence_type_id}}]
+    ad_returnredirect [export_vars -base "/intranet-timesheet2/absences/index" -url {{user_selection $owner_id} {timescale all} {absence_type_id $absence_type_id}}]
     ad_script_abort
 }
