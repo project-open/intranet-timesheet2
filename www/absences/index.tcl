@@ -462,7 +462,7 @@ append admin_html "<div class=filter-title>[lang::message::lookup "" intranet-ti
 append admin_html "<table cellpadding='5' cellspacing='5'>\n"
 
 # Marc Fleischer: A question of color
-set index -1
+set index 0
 db_foreach cols $col_sql {
     if { "" == $aux_string2 } {
 	# set index [expr $category_id - 5000]
