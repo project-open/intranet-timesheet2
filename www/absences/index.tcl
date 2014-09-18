@@ -161,7 +161,7 @@ if {[string is integer $user_selection]} {
 	    } else {
             set cost_center_id $user_selection
             set user_selection_type "cost_center"
-            set user_selection_id $cost_center_id
+            set user_selection $cost_center_id
 	    }
 	}
 	user {
@@ -175,11 +175,11 @@ if {[string is integer $user_selection]} {
 	    } elseif {[im_manager_of_user_p -manager_id $current_user_id -user_id $user_id]} {
             # He is a manager of the user
             set user_selection_type "user"
-            set user_selection_id $user_id
+            set user_selection $user_id
 	    } elseif {[im_supervisor_of_employee_p -supervisor_id $current_user_id -employee_id $user_id]} {
             # He is a supervisor of the user
             set user_selection_type "user"
-            set user_selection_id $user_id
+            set user_selection $user_id
 	    } else {
             # He is cheating
             set user_selection_type "mine"
@@ -195,7 +195,7 @@ if {[string is integer $user_selection]} {
             set user_name [db_string project_name "select project_name from im_projects where project_id = :project_id" -default ""]
             set hide_colors_p 1
             set user_selection_type "project"
-            set user_selection_id $project_id
+            set user_selection $project_id
 	    }
 	}
 	default {

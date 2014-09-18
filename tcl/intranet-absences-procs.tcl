@@ -570,7 +570,7 @@ ad_proc im_absence_cube {
     	    } else {
                 set cost_center_id $user_selection
                 set user_selection_type "cost_center"
-                set user_selection_id $cost_center_id
+                set user_selection $cost_center_id
     	    }
     	}
     	user {
@@ -584,11 +584,11 @@ ad_proc im_absence_cube {
     	    } elseif {[im_manager_of_user_p -manager_id $current_user_id -user_id $user_id]} {
                 # He is a manager of the user
                 set user_selection_type "user"
-                set user_selection_id $user_id
+                set user_selection $user_id
     	    } elseif {[im_supervisor_of_employee_p -supervisor_id $current_user_id -employee_id $user_id]} {
                 # He is a supervisor of the user
                 set user_selection_type "user"
-                set user_selection_id $user_id
+                set user_selection $user_id
     	    } else {
                 # He is cheating
                 set user_selection_type "mine"
@@ -604,7 +604,7 @@ ad_proc im_absence_cube {
                 set user_name [db_string project_name "select project_name from im_projects where project_id = :project_id" -default ""]
                 set hide_colors_p 1
                 set user_selection_type "project"
-                set user_selection_id $project_id
+                set user_selection $project_id
     	    }
     	}
     	default {
@@ -750,7 +750,7 @@ ad_proc im_absence_cube {
 	    )"
 	}  
 	"cost_center" {
-        set cost_center_id $user_selection_id
+        set cost_center_id $user_selection
 	    set cost_center_list [im_cost_center_options -parent_id $cost_center_id]
 	    set cost_center_ids [list $cost_center_id]
         foreach cost_center $cost_center_list {
@@ -759,12 +759,12 @@ ad_proc im_absence_cube {
 	    lappend criteria "a.owner_id in (select employee_id from im_employees where department_id in ([template::util::tcl_to_sql_list $cost_center_ids]) and employee_status_id = '454')"
 	}
 	"project" {
-        set project_id $user_selection_id
+        set project_id $user_selection
 	    set project_ids [im_project_subproject_ids -project_id $project_id]
 	    lappend criteria "a.owner_id in (select object_id_two from acs_rels where object_id_one in ([template::util::tcl_to_sql_list $project_ids]))"
 	}
 	"user" {
-        set user_id $user_selection_id
+        set user_id $user_selection
 	    lappend criteria "a.owner_id=:user_id"
 	}	    
 	default  {
