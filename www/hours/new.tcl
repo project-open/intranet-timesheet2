@@ -1031,7 +1031,7 @@ template::multirow foreach hours_multirow {
     # -----------------------------------------------
     # Write out help and debug information
     set help_gif ""
-    if {"" != $help_text} { set help_gif [im_gif help $help_text] }
+    if {"" != $help_text} { set help_gif [im_gif -translate_p 0 help $help_text] }
 
     set debug_html ""
     if {$debug} {
@@ -1078,7 +1078,7 @@ template::multirow foreach hours_multirow {
 	    set blocked_by_wf_p 0 
 	} else {
 	    set blocked_by_wf_p 1
-	    set blocked_by_wf_help "[im_gif help [lang::message::lookup "" intranet-timesheet2.BlockedbyWF "Blocked by TS Approval Workflow"]]"
+	    set blocked_by_wf_help [im_gif -translate_p 0 help [lang::message::lookup "" intranet-timesheet2.BlockedbyWF "Blocked by TS Approval Workflow"]]
 	}
 	
 	ns_log Notice "xxx: $conf_status_id"
