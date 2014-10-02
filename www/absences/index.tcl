@@ -45,9 +45,6 @@ ad_page_contract {
     { user_id_from_search "" }
 }
 
-# KH: "watch package" ... instead of setting the watch through GUI   
-# ns_eval [source "[acs_root_dir]/packages/intranet-timesheet2/tcl/intranet-absences-procs.tcl"]
-
 # ---------------------------------------------------------------
 # 2. Defaults & Security
 # ---------------------------------------------------------------
