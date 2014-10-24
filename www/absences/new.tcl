@@ -157,18 +157,6 @@ if {[info exists absence_id]} {
 
 set button_pressed [template::form get_action absence]
 if {"delete" == $button_pressed} {
-
-    # ToDo: Remove:
-    # im_user_absence_nuke below already calls im_user_absence_before_delete
-    callback absence_on_change \
-	-absence_id $absence_id \
-	-absence_type_id "" \
-	-user_id "" \
-	-start_date "" \
-	-end_date "" \
-	-duration_days "" \
-	-transaction_type "remove"
-
     im_user_absence_nuke $absence_id
 }
 
@@ -416,20 +404,6 @@ ad_form -extend -name absence -on_request {
 	    # Determine the first task in the case to be executed and start+finisch the task.
             im_workflow_skip_first_transition -case_id $case_id
 	}
-	
-	# Callback 
-    ns_log Notice "Callback: Calling callback 'absence_on_change' "
-
-	
-	# ToDo: Remove:
-	callback absence_on_change \
-	    -absence_id $absence_id \
-	    -absence_type_id $absence_type_id \
-	    -user_id $absence_owner_id \
-	    -start_date $start_date_sql \
-	    -end_date $end_date_sql \
-	    -duration_days $duration_days \
-	    -transaction_type "add"
 
 	# Audit the action
 	im_audit -object_type im_user_absence -action after_create -object_id $absence_id -status_id $absence_status_id -type_id $absence_type_id
