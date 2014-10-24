@@ -157,24 +157,19 @@ if {[info exists absence_id]} {
 
 set button_pressed [template::form get_action absence]
 if {"delete" == $button_pressed} {
-	db_transaction {
-		callback absence_on_change \
-			-absence_id $absence_id \
-			-absence_type_id "" \
-			-user_id "" \
-			-start_date "" \
-			-end_date "" \
-			-duration_days "" \
-			-transaction_type "remove"
 
-		db_dml del_tokens "delete from wf_tokens where case_id in (select case_id from wf_cases where object_id = :absence_id)"
-		db_dml del_case "delete from wf_cases where object_id = :absence_id"
-		db_string absence_delete "select im_user_absence__delete(:absence_id)"
-		ad_returnredirect $cancel_url
-	} on_error {
-            ad_return_error "Error deleting absence" "<br>Error:<br>$errmsg<br><br>"
-            return
-	}
+    # ToDo: Remove:
+    # im_user_absence_nuke below already calls im_user_absence_before_delete
+    callback absence_on_change \
+	-absence_id $absence_id \
+	-absence_type_id "" \
+	-user_id "" \
+	-start_date "" \
+	-end_date "" \
+	-duration_days "" \
+	-transaction_type "remove"
+
+    im_user_absence_nuke $absence_id
 }
 
 # ------------------------------------------------------------------
@@ -425,6 +420,8 @@ ad_form -extend -name absence -on_request {
 	# Callback 
     ns_log Notice "Callback: Calling callback 'absence_on_change' "
 
+	
+	# ToDo: Remove:
 	callback absence_on_change \
 	    -absence_id $absence_id \
 	    -absence_type_id $absence_type_id \

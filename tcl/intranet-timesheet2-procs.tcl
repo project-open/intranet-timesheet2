@@ -786,7 +786,7 @@ ad_proc -public im_hour_nuke {
     }
 
     # Delete the actual im_hours entry
-    db_string delete_hour_cost "delete from im_hours where hour_id = :hour_id"
+    db_dml delete_hour_cost "delete from im_hours where hour_id = :hour_id"
 
     return $hour_id
 }

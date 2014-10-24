@@ -902,3 +902,22 @@ ad_proc -public im_get_next_absence_link { { user_id } } {
     return $ret_val
 }
 
+
+
+
+ad_proc -public im_user_absence_nuke {
+    { -current_user_id ""}
+    absence_id
+} {
+    Delete an im_hour entry and depending objects.
+    This function is currently only used by the REST interface
+} {
+    im_audit -user_id $current_user_id -object_id $absence_id -action before_nuke
+    db_dml del_tokens "delete from wf_tokens where case_id in (
+		select case_id from wf_cases where object_id = :absence_id
+    )"
+    db_dml del_case "delete from wf_cases where object_id = :absence_id"
+    db_string absence_delete "select im_user_absence__delete(:absence_id)"
+    return $absence_id
+}
+
