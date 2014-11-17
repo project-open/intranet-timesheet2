@@ -866,7 +866,7 @@ switch $timescale {
 	set absence_cube_html [lang::message::lookup "" intranet-timesheet2.AbsenceCubeNotShownPastAbsences "Graphical view of absences not available for Timescale option 'Past'. Please choose a different option."]
     }
     default {
-	set absence_cube_html [im_absence_cube \
+	set absence_cube_html [im_absence_cube_component \
 			       -absence_status_id $filter_status_id \
 			       -absence_type_id $org_absence_type_id \
 			       -user_selection $user_selection \
