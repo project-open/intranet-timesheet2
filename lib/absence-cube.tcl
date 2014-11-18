@@ -302,7 +302,7 @@ set user_list [db_list_of_lists user_list "
 "]
 
 
-# Get list of categeory_ids to determine index 
+# Get list of category_ids to determine index 
 # needed for color codes
 
 set sql "
