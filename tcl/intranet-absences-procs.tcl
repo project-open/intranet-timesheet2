@@ -30,6 +30,7 @@ ad_proc -public im_user_absence_type_sick {} { return 5002 }
 ad_proc -public im_user_absence_type_travel {} { return 5003 }
 ad_proc -public im_user_absence_type_training {} { return 5004 }
 ad_proc -public im_user_absence_type_bank_holiday {} { return 5005 }
+ad_proc -public im_user_absence_type_rwh {} { return 5007 }
 
 
 ad_proc -public im_user_absence_status_active {} { return 16000 }
@@ -1113,7 +1114,10 @@ ad_proc -public im_absence_calculate_absence_days {
             lappend ignore_absence_ids $object_id
         }
                 
-        db_1row absence "select owner_id,start_date,end_date, duration_days from im_user_absences where absence_id = :absence_id"
+        db_1row absence "select owner_id, duration_days from im_user_absences where absence_id = :absence_id"
+        if {$end_date eq "" && $start_date eq ""} {
+            db_1row absence "select start_date, end_date from im_user_absences where absence_id = :absence_id"
+        }
     }
     
     # Get a list of dates in the range

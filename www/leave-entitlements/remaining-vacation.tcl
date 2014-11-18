@@ -248,7 +248,7 @@ set sql "select employee_id,im_name_from_user_id(employee_id,:name_order) as own
      where owner_id = employee_id 
      and leave_entitlement_type_id = :absence_type_id
      and booking_date <= to_date(:eoy,'YYYY-MM-DD')
-     and to_date(:soy,'YYYY-MM-DD') >= booking_date) as entitlement_days_this_year,
+     and booking_date >= to_date(:soy,'YYYY-MM-DD')) as entitlement_days_this_year,
     (select coalesce(sum(entitlement_days),0) from im_user_leave_entitlements 
      where owner_id = employee_id
      and leave_entitlement_type_id = :absence_type_id
@@ -328,7 +328,7 @@ set ctr 0
 
 db_foreach remaining_vacation_query $sql {
     if {$taken_absence_days_this_year == 0 && $remaining_absence_days_this_year == 0 && $requested_absence_days_this_year == 0 && $entitlement_days_this_year == 0} {continue}
-    
+
     set remaining_vacation_days [expr $entitlement_days_total - $total_absence_days - $requested_absence_days_this_year]
     set owner_name [im_name_from_user_id $employee_id]
     # Append together a line of data based on the "column_vars" parameter list

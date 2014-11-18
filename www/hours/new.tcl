@@ -625,6 +625,7 @@ set sql "
 		and parent.project_id in ($parent_project_sql)
 		and children.project_id in ($child_project_sql)
 		$exclude_closed_tickets_sql
+                and children.project_status_id not in ($closed_stati_list)
 	order by
 		lower(parent.project_name),
 		children.tree_sortkey

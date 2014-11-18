@@ -91,13 +91,13 @@ foreach category_id $vacation_category_ids {
         # We need to substract the requested days as well
         set remaining_days [expr $remaining_days - $requested_days]
     } else {
-        set absence_days [db_string absence_days "select coalesce(sum(duration),0)
+        set absence_days [db_string absence_days "select coalesce(sum(duration_days),0)
             from im_user_absences 
             where start_date::date <= :eoy 
             and absence_type_id = :category_id
             and absence_status_id in ([template::util::tcl_to_sql_list [im_sub_categories [im_user_absence_status_active]]])
             and owner_id = :user_id
-            $ignore_absence_sql" -default 0]
+            " -default 0]
         set remaining_days [expr $entitlement_days - $absence_days]
         set requested_days 0
     } 
