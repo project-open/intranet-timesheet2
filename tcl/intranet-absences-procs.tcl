@@ -39,6 +39,19 @@ ad_proc -public im_user_absence_status_requested {} { return 16004 }
 ad_proc -public im_user_absence_status_rejected {} { return 16006 }
 
 
+# ---------------------------------------------------------------------
+# Helper procs
+# ---------------------------------------------------------------------
+
+ad_proc get_value_if {someVar {default_value ""}} {
+    @author Neophytos Demetriou (neophytos@azet.sk)
+} {
+    upvar $someVar var
+    if {[info exists var]} { 
+        return $var
+    }
+    return $default_value
+}
 
 # ---------------------------------------------------------------------
 # Absences Permissions
@@ -534,7 +547,6 @@ ad_proc -public im_absence_day_list_helper {
     return $day_list
 }
 
-
 ad_proc -public im_absence_cube_component {
     -user_id_from_search:required
     {-num_days 21}
@@ -592,6 +604,47 @@ ad_proc -public im_absence_cube_component {
     ]
 
     set result [ad_parse_template -params $params "/packages/intranet-timesheet2/lib/absence-cube"]
+    return [string trim $result]
+}
+
+
+ad_proc -public im_absence_calendar_component {
+    -owner_id:required
+    -year:required
+    {-hide_colors_p 0}
+} {
+
+   Displays a yearly calendar of absences for a user. 
+   Uses the same color coding as the absence cube, but
+   instead of displaying multiple users, it works only 
+   for one user.
+
+} {
+
+    # NOTE: We had to comment out the following even though it is 
+    # part of im_absence_vacation_balance_component in order to
+    # ensure that intranet-timesheet2/absences/index will continue
+    # to work as it used to when it was using the im_absence_cube proc.
+    #
+    # Show only if user is an employee
+    # if { ![im_user_is_employee_p $user_id_from_search] } { return "" }
+
+    set current_user_id [ad_get_user_id]
+    # This is a sensitive field, so only allows this for the user himself
+    # and for users with HR permissions.
+
+    set read_p 0
+    if {$owner_id == $current_user_id} { set read_p 1 }
+    if {[im_permission $current_user_id view_hr]} { set read_p 1 }
+    if {!$read_p} { return "" }
+
+    set params \
+        [list \
+		    [list owner_id $owner_id] \
+			[list year $year] \
+            [list hide_colors_p $hide_colors_p]]
+
+    set result [ad_parse_template -params $params "/packages/intranet-timesheet2/lib/absence-calendar"]
     return [string trim $result]
 }
 

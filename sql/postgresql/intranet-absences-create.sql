@@ -356,14 +356,14 @@ SELECT  im_component_plugin__new (
 
 SELECT  im_component_plugin__new (
 	null,					-- plugin_id
-	'im_component_plugin',			-- object_type
+	'im_component_plugin',	-- object_type
 	now(),					-- creation_date
 	null,					-- creation_user
 	null,					-- creation_ip
 	null,					-- context_id
 
-	'Absence Journal',			-- component_name
-	'intranet-timesheet2',			-- package_name
+	'Absence Journal',		-- component_name
+	'intranet-timesheet2',	-- package_name
 	'bottom',				-- location
 	'/intranet-timesheet2/absences/new',	-- page_url
 	null,					-- view_name
@@ -374,38 +374,54 @@ SELECT  im_component_plugin__new (
 
 -- Create a plugin for the Vacation Balance
 SELECT im_component_plugin__new (
-	null,				-- plugin_id
-	'im_component_plugin',		-- object_type
-	now(),				-- creation_date
-	null,				-- creation_user
-	null,				-- creation_ip
-	null,				-- context_id
+	null,				    -- plugin_id
+	'im_component_plugin',	-- object_type
+	now(),				    -- creation_date
+	null,				    -- creation_user
+	null,				    -- creation_ip
+	null,				    -- context_id
 	'Vacation Balance',		-- plugin_name
-	'intranet-timesheet2',		-- package_name
-	'left',				-- location
-	'/intranet/users/view',		-- page_url
-	null,				-- view_name
-	20,				-- sort_order
+	'intranet-timesheet2',	-- package_name
+	'left',				    -- location
+	'/intranet/users/view',	-- page_url
+	null,				    -- view_name
+	20,				        -- sort_order
 	'im_absence_vacation_balance_component -user_id_from_search $user_id'	-- component_tcl
 );
 
 -- Create a plugin for the absence cube
 SELECT im_component_plugin__new (
-	null,				-- plugin_id
-	'im_component_plugin',		-- object_type
-	now(),				-- creation_date
-	null,				-- creation_user
-	null,				-- creation_ip
-	null,				-- context_id
+	null,				    -- plugin_id
+	'im_component_plugin',	-- object_type
+	now(),				    -- creation_date
+	null,				    -- creation_user
+	null,				    -- creation_ip
+	null,				    -- context_id
 	'Absence Cube',			-- plugin_name
-	'intranet-timesheet2',		-- package_name
-	'left',				-- location
-	'/intranet/users/view',		-- page_url
-	null,				-- view_name
-	20,				-- sort_order
+	'intranet-timesheet2',	-- package_name
+	'left',				    -- location
+	'/intranet/users/view',	-- page_url
+	null,				    -- view_name
+	20,				        -- sort_order
 	'im_absence_cube_component -user_id_from_search $user_id_from_search -user_id $user_id'	-- component_tcl
 );
 
+-- Create a plugin for the absence calendar for one user
+SELECT im_component_plugin__new (
+	null,				    -- plugin_id
+	'im_component_plugin',	-- object_type
+	now(),				    -- creation_date
+	null,				    -- creation_user
+	null,				    -- creation_ip
+	null,				    -- context_id
+	'Absence Calendar',			-- plugin_name
+	'intranet-timesheet2',	-- package_name
+	'left',				    -- location
+	'/intranet/users/view',	-- page_url
+	null,				    -- view_name
+	20,				        -- sort_order
+	'im_absence_calendar_component -owner_id $user_id -year [clock format [clock seconds] -format "%Y"]'	-- component_tcl
+);
 
 -- The component itself does a more thorough check
 SELECT acs_permission__grant_permission(

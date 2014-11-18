@@ -374,10 +374,7 @@ set absence_sql "
 # TODO: re-factor so that color codes also work in case of more than 10 absence types
 db_foreach absences $absence_sql {
     set key "$owner_id-$d"
-    set value ""
-    if {[info exists absence_hash($key)]} { 
-        set value $absence_hash($key) 
-    }
+    set value [get_value_if absence_hash(${key}) ""]
     set absence_hash($key) [append value [lsearch $category_list $absence_type_id]]
 }
 
@@ -406,10 +403,9 @@ foreach user_tuple $user_list {
     foreach day $day_list {
         set date_date [lindex $day 0]
         set key "$user_id-$date_date"
-        set value ""
-        if {[info exists absence_hash($key)]} { 
-            set value $absence_hash($key) 
-        }
+
+        set value [get_value_if absence_hash(${key}) ""]
+
         if {[info exists holiday_hash($date_date)]} { 
             append value $holiday_hash($date_date) 
         }
