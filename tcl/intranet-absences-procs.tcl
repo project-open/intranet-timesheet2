@@ -53,6 +53,23 @@ ad_proc get_value_if {someVar {default_value ""}} {
     return $default_value
 }
 
+ad_proc im_seconds_from_date {date} {
+    @author Neophytos Demetriou (neophytos@azet.sk)
+} {
+    return [db_string seconds "select EXTRACT(EPOCH FROM TIMESTAMP WITH TIME ZONE :date)"]
+}
+
+ad_proc im_year_from_date {date} {
+    @author Neophytos Demetriou (neophytos@azet.sk)
+} {
+
+    if { $date eq {} } {
+        return
+    }
+
+    return [clock format [im_seconds_from_date $date] -format "%Y"]
+}
+
 # ---------------------------------------------------------------------
 # Absences Permissions
 # ---------------------------------------------------------------------
@@ -610,7 +627,7 @@ ad_proc -public im_absence_cube_component {
 
 ad_proc -public im_absence_calendar_component {
     -owner_id:required
-    -year:required
+    {-year ""}
     {-hide_colors_p 0}
     {-hide_explanation_p 0}
 } {
@@ -621,6 +638,21 @@ ad_proc -public im_absence_calendar_component {
    for one user.
 
 } {
+
+    # checks to make sure that we were provided with a single user id
+    # as the component plugin in the absences tab passes the user_selection
+    # variable which may contain anything that is computed there
+    if { ![string is integer -strict $owner_id] } {
+        if { $owner_id eq {mine} } {
+            set owner_id [ad_conn user_id]
+        } else {
+            return $owner_id
+        }
+    }
+
+    if { $year eq {} } {
+        set year [clock format [clock seconds] -format "%Y"]
+    }
 
     # NOTE: We had to comment out the following even though it is 
     # part of im_absence_vacation_balance_component in order to

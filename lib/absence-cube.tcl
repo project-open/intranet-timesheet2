@@ -41,6 +41,7 @@ if {[string is integer -strict $user_selection]} {
         user {
             set user_name [im_name_from_user_id $user_selection]
             set user_id $user_selection
+            set user_selection_id $user_id
 
             # Check for permissions if we are allowed to see this user
             if {$view_absences_all_p} {

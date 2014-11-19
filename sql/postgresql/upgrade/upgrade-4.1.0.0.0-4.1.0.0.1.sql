@@ -42,12 +42,12 @@ select inline_1 ();
 drop function inline_1();
 
 create or replace function inline_2()
-returns integer as
+returns void as
 $$
 begin
 
     -- Create a plugin for the absence cube
-    SELECT im_component_plugin__new (
+    perform im_component_plugin__new (
         null,				    -- plugin_id
         'im_component_plugin',	-- object_type
         now(),				    -- creation_date
@@ -64,7 +64,7 @@ begin
     );
 
     -- Create a plugin for the absence cube
-    SELECT im_component_plugin__new (
+    perform im_component_plugin__new (
         null,				    -- plugin_id
         'im_component_plugin',	-- object_type
         now(),				    -- creation_date
@@ -91,5 +91,52 @@ begin
                        -project_id $project_id'	-- component_tcl
     );
 
+    -- Create a plugin for the absence calendar for one user
+    perform im_component_plugin__new (
+        null,				    -- plugin_id
+        'im_component_plugin',	-- object_type
+        now(),				    -- creation_date
+        null,				    -- creation_user
+        null,				    -- creation_ip
+        null,				    -- context_id
+        'Absence Calendar',			-- plugin_name
+        'intranet-timesheet2',	-- package_name
+        'left',				    -- location
+        '/intranet/users/view',	-- page_url
+        null,				    -- view_name
+        20,				        -- sort_order
+        'im_absence_calendar_component -owner_id $user_id -year [clock format [clock seconds] -format "%Y"]'	-- component_tcl
+    );
+
+
+
+    -- Create a plugin for the absence calendar for one user
+    perform im_component_plugin__new (
+        null,				    -- plugin_id
+        'im_component_plugin',	-- object_type
+        now(),				    -- creation_date
+        null,				    -- creation_user
+        null,				    -- creation_ip
+        null,				    -- context_id
+        'Calendar View of Absences',			-- plugin_name
+        'intranet-timesheet2',	-- package_name
+        'top',				    -- location
+        '/intranet-timesheet2/absences/index',	-- page_url
+        null,				    -- view_name
+        20,				        -- sort_order
+        'im_absence_calendar_component -owner_id [ad_decode $user_selection_type "user" $user_selection "mine" $user_selection ""] -year [im_year_from_date $start_date]'	-- component_tcl
+    );
+
+    perform acs_permission__grant_permission(
+        plugin_id,
+        (select group_id from groups where group_name = 'Employees'),
+        'read')
+    from im_component_plugins 
+    where plugin_name in ('Absence Calendar','Calendar View of Absences','Absence Cube','Graphical View of Absences')
+    and package_name = 'intranet-timesheet2';
+
 end;
 $$ language 'plpgsql';
+select inline_2();
+drop function inline_2();
+
