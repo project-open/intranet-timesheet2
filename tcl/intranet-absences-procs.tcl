@@ -626,7 +626,7 @@ ad_proc -public im_absence_cube_component {
 
 
 ad_proc -public im_absence_calendar_component {
-    -owner_id:required
+    {-owner_id "mine"}
     {-year ""}
     {-hide_colors_p 0}
     {-hide_explanation_p 0}
