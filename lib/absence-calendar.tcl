@@ -136,12 +136,12 @@ for {set month_num 1} {$month_num <= 12} {incr month_num} {
             append value $holiday_hash($date_date) 
         }
 
-        if {$day_num > $num_days_in_month} {
-            set value "9"
-        }
-
         if {$hide_colors_p && $value != "" } {
             set value "1"
+        }
+
+        if {$day_num > $num_days_in_month} {
+            set value "9"
         }
 
         append table_body [im_absence_cube_render_cell $value]
@@ -152,9 +152,9 @@ for {set month_num 1} {$month_num <= 12} {incr month_num} {
 }
 
 set absence_types_table ""
-if { !${hide_colors_p} } {
+if { !${hide_explanation_p} && !${hide_colors_p} } {
     set row_ctr 0
-    append absence_types_table "<table>"
+    append absence_types_table "<table style=\"width:75px;\">"
     foreach absence_type_tuple $absence_types {
         foreach {absence_type_id absence_type} $absence_type_tuple break
 
@@ -170,9 +170,15 @@ if { !${hide_colors_p} } {
 
 set table "
 <table>
-$table_header
-$table_body
+  <tr>
+    <td>
+      <table>
+      $table_header
+      $table_body
+      </table>
+    </td>
+    <td valign=\"top\">${absence_types_table}</td>
+  </tr>
 </table>
-${absence_types_table}
 "
 

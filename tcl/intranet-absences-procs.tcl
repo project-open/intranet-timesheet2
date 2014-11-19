@@ -612,6 +612,7 @@ ad_proc -public im_absence_calendar_component {
     -owner_id:required
     -year:required
     {-hide_colors_p 0}
+    {-hide_explanation_p 0}
 } {
 
    Displays a yearly calendar of absences for a user. 
@@ -642,7 +643,8 @@ ad_proc -public im_absence_calendar_component {
         [list \
 		    [list owner_id $owner_id] \
 			[list year $year] \
-            [list hide_colors_p $hide_colors_p]]
+            [list hide_colors_p $hide_colors_p] \
+            [list hide_explanation_p $hide_explanation_p]]
 
     set result [ad_parse_template -params $params "/packages/intranet-timesheet2/lib/absence-calendar"]
     return [string trim $result]
