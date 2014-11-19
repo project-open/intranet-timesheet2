@@ -33,11 +33,7 @@ $("#timescale").trigger("change");
 </script>
 
 
-<if "" ne @absence_cube_html@>
-<%= [im_box_header $page_title] %>
-@absence_cube_html;noquote@
-<%= [im_box_footer] %>
-</if>
+<%= [im_component_bay top] %>
 
 <%= [im_box_header $page_title] %>
 

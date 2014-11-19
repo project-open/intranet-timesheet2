@@ -78,14 +78,14 @@ if {[string is integer -strict $user_selection]} {
     }
 }
 
+set html ""
 switch $timescale {
     today { 
-        return ""
-        ad_script_abort
+        return
     }
     all { 
-        return [lang::message::lookup "" intranet-timesheet2.AbsenceCubeNotShownAllAbsences "Graphical view of absences not available for Timescale option 'All'. Please choose a different option."]
-        ad_script_abort
+        set html [lang::message::lookup "" intranet-timesheet2.AbsenceCubeNotShownAllAbsences "Graphical view of absences not available for Timescale option 'All'. Please choose a different option."]
+        return
     }
     custom {
         if {[catch {
@@ -99,8 +99,9 @@ switch $timescale {
     last_3w { set num_days 21 }
     next_1m { set num_days 31 }
     past { 
-        return [lang::message::lookup "" intranet-timesheet2.AbsenceCubeNotShownPastAbsences "Graphical view of absences not available for Timescale option 'Past'. Please choose a different option."]
-        ad_script_abort
+        set html [lang::message::lookup "" intranet-timesheet2.AbsenceCubeNotShownPastAbsences "Graphical view of absences not available for Timescale option 'Past'. Please choose a different option."]
+        return
+        return
     }
     future { set num_days 93 }
     last_3m { set num_days 93 }
@@ -111,8 +112,9 @@ switch $timescale {
 }
 
 if { $num_days > 370 } {
-    return [lang::message::lookup "" intranet-timesheet2.AbsenceCubeNotShownGreateOneYear "Graphical view of absences only available for periods less than 1 year"]
-    ad_script_abort 
+    set html [lang::message::lookup "" intranet-timesheet2.AbsenceCubeNotShownGreateOneYear "Graphical view of absences only available for periods less than 1 year"]
+    return 
+    return
 }
 
 
@@ -142,7 +144,8 @@ if {[catch {
 }
 
 if {$num_days > 370} {
-    return [lang::message::lookup "" intranet-timesheet2.AbsenceCubeNotShownGreateOneYear "Graphical view of absences only available for periods less than 1 year"]
+    set html [lang::message::lookup "" intranet-timesheet2.AbsenceCubeNotShownGreateOneYear "Graphical view of absences only available for periods less than 1 year"]
+    return
 }
 
 if {-1 == $absence_type_id} { set absence_type_id "" }
@@ -419,7 +422,7 @@ foreach user_tuple $user_list {
     incr row_ctr
 }
 
-set table "
+set html "
 <table>
 $table_header
 $table_body

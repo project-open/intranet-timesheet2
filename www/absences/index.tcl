@@ -846,39 +846,3 @@ set left_navbar_html "
 	    </div>
 "
 
-
-
-# ---------------------------------------------------------------
-# 
-# ---------------------------------------------------------------
-
-# Calendar display for vacation days
-
-switch $timescale {
-    today { 
-	# Just skip(?)
-	set absence_cube_html ""
-    }
-    all { 
-	set absence_cube_html [lang::message::lookup "" intranet-timesheet2.AbsenceCubeNotShownAllAbsences "Graphical view of absences not available for Timescale option 'All'. Please choose a different option."]
-    }
-    past { 
-	set absence_cube_html [lang::message::lookup "" intranet-timesheet2.AbsenceCubeNotShownPastAbsences "Graphical view of absences not available for Timescale option 'Past'. Please choose a different option."]
-    }
-    default {
-	set absence_cube_html [im_absence_cube_component \
-			       -absence_status_id $filter_status_id \
-			       -absence_type_id $org_absence_type_id \
-			       -user_selection $user_selection \
-			       -timescale $timescale \
-			       -report_start_date $org_start_date \
-			       -report_end_date $org_end_date \
-			       -user_id_from_search $user_id_from_search \
-			       -cost_center_id $cost_center_id \
-			       -user_id $user_id \
-			       -hide_colors_p $hide_colors_p \
-			       -project_id $project_id \
-			  ]
-    }
-}
-

@@ -40,3 +40,56 @@ begin
 end;' language 'plpgsql';
 select inline_1 ();
 drop function inline_1();
+
+create or replace function inline_2()
+returns integer as
+$$
+begin
+
+    -- Create a plugin for the absence cube
+    SELECT im_component_plugin__new (
+        null,				    -- plugin_id
+        'im_component_plugin',	-- object_type
+        now(),				    -- creation_date
+        null,				    -- creation_user
+        null,				    -- creation_ip
+        null,				    -- context_id
+        'Absence Cube',			-- plugin_name
+        'intranet-timesheet2',	-- package_name
+        'left',				    -- location
+        '/intranet/users/view',	-- page_url
+        null,				    -- view_name
+        20,				        -- sort_order
+        'im_absence_cube_component -user_id_from_search $user_id_from_search -user_id $user_id'	-- component_tcl
+    );
+
+    -- Create a plugin for the absence cube
+    SELECT im_component_plugin__new (
+        null,				    -- plugin_id
+        'im_component_plugin',	-- object_type
+        now(),				    -- creation_date
+        null,				    -- creation_user
+        null,				    -- creation_ip
+        null,				    -- context_id
+        'Graphical View of Absences',			-- plugin_name
+        'intranet-timesheet2',	-- package_name
+        'top',				    -- location
+        '/intranet-timesheet2/absences/index',	-- page_url
+        null,				    -- view_name
+        20,				        -- sort_order
+        E'im_absence_cube_component \\
+                       -absence_status_id $filter_status_id \\
+                       -absence_type_id $org_absence_type_id \\
+                       -user_selection $user_selection \\
+                       -timescale $timescale \\
+                       -report_start_date $org_start_date \\
+                       -report_end_date $org_end_date \\
+                       -user_id_from_search $user_id_from_search \\
+                       -cost_center_id $cost_center_id \\
+                       -user_id $user_id \\
+                       -hide_colors_p $hide_colors_p \\
+                       -project_id $project_id'	-- component_tcl
+    );
+
+end;
+$$ language 'plpgsql';
