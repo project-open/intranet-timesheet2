@@ -56,42 +56,54 @@ insert into im_biz_object_urls (object_type, url_type, url) values (
 -- Absences Table
 --
 create table im_user_absences (
-        absence_id              integer
+    absence_id                  integer
                                 constraint im_user_absences_pk
                                 primary key
-				constraint im_user_absences_id_fk
-				references acs_objects,
-	absence_name		varchar(1000),
-        owner_id                integer
+                                constraint im_user_absences_id_fk
+                                references acs_objects,
+
+	absence_name		        varchar(1000),
+
+    owner_id                    integer
                                 constraint im_user_absences_user_fk
                                 references users,
-	group_id		integer
-				constraint im_user_absences_group_fk
-				references groups,
-        start_date              timestamptz
+    
+	group_id		            integer
+                                constraint im_user_absences_group_fk
+                                references groups,
+    
+    start_date                  timestamptz
                                 constraint im_user_absences_start_const not null,
-        end_date                timestamptz
+    
+    end_date                    timestamptz
                                 constraint im_user_absences_end_const not null,
-	duration_days		numeric(12,1) default 1
-				constraint im_user_absences_duration_days_nn not null,
-        description             text,
-        contact_info            text,
+    
+	duration_days		        numeric(12,1) default 1
+                                constraint im_user_absences_duration_days_nn not null,
+    
+    description                 text,
+    
+    contact_info                text,
+    
 	-- should this user receive email during the absence?
-        receive_email_p         char(1) default 't'
+    receive_email_p             char(1) default 't'
                                 constraint im_user_absences_email_const
                                 check (receive_email_p in ('t','f')),
-        last_modified           date,
+    
+    last_modified               date,
+    
 	-- Status and type for orderly objects...
-        absence_type_id		integer
+    absence_type_id		        integer
                                 constraint im_user_absences_type_fk
                                 references im_categories
                                 constraint im_user_absences_type_nn
-				not null,
-        absence_status_id	integer
+                                not null,
+    
+    absence_status_id	        integer
                                 constraint im_user_absences_status_fk
                                 references im_categories
                                 constraint im_user_absences_type_nn 
-				not null
+				                not null
 );
 
 -- Unique constraint to avoid that you can add two identical absences
@@ -465,7 +477,7 @@ SELECT im_component_plugin__new (
 	'/intranet-timesheet2/absences/index',	-- page_url
 	null,				    -- view_name
 	20,				        -- sort_order
-	'im_absence_calendar_component -owner_id [ad_decode $user_selection_type "user" $user_selection ""] -year [im_year_from_date $start_date]'	-- component_tcl
+	'im_absence_calendar_component -owner_id [ad_decode $user_selection_type "user" $user_selection $user_selection_type] -year [im_year_from_date $start_date]'	-- component_tcl
 );
 
 -- The component itself does a more thorough check

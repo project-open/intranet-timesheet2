@@ -19,7 +19,8 @@
 
 set current_user_id [ad_get_user_id]
 set view_absences_all_p [im_permission $current_user_id "view_absences_all"]
-set user_selection_type $user_selection
+set user_selection_id ""
+set user_selection_type ""
 
 if {[string is integer -strict $user_selection]} {
     # Find out the object_type
@@ -30,47 +31,39 @@ if {[string is integer -strict $user_selection]} {
             # Allow the manager to see the department
             ns_log Notice "User:: $user_id $user_selection"
             if {![im_manager_of_cost_center_p -user_id $current_user_id -cost_center_id $user_selection] && !$view_absences_all_p} {
-            # Not a manager => Only see yourself
-            set user_selection_type "mine"
+                # Not a manager => Only see yourself
+                set user_selection_type "mine"
             } else {
-            set cost_center_id $user_selection
-            set user_selection_type "cost_center"
-            set user_selection_id $cost_center_id
+                set cost_center_id $user_selection
+                set user_selection_type "cost_center"
+                set user_selection_id $cost_center_id
             }
         }
         user {
             set user_name [im_name_from_user_id $user_selection]
             set user_id $user_selection
+            set user_selection_type user
             set user_selection_id $user_id
 
-            # Check for permissions if we are allowed to see this user
-            if {$view_absences_all_p} {
-            # He can see all users
-            set user_selection_type "user"
-            } elseif {[im_manager_of_user_p -manager_id $current_user_id -user_id $user_id]} {
-            # He is a manager of the user
-            set user_selection_type "user"
-            set user_selection_id $user_id
-            } elseif {[im_supervisor_of_employee_p -supervisor_id $current_user_id -employee_id $user_id]} {
-            # He is a supervisor of the user
-            set user_selection_type "user"
-            set user_selection_id $user_id
-            } else {
-            # He is cheating
-            set user_selection_type "mine"
-            }	      
+            # We have already checked permissions before rendering
+            # this component script but we check them again anyway
+            #
+            # There used to be code here that force to show the
+            # component for the current user. As we already check
+            # permissions before rendering the component, it no longer
+            # made sense to keep doing that.
         }
         im_project {
             set project_id $user_selection
             # Permission Check
             set project_manager_p [im_biz_object_member_p -role_id 1301 $current_user_id $project_id]
             if {!$project_manager_p && !$view_absences_all_p} {
-            set user_selection_type "mine"
+                set user_selection_type "mine"
             } else {
-            set user_name [db_string project_name "select project_name from im_projects where project_id = :project_id" -default ""]
-            set hide_colors_p 1
-            set user_selection_type "project"
-            set user_selection_id $project_id
+                set user_name [db_string project_name "select project_name from im_projects where project_id = :project_id" -default ""]
+                set hide_colors_p 1
+                set user_selection_type "project"
+                set user_selection_id $project_id
             }
         }
         default {
@@ -156,96 +149,13 @@ if {-1 == $absence_type_id} { set absence_type_id "" }
 # Calculate SQL
 # ---------------------------------------------------------------
 
-set criteria [list]
-if {"" != $absence_type_id && 0 != $absence_type_id} {
-    lappend criteria "a.absence_type_id = '$absence_type_id'"
-}
-if {"" != $absence_status_id && 0 != $absence_status_id} {
-    lappend criteria "a.absence_status_id in ([template::util::tcl_to_sql_list [im_sub_categories $absence_status_id]])"
-} else {
-    # Only display active status if no other status was selected
-    lappend criteria "a.absence_status_id in ([template::util::tcl_to_sql_list [im_sub_categories [im_user_absence_status_active]]])"
+set where_clause \
+    [im_absence_component__where_clause \
+        -absence_type_id $absence_type_id \
+        -absence_status_id $absence_status_id \
+        -user_selection_id $user_selection_id \
+        -user_selection_type $user_selection_type]
 
-}
-
-switch $user_selection_type {
-    "all" {
-        # Nothing.
-    }
-    "mine" {
-        lappend criteria "u.user_id = :current_user_id"
-    }
-    "employees" {
-        lappend criteria "u.user_id IN (
-            select	m.member_id
-            from	group_approved_member_map m
-            where	m.group_id = [im_employee_group_id]
-        )"
-    }
-    "providers" {
-        lappend criteria "u.user_id IN (
-            select	m.member_id 
-            from	group_approved_member_map m 
-            where	m.group_id = [im_freelance_group_id]
-        )"
-    }
-    "customers" {
-        lappend criteria "u.user_id IN (
-            select	m.member_id
-            from	group_approved_member_map m
-            where	m.group_id = [im_customer_group_id]
-        )"
-    }
-    "direct_reports" {
-        lappend criteria "a.owner_id in (
-            select employee_id from im_employees
-            where (supervisor_id = :current_user_id OR employee_id = :current_user_id)
-            UNION
-            select	e.employee_id 
-            from	im_employees e,
-            -- Select all departments where the current user is manager
-            (select	cc.cost_center_id,
-             cc.manager_id
-             from	im_cost_centers cc,
-             (select cost_center_code as code,
-              length(cost_center_code) len
-              from	im_cost_centers
-              where	manager_id = :current_user_id
-              ) t
-             where	substring(cc.cost_center_code for t.len) = t.code
-             ) tt
-            where  (e.department_id = tt.cost_center_id
-                OR e.employee_id = tt.manager_id)
-        )"
-    }  
-    "cost_center" {
-        set cost_center_id $user_selection_id
-        set cost_center_list [im_cost_center_options -parent_id $cost_center_id]
-        set cost_center_ids [list $cost_center_id]
-        foreach cost_center $cost_center_list {
-            lappend cost_center_ids [lindex $cost_center 1]
-        }
-        lappend criteria "a.owner_id in (select employee_id from im_employees where department_id in ([template::util::tcl_to_sql_list $cost_center_ids]) and employee_status_id = '454')"
-    }
-    "project" {
-        set project_id $user_selection_id
-        set project_ids [im_project_subproject_ids -project_id $project_id]
-        lappend criteria "a.owner_id in (select object_id_two from acs_rels where object_id_one in ([template::util::tcl_to_sql_list $project_ids]))"
-    }
-    "user" {
-        set user_id $user_selection_id
-        lappend criteria "a.owner_id=:user_id"
-    }	    
-    default  {
-        # We shouldn't even be here, so just display his/her own ones
-        lappend criteria "a.owner_id = :current_user_id"
-    }
-}
-
-set where_clause [join $criteria " and\n            "]
-if {![empty_string_p $where_clause]} {
-    set where_clause " and $where_clause"
-}
 
 # ---------------------------------------------------------------
 # Determine Top Dimension

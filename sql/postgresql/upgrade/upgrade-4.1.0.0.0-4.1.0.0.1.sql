@@ -46,6 +46,10 @@ returns void as
 $$
 begin
 
+    perform im_component_plugin__delete(plugin_id) 
+    from im_component_plugins 
+    where plugin_name in ('Absence Cube','Graphical View of Absences','Absence Calendar','Calendar View of Absences');
+
     -- Create a plugin for the absence cube
     perform im_component_plugin__new (
         null,				    -- plugin_id
@@ -124,7 +128,7 @@ begin
         '/intranet-timesheet2/absences/index',	-- page_url
         null,				    -- view_name
         20,				        -- sort_order
-        'im_absence_calendar_component -owner_id [ad_decode $user_selection_type "user" $user_selection "mine" $user_selection ""] -year [im_year_from_date $start_date]'	-- component_tcl
+        'im_absence_calendar_component -owner_id [ad_decode $user_selection_type "user" $user_selection "mine" $user_selection $user_selection_type] -year [im_year_from_date $start_date]'	-- component_tcl
     );
 
     perform acs_permission__grant_permission(

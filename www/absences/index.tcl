@@ -169,19 +169,9 @@ if {[string is integer $user_selection]} {
 	    set user_id $user_selection
 
 	    # Check for permissions if we are allowed to see this user
-	    if {$view_absences_all_p} {
-            # He can see all users
-            set user_selection_type "user"
-	    } elseif {[im_manager_of_user_p -manager_id $current_user_id -user_id $user_id]} {
-            # He is a manager of the user
-            set user_selection_type "user"
-            set user_selection $user_id
-	    } elseif {[im_supervisor_of_employee_p -supervisor_id $current_user_id -employee_id $user_id]} {
-            # He is a supervisor of the user
-            set user_selection_type "user"
-            set user_selection $user_id
-	    } else {
-            # He is cheating
+        # NOTE: This is legacy code. We should turn list of absences into a component
+        # just like we did for Absence Cube and Absence Calendar. This is a huge hack.
+	    if {![im_absence_component_view_p -owner_id $user_selection -current_user_id $current_user_id]} {
             set user_selection_type "mine"
 	    }	      
 	}

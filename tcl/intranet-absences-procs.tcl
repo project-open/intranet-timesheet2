@@ -70,6 +70,15 @@ ad_proc im_year_from_date {date} {
     return [clock format [im_seconds_from_date $date] -format "%Y"]
 }
 
+ad_proc incr_if {varName expr} {
+    @author Neophytos Demetriou (neophytos@azet.sk)
+} {
+    upvar $varName var
+    if { [uplevel [list expr $expr]] } {
+        incr var
+    }
+}
+
 # ---------------------------------------------------------------------
 # Absences Permissions
 # ---------------------------------------------------------------------
@@ -564,6 +573,176 @@ ad_proc -public im_absence_day_list_helper {
     return $day_list
 }
 
+
+ad_proc -private im_absence_component_view_p {
+    -owner_id 
+    -current_user_id
+} {
+
+    Returns true if the current user (current_user_id) can view the 
+    absence component (Absence Cube, Absence Calendar) of another 
+    user (owner_id).
+
+    Only allows this for the owner, for users with HR permissions,
+    supervisor of the employee, and the cost center (department) manager.
+
+    @author Neophytos Demetriou (neophytos@azet.sk)
+} {
+    # Show only if user is an employee
+    if { ![im_user_is_employee_p $owner_id] } { return "" }
+
+    set sql "
+        select supervisor_id,manager_id
+        from im_employees e
+        inner join im_cost_centers cc
+        on (cc.cost_center_id=e.department_id)
+        where employee_id = :owner_id
+    "
+    db_1row supervisor_and_cc_manager $sql
+
+    set read_p 0
+    incr_if read_p {[im_permission $current_user_id "view_absences_all"]}
+    incr_if read_p {$owner_id == $current_user_id}
+    incr_if read_p {[im_permission $current_user_id view_hr]}
+    incr_if read_p {$supervisor_id == $current_user_id}
+    incr_if read_p {$manager_id == $current_user_id}
+    return $read_p
+}
+
+ad_proc -private im_absence_component__where_clause {
+    -user_selection_id
+    -user_selection_type
+    {-absence_type_id ""}
+    {-absence_status_id ""}
+} {
+    @author Neophytos Demetriou (neophytos@azet.sk)
+} {
+
+    set current_user_id [ad_get_user_id]
+
+    set criteria [list]
+    if {"" != $absence_type_id && 0 != $absence_type_id} {
+        lappend criteria "a.absence_type_id = '$absence_type_id'"
+    }
+    if {"" != $absence_status_id && 0 != $absence_status_id} {
+        lappend criteria "a.absence_status_id in ([template::util::tcl_to_sql_list [im_sub_categories $absence_status_id]])"
+    } else {
+        # Only display active status if no other status was selected
+        lappend criteria "a.absence_status_id in ([template::util::tcl_to_sql_list [im_sub_categories [im_user_absence_status_active]]])"
+
+    }
+
+    switch $user_selection_type {
+        "all" {
+            # Nothing.
+        }
+        "mine" {
+            lappend criteria "u.user_id = :current_user_id"
+        }
+        "employees" {
+            lappend criteria "u.user_id IN (
+                select	m.member_id
+                from	group_approved_member_map m
+                where	m.group_id = [im_employee_group_id]
+            )"
+        }
+        "providers" {
+            lappend criteria "u.user_id IN (
+                select	m.member_id 
+                from	group_approved_member_map m 
+                where	m.group_id = [im_freelance_group_id]
+            )"
+        }
+        "customers" {
+            lappend criteria "u.user_id IN (
+                select	m.member_id
+                from	group_approved_member_map m
+                where	m.group_id = [im_customer_group_id]
+            )"
+        }
+        "direct_reports" {
+            lappend criteria "a.owner_id in (
+                select employee_id from im_employees
+                where (supervisor_id = :current_user_id OR employee_id = :current_user_id)
+                UNION
+                select	e.employee_id 
+                from	im_employees e,
+                -- Select all departments where the current user is manager
+                (select	cc.cost_center_id,
+                 cc.manager_id
+                 from	im_cost_centers cc,
+                 (select cost_center_code as code,
+                  length(cost_center_code) len
+                  from	im_cost_centers
+                  where	manager_id = :current_user_id
+                  ) t
+                 where	substring(cc.cost_center_code for t.len) = t.code
+                 ) tt
+                where  (e.department_id = tt.cost_center_id
+                    OR e.employee_id = tt.manager_id)
+            )"
+        }  
+        "cost_center" {
+            set cost_center_id $user_selection_id
+            set cost_center_list [im_cost_center_options -parent_id $cost_center_id]
+            set cost_center_ids [list $cost_center_id]
+            foreach cost_center $cost_center_list {
+                lappend cost_center_ids [lindex $cost_center 1]
+            }
+            lappend criteria "a.owner_id in (select employee_id from im_employees where department_id in ([template::util::tcl_to_sql_list $cost_center_ids]) and employee_status_id = '454')"
+        }
+        "project" {
+            set project_id $user_selection_id
+            set project_ids [im_project_subproject_ids -project_id $project_id]
+            lappend criteria "a.owner_id in (select object_id_two from acs_rels where object_id_one in ([template::util::tcl_to_sql_list $project_ids]))"
+        }
+        "user" {
+            set user_id $user_selection_id
+            lappend criteria "a.owner_id=:user_id"
+        }	    
+        default  {
+            # We shouldn't even be here, so just display his/her own ones
+            lappend criteria "a.owner_id = :current_user_id"
+        }
+    }
+
+    set where_clause [join $criteria " and\n\t"]
+    if {![empty_string_p $where_clause]} {
+        set where_clause " and $where_clause"
+    }
+
+    # temporary hack until I manage to refactor the code
+    return [db_bind_var_substitution $where_clause]
+
+}
+
+
+ad_proc -private im_supervisor_of_employee_p {
+    -supervisor_id
+    -employee_id
+} {
+    @author Neophytos Demetriou (neophytos@azet.sk)
+} {
+    set sql "select true from im_employees where employee_id=:employee_id and supervisor_id=:supervisor_id"
+    return [db_string supervisor_p $sql -default false]
+}
+
+ad_proc -private im_manager_of_employee_p {
+    -manager_id
+    -employee_id
+} {
+    @author Neophytos Demetriou (neophytos@azet.sk)
+} {
+    set sql "
+        select true 
+        from im_employees e 
+        inner join im_cost_centers cc 
+        on (cc.cost_center_id=e.department_id) 
+        where employee_id=:employee_id and manager_id=:supervisor_id
+    "
+    return [db_string supervisor_p $sql -default false]
+}
+
 ad_proc -public im_absence_cube_component {
     -user_id_from_search:required
     {-num_days 21}
@@ -587,22 +766,12 @@ ad_proc -public im_absence_cube_component {
 
 } {
 
-    # NOTE: We had to comment out the following even though it is 
-    # part of im_absence_vacation_balance_component in order to
-    # ensure that intranet-timesheet2/absences/index will continue
-    # to work as it used to when it was using the im_absence_cube proc.
-    #
-    # Show only if user is an employee
-    # if { ![im_user_is_employee_p $user_id_from_search] } { return "" }
-
-    set current_user_id [ad_get_user_id]
-    # This is a sensitive field, so only allows this for the user himself
-    # and for users with HR permissions.
-
-    set read_p 0
-    if {$user_id_from_search == $current_user_id} { set read_p 1 }
-    if {[im_permission $current_user_id view_hr]} { set read_p 1 }
-    if {!$read_p} { return "" }
+    if { [string is integer -strict $user_id_from_search] } {
+        set current_user_id [ad_get_user_id]
+        if { ![im_absence_component_view_p -owner_id $user_id_from_search -current_user_id $current_user_id] } {
+            return ""
+        }
+    }
 
     set params [list \
 		    [list user_id_from_search $user_id_from_search] \
@@ -654,22 +823,10 @@ ad_proc -public im_absence_calendar_component {
         set year [clock format [clock seconds] -format "%Y"]
     }
 
-    # NOTE: We had to comment out the following even though it is 
-    # part of im_absence_vacation_balance_component in order to
-    # ensure that intranet-timesheet2/absences/index will continue
-    # to work as it used to when it was using the im_absence_cube proc.
-    #
-    # Show only if user is an employee
-    # if { ![im_user_is_employee_p $user_id_from_search] } { return "" }
-
     set current_user_id [ad_get_user_id]
-    # This is a sensitive field, so only allows this for the user himself
-    # and for users with HR permissions.
-
-    set read_p 0
-    if {$owner_id == $current_user_id} { set read_p 1 }
-    if {[im_permission $current_user_id view_hr]} { set read_p 1 }
-    if {!$read_p} { return "" }
+    if { ![im_absence_component_view_p -owner_id $owner_id -current_user_id $current_user_id] } {
+        return ""
+    }
 
     set params \
         [list \

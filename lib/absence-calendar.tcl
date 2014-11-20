@@ -33,7 +33,14 @@ set leap_year_p [expr ( $year % 4 == 0 ) && ( ( $year % 100 != 0 ) || ( $year % 
 set num_days [ad_decode $leap_year_p t 366 365]
 set report_start_date "${year}-01-01"
 set report_end_date "${year}-12-31"
-set where_clause "and a.owner_id = :owner_id"
+
+#set where_clause "and a.owner_id = :owner_id"
+
+set where_clause \
+    [im_absence_component__where_clause \
+        -user_selection_id $owner_id \
+        -user_selection_type "user"]
+
 set absence_sql "
     -- Individual Absences per user
     select	a.absence_type_id,
