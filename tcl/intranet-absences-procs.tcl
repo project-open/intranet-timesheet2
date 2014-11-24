@@ -613,15 +613,24 @@ ad_proc im_absence_component__timescale_types {} {
     @last-modified 2014-11-24
     @last-modified-by Neophytos Demetriou (neophytos@azet.sk)
 } {
-    return [list \
-        [list "all" [lang::message::lookup "" intranet-timesheet2.All "All"]] \
-        [list "today" [lang::message::lookup "" intranet-timesheet2.Today "Today"]] \
-        [list "next_3w" [lang::message::lookup "" intranet-timesheet2.Next_3_Weeks "Next 3 Weeks"]] \
-        [list "next_3m" [lang::message::lookup "" intranet-timesheet2.Next_3_Month "Next 3 Months"]] \
-        [list "future" [lang::message::lookup "" intranet-timesheet2.Future "Future"]] \
-        [list "past" [lang::message::lookup "" intranet-timesheet2.Past "Past"]] \
-        [list "last_3m" [lang::message::lookup "" intranet-timesheet2.Last_3_Month "Last 3 Months"]] \
-        [list "last_3w" [lang::message::lookup "" intranet-timesheet2.Last_3_Weeks "Last 3 Weeks"]]]
+
+    set types {
+        all "All"
+        today "Today"
+        next_3w "Next 3 Weeks"
+        next_3m "Next 3 Months"
+        future "Future"
+        past "Past"
+        last_3m "Last 3 Months"
+        last_3w "Last 3 Weeks"
+    }
+
+    set options [list]
+    foreach {value label} $types {
+        set msg_name [string map {" " "_"} $label]
+        lappend options [list [lang::message::lookup "" intranet-timesheet2.$msg_name $label] $value]
+    }
+    return $options
 }
 
 
@@ -652,20 +661,16 @@ ad_proc -private im_absence_component__absence_criteria {
 
     set criteria [list]
 
-    if { $absence_type_id ne {} && $absence_type_id ne {0} } {
+    if { $absence_type_id ne {} && $absence_type_id != "0" } {
         lappend criteria "a.absence_type_id = [ns_dbquotevalue $absence_type_id]"
     }
 
-    if { $absence_status_id ne {} && $absence_status_id ne {0} } {
+    if { $absence_status_id ne {} } {
         if { [llength $absence_status_id] == 1 } {
             lappend criteria "a.absence_status_id in ([template::util::tcl_to_sql_list [im_sub_categories $absence_status_id]])"
         } else {
             lappend criteria "a.absence_status_id in ([template::util::tcl_to_sql_list $absence_status_id])"
         }
-    } else {
-        # Only display active status if no other status was selected
-        lappend criteria "a.absence_status_id in ([template::util::tcl_to_sql_list [im_sub_categories [im_user_absence_status_active]]])"
-
     }
 
     # temporary hack until I manage to refactor the code
@@ -690,24 +695,24 @@ ad_proc -private im_absence_component__user_selection_criteria {
             # Nothing.
         }
         "mine" {
-            lappend criteria "u.user_id = :current_user_id"
+            lappend criteria "a.owner_id = :current_user_id"
         }
         "employees" {
-            lappend criteria "u.user_id IN (
+            lappend criteria "a.owner_id IN (
                 select	m.member_id
                 from	group_approved_member_map m
                 where	m.group_id = [im_employee_group_id]
             )"
         }
         "providers" {
-            lappend criteria "u.user_id IN (
+            lappend criteria "a.owner_id IN (
                 select	m.member_id 
                 from	group_approved_member_map m 
                 where	m.group_id = [im_freelance_group_id]
             )"
         }
         "customers" {
-            lappend criteria "u.user_id IN (
+            lappend criteria "a.owner_id IN (
                 select	m.member_id
                 from	group_approved_member_map m
                 where	m.group_id = [im_customer_group_id]
@@ -777,18 +782,20 @@ ad_proc im_absence_component__timescale_criteria {
 
     set criteria [list]
 
-    set start_date ""
-    set end_date ""
+    if {$start_date eq {}} {
+        set start_date [db_string today "select now()::date"]
+    }
+    set end_date $start_date
     switch $timescale {
         "all" {
-            set start_date "2000-01-01" 
-            set end_date "2099-12-31"
+            set start_date "" ;# 2000-01-01 
+            set end_date ""   ;# 2099-12-31
         }
         "today" { 
             set end_date $start_date
         }
         "next_3w" { 
-            set end_date [db_string 3w "select now()::date + 21"]
+            set end_date [db_string 3w "select to_date(:start_date,'YYYY-MM-DD') + 21"]
         }
         "last_3w" { 
             set end_date $start_date
@@ -799,7 +806,7 @@ ad_proc im_absence_component__timescale_criteria {
             set start_date "2000-01-01"
         }
         "future" { 
-            set end_date [db_string max_end_date "select max(end_date) from im_user_absences"]
+            set end_date ""
         }
         "last_3m" { 
             set end_date $start_date
@@ -811,8 +818,8 @@ ad_proc im_absence_component__timescale_criteria {
     }
 
     # Limit to start-date and end-date
-    if {"" != $start_date} { lappend criteria "a.end_date::date >= :start_date" }
-    if {"" != $end_date} { lappend criteria "a.start_date::date <= :end_date" }
+    if {$start_date ne {}} { lappend criteria "a.end_date::date >= :start_date" }
+    if {$end_date ne {}} { lappend criteria "a.start_date::date <= :end_date" }
 
     # temporary hack until I manage to refactor the code
     append where_clause [db_bind_var_substitution [im_where_from_criteria $criteria]]

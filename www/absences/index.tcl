@@ -74,11 +74,7 @@ if {"" != $project_id} {
     set user_selection $project_id
 }
 
-if {"" == $filter_start_date} {
-    set start_date [db_string today "select now()::date"]
-} else {
-    set start_date $filter_start_date
-}
+set start_date $filter_start_date
 
 if {!$view_absences_all_p} {
     switch $user_selection {
@@ -102,9 +98,8 @@ if {![im_permission $user_id "view_absences"] && !$view_absences_all_p && !$view
 
 # Support display of all Absences regardless of status in the
 # list. This does not show up in grafik though
-if {$filter_status_id eq ""} {
-    set absence_status_sql ""
-} else {
+set absence_status_sql ""
+if {$filter_status_id ne {}} {
     set absence_status_sql "and a.absence_status_id = :filter_status_id"
 }
 
@@ -400,10 +395,33 @@ foreach { value text } $absences_types {
 if {$hide_colors_p} {
     # Show only approved and requested
     set absence_status_id [list [im_user_absence_status_active],[im_user_absence_status_requested]]
+} else {
+    if { $filter_status_id ne {} } {
+        set absence_status_id $filter_status_id
+    } else {
+        set absence_status_id [im_sub_categories [im_user_absence_status_active]]
+    }
 }
 
 foreach { value text } $user_selection_types {
     lappend user_selection_type_list [list $text $value]
+}
+
+if { $user_selection_type eq {project} } {
+    set user_selection_id $project_id
+} elseif { $user_selection_type eq {user} } {
+    set user_selection_id $user_id
+} elseif { $user_selection_type eq {cost_center} } {
+    set user_selection_id $cost_center_id
+} elseif { [string is integer -strict $user_selection_type] } {
+    set user_selection_id $user_selection_type
+    set user_selection_type "user"
+} elseif { $user_selection_type eq {mine}} {
+    set user_selection_id [ad_get_user_id]
+} elseif { $user_selection_type eq {all}} {
+    set user_selection_id [ad_get_user_id]
+} else {
+    error "user_selection_type=$user_selection_type and user_selection_id does not exist"
 }
 
 
@@ -412,9 +430,6 @@ foreach { value text } $user_selection_types {
 # ---------------------------------------------------------------
 
 set where_clause ""
-
-set absence_status_id -1
-set user_selection_id 0
 
 im_absence_component__absence_criteria \
     -where_clauseVar where_clause \
