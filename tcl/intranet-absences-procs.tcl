@@ -721,77 +721,110 @@ ad_proc -private im_absence_component__user_selection_helper {
     # user_selection is required to be an integer
     # returns false, no one can view the component
     # with a non-integer selection
-    if { ![string is integer -strict $user_selection] } {
-        return false
-    }
+    if { [string is integer -strict $user_selection] } {
 
-    # Figure out the object_type for the given object id, i.e. user_selection.
-    set sql "select object_type from acs_objects where object_id = :user_selection"
-    set object_type [db_string object_type $sql -default ""]
+        # Figure out the object_type for the given object id, i.e. user_selection.
+        set sql "select object_type from acs_objects where object_id = :user_selection"
+        set object_type [db_string object_type $sql -default ""]
 
-    switch $object_type {
+        switch $object_type {
 
-        im_cost_center {
+            im_cost_center {
 
-            set user_name [im_cost_center_name $user_selection]
-            if {[im_manager_of_cost_center_p -user_id $current_user_id -cost_center_id $user_selection] || $can_view_all_p} {
-                # allow managers to view absences in their department
-                set user_selection_type "cost_center"
+                set user_name [im_cost_center_name $user_selection]
+                if {[im_manager_of_cost_center_p -user_id $current_user_id -cost_center_id $user_selection] || $can_view_all_p} {
+                    # allow managers to view absences in their department
+                    set user_selection_type "cost_center"
+                    set user_selection_id $user_selection
+                } else {
+                    return false
+                }
+
+            }
+
+            user {
+
+                set user_name [im_name_from_user_id $user_selection]
+                set user_selection_type user
                 set user_selection_id $user_selection
-            } else {
-                return false
+                
+                # Show only if user is an employee
+                set owner_id $user_selection_id
+                if { ![im_user_is_employee_p $owner_id] } { return "" }
+
+                set sql "
+                    select supervisor_id,manager_id
+                    from im_employees e
+                    inner join im_cost_centers cc
+                    on (cc.cost_center_id=e.department_id)
+                    where employee_id = :owner_id
+                "
+                db_1row supervisor_and_cc_manager $sql
+
+                set read_p 0
+                incr_if read_p {[im_permission $current_user_id "view_absences_all"]}
+                incr_if read_p {$owner_id == $current_user_id}
+                incr_if read_p {[im_permission $current_user_id view_hr]}
+                incr_if read_p {$supervisor_id == $current_user_id}
+                incr_if read_p {$manager_id == $current_user_id}
+                return $read_p
+
+            }
+
+            im_project {
+
+                set project_manager_p [im_biz_object_member_p -role_id 1301 $current_user_id $user_selection]
+                if {$project_manager_p || $can_view_all_p} {
+                    set user_name [db_string project_name "select project_name from im_projects where project_id = :user_selection" -default ""]
+                    set hide_colors_p 1
+                    set user_selection_type "project"
+                    set user_selection_id $user_selection
+                } else {
+                    return false
+                }
+
+            }
+
+            default {
+                ad_return_complaint 1 "Invalid User Selection:<br>Value '$user_selection' is not a user_id, project_id, department_id or one of {mine|all|employees|providers|customers|direct reports}."
             }
 
         }
+    } else {
 
-        user {
+        set add_absences_for_group_p [im_permission $current_user_id "add_absences_for_group"]
+        set add_absences_all_p [im_permission $current_user_id "add_absences_all"]
+        set view_absences_all_p [expr [im_permission $current_user_id "view_absences_all"] || $can_add_all_p]
+        set add_absences_p [im_permission $current_user_id "add_absences"]
 
-            set user_name [im_name_from_user_id $user_selection]
-            set user_selection_type user
-            set user_selection_id $user_selection
-            
-            # Show only if user is an employee
-            set owner_id $user_selection_id
-            if { ![im_user_is_employee_p $owner_id] } { return "" }
-
-            set sql "
-                select supervisor_id,manager_id
-                from im_employees e
-                inner join im_cost_centers cc
-                on (cc.cost_center_id=e.department_id)
-                where employee_id = :owner_id
-            "
-            db_1row supervisor_and_cc_manager $sql
-
-            set read_p 0
-            incr_if read_p {[im_permission $current_user_id "view_absences_all"]}
-            incr_if read_p {$owner_id == $current_user_id}
-            incr_if read_p {[im_permission $current_user_id view_hr]}
-            incr_if read_p {$supervisor_id == $current_user_id}
-            incr_if read_p {$manager_id == $current_user_id}
-            return $read_p
-
-        }
-
-        im_project {
-
-            set project_manager_p [im_biz_object_member_p -role_id 1301 $current_user_id $user_selection]
-            if {$project_manager_p || $can_view_all_p} {
-                set user_name [db_string project_name "select project_name from im_projects where project_id = :user_selection" -default ""]
-                set hide_colors_p 1
-                set user_selection_type "project"
-                set user_selection_id $user_selection
-            } else {
-                return false
+        switch $user_selection {
+            mine { 
+                set user_selection_id $current_user_id
+                set user_selection_type user
+                return true
             }
+            all  -
+            employees -
+            providers -
+            customers {
+                return $can_view_all_p
+            }
+            {direct reports} {
 
-        }
+                set can_add_absences_direct_reports_p \
+                    [im_permission $user_id "add_absences_direct_reports"]
 
-        default {
-            ad_return_complaint 1 "Invalid User Selection:<br>Value '$user_selection' is not a user_id, project_id, department_id or one of {mine|all|employees|providers|customers|direct reports}."
+                set can_view_absences_direct_reports_p \
+                    [expr [im_permission $user_id "view_absences_direct_reports"] || $add_absences_direct_reports_p]
+
+                return $can_view_absences_direct_reports_p
+
+            }
         }
 
     }
+
+    return true
 }
 
 
@@ -1039,7 +1072,7 @@ ad_proc -public im_absence_cube_component {
 } {
 
     if { ![im_absence_component_view_p -user_selection $user_selection] } {
-        return ""
+        return "You do not have enough privileges to view this component"
     }
 
     set params [list \
@@ -1080,7 +1113,7 @@ ad_proc -public im_absence_list_component {
 } {
 
     if { ![im_absence_component_view_p -user_selection $user_selection] } {
-        return ""
+        return "You do not have enough privileges to view this component"
     }
 
     set params [list \
@@ -1122,7 +1155,7 @@ ad_proc -public im_absence_calendar_component {
 
     set current_user_id [ad_get_user_id]
     if { ![im_absence_component_view_p -user_selection $user_selection] } {
-        return ""
+        return "You do not have enough privileges to view this component"
     }
 
     set params \
@@ -1472,7 +1505,7 @@ ad_proc -public im_absence_dates {
     @param ignore_absence_id Ignore this absence_id when calculating the dates. This is helpful if we edit an existing absence and want to get the other days the user is off
     @param type "dates" which is default returns the dates. "sum" returns the actual amount of days and "absence_ids" lists the absences which fall in this timeframe
 } {
-    ds_comment "Abensece:: $absence_status_id"
+    ds_comment "im_absence_dates: absence_status_id=$absence_status_id"
     # Assume current year for start/enddate
     set current_year [dt_systime -format "%Y"]
     if {$start_date eq ""} {
