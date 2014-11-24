@@ -540,17 +540,21 @@ ad_proc im_absence_cube_render_cell {
 ad_proc -public im_absence_day_list {
     {-date_format:required}
     {-num_days:required}
-    {-report_start_date:required}
+    {-start_date:required}
 } {
     get a day_list
 } {
-    return [util_memoize [list im_absence_day_list_helper -date_format $date_format -num_days $num_days -report_start_date $report_start_date]]
+    return [util_memoize \
+        [list im_absence_day_list_helper \
+            -date_format $date_format \
+            -num_days $num_days \
+            -start_date $start_date]]
 }
 
 ad_proc -public im_absence_day_list_helper {
     {-date_format:required}
     {-num_days:required}
-    {-report_start_date:required}
+    {-start_date:required}
 } {
     get a day_list
 } {
@@ -559,12 +563,12 @@ ad_proc -public im_absence_day_list_helper {
     for {set i 0} {$i < $num_days} {incr i} {
         db_1row date_info "
         	    select 
-        		to_char(:report_start_date::date + :i::integer, :date_format) as date_date,
-        		to_char(:report_start_date::date + :i::integer, 'Day') as date_day,
-        		to_char(:report_start_date::date + :i::integer, 'dd') as date_day_of_month,
-        		to_char(:report_start_date::date + :i::integer, 'Mon') as date_month,
-        		to_char(:report_start_date::date + :i::integer, 'YYYY') as date_year,
-        		to_char(:report_start_date::date + :i::integer, 'Dy') as date_weekday
+        		to_char(:start_date::date + :i::integer, :date_format) as date_date,
+        		to_char(:start_date::date + :i::integer, 'Day') as date_day,
+        		to_char(:start_date::date + :i::integer, 'dd') as date_day_of_month,
+        		to_char(:start_date::date + :i::integer, 'Mon') as date_month,
+        		to_char(:start_date::date + :i::integer, 'YYYY') as date_year,
+        		to_char(:start_date::date + :i::integer, 'Dy') as date_weekday
                 "
 
         set date_month [lang::message::lookup "" intranet-timesheet2.$date_month $date_month]
@@ -766,54 +770,74 @@ ad_proc -private im_absence_component__user_selection_criteria {
 
 }
 
-ad_proc im_absence_component__timescale_criteria {
-    -where_clauseVar:required
-    -start_dateVar:required
-    -end_dateVar:required
+ad_proc im_absence_component__timescale {
+    {-where_clauseVar ""}
+    {-start_dateVar ""}
+    {-end_dateVar ""}
+    {-where_clauseVar ""}
+    {-num_daysVar ""}
+    -timescale_date:required
     -timescale:required
 } {
     @last-modified 2014-11-24
     @last-modified-by Neophytos Demetriou (neophytos@azet.sk)
 } {
 
-    upvar $where_clauseVar where_clause
-    upvar $start_dateVar start_date
-    upvar $end_dateVar end_date
+    foreach myVar {where_clause start_date end_date num_days} {
+        set otherVar "${myVar}Var"
+        if { [set $otherVar] ne {}} {
+            upvar [set $otherVar] $myVar
+        }
+    }
 
     set criteria [list]
 
-    if {$start_date eq {}} {
-        set start_date [db_string today "select now()::date"]
+    if {$timescale_date eq {}} {
+        set timescale_date [db_string today "select now()::date"]
     }
-    set end_date $start_date
+
+    set num_days ""
+    set start_date $timescale_date
+    set end_date $timescale_date
     switch $timescale {
         "all" {
+            set num_days ""
             set start_date "" ;# 2000-01-01 
             set end_date ""   ;# 2099-12-31
         }
         "today" { 
-            set end_date $start_date
+            set num_days 0
+            set end_date $timescale_date
         }
         "next_3w" { 
-            set end_date [db_string 3w "select to_date(:start_date,'YYYY-MM-DD') + 21"]
+            set num_days 21 
+            set end_date [db_string 3w "select to_date(:timescale_date,'YYYY-MM-DD') + :num_days::integer"]
         }
         "last_3w" { 
-            set end_date $start_date
-            set start_date [db_string 3w "select to_date(:start_date,'YYYY-MM-DD') - 21"]
+            set num_days -21 
+            set end_date $timescale_date
+            set start_date [db_string 3w "select to_date(:timescale_date,'YYYY-MM-DD') + :num_days::integer"]
         }
         "past" { 
-            set end_date $start_date
-            set start_date "2000-01-01"
+            set num_days "" 
+            set end_date 2099-12-31
+            set start-date "2000-01-01"
         }
         "future" { 
+            set num_days "" 
             set end_date ""
         }
         "last_3m" { 
+            set num_days -93 
             set end_date $start_date
-            set start_date [db_string 3w "select to_date(:start_date,'YYYY-MM-DD') - 93"]
+            set start_date [db_string 3w "select to_date(:timescale_date,'YYYY-MM-DD') + :num_days::integer"]
         }
         "next_3m" { 
-            set end_date [db_string 3w "select to_date(:start_date,'YYYY-MM-DD') + 93"]
+            set num_days 93 
+            set end_date [db_string 3w "select to_date(:timescale_date,'YYYY-MM-DD') + :num_days::integer"]
+        }
+        default {
+            set num_days 21
         }
     }
 
@@ -873,13 +897,11 @@ ad_proc -private im_manager_of_employee_p {
 
 ad_proc -public im_absence_cube_component {
     -user_id_from_search:required
-    {-num_days 21}
     {-absence_status_id "" }
     {-absence_type_id "" }
-    {-user_selection "" }
     {-timescale "" }
-    {-report_start_date "" }
-    {-report_end_date "" }
+    {-timescale_date "" }
+    {-user_selection "" }
     {-user_id ""}
     {-cost_center_id ""}
     {-hide_colors_p 0}
@@ -903,13 +925,11 @@ ad_proc -public im_absence_cube_component {
 
     set params [list \
 		    [list user_id_from_search $user_id_from_search] \
-			[list num_days $num_days] \
 			[list absence_status_id $absence_status_id] \
 			[list absence_type_id $absence_type_id] \
-			[list user_selection $user_selection] \
 			[list timescale $timescale] \
-			[list report_start_date $report_start_date] \
-			[list report_end_date $report_end_date] \
+			[list timescale_date $timescale_date] \
+			[list user_selection $user_selection] \
 			[list user_id $user_id] \
 			[list cost_center_id $cost_center_id] \
 			[list hide_colors_p $hide_colors_p] \
@@ -1581,3 +1601,64 @@ ad_proc -public im_absence_approval_component {
     set result [ad_parse_template -params $params "/packages/intranet-timesheet2/lib/absence-approval"]
     return [string trim $result]
 }
+
+
+ad_proc -public im_absence_cube_legend {} {
+    @author Neophytos Demetriou (neophytos@azet.sk)
+} {
+
+    set color_list [im_absence_cube_color_list]
+    set col_sql "
+        select	category_id, category, enabled_p, aux_string2
+        from	im_categories
+        where	
+                category_type = 'Intranet Absence Type'
+        order by category_id
+    "
+
+    append admin_html "<div class=filter-title>[lang::message::lookup "" intranet-timesheet2.Color_codes "Color Codes"]</div>\n"
+    append admin_html "<table cellpadding='5' cellspacing='5'>\n"
+
+# Marc Fleischer: A question of color
+    set index -1
+    db_foreach cols $col_sql {
+        if { "" == $aux_string2 } {
+        # set index [expr $category_id - 5000]
+        set col [lindex $color_list $index]
+        incr index
+        } else {
+        set col $aux_string2
+        }
+
+        if { "t" == $enabled_p } {
+        regsub -all " " $category "_" category_key
+        set category_l10n [lang::message::lookup "" intranet-core.$category_key $category]
+        if { [string length $col] == 6} {
+            # Transform RGB Hex-Values (e.g. #a3b2c4) into Dec-Values
+            set r_bg [expr 0x[string range $col 0 1]]
+            set g_bg [expr 0x[string range $col 2 3]]
+            set b_bg [expr 0x[string range $col 4 5]]
+        } elseif { [string length $col] == 3 } {
+            # Transform RGB Hex-Values (e.g. #a3b) into Dec-Values
+            set r_bg [expr 0x[string range $col 0 0]]
+            set g_bg [expr 0x[string range $col 1 1]]
+            set b_bg [expr 0x[string range $col 2 2]]
+        } else {
+            # color codes can't be parsed -> set a middle value
+            set r_bg 127
+            set g_bg 127
+            set b_bg 127
+        }
+        # calculate a brightness-value for the color
+        # if brightness > 127 the foreground color is black, if < 127 the foreground color is white
+        set brightness [expr $r_bg * 0.2126 + $g_bg * 0.7152 + $b_bg * 0.0722]
+        set col_fg "fff"
+        if {$brightness >= 127} {set col_fg "000"}
+        set category_l10n [lang::message::lookup "" intranet-core.$category_key $category]
+        append admin_html "<tr><td style='padding:3px; background-color:\#$col; color:\#$col_fg'>$category_l10n</td></tr>\n"
+       }
+    }
+
+    append admin_html "</table>\n"
+}
+

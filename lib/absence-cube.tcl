@@ -3,13 +3,11 @@
 #    Returns a rendered cube with a graphical absence display
 #    for users.
 #} {
-#    {-num_days 21}
 #    {-absence_status_id "" }
 #    {-absence_type_id "" }
 #    {-user_selection "" }
 #    {-timescale "" }
-#    {-report_start_date "" }
-#    {-report_end_date "" }
+#    {-timescale_date "" }
 #    {-user_id_from_search "" }
 #    {-user_id ""}
 #    {-cost_center_id ""}
@@ -72,42 +70,24 @@ if {[string is integer -strict $user_selection]} {
     }
 }
 
-set html ""
-switch $timescale {
-    today { 
-        return
-    }
-    all { 
-        set html [lang::message::lookup "" intranet-timesheet2.AbsenceCubeNotShownAllAbsences "Graphical view of absences not available for Timescale option 'All'. Please choose a different option."]
-        return
-    }
-    custom {
-        if {[catch {
-            set num_days [db_string get_number_days "select (:report_end_date::date - :report_start_date::date);" -default 0]
-            incr num_days
-        } err_msg]} {
-            set num_days 93
-        }
-    }
-    next_3w { set num_days 21 }
-    last_3w { set num_days 21 }
-    next_1m { set num_days 31 }
-    past { 
-        set html [lang::message::lookup "" intranet-timesheet2.AbsenceCubeNotShownPastAbsences "Graphical view of absences not available for Timescale option 'Past'. Please choose a different option."]
-        return
-        return
-    }
-    future { set num_days 93 }
-    last_3m { set num_days 93 }
-    next_3m { set num_days 93 }
-    default {
-        set num_days 31
-    }
-}
+im_absence_component__timescale \
+    -num_daysVar num_days \
+    -start_dateVar start_date \
+    -end_dateVar end_date \
+    -timescale_date $timescale_date \
+    -timescale $timescale
 
-if { $num_days > 370 } {
-    set html [lang::message::lookup "" intranet-timesheet2.AbsenceCubeNotShownGreateOneYear "Graphical view of absences only available for periods less than 1 year"]
-    return 
+set html ""
+
+if {$num_days eq {}} {
+    set html [lang::message::lookup "" intranet-timesheet2.AbsenceCubeNotShownAllAbsences \
+        "Graphical view of absences not available for Timescale option '${timescale}'. Please choose a different option."]
+    return
+}
+     
+if {$num_days > 370} {
+    set html [lang::message::lookup "" intranet-timesheet2.AbsenceCubeNotShownGreateOneYear \
+        "Graphical view of absences only available for periods less than 1 year"]
     return
 }
 
@@ -122,16 +102,8 @@ set name_order [parameter::get -package_id [apm_package_id_from_key intranet-cor
 # Limit the number of users and days
 # ---------------------------------------------------------------
 
-if {"" == $report_start_date || "2000-01-01" == $report_start_date} {
-    set report_start_date [db_string start_date "select now()::date"]
-}
-
-if {"" == $report_end_date} {
-    set report_end_date [db_string end_date "select :report_start_date::date + 21"]	
-}
-
 if {[catch {
-    set num_days [db_string get_number_days "select (:report_end_date::date - :report_start_date::date)" -default 0]
+    set num_days [db_string get_number_days "select (:end_date::date - :start_date::date)" -default 0]
     incr num_days
 } err_msg]} {
     set num_days 21
@@ -168,10 +140,10 @@ im_absence_component__user_selection_criteria \
 # Initialize the hash for holidays.
 array set holiday_hash {}
 
-set sql "select to_char(to_date(:report_start_date,:date_format) + interval '$num_days days', :date_format)"
+set sql "select to_char(to_date(:start_date,:date_format) + interval '$num_days days', :date_format)"
 set absence_week_days \
     [im_absence_week_days \
-        -start_date $report_start_date \
+        -start_date $start_date \
         -end_date [db_string end_date $sql]]
 
 foreach weekend_date $absence_week_days {
@@ -181,7 +153,7 @@ set day_list \
     [im_absence_day_list \
         -date_format $date_format \
         -num_days $num_days \
-        -report_start_date $report_start_date]
+        -start_date $start_date]
 
 # ---------------------------------------------------------------
 # Determine Left Dimension
@@ -198,8 +170,8 @@ set user_list [db_list_of_lists user_list "
       from	im_user_absences a,
             users u
       where	a.owner_id = u.user_id and
-            a.start_date <= :report_end_date::date and
-            a.end_date >= :report_start_date::date
+            a.start_date <= :end_date::date and
+            a.end_date >= :start_date::date
             $where_clause
       UNION
       -- Absences for user groups
@@ -208,8 +180,8 @@ set user_list [db_list_of_lists user_list "
             users u,
       group_distinct_member_map mm
       where	mm.member_id = u.user_id and
-            a.start_date <= :report_end_date::date and
-            a.end_date >= :report_start_date::date and
+            a.start_date <= :end_date::date and
+            a.end_date >= :start_date::date and
             mm.group_id = a.group_id
             $where_clause
     )
@@ -247,13 +219,13 @@ set absence_sql "
             d.d
     from	im_user_absences a,
             users u,
-            (select im_day_enumerator as d from im_day_enumerator(:report_start_date, :report_end_date)) d,
+            (select im_day_enumerator as d from im_day_enumerator(:start_date, :end_date)) d,
             cc_users cc
     where	a.owner_id = u.user_id and
             cc.user_id = u.user_id and 
             cc.member_state = 'approved' and
-            a.start_date <= :report_end_date::date and
-            a.end_date >= :report_start_date::date and
+            a.start_date <= :end_date::date and
+            a.end_date >= :start_date::date and
             date_trunc('day',d.d) between date_trunc('day',a.start_date) and date_trunc('day',a.end_date) 
             $where_clause
     UNION
@@ -264,10 +236,10 @@ set absence_sql "
     from	im_user_absences a,
             users u,
             group_distinct_member_map mm,
-            (select im_day_enumerator as d from im_day_enumerator(:report_start_date, :report_end_date)) d
+            (select im_day_enumerator as d from im_day_enumerator(:start_date, :end_date)) d
     where	mm.member_id = u.user_id and
-            a.start_date <= :report_end_date::date and
-            a.end_date >= :report_start_date::date and
+            a.start_date <= :end_date::date and
+            a.end_date >= :start_date::date and
             date_trunc('day',d.d) between date_trunc('day',a.start_date) and date_trunc('day',a.end_date) and 
             mm.group_id = a.group_id
             $where_clause
@@ -279,10 +251,10 @@ set absence_sql "
     from	im_user_absences a,
             users u,
             group_distinct_member_map mm,
-            (select im_day_enumerator as d from im_day_enumerator(:report_start_date, :report_end_date)) d
+            (select im_day_enumerator as d from im_day_enumerator(:start_date, :end_date)) d
     where	mm.member_id = u.user_id and
-            a.start_date <= :report_end_date::date and
-            a.end_date >= :report_start_date::date and
+            a.start_date <= :end_date::date and
+            a.end_date >= :start_date::date and
             date_trunc('day',d.d) between date_trunc('day',a.start_date) and date_trunc('day',a.end_date) and 
             mm.group_id = a.group_id and
             a.absence_type_id in ([template::util::tcl_to_sql_list [im_sub_categories [im_user_absence_type_bank_holiday]]]) and

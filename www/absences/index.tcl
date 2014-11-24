@@ -40,7 +40,7 @@ ad_page_contract {
     { user_selection "mine" }
     { timescale "future" }
     { view_name "absence_list_home" }
-    { filter_start_date "" }
+    { timescale_date "" }
     { user_id_from_search "" }
     { cost_center_id:integer "" }
     { project_id ""}
@@ -73,8 +73,6 @@ set hide_colors_p 0
 if {"" != $project_id} {
     set user_selection $project_id
 }
-
-set start_date $filter_start_date
 
 if {!$view_absences_all_p} {
     switch $user_selection {
@@ -189,7 +187,7 @@ if {[string is integer $user_selection]} {
     }
 }
 
-set page_title "[lang::message::lookup "" intranet-timesheet2.Absences_for_user "Absences for $user_name"]"
+set page_title "Absences"
 set context [list $page_title]
 set context_bar [im_context_bar $page_title]
 set page_focus "im_header_form.keywords"
@@ -392,118 +390,10 @@ foreach { value text } $absences_types {
     lappend absence_type_list [list $text $value]
 }
 
-if {$hide_colors_p} {
-    # Show only approved and requested
-    set absence_status_id [list [im_user_absence_status_active],[im_user_absence_status_requested]]
-} else {
-    if { $filter_status_id ne {} } {
-        set absence_status_id $filter_status_id
-    } else {
-        set absence_status_id [im_sub_categories [im_user_absence_status_active]]
-    }
-}
 
 foreach { value text } $user_selection_types {
     lappend user_selection_type_list [list $text $value]
 }
-
-if { $user_selection_type eq {project} } {
-    set user_selection_id $project_id
-} elseif { $user_selection_type eq {user} } {
-    set user_selection_id $user_id
-} elseif { $user_selection_type eq {cost_center} } {
-    set user_selection_id $cost_center_id
-} elseif { [string is integer -strict $user_selection_type] } {
-    set user_selection_id $user_selection_type
-    set user_selection_type "user"
-} elseif { $user_selection_type eq {mine}} {
-    set user_selection_id [ad_get_user_id]
-} elseif { $user_selection_type eq {all}} {
-    set user_selection_id [ad_get_user_id]
-} else {
-    error "user_selection_type=$user_selection_type and user_selection_id does not exist"
-}
-
-
-# ---------------------------------------------------------------
-# 5. Generate SQL Query
-# ---------------------------------------------------------------
-
-set where_clause ""
-
-im_absence_component__absence_criteria \
-    -where_clauseVar where_clause \
-    -absence_type_id $absence_type_id \
-    -absence_status_id $absence_status_id
-
-im_absence_component__user_selection_criteria \
-    -where_clauseVar where_clause \
-    -user_selection_id $user_selection_id \
-    -user_selection_type $user_selection_type
-
-im_absence_component__timescale_criteria \
-    -where_clauseVar where_clause \
-    -start_dateVar start_date \
-    -end_dateVar end_date \
-    -timescale $timescale
-
-set org_start_date $start_date
-set org_end_date $end_date
-
-set order_by_clause [im_absence_component__order_by_clause $order_by]
-
-
-set sql "
-    select
-	a.*,
-        to_char(start_date,'YYYY-MM-DD') as start_date2,
-	coalesce(absence_name, absence_id::varchar) as absence_name_pretty,
-	substring(a.description from 1 for 40) as description_pretty,
-	substring(a.contact_info from 1 for 40) as contact_info_pretty,
-	im_category_from_id(absence_status_id) as absence_status,
-	im_category_from_id(absence_type_id) as absence_type,
-	to_char(a.start_date, :date_format) as start_date_pretty,
-	to_char(a.end_date, :date_format) as end_date_pretty,
-	im_name_from_user_id(a.owner_id, $name_order) as owner_name
-    from
-	im_user_absences a
-    where	(a.owner_id is null OR a.owner_id not in (
-			-- Exclude deleted or disabled users
-			select	m.member_id
-			from	group_member_map m, 
-				membership_rels mr
-			where	m.group_id = acs__magic_object_id('registered_users') and 
-				m.rel_id = mr.rel_id and 
-				m.container_id = m.group_id and
-				mr.member_state != 'approved'
-		))
-    $absence_status_sql
-    $where_clause
-"
-
-
-# ---------------------------------------------------------------
-# 5a. Limit the SQL query to MAX rows and provide << and >>
-# ---------------------------------------------------------------
-
-# Limit the search results to N data sets only
-# to be able to manage large sites
-
-set limited_query [im_select_row_range $sql $start_idx $end_idx]
-# We can't get around counting in advance if we want to be able to
-# sort inside the table on the page for only those users in the
-# query results
-set total_in_limited [db_string projects_total_in_limited "
-	select count(*)
-	from	im_user_absences a
-	where	1=1
-		$where_clause
-   "]
-set selection "$sql $order_by_clause"
-
-
-
-#ad_return_complaint 1 "<pre>$selection :: $user_selection</pre>"
 
 # ---------------------------------------------------------------
 # 6. Format the Filter
@@ -521,14 +411,35 @@ ad_form \
     -method GET \
     -export {start_idx order_by how_many view_name}\
     -form {
-	{filter_start_date:text(text) {label "[_ intranet-timesheet2.Start_Date]"} {html {size 10}} {value "$filter_start_date"} {after_html {<input type="button" style="height:23px; width:23px; background: url('/resources/acs-templating/calendar.gif');" onclick ="return showCalendar('filter_start_date', 'y-m-d');" >}}}
-        {timescale:text(select),optional {label "[_ intranet-timesheet2.Timescale]"} {options $timescale_type_list }}
-        {absence_type_id:text(select),optional {label "[_ intranet-timesheet2.Absence_Type]"} {value $absence_type_id} {options $absence_type_list }}
-        {filter_status_id:text(im_category_tree),optional {label \#intranet-timesheet2.Status\#} {value $filter_status_id} {custom {category_type "Intranet Absence Status" translate_p 1}}}
-        {user_selection:text(select),optional {label "[_ intranet-timesheet2.Show_Users]"} {options $user_selection_type_list} {value $user_selection}}
-}
 
-template::element::set_value $form_id filter_start_date $filter_start_date
+        {timescale_date:text(text) 
+            {label "[_ intranet-timesheet2.Start_Date]"} 
+            {html {size 10}} 
+            {value "$timescale_date"} 
+            {after_html {<input type="button" style="height:23px; width:23px; background: url('/resources/acs-templating/calendar.gif');" onclick ="return showCalendar('filter_start_date', 'y-m-d');" >}}}
+
+        {timescale:text(select),optional 
+            {label "[_ intranet-timesheet2.Timescale]"} 
+            {options $timescale_type_list }}
+
+        {absence_type_id:text(select),optional 
+            {label "[_ intranet-timesheet2.Absence_Type]"} 
+            {value $absence_type_id} 
+            {options $absence_type_list }}
+
+        {filter_status_id:text(im_category_tree),optional 
+            {label \#intranet-timesheet2.Status\#} 
+            {value $filter_status_id} 
+            {custom {category_type "Intranet Absence Status" translate_p 1}}}
+
+        {user_selection:text(select),optional 
+            {label "[_ intranet-timesheet2.Show_Users]"} 
+            {options $user_selection_type_list} 
+            {value $user_selection}}
+
+    }
+
+template::element::set_value $form_id timescale_date $timescale_date
 template::element::set_value $form_id timescale $timescale
 template::element::set_value $form_id user_selection $user_selection
 
@@ -563,171 +474,7 @@ set admin_html [im_menu_ul_list "timesheet2_absences" [list user_id_from_search 
 # Set color scheme 
 # ----------------------------------------------------------
 
-set color_list [im_absence_cube_color_list]
-set col_sql "
-	select	category_id, category, enabled_p, aux_string2
-	from	im_categories
-	where	
-			category_type = 'Intranet Absence Type'
-	order by category_id
-"
-
-append admin_html "<div class=filter-title>[lang::message::lookup "" intranet-timesheet2.Color_codes "Color Codes"]</div>\n"
-append admin_html "<table cellpadding='5' cellspacing='5'>\n"
-
-# Marc Fleischer: A question of color
-set index -1
-db_foreach cols $col_sql {
-    if { "" == $aux_string2 } {
-	# set index [expr $category_id - 5000]
-	set col [lindex $color_list $index]
-	incr index
-    } else {
-	set col $aux_string2
-    }
-
-    if { "t" == $enabled_p } {
-	regsub -all " " $category "_" category_key
-	set category_l10n [lang::message::lookup "" intranet-core.$category_key $category]
-	if { [string length $col] == 6} {
-	    # Transform RGB Hex-Values (e.g. #a3b2c4) into Dec-Values
-	    set r_bg [expr 0x[string range $col 0 1]]
-	    set g_bg [expr 0x[string range $col 2 3]]
-	    set b_bg [expr 0x[string range $col 4 5]]
-	} elseif { [string length $col] == 3 } {
-	    # Transform RGB Hex-Values (e.g. #a3b) into Dec-Values
-	    set r_bg [expr 0x[string range $col 0 0]]
-	    set g_bg [expr 0x[string range $col 1 1]]
-	    set b_bg [expr 0x[string range $col 2 2]]
-	} else {
-		# color codes can't be parsed -> set a middle value
-		set r_bg 127
-		set g_bg 127
-		set b_bg 127
-	}
-	# calculate a brightness-value for the color
-	# if brightness > 127 the foreground color is black, if < 127 the foreground color is white
-	set brightness [expr $r_bg * 0.2126 + $g_bg * 0.7152 + $b_bg * 0.0722]
-	set col_fg "fff"
-	if {$brightness >= 127} {set col_fg "000"}
-	set category_l10n [lang::message::lookup "" intranet-core.$category_key $category]
-	append admin_html "<tr><td style='padding:3px; background-color:\#$col; color:\#$col_fg'>$category_l10n</td></tr>\n"
-   }
-}
-
-append admin_html "</table>\n"
-
-# ---------------------------------------------------------------
-# 7. Format the List Table Header
-# ---------------------------------------------------------------
-
-# Set up colspan to be the number of headers + 1 for the # column
-set colspan [expr [llength $column_headers] + 1]
-
-# Format the header names with links that modify the
-# sort order of the SQL query.
-#
-set table_header_html ""
-set url "index?"
-set query_string [export_ns_set_vars url [list order_by]]
-if { ![empty_string_p $query_string] } {
-    append url "$query_string&"
-}
-
-append table_header_html "<tr>\n"
-set ctr 0
-
-foreach col $column_headers {
-    set wrench_html [lindex $column_headers_admin $ctr]
-    regsub -all " " $col "_" col_key
-    set col_txt [lang::message::lookup "" intranet-core.$col_key $col]
-    if { [string equal $order_by $col] } {
-	append table_header_html "  <td class=rowtitle>$col_txt$wrench_html</td>\n"
-    } else {
-	append table_header_html "  <td class=rowtitle><a href=\"${url}order_by=[ns_urlencode $col]\">$col_txt</a>$wrench_html</td>\n"
-    }
-    incr ctr
-}
-append table_header_html "</tr>\n"
-
-
-# ---------------------------------------------------------------
-# 8. Format the Result Data
-# ---------------------------------------------------------------
-
-set table_body_html ""
-set bgcolor(0) " class=roweven "
-set bgcolor(1) " class=rowodd "
-set ctr 0
-set idx $start_idx
-set user_link ""
-db_foreach absences_list $selection {
-
-    # Use cached TCL function to implement localization
-    set absence_status [im_category_from_id $absence_status_id]
-    set absence_type [im_category_from_id $absence_type_id]
-
-    set absence_view_url [export_vars -base "$absences_url/new" {absence_id return_url {form_mode "display"}}]
-
-    set duration_days [im_absence_calculate_absence_days -absence_id $absence_id]
-
-    # Calculate the link for the user/group for which the absence is valid
-    set user_link "<a href=\"[export_vars -base "/intranet/users/view" {{user_id $owner_id}}]\">$owner_name</a>"
-    if {"" != $group_id} { set user_link [im_profile::profile_name_from_id -profile_id $group_id] }
-
-    #Append together a line of data based on the "column_vars" parameter list
-    append table_body_html "<tr $bgcolor([expr $ctr % 2])>\n"
-    foreach column_var $column_vars {
-	append table_body_html "\t<td valign=top>"
-	set cmd "append table_body_html $column_var"
-	eval $cmd
-	append table_body_html "</td>\n"
-    }
-    append table_body_html "</tr>\n"
-
-    incr ctr
-    if { $how_many > 0 && $ctr >= $how_many } {
-	break
-    }
-    incr idx
-} 
-
-# Show a reasonable message when there are no result rows:
-if { [empty_string_p $table_body_html] } {
-    set table_body_html "
-	<tr><td colspan=$colspan><ul><li><b>
-	[_ intranet-timesheet2.lt_There_are_currently_n]
-	</b></ul></td></tr>"
-}
-
-if { $ctr == $how_many && $end_idx < $total_in_limited } {
-    # This means that there are rows that we decided not to return
-    # Include a link to go to the next page
-    set next_start_idx [expr $end_idx + 1]
-    set next_page_url "index?start_idx=$next_start_idx&[export_ns_set_vars url [list start_i\
-dx]]"
-} else {
-    set next_page_url ""
-}
-
-if { $start_idx > 0 } {
-    # This means we didn't start with the first row - there is
-    # at least 1 previous row. add a previous page link
-    set previous_start_idx [expr $start_idx - $how_many]
-    if { $previous_start_idx < 0 } { set previous_start_idx 1 }
-    set previous_page_url "index?start_idx=$previous_start_idx&[export_ns_set_vars url [list start_idx]]"
-} else {
-    set previous_page_url ""
-}
-
-
-# ---------------------------------------------------------------
-# 9. Format Table Continuation
-# ---------------------------------------------------------------
-
-# nothing to do here ... (?)
-set table_continuation_html ""
-
+set admin_html [im_absence_cube_legend]
 
 # ---------------------------------------------------------------
 # Left Navbar

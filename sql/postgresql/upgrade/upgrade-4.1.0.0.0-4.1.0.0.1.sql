@@ -84,10 +84,9 @@ begin
         E'im_absence_cube_component \\
                        -absence_status_id $filter_status_id \\
                        -absence_type_id $org_absence_type_id \\
-                       -user_selection $user_selection \\
                        -timescale $timescale \\
-                       -report_start_date $org_start_date \\
-                       -report_end_date $org_end_date \\
+                       -timescale_date $timescale_date \\
+                       -user_selection $user_selection \\
                        -user_id_from_search $user_id_from_search \\
                        -cost_center_id $cost_center_id \\
                        -user_id $user_id \\
@@ -128,7 +127,7 @@ begin
         '/intranet-timesheet2/absences/index',	-- page_url
         null,				    -- view_name
         20,				        -- sort_order
-        'im_absence_calendar_component -owner_id [ad_decode $user_selection_type "user" $user_selection "mine" $user_selection $user_selection_type] -year [im_year_from_date $start_date]'	-- component_tcl
+        'im_absence_calendar_component -owner_id [ad_decode $user_selection_type "user" $user_selection "mine" $user_selection $user_selection_type] -year [im_year_from_date $timescale_date]'	-- component_tcl
     );
 
     perform acs_permission__grant_permission(

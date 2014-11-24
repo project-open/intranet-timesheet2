@@ -435,10 +435,9 @@ SELECT im_component_plugin__new (
 	E'im_absence_cube_component \\
 			       -absence_status_id $filter_status_id \\
 			       -absence_type_id $org_absence_type_id \\
-			       -user_selection $user_selection \\
 			       -timescale $timescale \\
-			       -report_start_date $org_start_date \\
-			       -report_end_date $org_end_date \\
+			       -timescale_date $timescale_date \\
+			       -user_selection $user_selection \\
 			       -user_id_from_search $user_id_from_search \\
 			       -cost_center_id $cost_center_id \\
 			       -user_id $user_id \\
