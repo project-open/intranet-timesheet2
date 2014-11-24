@@ -146,16 +146,20 @@ if {-1 == $absence_type_id} { set absence_type_id "" }
 
 
 # ---------------------------------------------------------------
-# Calculate SQL
+# Generate SQL
 # ---------------------------------------------------------------
 
-set where_clause \
-    [im_absence_component__where_clause \
-        -absence_type_id $absence_type_id \
-        -absence_status_id $absence_status_id \
-        -user_selection_id $user_selection_id \
-        -user_selection_type $user_selection_type]
+set where_clause ""
 
+im_absence_component__absence_criteria \
+    -where_clauseVar where_clause \
+    -absence_type_id $absence_type_id \
+    -absence_status_id $absence_status_id
+
+im_absence_component__user_selection_criteria \
+    -where_clauseVar where_clause \
+    -user_selection_id $user_selection_id \
+    -user_selection_type $user_selection_type
 
 # ---------------------------------------------------------------
 # Determine Top Dimension

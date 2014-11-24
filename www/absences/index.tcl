@@ -329,24 +329,11 @@ set user_selection_options [im_user_timesheet_absences_options]
 
 # ---------- / setting filter 'User selection' ------------- # 
 
-set timescale_types [list \
-			 "all" [lang::message::lookup "" intranet-timesheet2.All "All"] \
-			 "today" [lang::message::lookup "" intranet-timesheet2.Today "Today"] \
-			 "next_3w" [lang::message::lookup "" intranet-timesheet2.Next_3_Weeks "Next 3 Weeks"] \
-			 "next_3m" [lang::message::lookup "" intranet-timesheet2.Next_3_Month "Next 3 Months"] \
-			 "future" [lang::message::lookup "" intranet-timesheet2.Future "Future"] \
-			 "past" [lang::message::lookup "" intranet-timesheet2.Past "Past"] \
-			 "last_3m" [lang::message::lookup "" intranet-timesheet2.Last_3_Month "Last 3 Months"] \
-			 "last_3w" [lang::message::lookup "" intranet-timesheet2.Last_3_Weeks "Last 3 Weeks"] \
-]
-
-foreach { value text } $timescale_types {
-    lappend timescale_type_list [list $text $value]
-}
+set timescale_type_list [im_absence_component__timescale_types]
 
 if { ![exists_and_not_null absence_type_id] } {
     # Default type is "all" == -1 - select the id once and memoize it
-    set absence_type_id -1;
+    set absence_type_id "-1"
 }
 
 set end_idx [expr $start_idx + $how_many - 1]
@@ -410,133 +397,46 @@ foreach { value text } $absences_types {
     lappend absence_type_list [list $text $value]
 }
 
-# ---------------------------------------------------------------
-# 5. Generate SQL Query
-# ---------------------------------------------------------------
-
-# Now let's generate the sql query
-set criteria [list]
-set bind_vars [ns_set create]
-if { ![empty_string_p $user_selection_type] } {
-    switch $user_selection_type {
-	"all" {
-	    # Nothing.
-	}
-	"mine" {
-	    lappend criteria "a.owner_id = :current_user_id"
-	}
-	"employees" {
-	    lappend criteria "a.owner_id in (select employee_id from im_employees)"
-	}
-	"providers" {
-	    lappend criteria "a.owner_id IN (select	m.member_id 
-							from	group_approved_member_map m 
-							where	m.group_id = [im_freelance_group_id]
-							)"
-	}
-	"customers" {
-	    lappend criteria "a.owner_id IN (select	m.member_id
-                                                        from	group_approved_member_map m
-                                                        where	m.group_id = [im_customer_group_id]
-                                                        )"
-	}
-	"direct_reports" {
-		    lappend criteria "a.owner_id in (
-			select employee_id from im_employees
-			where supervisor_id = :current_user_id 
-                        and employee_status_id = [im_employee_status_active])
-		   "
-	}  
-	"cost_center" {
-	    set cost_center_list [im_cost_center_options -parent_id $cost_center_id]
-	    set cost_center_ids [list $cost_center_id]
-        foreach cost_center $cost_center_list {
-		    lappend cost_center_ids [lindex $cost_center 1]
-        }
-	    lappend criteria "a.owner_id in (select employee_id from im_employees where department_id in ([template::util::tcl_to_sql_list $cost_center_ids]) and employee_status_id = [im_employee_status_active] union select :current_user_id from dual)"
-	}
-	"project" {
-	    set project_ids [im_project_subproject_ids -project_id $project_id]
-	    lappend criteria "a.owner_id in (select object_id_two from acs_rels where object_id_one in ([template::util::tcl_to_sql_list $project_ids]))"
-	}
-	"user" {
-	    lappend criteria "a.owner_id=:user_id"
-        lappend user_selection_types "$user_id"
-        lappend user_selection_types "[im_name_from_user_id $user_id]" 
-	}	    
-	default  {
-	    # We shouldn't even be here, so just display his/her own ones
-	    lappend criteria "a.owner_id = :current_user_id"
-	}
-    }
-}
-
 if {$hide_colors_p} {
     # Show only approved and requested
-    lappend criteria "a.absence_status_id in ([im_user_absence_status_active],[im_user_absence_status_requested])"
+    set absence_status_id [list [im_user_absence_status_active],[im_user_absence_status_requested]]
 }
 
 foreach { value text } $user_selection_types {
     lappend user_selection_type_list [list $text $value]
 }
 
-if { ![empty_string_p $absence_type_id] &&  $absence_type_id != -1 } {
-    lappend criteria "a.absence_type_id = :absence_type_id"
-}
 
-switch $timescale {
-    "all" {
-        set start_date "2000-01-01" 
-        set end_date "2099-12-31"
-    }
-    "today" { 
-        set end_date $start_date
-    }
-    "next_3w" { 
-        set end_date [db_string 3w "select now()::date + 21"]
-    }
-    "last_3w" { 
-        set end_date $start_date
-        set start_date [db_string 3w "select to_date(:start_date,'YYYY-MM-DD') - 21"]
-    }
-    "past" { 
-        set end_date $start_date
-        set start_date "2000-01-01"
-    }
-    "future" { 
-        set end_date [db_string max_end_date "select max(end_date) from im_user_absences"]
-    }
-    "last_3m" { 
-        set end_date $start_date
-        set start_date [db_string 3w "select to_date(:start_date,'YYYY-MM-DD') - 93"]
-    }
-    "next_3m" { 
-        set end_date [db_string 3w "select to_date(:start_date,'YYYY-MM-DD') + 93"]
-    }
-}
+# ---------------------------------------------------------------
+# 5. Generate SQL Query
+# ---------------------------------------------------------------
+
+set where_clause ""
+
+set absence_status_id -1
+set user_selection_id 0
+
+im_absence_component__absence_criteria \
+    -where_clauseVar where_clause \
+    -absence_type_id $absence_type_id \
+    -absence_status_id $absence_status_id
+
+im_absence_component__user_selection_criteria \
+    -where_clauseVar where_clause \
+    -user_selection_id $user_selection_id \
+    -user_selection_type $user_selection_type
+
+im_absence_component__timescale_criteria \
+    -where_clauseVar where_clause \
+    -start_dateVar start_date \
+    -end_dateVar end_date \
+    -timescale $timescale
 
 set org_start_date $start_date
 set org_end_date $end_date
 
-# Limit to start-date and end-date
-if {"" != $start_date} { lappend criteria "a.end_date::date >= :start_date" }
-if {"" != $end_date} { lappend criteria "a.start_date::date <= :end_date" }
+set order_by_clause [im_absence_component__order_by_clause $order_by]
 
-set order_by_clause ""
-switch $order_by {
-    "Name" { set order_by_clause "order by upper(absence_name), owner_name" }
-    "User" { set order_by_clause "order by owner_name, start_date" }
-    "Date" { set order_by_clause "order by start_date, owner_name" }
-    "Start" { set order_by_clause "order by start_date" }
-    "End" { set order_by_clause "order by end_date" }
-    "Type" { set order_by_clause "order by absence_type, owner_name" }
-    "Status" { set order_by_clause "order by absence_status, owner_name" }
-}
-
-set where_clause [join $criteria " and\n	    "]
-if { ![empty_string_p $where_clause] } {
-    set where_clause " and $where_clause"
-}
 
 set sql "
     select

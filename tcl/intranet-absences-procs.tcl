@@ -609,28 +609,81 @@ ad_proc -private im_absence_component_view_p {
     return $read_p
 }
 
-ad_proc -private im_absence_component__where_clause {
-    -user_selection_id
-    -user_selection_type
+ad_proc im_absence_component__timescale_types {} {
+    @last-modified 2014-11-24
+    @last-modified-by Neophytos Demetriou (neophytos@azet.sk)
+} {
+    return [list \
+        [list "all" [lang::message::lookup "" intranet-timesheet2.All "All"]] \
+        [list "today" [lang::message::lookup "" intranet-timesheet2.Today "Today"]] \
+        [list "next_3w" [lang::message::lookup "" intranet-timesheet2.Next_3_Weeks "Next 3 Weeks"]] \
+        [list "next_3m" [lang::message::lookup "" intranet-timesheet2.Next_3_Month "Next 3 Months"]] \
+        [list "future" [lang::message::lookup "" intranet-timesheet2.Future "Future"]] \
+        [list "past" [lang::message::lookup "" intranet-timesheet2.Past "Past"]] \
+        [list "last_3m" [lang::message::lookup "" intranet-timesheet2.Last_3_Month "Last 3 Months"]] \
+        [list "last_3w" [lang::message::lookup "" intranet-timesheet2.Last_3_Weeks "Last 3 Weeks"]]]
+}
+
+
+ad_proc -private im_where_from_criteria {
+    criteria 
+    {keyword "and"}
+} {
+    @last-modified 2014-11-24
+    @last-modified-by Neophytos Demetriou (neophytos@azet.sk)
+} {
+    set where_clause ""
+    if { $criteria ne {} } {
+        set where_clause "\n\t${keyword} [join $criteria "\n\tand "]"
+    }
+    return $where_clause
+}
+
+ad_proc -private im_absence_component__absence_criteria {
+    -where_clauseVar:required
     {-absence_type_id ""}
     {-absence_status_id ""}
 } {
-    @author Neophytos Demetriou (neophytos@azet.sk)
+    @last-modified 2014-11-24
+    @last-modified-by Neophytos Demetriou (neophytos@azet.sk)
 } {
 
-    set current_user_id [ad_get_user_id]
+    upvar $where_clauseVar where_clause
 
     set criteria [list]
-    if {"" != $absence_type_id && 0 != $absence_type_id} {
-        lappend criteria "a.absence_type_id = '$absence_type_id'"
+
+    if { $absence_type_id ne {} && $absence_type_id ne {0} } {
+        lappend criteria "a.absence_type_id = [ns_dbquotevalue $absence_type_id]"
     }
-    if {"" != $absence_status_id && 0 != $absence_status_id} {
-        lappend criteria "a.absence_status_id in ([template::util::tcl_to_sql_list [im_sub_categories $absence_status_id]])"
+
+    if { $absence_status_id ne {} && $absence_status_id ne {0} } {
+        if { [llength $absence_status_id] == 1 } {
+            lappend criteria "a.absence_status_id in ([template::util::tcl_to_sql_list [im_sub_categories $absence_status_id]])"
+        } else {
+            lappend criteria "a.absence_status_id in ([template::util::tcl_to_sql_list $absence_status_id])"
+        }
     } else {
         # Only display active status if no other status was selected
         lappend criteria "a.absence_status_id in ([template::util::tcl_to_sql_list [im_sub_categories [im_user_absence_status_active]]])"
 
     }
+
+    # temporary hack until I manage to refactor the code
+    append where_clause [db_bind_var_substitution [im_where_from_criteria $criteria]]
+
+
+}
+
+ad_proc -private im_absence_component__user_selection_criteria {
+    -where_clauseVar:required
+    -user_selection_id:required
+    -user_selection_type:required
+} {
+    upvar $where_clauseVar where_clause
+
+    set criteria [list]
+
+    set current_user_id [ad_get_user_id]
 
     switch $user_selection_type {
         "all" {
@@ -667,17 +720,13 @@ ad_proc -private im_absence_component__where_clause {
                 UNION
                 select	e.employee_id 
                 from	im_employees e,
-                -- Select all departments where the current user is manager
-                (select	cc.cost_center_id,
-                 cc.manager_id
-                 from	im_cost_centers cc,
-                 (select cost_center_code as code,
-                  length(cost_center_code) len
-                  from	im_cost_centers
-                  where	manager_id = :current_user_id
-                  ) t
-                 where	substring(cc.cost_center_code for t.len) = t.code
-                 ) tt
+                        -- Select all departments where the current user is manager
+                        (select	cc.cost_center_id, cc.manager_id
+                         from	im_cost_centers cc,
+                                (select cost_center_code as code, length(cost_center_code) len
+                                 from	im_cost_centers
+                                 where	manager_id = :current_user_id) t
+                         where	substring(cc.cost_center_code for t.len) = t.code) tt
                 where  (e.department_id = tt.cost_center_id
                     OR e.employee_id = tt.manager_id)
             )"
@@ -689,7 +738,7 @@ ad_proc -private im_absence_component__where_clause {
             foreach cost_center $cost_center_list {
                 lappend cost_center_ids [lindex $cost_center 1]
             }
-            lappend criteria "a.owner_id in (select employee_id from im_employees where department_id in ([template::util::tcl_to_sql_list $cost_center_ids]) and employee_status_id = '454')"
+            lappend criteria "a.owner_id in (select employee_id from im_employees where department_id in ([template::util::tcl_to_sql_list $cost_center_ids]) and employee_status_id = [im_employee_status_active] union select :current_user_id from dual)"
         }
         "project" {
             set project_id $user_selection_id
@@ -706,14 +755,84 @@ ad_proc -private im_absence_component__where_clause {
         }
     }
 
-    set where_clause [join $criteria " and\n\t"]
-    if {![empty_string_p $where_clause]} {
-        set where_clause " and $where_clause"
+    # temporary hack until I manage to refactor the code
+    append where_clause [db_bind_var_substitution [im_where_from_criteria $criteria]]
+
+
+}
+
+ad_proc im_absence_component__timescale_criteria {
+    -where_clauseVar:required
+    -start_dateVar:required
+    -end_dateVar:required
+    -timescale:required
+} {
+    @last-modified 2014-11-24
+    @last-modified-by Neophytos Demetriou (neophytos@azet.sk)
+} {
+
+    upvar $where_clauseVar where_clause
+    upvar $start_dateVar start_date
+    upvar $end_dateVar end_date
+
+    set criteria [list]
+
+    switch $timescale {
+        "all" {
+            set start_date "2000-01-01" 
+            set end_date "2099-12-31"
+        }
+        "today" { 
+            set end_date $start_date
+        }
+        "next_3w" { 
+            set end_date [db_string 3w "select now()::date + 21"]
+        }
+        "last_3w" { 
+            set end_date $start_date
+            set start_date [db_string 3w "select to_date(:start_date,'YYYY-MM-DD') - 21"]
+        }
+        "past" { 
+            set end_date $start_date
+            set start_date "2000-01-01"
+        }
+        "future" { 
+            set end_date [db_string max_end_date "select max(end_date) from im_user_absences"]
+        }
+        "last_3m" { 
+            set end_date $start_date
+            set start_date [db_string 3w "select to_date(:start_date,'YYYY-MM-DD') - 93"]
+        }
+        "next_3m" { 
+            set end_date [db_string 3w "select to_date(:start_date,'YYYY-MM-DD') + 93"]
+        }
     }
 
-    # temporary hack until I manage to refactor the code
-    return [db_bind_var_substitution $where_clause]
+    # Limit to start-date and end-date
+    if {"" != $start_date} { lappend criteria "a.end_date::date >= :start_date" }
+    if {"" != $end_date} { lappend criteria "a.start_date::date <= :end_date" }
 
+    # temporary hack until I manage to refactor the code
+    append where_clause [db_bind_var_substitution [im_where_from_criteria $criteria]]
+
+}
+
+
+ad_proc im_absence_component__order_by_clause {order_by} {
+    @last-update 2014-11-24
+    @modifying-user Neophytos Demetriou (neophytos@azet.sk)
+} {
+    set order_by_clause ""
+    switch $order_by {
+        "Name" { set order_by_clause "order by upper(absence_name), owner_name" }
+        "User" { set order_by_clause "order by owner_name, start_date" }
+        "Date" { set order_by_clause "order by start_date, owner_name" }
+        "Start" { set order_by_clause "order by start_date" }
+        "End" { set order_by_clause "order by end_date" }
+        "Type" { set order_by_clause "order by absence_type, owner_name" }
+        "Status" { set order_by_clause "order by absence_status, owner_name" }
+    }
+    return $order_by_clause
 }
 
 
