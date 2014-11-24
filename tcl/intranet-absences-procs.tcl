@@ -777,6 +777,8 @@ ad_proc im_absence_component__timescale_criteria {
 
     set criteria [list]
 
+    set start_date ""
+    set end_date ""
     switch $timescale {
         "all" {
             set start_date "2000-01-01" 
