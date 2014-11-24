@@ -64,7 +64,7 @@ begin
         '/intranet/users/view',	-- page_url
         null,				    -- view_name
         20,				        -- sort_order
-        'im_absence_cube_component -user_id_from_search $user_id_from_search -user_id $user_id'	-- component_tcl
+        'im_absence_cube_component -user_selection [im_coalesce $user_id_from_search [ad_get_user_id]]'	-- component_tcl
     );
 
     -- Create a plugin for the absence cube
@@ -86,11 +86,7 @@ begin
                        -absence_type_id $org_absence_type_id \\
                        -timescale $timescale \\
                        -timescale_date $timescale_date \\
-                       -user_selection $user_selection \\
-                       -user_id_from_search $user_id_from_search \\
-                       -cost_center_id $cost_center_id \\
-                       -user_id $user_id \\
-                       -project_id $project_id'	-- component_tcl
+                       -user_selection $user_selection'	-- component_tcl
     );
 
     -- Create a plugin for the absence calendar for one user
@@ -107,7 +103,7 @@ begin
         '/intranet/users/view',	-- page_url
         null,				    -- view_name
         20,				        -- sort_order
-        'im_absence_calendar_component -owner_id $user_id -year [clock format [clock seconds] -format "%Y"]'	-- component_tcl
+        'im_absence_calendar_component -owner_id [im_coalesce $user_id_from_search [ad_get_user_id]] -year [clock format [clock seconds] -format "%Y"]'	-- component_tcl
     );
 
 
@@ -126,7 +122,7 @@ begin
         '/intranet-timesheet2/absences/index',	-- page_url
         null,				    -- view_name
         20,				        -- sort_order
-        'im_absence_calendar_component -user_selection $user_selection -year [im_year_from_date $timescale_date]'	-- component_tcl
+        'im_absence_calendar_component -owner_id [im_coalesce $user_id_from_search $user_selection [ad_get_user_id]] -year [im_year_from_date $timescale_date]'	-- component_tcl
     );
 
     -- Create a plugin for the absence cube
@@ -144,15 +140,11 @@ begin
         null,				    -- view_name
         20,				        -- sort_order
         E'im_absence_list_component \\
+                       -user_selection $user_selection \\
                        -absence_status_id $filter_status_id \\
                        -absence_type_id $org_absence_type_id \\
                        -timescale $timescale \\
                        -timescale_date $timescale_date \\
-                       -user_selection $user_selection \\
-                       -user_id_from_search $user_id_from_search \\
-                       -cost_center_id $cost_center_id \\
-                       -user_id $user_id \\
-                       -project_id $project_id \\
                        -order_by $order_by'-- component_tcl
     );
 

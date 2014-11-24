@@ -142,7 +142,8 @@ set column_sql "
 		sort_order
 "
 
-set admin_p [im_is_user_site_wide_or_intranet_admin $user_id]
+set current_user_id [ad_get_user_id]
+set admin_p [im_is_user_site_wide_or_intranet_admin $current_user_id]
 db_foreach column_list_sql $column_sql {
     if {$visible_for == "" || [eval $visible_for]} {
 	lappend column_headers "$column_name"

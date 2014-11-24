@@ -97,33 +97,29 @@ set day_list \
 # ---------------------------------------------------------------
 
 set user_list [db_list_of_lists user_list "
-    select	u.user_id as user_id,
-    im_name_from_user_id(u.user_id, $name_order) as user_name
-    from	users u,
-    cc_users cc
+    select	user_id,
+            im_name_from_user_id(user_id, $name_order) as user_name
+    from	cc_users u
     where	u.user_id in (
-      -- Individual Absences per user
-      select	a.owner_id
-      from	im_user_absences a,
-            users u
-      where	a.owner_id = u.user_id and
-            a.start_date <= :end_date::date and
-            a.end_date >= :start_date::date
-            $where_clause
-      UNION
-      -- Absences for user groups
-      select	mm.member_id as owner_id
-      from	im_user_absences a,
-            users u,
-      group_distinct_member_map mm
-      where	mm.member_id = u.user_id and
-            a.start_date <= :end_date::date and
-            a.end_date >= :start_date::date and
-            mm.group_id = a.group_id
-            $where_clause
-    )
-    and cc.member_state = 'approved'
-    and cc.user_id = u.user_id
+              [ad_decode $user_selection {mine} {select :current_user_id from dual UNION} {}]
+              -- Individual Absences per user
+              select	a.owner_id
+              from	users u inner join im_user_absences a on (a.owner_id=u.user_id)
+              where	a.start_date <= :end_date::date and
+                    a.end_date >= :start_date::date
+                    $where_clause
+              UNION
+              -- Absences for user groups
+              select	mm.member_id as owner_id
+              from	users u inner join im_user_absences a on (a.owner_id=u.user_id),
+                    group_distinct_member_map mm
+              where	mm.member_id = u.user_id and
+                    a.start_date <= :end_date::date and
+                    a.end_date >= :start_date::date and
+                    mm.group_id = a.group_id
+                    $where_clause
+            )
+    and u.member_state = 'approved'
     order by
     lower(im_name_from_user_id(u.user_id, $name_order))
 "]
@@ -154,13 +150,9 @@ set absence_sql "
     select	a.absence_type_id,
             a.owner_id,
             d.d
-    from	im_user_absences a,
-            users u,
-            (select im_day_enumerator as d from im_day_enumerator(:start_date, :end_date)) d,
-            cc_users cc
-    where	a.owner_id = u.user_id and
-            cc.user_id = u.user_id and 
-            cc.member_state = 'approved' and
+      from	cc_users u inner join im_user_absences a on (a.owner_id=u.user_id),
+            (select im_day_enumerator as d from im_day_enumerator(:start_date, :end_date)) d
+    where   u.member_state = 'approved' and
             a.start_date <= :end_date::date and
             a.end_date >= :start_date::date and
             date_trunc('day',d.d) between date_trunc('day',a.start_date) and date_trunc('day',a.end_date) 
@@ -170,8 +162,7 @@ set absence_sql "
     select	a.absence_type_id,
             mm.member_id as owner_id,
             d.d
-    from	im_user_absences a,
-            users u,
+    from	users u inner join im_user_absences a on (a.owner_id=u.user_id),
             group_distinct_member_map mm,
             (select im_day_enumerator as d from im_day_enumerator(:start_date, :end_date)) d
     where	mm.member_id = u.user_id and
@@ -185,8 +176,7 @@ set absence_sql "
     select	a.absence_type_id,
             mm.member_id as owner_id,
             d.d
-    from	im_user_absences a,
-            users u,
+    from	users u inner join im_user_absences a on (a.owner_id=u.user_id),
             group_distinct_member_map mm,
             (select im_day_enumerator as d from im_day_enumerator(:start_date, :end_date)) d
     where	mm.member_id = u.user_id and

@@ -79,6 +79,9 @@ ad_proc incr_if {varName expr} {
     }
 }
 
+ad_proc im_coalesce {args} {
+    return [lsearch -inline -not $args {}]
+}
 # ---------------------------------------------------------------------
 # Absences Permissions
 # ---------------------------------------------------------------------
@@ -1051,16 +1054,12 @@ ad_proc -private im_manager_of_employee_p {
 }
 
 ad_proc -public im_absence_cube_component {
-    -user_id_from_search:required
+    -user_selection:required
     {-absence_status_id "" }
     {-absence_type_id "" }
-    {-timescale "" }
+    {-timescale "next_3w" }
     {-timescale_date "" }
-    {-user_selection "" }
-    {-user_id ""}
-    {-cost_center_id ""}
     {-hide_colors_p 0}
-    {-project_id ""}
 } {
 
     Makes use of im_absence_cube to return a rendered cube with 
@@ -1071,21 +1070,22 @@ ad_proc -public im_absence_cube_component {
 
 } {
 
+    if {$timescale_date eq {}} {
+        set timescale_date [db_string today "select now()::date"]
+    }
+
     if { ![im_absence_component_view_p -user_selection $user_selection] } {
         return "You do not have enough privileges to view this component"
     }
 
     set params [list \
-		    [list user_id_from_search $user_id_from_search] \
+		    [list user_selection $user_selection] \
 			[list absence_status_id $absence_status_id] \
 			[list absence_type_id $absence_type_id] \
 			[list timescale $timescale] \
 			[list timescale_date $timescale_date] \
 			[list user_selection $user_selection] \
-			[list user_id $user_id] \
-			[list cost_center_id $cost_center_id] \
 			[list hide_colors_p $hide_colors_p] \
-			[list project_id $project_id] \
 		    [list return_url [im_url_with_query]] \
     ]
 
@@ -1094,16 +1094,12 @@ ad_proc -public im_absence_cube_component {
 }
 
 ad_proc -public im_absence_list_component {
-    -user_id_from_search:required
+    -user_selection:required
     {-absence_status_id "" }
     {-absence_type_id "" }
     {-timescale "" }
     {-timescale_date "" }
-    {-user_selection "" }
-    {-user_id ""}
-    {-cost_center_id ""}
     {-hide_colors_p 0}
-    {-project_id ""}
     {-order_by ""}
 } {
 
@@ -1117,16 +1113,12 @@ ad_proc -public im_absence_list_component {
     }
 
     set params [list \
-		    [list user_id_from_search $user_id_from_search] \
+			[list user_selection $user_selection] \
 			[list absence_status_id $absence_status_id] \
 			[list absence_type_id $absence_type_id] \
 			[list timescale $timescale] \
 			[list timescale_date $timescale_date] \
-			[list user_selection $user_selection] \
-			[list user_id $user_id] \
-			[list cost_center_id $cost_center_id] \
 			[list hide_colors_p $hide_colors_p] \
-			[list project_id $project_id] \
 			[list order_by $order_by] \
 		    [list return_url [im_url_with_query]] \
     ]
@@ -1137,7 +1129,7 @@ ad_proc -public im_absence_list_component {
 
 
 ad_proc -public im_absence_calendar_component {
-    {-user_selection ""}
+    {-owner_id ""}
     {-year ""}
     {-hide_explanation_p "0"}
 } {
@@ -1153,6 +1145,7 @@ ad_proc -public im_absence_calendar_component {
         set year [clock format [clock seconds] -format "%Y"]
     }
 
+    set user_selection $owner_id
     set current_user_id [ad_get_user_id]
     if { ![im_absence_component_view_p -user_selection $user_selection] } {
         return "You do not have enough privileges to view this component"
