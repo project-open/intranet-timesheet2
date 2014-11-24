@@ -1,12 +1,12 @@
-#ad_page_contract {
+#   absence-calendar.tcl
+#
 #   Displays a yearly calendar of absences for a user. 
 #   Uses the same color coding as the absence cube, but
 #   instead of displaying multiple users, it works only 
 #   for one user.
-#} {
-#    owner_id:integer,notnull
+#
+#    user_selection
 #    year:integer,notnull
-#}
 
 # Get list of absence types to determine index 
 # needed for color codes
@@ -34,12 +34,10 @@ set num_days [ad_decode $leap_year_p t 366 365]
 set report_start_date "${year}-01-01"
 set report_end_date "${year}-12-31"
 
-#set where_clause "and a.owner_id = :owner_id"
-
-set where_clause \
-    [im_absence_component__where_clause \
-        -user_selection_id $owner_id \
-        -user_selection_type "user"]
+im_absence_component__user_selection \
+    -where_clauseVar where_clause \
+    -user_selection $user_selection \
+    -hide_colors_pVar hide_colors_p
 
 set absence_sql "
     -- Individual Absences per user

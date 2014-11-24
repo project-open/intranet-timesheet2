@@ -1,8 +1,11 @@
-# { filter_status_id:integer "" }
-# { start_idx:integer 0 }
+# absences-list.tcl
+#
+# absence_status_id
+# absence_type_id
+#
+# start_idx:integer 0
 # { order_by "User" }
 # { how_many "" }
-# { absence_type_id:integer "5000" }
 # { user_selection "mine" }
 # { timescale "future" }
 # { view_name "absence_list_home" }
@@ -11,35 +14,26 @@
 # { cost_center_id:integer "" }
 # { project_id ""}
 
+ad_page_contract {
+    @last-modified 2014-11-24
+    @last-modified-by Neophytos Demetriou (neophytos@azet.sk)
+} {
+    {start_idx:integer 0 }
+    {how_many ""}
+    {view_name "absence_list_home"}
+}
+
+set end_idx [expr $start_idx + $how_many - 1]
+
+
+set user_name "TODO-SOMEONE"
+
 set page_title "[lang::message::lookup "" intranet-timesheet2.Absences_for_user "Absences for $user_name"]"
 
-if {$hide_colors_p} {
-    # Show only approved and requested
-    set absence_status_id [list [im_user_absence_status_active],[im_user_absence_status_requested]]
-} else {
-    if { $filter_status_id ne {} } {
-        set absence_status_id $filter_status_id
-    } else {
-        set absence_status_id [im_sub_categories [im_user_absence_status_active]]
-    }
-}
+set user_name $user_selection
 
-if { $user_selection_type eq {project} } {
-    set user_selection_id $project_id
-} elseif { $user_selection_type eq {user} } {
-    set user_selection_id $user_id
-} elseif { $user_selection_type eq {cost_center} } {
-    set user_selection_id $cost_center_id
-} elseif { [string is integer -strict $user_selection_type] } {
-    set user_selection_id $user_selection_type
-    set user_selection_type "user"
-} elseif { $user_selection_type eq {mine}} {
-    set user_selection_id [ad_get_user_id]
-} elseif { $user_selection_type eq {all}} {
-    set user_selection_id [ad_get_user_id]
-} else {
-    error "user_selection_type=$user_selection_type and user_selection_id does not exist"
-}
+
+
 
 
 # ---------------------------------------------------------------
@@ -50,21 +44,25 @@ set where_clause ""
 
 im_absence_component__absence_criteria \
     -where_clauseVar where_clause \
+    -user_selection $user_selection \
     -absence_type_id $absence_type_id \
     -absence_status_id $absence_status_id
 
-im_absence_component__user_selection_criteria \
+im_absence_component__user_selection \
     -where_clauseVar where_clause \
-    -user_selection_id $user_selection_id \
-    -user_selection_type $user_selection_type
+    -user_selection $user_selection \
+    -hide_colors_pVar hide_colors_p
 
-im_absence_component__timescale_criteria \
+im_absence_component__timescale \
     -where_clauseVar where_clause \
-    -timescale_date $timescale_date
+    -timescale_date $timescale_date \
     -timescale $timescale
 
 set order_by_clause [im_absence_component__order_by_clause $order_by]
 
+set name_order [parameter::get -package_id [apm_package_id_from_key intranet-core] -parameter "NameOrder" -default 1]
+
+set date_format "YYYY-MM-DD"
 
 set sql "
     select
@@ -90,7 +88,6 @@ set sql "
 				m.container_id = m.group_id and
 				mr.member_state != 'approved'
 		))
-    $absence_status_sql
     $where_clause
 "
 
@@ -121,6 +118,45 @@ set selection "$sql $order_by_clause"
 # ---------------------------------------------------------------
 # 7. Format the List Table Header
 # ---------------------------------------------------------------
+# ---------------------------------------------------------------
+# 3. Define Table Columns
+# ---------------------------------------------------------------
+
+# Define the column headers and column contents that
+# we want to show:
+#
+set view_id [db_string get_view_id "select view_id from im_views where view_name=:view_name"]
+set column_headers [list]
+set column_vars [list]
+set column_headers_admin [list]
+
+set column_sql "
+	select	column_id,
+		column_name,
+		column_render_tcl,
+		visible_for
+	from	im_view_columns
+	where	view_id=:view_id
+		and group_id is null
+	order by
+		sort_order
+"
+
+set admin_p [im_is_user_site_wide_or_intranet_admin $user_id]
+db_foreach column_list_sql $column_sql {
+    if {$visible_for == "" || [eval $visible_for]} {
+	lappend column_headers "$column_name"
+	lappend column_vars "$column_render_tcl"
+
+	set admin_html ""
+	if {$admin_p} { 
+	    set url [export_vars -base "/intranet/admin/views/new-column" {column_id return_url}]
+	    set admin_html "<a href='$url'>[im_gif wrench ""]</a>" 
+	}
+	lappend column_headers_admin $admin_html
+    }
+}
+
 
 # Set up colspan to be the number of headers + 1 for the # column
 set colspan [expr [llength $column_headers] + 1]
@@ -162,6 +198,8 @@ set bgcolor(1) " class=rowodd "
 set ctr 0
 set idx $start_idx
 set user_link ""
+set absences_url [parameter::get -package_id [apm_package_id_from_key intranet-timesheet2] -parameter "AbsenceURL" -default "/intranet-timesheet2/absences"]
+# set absence_view_page "$absences_url/new"
 db_foreach absences_list $selection {
 
     # Use cached TCL function to implement localization

@@ -579,8 +579,7 @@ ad_proc -public im_absence_day_list_helper {
 
 
 ad_proc -private im_absence_component_view_p {
-    -owner_id 
-    -current_user_id
+    -user_selection:required 
 } {
 
     Returns true if the current user (current_user_id) can view the 
@@ -592,25 +591,15 @@ ad_proc -private im_absence_component_view_p {
 
     @author Neophytos Demetriou (neophytos@azet.sk)
 } {
-    # Show only if user is an employee
-    if { ![im_user_is_employee_p $owner_id] } { return "" }
 
-    set sql "
-        select supervisor_id,manager_id
-        from im_employees e
-        inner join im_cost_centers cc
-        on (cc.cost_center_id=e.department_id)
-        where employee_id = :owner_id
-    "
-    db_1row supervisor_and_cc_manager $sql
+    set current_user_id [ad_get_user_id]
 
-    set read_p 0
-    incr_if read_p {[im_permission $current_user_id "view_absences_all"]}
-    incr_if read_p {$owner_id == $current_user_id}
-    incr_if read_p {[im_permission $current_user_id view_hr]}
-    incr_if read_p {$supervisor_id == $current_user_id}
-    incr_if read_p {$manager_id == $current_user_id}
-    return $read_p
+    return \
+        [im_absence_component__user_selection_helper \
+            -user_selection $user_selection \
+            -user_selection_idVar user_selection_id \
+            -user_selection_typeVar user_selection_type]
+
 }
 
 ad_proc im_absence_component__timescale_types {} {
@@ -654,6 +643,7 @@ ad_proc -private im_where_from_criteria {
 
 ad_proc -private im_absence_component__absence_criteria {
     -where_clauseVar:required
+    -user_selection:required
     {-absence_type_id ""}
     {-absence_status_id ""}
 } {
@@ -665,30 +655,163 @@ ad_proc -private im_absence_component__absence_criteria {
 
     set criteria [list]
 
-    if { $absence_type_id ne {} && $absence_type_id != "0" } {
-        lappend criteria "a.absence_type_id = [ns_dbquotevalue $absence_type_id]"
+    im_absence_component__user_selection_helper \
+        -user_selection $user_selection \
+        -user_selection_idVar user_selection_id \
+        -user_selection_typeVar user_selection_type \
+        -hide_colors_pVar hide_colors_p
+
+    if {$hide_colors_p} {
+        # show only approved and requested
+        set absence_status_id [list [im_user_absence_status_active],[im_user_absence_status_requested]]
+    } else {
+        if { $absence_status_id ne {} } {
+            if { [llength $absence_status_id] == 1 } {
+                lappend criteria "a.absence_status_id in ([template::util::tcl_to_sql_list [im_sub_categories $absence_status_id]])"
+            } else {
+                lappend criteria "a.absence_status_id in ([template::util::tcl_to_sql_list $absence_status_id])"
+            }
+        }
     }
 
-    if { $absence_status_id ne {} } {
-        if { [llength $absence_status_id] == 1 } {
-            lappend criteria "a.absence_status_id in ([template::util::tcl_to_sql_list [im_sub_categories $absence_status_id]])"
-        } else {
-            lappend criteria "a.absence_status_id in ([template::util::tcl_to_sql_list $absence_status_id])"
-        }
+    if { $absence_type_id ne {} && $absence_type_id != "0" } {
+        lappend criteria "a.absence_type_id = :absence_type_id"
     }
 
     # temporary hack until I manage to refactor the code
     append where_clause [db_bind_var_substitution [im_where_from_criteria $criteria]]
 
-
 }
 
-ad_proc -private im_absence_component__user_selection_criteria {
-    -where_clauseVar:required
-    -user_selection_id:required
-    -user_selection_type:required
+ad_proc -private im_absence_component__user_selection_helper {
+    -user_selection:required
+    -user_selection_idVar:required
+    -user_selection_typeVar:required
+    {-hide_colors_pVar ""}
+    {-user_nameVar ""}
 } {
+    Returns true if the current user can view the given selection. 
+    Otherwise, it returns false. 
+    
+    @last-modified 2014-11.24
+    @last-modified-by Neophytos Demetriou (neophytos@azet.sk)
+} {
+
+    upvar $user_selection_idVar user_selection_id
+    upvar $user_selection_typeVar user_selection_type
+
+    if {$user_nameVar ne {}} {
+        upvar $user_nameVar user_name
+    }
+
+    if {$hide_colors_pVar ne {}} {
+        upvar $hide_colors_pVar hide_colors_p
+    }
+
+    set user_selection_id ""
+    set user_selection_type ""
+    set user_name ""
+    set hide_colors_p 0
+
+    set current_user_id [ad_get_user_id]
+
+    set can_add_all_p [im_permission $current_user_id "add_absences_all"]
+    set can_view_all_p [expr { [im_permission $current_user_id "view_absences_all"] || $can_add_all_p }]
+
+    # user_selection is required to be an integer
+    # returns false, no one can view the component
+    # with a non-integer selection
+    if { ![string is integer -strict $user_selection] } {
+        return false
+    }
+
+    # Figure out the object_type for the given object id, i.e. user_selection.
+    set sql "select object_type from acs_objects where object_id = :user_selection"
+    set object_type [db_string object_type $sql -default ""]
+
+    switch $object_type {
+
+        im_cost_center {
+
+            set user_name [im_cost_center_name $user_selection]
+            if {[im_manager_of_cost_center_p -user_id $current_user_id -cost_center_id $user_selection] || $can_view_all_p} {
+                # allow managers to view absences in their department
+                set user_selection_type "cost_center"
+                set user_selection_id $user_selection
+            } else {
+                return false
+            }
+
+        }
+
+        user {
+
+            set user_name [im_name_from_user_id $user_selection]
+            set user_selection_type user
+            set user_selection_id $user_selection
+            
+            # Show only if user is an employee
+            set owner_id $user_selection_id
+            if { ![im_user_is_employee_p $owner_id] } { return "" }
+
+            set sql "
+                select supervisor_id,manager_id
+                from im_employees e
+                inner join im_cost_centers cc
+                on (cc.cost_center_id=e.department_id)
+                where employee_id = :owner_id
+            "
+            db_1row supervisor_and_cc_manager $sql
+
+            set read_p 0
+            incr_if read_p {[im_permission $current_user_id "view_absences_all"]}
+            incr_if read_p {$owner_id == $current_user_id}
+            incr_if read_p {[im_permission $current_user_id view_hr]}
+            incr_if read_p {$supervisor_id == $current_user_id}
+            incr_if read_p {$manager_id == $current_user_id}
+            return $read_p
+
+        }
+
+        im_project {
+
+            set project_manager_p [im_biz_object_member_p -role_id 1301 $current_user_id $user_selection]
+            if {$project_manager_p || $can_view_all_p} {
+                set user_name [db_string project_name "select project_name from im_projects where project_id = :user_selection" -default ""]
+                set hide_colors_p 1
+                set user_selection_type "project"
+                set user_selection_id $user_selection
+            } else {
+                return false
+            }
+
+        }
+
+        default {
+            ad_return_complaint 1 "Invalid User Selection:<br>Value '$user_selection' is not a user_id, project_id, department_id or one of {mine|all|employees|providers|customers|direct reports}."
+        }
+
+    }
+}
+
+
+ad_proc -private im_absence_component__user_selection {
+    -where_clauseVar:required
+    -user_selection:required
+    -hide_colors_pVar:required
+} {
+    @last-modified 2014-11-24
+    @last-modified-by Neophytos Demetriou (neophytos@azet.sk)
+} {
+
     upvar $where_clauseVar where_clause
+    upvar $hide_colors_pVar hide_colors_p
+
+    im_absence_component__user_selection_helper \
+        -user_selection $user_selection \
+        -user_selection_idVar user_selection_id \
+        -user_selection_typeVar user_selection_type \
+        -hide_colors_pVar hide_colors_p
 
     set criteria [list]
 
@@ -802,8 +925,8 @@ ad_proc im_absence_component__timescale {
     switch $timescale {
         "all" {
             set num_days ""
-            set start_date "" ;# 2000-01-01 
-            set end_date ""   ;# 2099-12-31
+            set start_date "2000-01-01"
+            set end_date "2099-12-31"
         }
         "today" { 
             set num_days 0
@@ -819,13 +942,12 @@ ad_proc im_absence_component__timescale {
             set start_date [db_string 3w "select to_date(:timescale_date,'YYYY-MM-DD') + :num_days::integer"]
         }
         "past" { 
-            set num_days "" 
-            set end_date 2099-12-31
-            set start-date "2000-01-01"
+            set num_days ""
+            set start_date [db_string 3w "select to_date(:timescale_date,'YYYY-MM-DD') - 365"]
         }
         "future" { 
-            set num_days "" 
-            set end_date ""
+            set num_days "21" 
+            set end_date [db_string 3w "select to_date(:timescale_date,'YYYY-MM-DD') + 365"]
         }
         "last_3m" { 
             set num_days -93 
@@ -916,11 +1038,8 @@ ad_proc -public im_absence_cube_component {
 
 } {
 
-    if { [string is integer -strict $user_id_from_search] } {
-        set current_user_id [ad_get_user_id]
-        if { ![im_absence_component_view_p -owner_id $user_id_from_search -current_user_id $current_user_id] } {
-            return ""
-        }
+    if { ![im_absence_component_view_p -user_selection $user_selection] } {
+        return ""
     }
 
     set params [list \
@@ -941,12 +1060,53 @@ ad_proc -public im_absence_cube_component {
     return [string trim $result]
 }
 
+ad_proc -public im_absence_list_component {
+    -user_id_from_search:required
+    {-absence_status_id "" }
+    {-absence_type_id "" }
+    {-timescale "" }
+    {-timescale_date "" }
+    {-user_selection "" }
+    {-user_id ""}
+    {-cost_center_id ""}
+    {-hide_colors_p 0}
+    {-project_id ""}
+    {-order_by ""}
+} {
+
+    @last-modified 2014-11-24
+    @last-modified-by Neophytos Demetriou (neophytos@azet.sk)
+
+} {
+
+    if { ![im_absence_component_view_p -user_selection $user_selection] } {
+        return ""
+    }
+
+    set params [list \
+		    [list user_id_from_search $user_id_from_search] \
+			[list absence_status_id $absence_status_id] \
+			[list absence_type_id $absence_type_id] \
+			[list timescale $timescale] \
+			[list timescale_date $timescale_date] \
+			[list user_selection $user_selection] \
+			[list user_id $user_id] \
+			[list cost_center_id $cost_center_id] \
+			[list hide_colors_p $hide_colors_p] \
+			[list project_id $project_id] \
+			[list order_by $order_by] \
+		    [list return_url [im_url_with_query]] \
+    ]
+
+    set result [ad_parse_template -params $params "/packages/intranet-timesheet2/lib/absences-list"]
+    return [string trim $result]
+}
+
 
 ad_proc -public im_absence_calendar_component {
-    {-owner_id "mine"}
+    {-user_selection ""}
     {-year ""}
-    {-hide_colors_p 0}
-    {-hide_explanation_p 0}
+    {-hide_explanation_p "0"}
 } {
 
    Displays a yearly calendar of absences for a user. 
@@ -956,31 +1116,19 @@ ad_proc -public im_absence_calendar_component {
 
 } {
 
-    # checks to make sure that we were provided with a single user id
-    # as the component plugin in the absences tab passes the user_selection
-    # variable which may contain anything that is computed there
-    if { ![string is integer -strict $owner_id] } {
-        if { $owner_id eq {mine} } {
-            set owner_id [ad_conn user_id]
-        } else {
-            return $owner_id
-        }
-    }
-
     if { $year eq {} } {
         set year [clock format [clock seconds] -format "%Y"]
     }
 
     set current_user_id [ad_get_user_id]
-    if { ![im_absence_component_view_p -owner_id $owner_id -current_user_id $current_user_id] } {
+    if { ![im_absence_component_view_p -user_selection $user_selection] } {
         return ""
     }
 
     set params \
         [list \
-		    [list owner_id $owner_id] \
+		    [list user_selection $user_selection] \
 			[list year $year] \
-            [list hide_colors_p $hide_colors_p] \
             [list hide_explanation_p $hide_explanation_p]]
 
     set result [ad_parse_template -params $params "/packages/intranet-timesheet2/lib/absence-calendar"]

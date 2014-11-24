@@ -17,58 +17,6 @@
 
 set current_user_id [ad_get_user_id]
 set view_absences_all_p [im_permission $current_user_id "view_absences_all"]
-set user_selection_id ""
-set user_selection_type ""
-
-if {[string is integer -strict $user_selection]} {
-    # Find out the object_type
-    set object_type [db_string object_type "select object_type from acs_objects where object_id = :user_selection" -default ""]
-    switch $object_type {
-        im_cost_center {
-            set user_name [im_cost_center_name $user_selection]
-            # Allow the manager to see the department
-            ns_log Notice "User:: $user_id $user_selection"
-            if {![im_manager_of_cost_center_p -user_id $current_user_id -cost_center_id $user_selection] && !$view_absences_all_p} {
-                # Not a manager => Only see yourself
-                set user_selection_type "mine"
-            } else {
-                set cost_center_id $user_selection
-                set user_selection_type "cost_center"
-                set user_selection_id $cost_center_id
-            }
-        }
-        user {
-            set user_name [im_name_from_user_id $user_selection]
-            set user_id $user_selection
-            set user_selection_type user
-            set user_selection_id $user_id
-
-            # We have already checked permissions before rendering
-            # this component script but we check them again anyway
-            #
-            # There used to be code here that force to show the
-            # component for the current user. As we already check
-            # permissions before rendering the component, it no longer
-            # made sense to keep doing that.
-        }
-        im_project {
-            set project_id $user_selection
-            # Permission Check
-            set project_manager_p [im_biz_object_member_p -role_id 1301 $current_user_id $project_id]
-            if {!$project_manager_p && !$view_absences_all_p} {
-                set user_selection_type "mine"
-            } else {
-                set user_name [db_string project_name "select project_name from im_projects where project_id = :project_id" -default ""]
-                set hide_colors_p 1
-                set user_selection_type "project"
-                set user_selection_id $project_id
-            }
-        }
-        default {
-            ad_return_complaint 1 "Invalid User Selection:<br>Value '$user_selection' is not a user_id, project_id, department_id or one of {mine|all|employees|providers|customers|direct reports}."
-        }
-    }
-}
 
 im_absence_component__timescale \
     -num_daysVar num_days \
@@ -83,6 +31,13 @@ if {$num_days eq {}} {
     set html [lang::message::lookup "" intranet-timesheet2.AbsenceCubeNotShownAllAbsences \
         "Graphical view of absences not available for Timescale option '${timescale}'. Please choose a different option."]
     return
+}
+
+# absence cube expects a positive number for num_days
+# the rest of the absences components do not have such
+# restrictions
+if {$num_days < 0 } {
+    set num_days [expr { abs($num_days) }]
 }
      
 if {$num_days > 370} {
@@ -99,25 +54,6 @@ set bgcolor(1) " class=rowodd "
 set name_order [parameter::get -package_id [apm_package_id_from_key intranet-core] -parameter "NameOrder" -default 1]
 
 # ---------------------------------------------------------------
-# Limit the number of users and days
-# ---------------------------------------------------------------
-
-if {[catch {
-    set num_days [db_string get_number_days "select (:end_date::date - :start_date::date)" -default 0]
-    incr num_days
-} err_msg]} {
-    set num_days 21
-}
-
-if {$num_days > 370} {
-    set html [lang::message::lookup "" intranet-timesheet2.AbsenceCubeNotShownGreateOneYear "Graphical view of absences only available for periods less than 1 year"]
-    return
-}
-
-if {-1 == $absence_type_id} { set absence_type_id "" }
-
-
-# ---------------------------------------------------------------
 # Generate SQL
 # ---------------------------------------------------------------
 
@@ -125,13 +61,14 @@ set where_clause ""
 
 im_absence_component__absence_criteria \
     -where_clauseVar where_clause \
+    -user_selection $user_selection \
     -absence_type_id $absence_type_id \
     -absence_status_id $absence_status_id
 
-im_absence_component__user_selection_criteria \
+im_absence_component__user_selection \
     -where_clauseVar where_clause \
-    -user_selection_id $user_selection_id \
-    -user_selection_type $user_selection_type
+    -user_selection $user_selection \
+    -hide_colors_pVar hide_colors_p
 
 # ---------------------------------------------------------------
 # Determine Top Dimension

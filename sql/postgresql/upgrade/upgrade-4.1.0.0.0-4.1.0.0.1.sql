@@ -48,7 +48,7 @@ begin
 
     perform im_component_plugin__delete(plugin_id) 
     from im_component_plugins 
-    where plugin_name in ('Absence Cube','Graphical View of Absences','Absence Calendar','Calendar View of Absences');
+    where plugin_name in ('Absence Cube','Graphical View of Absences','Absence Calendar','Calendar View of Absences','Absences List');
 
     -- Create a plugin for the absence cube
     perform im_component_plugin__new (
@@ -90,7 +90,6 @@ begin
                        -user_id_from_search $user_id_from_search \\
                        -cost_center_id $cost_center_id \\
                        -user_id $user_id \\
-                       -hide_colors_p $hide_colors_p \\
                        -project_id $project_id'	-- component_tcl
     );
 
@@ -127,7 +126,34 @@ begin
         '/intranet-timesheet2/absences/index',	-- page_url
         null,				    -- view_name
         20,				        -- sort_order
-        'im_absence_calendar_component -owner_id [ad_decode $user_selection_type "user" $user_selection "mine" $user_selection $user_selection_type] -year [im_year_from_date $timescale_date]'	-- component_tcl
+        'im_absence_calendar_component -user_selection $user_selection -year [im_year_from_date $timescale_date]'	-- component_tcl
+    );
+
+    -- Create a plugin for the absence cube
+    perform im_component_plugin__new (
+        null,				    -- plugin_id
+        'im_component_plugin',	-- object_type
+        now(),				    -- creation_date
+        null,				    -- creation_user
+        null,				    -- creation_ip
+        null,				    -- context_id
+        'Absences List',		-- plugin_name
+        'intranet-timesheet2',	-- package_name
+        'bottom',				    -- location
+        '/intranet-timesheet2/absences/index',	-- page_url
+        null,				    -- view_name
+        20,				        -- sort_order
+        E'im_absence_list_component \\
+                       -absence_status_id $filter_status_id \\
+                       -absence_type_id $org_absence_type_id \\
+                       -timescale $timescale \\
+                       -timescale_date $timescale_date \\
+                       -user_selection $user_selection \\
+                       -user_id_from_search $user_id_from_search \\
+                       -cost_center_id $cost_center_id \\
+                       -user_id $user_id \\
+                       -project_id $project_id \\
+                       -order_by $order_by'-- component_tcl
     );
 
     perform acs_permission__grant_permission(
@@ -135,7 +161,7 @@ begin
         (select group_id from groups where group_name = 'Employees'),
         'read')
     from im_component_plugins 
-    where plugin_name in ('Absence Calendar','Calendar View of Absences','Absence Cube','Graphical View of Absences')
+    where plugin_name in ('Absence Calendar','Calendar View of Absences','Absence Cube','Graphical View of Absences','Absences List')
     and package_name = 'intranet-timesheet2';
 
 end;

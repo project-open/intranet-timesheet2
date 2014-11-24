@@ -1,5 +1,3 @@
-<%= [im_box_header $page_title] %>
-
 <table class='table_list_page'>
     <%= $table_header_html %>
     <%= $table_body_html %>

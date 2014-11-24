@@ -35,5 +35,7 @@ $("#timescale").trigger("change");
 
 <%= [im_component_bay top] %>
 
+<%= [im_component_bay bottom] %>
+
 <%= [im_box_footer] %>
 

@@ -54,7 +54,6 @@ ad_page_contract {
 # ---------------------------------------------------------------
 
 set user_id [ad_maybe_redirect_for_registration]
-set admin_p [im_is_user_site_wide_or_intranet_admin $user_id]
 set current_user_id $user_id
 set subsite_id [ad_conn subsite_id]
 set add_absences_for_group_p [im_permission $user_id "add_absences_for_group"]
@@ -67,7 +66,6 @@ set org_absence_type_id $absence_type_id
 set show_context_help_p 1
 set name_order [parameter::get -package_id [apm_package_id_from_key intranet-core] -parameter "NameOrder" -default 1]
 
-set hide_colors_p 0
 
 # Support if we pass a project_id in
 if {"" != $project_id} {
@@ -94,12 +92,6 @@ if {![im_permission $user_id "view_absences"] && !$view_absences_all_p && !$view
     ad_script_abort
 }
 
-# Support display of all Absences regardless of status in the
-# list. This does not show up in grafik though
-set absence_status_sql ""
-if {$filter_status_id ne {}} {
-    set absence_status_sql "and a.absence_status_id = :filter_status_id"
-}
 
 # Setting list of "direct reports" and "other employees"
 set direct_reports_list [list]
@@ -136,65 +128,12 @@ if { $view_absences_direct_reports_p || $add_absences_all_p || $view_absences_al
     }
 }
 
-set user_name $user_selection
-
-set user_selection_type $user_selection
-# Check if we have a user_id or a department_id
-if {[string is integer $user_selection]} {
-    # Find out the object_type
-    set object_type [db_string object_type "select object_type from acs_objects where object_id = :user_selection" -default ""]
-    switch $object_type {
-	im_cost_center {
-	    set user_name [im_cost_center_name $user_selection]
-	    # Allow the manager to see the department
-        ns_log Notice "User:: $user_id $user_selection"
-	    if {![im_manager_of_cost_center_p -user_id $current_user_id -cost_center_id $user_selection] && !$view_absences_all_p} {
-            # Not a manager => Only see yourself
-            set user_selection_type "mine"
-	    } else {
-            set cost_center_id $user_selection
-            set user_selection_type "cost_center"
-            set user_selection $cost_center_id
-	    }
-	}
-	user {
-	    set user_name [im_name_from_user_id $user_selection]
-	    set user_id $user_selection
-
-	    # Check for permissions if we are allowed to see this user
-        # NOTE: This is legacy code. We should turn list of absences into a component
-        # just like we did for Absence Cube and Absence Calendar. This is a huge hack.
-	    if {![im_absence_component_view_p -owner_id $user_selection -current_user_id $current_user_id]} {
-            set user_selection_type "mine"
-	    }	      
-	}
-	im_project {
-        set project_id $user_selection
-	    # Permission Check
-	    set project_manager_p [im_biz_object_member_p -role_id 1301 $current_user_id $project_id]
-	    if {!$project_manager_p && !$view_absences_all_p} {
-            set user_selection_type "mine"
-	    } else {
-            set user_name [db_string project_name "select project_name from im_projects where project_id = :project_id" -default ""]
-            set hide_colors_p 1
-            set user_selection_type "project"
-            set user_selection $project_id
-	    }
-	}
-	default {
-	    ad_return_complaint 1 "Invalid User Selection:<br>Value '$user_selection' is not a user_id, project_id, department_id or one of {mine|all|employees|providers|customers|direct reports}."
-	}
-    }
-}
-
 set page_title "Absences"
 set context [list $page_title]
 set context_bar [im_context_bar $page_title]
 set page_focus "im_header_form.keywords"
-set absences_url [parameter::get -package_id [apm_package_id_from_key intranet-timesheet2] -parameter "AbsenceURL" -default "/intranet-timesheet2/absences"]
 set return_url [im_url_with_query]
 set user_view_page "/intranet/users/view"
-set absence_view_page "$absences_url/new"
 
 ############################################################
 #                                                          #
@@ -329,47 +268,6 @@ if { ![exists_and_not_null absence_type_id] } {
     set absence_type_id "-1"
 }
 
-set end_idx [expr $start_idx + $how_many - 1]
-set date_format "YYYY-MM-DD"
-set date_time_format "YYYY-MM-DD HH24:MI"
-
-# ---------------------------------------------------------------
-# 3. Define Table Columns
-# ---------------------------------------------------------------
-
-# Define the column headers and column contents that
-# we want to show:
-#
-set view_id [db_string get_view_id "select view_id from im_views where view_name=:view_name"]
-set column_headers [list]
-set column_vars [list]
-set column_headers_admin [list]
-
-set column_sql "
-	select	column_id,
-		column_name,
-		column_render_tcl,
-		visible_for
-	from	im_view_columns
-	where	view_id=:view_id
-		and group_id is null
-	order by
-		sort_order
-"
-
-db_foreach column_list_sql $column_sql {
-    if {$visible_for == "" || [eval $visible_for]} {
-	lappend column_headers "$column_name"
-	lappend column_vars "$column_render_tcl"
-
-	set admin_html ""
-	if {$admin_p} { 
-	    set url [export_vars -base "/intranet/admin/views/new-column" {column_id return_url}]
-	    set admin_html "<a href='$url'>[im_gif wrench ""]</a>" 
-	}
-	lappend column_headers_admin $admin_html
-    }
-}
 
 
 

@@ -441,7 +441,6 @@ SELECT im_component_plugin__new (
 			       -user_id_from_search $user_id_from_search \\
 			       -cost_center_id $cost_center_id \\
 			       -user_id $user_id \\
-			       -hide_colors_p $hide_colors_p \\
 			       -project_id $project_id'	-- component_tcl
 );
 
