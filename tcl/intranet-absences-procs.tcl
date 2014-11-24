@@ -965,7 +965,7 @@ ad_proc im_absence_component__timescale {
             set end_date "2099-12-31"
         }
         "today" { 
-            set num_days 0
+            set num_days 1
             set end_date $timescale_date
         }
         "next_3w" { 
