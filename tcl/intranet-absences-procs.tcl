@@ -30,6 +30,7 @@ ad_proc -public im_user_absence_type_sick {} { return 5002 }
 ad_proc -public im_user_absence_type_travel {} { return 5003 }
 ad_proc -public im_user_absence_type_training {} { return 5004 }
 ad_proc -public im_user_absence_type_bank_holiday {} { return 5005 }
+ad_proc -public im_user_absence_type_overtime {} { return 5006 }
 ad_proc -public im_user_absence_type_rwh {} { return 5007 }
 
 

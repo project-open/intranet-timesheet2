@@ -107,6 +107,7 @@ ad_proc -public im_leave_entitlement_remaining_days_helper {
     @param booking_date Define which leave entitlements should be included. Defaults to current date (everything earned up until today)
 } {
 
+
     set current_year [dt_systime -format "%Y"]
     set eoy "${current_year}-12-31"
     set soy "${current_year}-01-01"
@@ -131,8 +132,28 @@ ad_proc -public im_leave_entitlement_remaining_days_helper {
     }
     
     
-    set entitlement_days [db_string entitlement_days "select coalesce(sum(l.entitlement_days),0) as absence_days from im_user_leave_entitlements l where leave_entitlement_type_id = :absence_type_id and owner_id = :user_id and $booking_date_sql" -default 0]    
+    set sql "
+        select coalesce(sum(l.entitlement_days),0) as absence_days 
+        from im_user_leave_entitlements l 
+        where leave_entitlement_type_id = :absence_type_id 
+        and owner_id = :user_id 
+        and $booking_date_sql
+    "
+    set entitlement_days [db_string entitlement_days $sql -default 0]    
     
+    # for the overtime category (and child categories) we are not 
+    # filtering the leave entitlements only for the current / booking
+    # year, but use all of them
+    set sql "
+        select coalesce(sum(l.entitlement_days),0) as absence_days 
+        from im_user_leave_entitlements l 
+        where leave_entitlement_type_id in ([template::util::tcl_to_sql_list [im_sub_categories [im_user_absence_type_overtime]]])
+        and owner_id = :user_id 
+    "
+    set overtime_entitlement_days [db_string overtime_days $sql -default 0]
+
+    set entitlement_days [expr { $entitlement_days + $overtime_entitlement_days }]
+
 	set absence_type [im_category_from_id $absence_type_id]
     
     # Ignore the balance for bank holidays
@@ -146,7 +167,7 @@ ad_proc -public im_leave_entitlement_remaining_days_helper {
     	where
                     category_type = 'Intranet Absence Type' and category_id not in ([template::util::tcl_to_sql_list $vacation_category_ids])
     "]
-    
+
 	# Check if we have a workflow and then only use the approved days
 	set wf_key [db_string wf "select trim(aux_string1) from im_categories where category_id = :absence_type_id" -default ""]
 	set wf_exists_p [db_string wf_exists "select count(*) from wf_workflows where workflow_key = :wf_key"]
