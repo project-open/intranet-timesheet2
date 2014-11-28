@@ -19,7 +19,7 @@ begin
         '/intranet/users/view',	-- page_url
         null,				    -- view_name
         20,				        -- sort_order
-        'im_absence_cube_component -user_id_from_search $user_id_from_search -user_id $user_id'	-- component_tcl
+        'im_absence_cube_component -user_selection $user_id'	-- component_tcl
     );
 
     -- Create a plugin for the absence calendar for one user
