@@ -15,6 +15,7 @@ set sql "
     select  category_id,category
     from    im_categories
     where   category_type = 'Intranet Absence Type'
+    and enabled_p = 't'
     order by category_id
 "
 
