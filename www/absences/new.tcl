@@ -610,9 +610,7 @@ ad_form -extend -name $form_id -on_request {
             -table "im_user_absences" \
             -where_clause "absence_id=:absence_id" \
             -column_array old \
-            -messageVar message
-
-        im_workflow_new_journal -case_id $case_id -action "modify absence" -action_pretty "Modify Absence" -message $message
+            -what "absence"
 
         # Now move the workflow further
         # This is allowed only if the owner edits it AND the status is rejected

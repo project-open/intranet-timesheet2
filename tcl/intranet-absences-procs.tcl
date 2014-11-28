@@ -1910,13 +1910,12 @@ ad_proc wf_trace_column_change__end {
     {-table:required ""}
     {-where_clause:required ""}
     {-column_array:required ""}
-    {-messageVar:required ""}
+    {-what "record"}
 } {
     @author Neophytos Demetriou
 } {
     upvar $trace_array wf_trace_cols
     upvar $column_array old
-    upvar $messageVar message
 
     # start_date, 
     # end_date,
@@ -1930,7 +1929,7 @@ ad_proc wf_trace_column_change__end {
     "
     db_1row old_data $sql -column_array new
 
-    set message "[im_name_from_user_id $user_id] modified the absence."
+    set message ""
     foreach {column_name column_def} [array get wf_trace_cols] {
         foreach {pretty_name proc_name} $column_def break
 
@@ -1955,4 +1954,34 @@ ad_proc wf_trace_column_change__end {
 
     }
 
+    if {$message ne {}} {
+        set message "[im_name_from_user_id $user_id] modified the ${what}. ${message}"
+        callback im_trace_table_change \
+            -table $table \
+            -message $message
+    }
+
 }
+
+ad_proc -callback im_trace_table_change {
+    table
+    message 
+} {
+    @author Neophytos Demetriou (neophytos@azet.sk)
+} {
+
+    if {$table ne {im_user_absences}} {
+        return
+    }
+
+    set action "modify absence"
+    set action_pretty "Modify Absence"
+
+    im_workflow_new_journal \
+        -case_id $case_id \
+        -action $action \
+        -action_pretty $action_pretty \
+        -message $message
+}
+
+

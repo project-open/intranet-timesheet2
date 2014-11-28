@@ -95,8 +95,14 @@ ad_proc -public -callback im_trace_column_change {
     {-old_value:required}
     {-new_value:required}
 } {
-    Callback to be executed after a change in an absence record
+    Callback to be executed after a change in a record
 } -
 
 
+ad_proc -callback im_trace_table_change {
+    {-table:required}
+    {-message:required}
+} {
+    Callback to be executed after a set of changes in a table record
+} -
 
