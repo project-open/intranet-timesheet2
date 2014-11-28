@@ -1,3 +1,5 @@
+SELECT acs_log__debug('/packages/intranet-timesheet2/sql/postgresql/upgrade/upgrade-4.1.0.0.2-4.1.0.0.3.sql','');
+
 update im_dynfield_widgets set parameters =
         '{custom {sql {
             select  p.person_id,
