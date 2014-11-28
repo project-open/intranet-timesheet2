@@ -85,4 +85,25 @@ ad_proc -public -callback im_user_absence_perm_check {
 
 } - 
 
+ad_proc -public -callback im_trace_column_change {
+    {-user_id:required}
+    {-object_id:required}
+    {-table:required}
+    {-table:required}
+    {-column_name:required}
+    {-pretty_name:required}
+    {-old_value:required}
+    {-new_value:required}
+} {
+    Callback to be executed after a change in a record
+} -
+
+
+ad_proc -callback im_trace_table_change {
+    {-object_id:required}
+    {-table:required}
+    {-message:required}
+} {
+    Callback to be executed after a set of changes in a table record
+} -
 

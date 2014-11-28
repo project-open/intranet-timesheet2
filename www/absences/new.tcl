@@ -526,10 +526,28 @@ ad_form -extend -name $form_id -on_request {
         ad_return_error "Not allowed to edit" "You are not allowed to edit this absence anymore. Please go <a href='$return_url'>back</a>."
         ad_script_abort
     }
+
     
     if {$absence_under_wf_control_p} {
         set case_id [db_string get_case "select min(case_id) from wf_cases where object_id = :absence_id"]
-        db_1row old_data "select start_date as old_start_date, end_date as old_end_date, absence_type_id as old_absence_type_id, vacation_replacement_id as old_vacation_replacement_id from im_user_absences where absence_id = :absence_id"
+
+
+        # vacation replacement gets added to wf_trace_cols as a dynfield attribute
+        array set wf_trace_cols [list \
+            start_date [list "Start Date" ""] \
+            end_date [list "End Date" ""] \
+            absence_type_id [list "Absence Type" "im_category_from_id"] \
+        ]
+        
+        wf_trace_column_change__begin \
+            -trace_array "wf_trace_cols" \
+            -object_type_id $absence_type_id \
+            -object_type "im_user_absence" \
+            -table "im_user_absences" \
+            -where_clause "absence_id=:absence_id" \
+            -column_array old
+
+
     } else {
         # Find out if it should be under workflow control and then add the workflow
         if {"" != $wf_key} {
@@ -582,14 +600,17 @@ ad_form -extend -name $form_id -on_request {
     "
 
     if {$absence_under_wf_control_p} {
+
         # Record the change in the workflow log
-        db_1row new_data "select start_date as new_start_date, end_date as new_end_date, absence_type_id as new_absence_type_id, vacation_replacement_id as new_vacation_replacement_id from im_user_absences where absence_id = :absence_id"
-        set message "[im_name_from_user_id $user_id] modified the absence."
-        if {$new_start_date != $old_start_date} {append message " Start Date changed from $old_start_date to $new_start_date."}
-        if {$new_end_date != $old_end_date} {append message " End Date changed from $old_end_date to $new_end_date."}
-        if {$new_absence_type_id != $old_absence_type_id} {append message " Absence Type changed from [im_category_from_id $old_absence_type_id] to [im_category_from_id $absence_type_id]."}
-        if {$new_vacation_replacement_id != $old_vacation_replacement_id} {append message " Vacation replacement changed from [im_name_from_user_id $old_vacation_replacement_id] to [im_name_from_user_id $new_vacation_replacement_id]."}
-        im_workflow_new_journal -case_id $case_id -action "modify absence" -action_pretty "Modify Absence" -message $message
+
+        wf_trace_column_change__end \
+            -object_id $absence_id \
+            -user_id $user_id \
+            -trace_array "wf_trace_cols" \
+            -table "im_user_absences" \
+            -where_clause "absence_id=:absence_id" \
+            -column_array old \
+            -what "absence"
 
         # Now move the workflow further
         # This is allowed only if the owner edits it AND the status is rejected
