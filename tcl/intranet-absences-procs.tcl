@@ -1957,15 +1957,17 @@ ad_proc wf_trace_column_change__end {
     if {$message ne {}} {
         set message "[im_name_from_user_id $user_id] modified the ${what}. ${message}"
         callback im_trace_table_change \
+            -object_id $object_id \
             -table $table \
             -message $message
     }
 
 }
 
-ad_proc -callback im_trace_table_change {
-    table
-    message 
+ad_proc -callback im_trace_table_change -impl im_trace_absence_change {
+    -object_id
+    -table
+    -message 
 } {
     @author Neophytos Demetriou (neophytos@azet.sk)
 } {
@@ -1976,6 +1978,8 @@ ad_proc -callback im_trace_table_change {
 
     set action "modify absence"
     set action_pretty "Modify Absence"
+
+    set case_id [db_string get_case "select min(case_id) from wf_cases where object_id = :object_id"]
 
     im_workflow_new_journal \
         -case_id $case_id \

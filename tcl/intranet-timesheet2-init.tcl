@@ -100,6 +100,7 @@ ad_proc -public -callback im_trace_column_change {
 
 
 ad_proc -callback im_trace_table_change {
+    {-object_id:required}
     {-table:required}
     {-message:required}
 } {
