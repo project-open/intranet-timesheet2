@@ -83,6 +83,28 @@ ad_proc incr_if {varName expr} {
 ad_proc im_coalesce {args} {
     return [lsearch -inline -not $args {}]
 }
+
+ad_proc im_name_from_id {object_id} {
+    @author Neophytos Demetriou (neophytos@azet.sk)
+} {
+
+    # we check to make sure the given id is an integer
+    # as we don't db quote the value, if it's quoted
+    # it just returns the provided value as is
+    # if substituted, pl/pgsql figures out it's an 
+    # integer and picks the right function (the one
+    # that accepts an integer)
+    if { ![string is integer -strict $object_id] } {
+        error "object_id must be an integer value"
+    }
+
+    set name [db_string get_name_from_id "select im_name_from_id($object_id) as name" -default "xyz"] 
+
+    return $name
+
+}
+
+
 # ---------------------------------------------------------------------
 # Absences Permissions
 # ---------------------------------------------------------------------
@@ -1837,3 +1859,100 @@ ad_proc -public im_absence_cube_legend {} {
     append admin_html "</table>\n"
 }
 
+
+ad_proc wf_trace_column_change__begin {
+    {-trace_array:required ""}
+    {-object_type_id:required ""}
+    {-object_type:required ""}
+    {-table:required ""}
+    {-where_clause:required ""}
+    {-column_array:required ""}
+} {
+    @author Neophytos Demetriou
+} {
+    upvar $trace_array wf_trace_cols
+    upvar $column_array old
+
+    set dynfields \
+        [im_dynfield::dynfields \
+            -object_type_id $object_type_id \
+            -object_type $object_type]
+
+    foreach attribute_id $dynfields {
+         set column_name [im_dynfield::attribute::get_name_from_id -attribute_id $attribute_id]
+         set pretty_name $column_name
+         set proc_name ""
+         if { [string match {*_id} $column_name] } {
+             set proc_name "im_name_from_id"
+         }
+         set wf_trace_cols($column_name) [list $pretty_name $proc_name]
+    }
+
+    # start_date, 
+    # end_date,
+    # absence_type_id,
+    # vacation_replacement_id,
+    set where_clause [uplevel [list db_bind_var_substitution $where_clause]]
+    set sql "
+        select [join [array names wf_trace_cols] {,}]
+        from im_user_absences 
+        where ${where_clause}
+    "
+    db_1row old_data $sql -column_array old
+
+}
+
+
+ad_proc wf_trace_column_change__end {
+    {-user_id:required ""}
+    {-object_id:required ""}
+    {-trace_array:required ""}
+    {-table:required ""}
+    {-where_clause:required ""}
+    {-column_array:required ""}
+    {-messageVar:required ""}
+} {
+    @author Neophytos Demetriou
+} {
+    upvar $trace_array wf_trace_cols
+    upvar $column_array old
+    upvar $messageVar message
+
+    # start_date, 
+    # end_date,
+    # absence_type_id,
+    # vacation_replacement_id,
+    set where_clause [uplevel [list db_bind_var_substitution $where_clause]]
+    set sql "
+        select [join [array names wf_trace_cols] {,}]
+        from im_user_absences 
+        where ${where_clause}
+    "
+    db_1row old_data $sql -column_array new
+
+    set message "[im_name_from_user_id $user_id] modified the absence."
+    foreach {column_name column_def} [array get wf_trace_cols] {
+        foreach {pretty_name proc_name} $column_def break
+
+        if { $old($column_name) ne $new($column_name) } {
+            
+            if { $proc_name ne {} } {
+                append message "$pretty_name changed from [$proc_name $old($column_name)] to [$proc_name $new($column_name)]"
+            } else {
+                append message "$pretty_name changed from $old($column_name) to $new($column_name)"
+            }
+
+            callback im_trace_column_change \
+                -user_id $user_id \
+                -object_id $object_id \
+                -table $table \
+                -column_name $column_name \
+                -pretty_name $pretty_name \
+                -old_value $old($column_name) \
+                -new_value $new($column_name)
+
+        }
+
+    }
+
+}
