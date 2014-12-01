@@ -288,9 +288,14 @@ foreach { value text } $absences_types {
     lappend absence_type_list [list $text $value]
 }
 
-
+set user_selection_in_types 0
 foreach { value text } $user_selection_types {
+    if {$value eq $user_selection} {set user_selection_in_types 1}
     lappend user_selection_type_list [list $text $value]
+}
+
+if {$user_selection_in_types eq 0} {
+    lappend user_selection_type_list [list [im_name_from_id $user_selection] $user_selection]
 }
 
 # ---------------------------------------------------------------
