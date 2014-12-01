@@ -77,3 +77,33 @@ begin
         END LOOP;
 end;$BODY$
 language 'plpgsql';
+
+insert into im_dynfield_layout_pages (
+       page_url,object_type,layout_type,default_p
+) values (
+       '/intranet-timesheet2/weekly-report','person','table','f'
+);
+
+insert into im_dynfield_layout (
+       attribute_id, page_url, pos_y, label_style
+) values (
+       59631, '/intranet-timesheet2/weekly-report', 1, 'plain'
+);
+
+insert into im_dynfield_layout (
+       attribute_id, page_url, pos_y, label_style
+) values (
+       59627, '/intranet-timesheet2/weekly-report', 2, 'plain'
+);
+
+insert into im_dynfield_layout_pages (
+       page_url,object_type,layout_type,default_p
+) values (
+       '/intranet-timesheet2/leave-entitlements/remaining-vacation','person','table','f'
+);
+
+insert into im_dynfield_layout (
+       attribute_id, page_url, pos_y, label_style
+) values (
+       59627, '/intranet-timesheet2/leave-entitlements/remaining-vacation', 1, 'plain'
+);
