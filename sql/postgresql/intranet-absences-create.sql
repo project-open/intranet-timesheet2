@@ -416,7 +416,7 @@ perform im_component_plugin__new (
     '/intranet/users/view',	-- page_url
     null,				    -- view_name
     20,				        -- sort_order
-    'im_absence_cube_component -user_selection [im_coalesce $user_id_from_search [ad_get_user_id]]'	-- component_tcl
+    'im_absence_cube_component -user_selection [sim_coalesce $user_id_from_search [ad_get_user_id]]'	-- component_tcl
 );
 
 -- Create a plugin for the absence cube
@@ -438,7 +438,7 @@ perform im_component_plugin__new (
                    -absence_type_id $org_absence_type_id \\
                    -timescale $timescale \\
                    -timescale_date $timescale_date \\
-                   -user_selection $user_selection'	-- component_tcl
+                   -user_selection [im_coalesce $user_selection [ad_get_user_id]]'	-- component_tcl
 );
 
 -- Create a plugin for the absence calendar for one user
@@ -498,7 +498,7 @@ perform im_component_plugin__new (
     null,				    -- view_name
     20,				        -- sort_order
     E'im_absence_list_component \\
-                   -user_selection $user_selection \\
+                   -user_selection [im_coalesce $user_selection [ad_get_user_id]] \\
                    -absence_status_id $filter_status_id \\
                    -absence_type_id $org_absence_type_id \\
                    -timescale $timescale \\
