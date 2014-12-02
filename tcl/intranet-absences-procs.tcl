@@ -551,13 +551,14 @@ ad_proc im_absence_mix_colors {
 
 ad_proc im_absence_cube_render_cell {
     value
+    {str "&nbsp;"}
 } {
     Renders a single report cell, depending on value.
     Takes the color from absences color lookup.
 } {
     set color [im_absence_mix_colors $value]
     if {"" != $color} {
-	return "<td bgcolor=\#$color>&nbsp;</td>\n"
+	return "<td bgcolor=\#$color>${str}</td>\n"
     } else {
 	return "<td>&nbsp;</td>\n"
     }

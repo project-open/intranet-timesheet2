@@ -46,9 +46,10 @@ im_absence_component__user_selection \
     -user_selection $user_selection \
     -hide_colors_pVar hide_colors_p
 
-set absence_sql "
+set absences_sql "
     -- Individual Absences per user
     select	a.absence_type_id,
+            a.absence_status_id,
             a.owner_id,
             d.d
     from	im_user_absences a,
@@ -65,6 +66,7 @@ set absence_sql "
     UNION
     -- Absences for user groups
     select	a.absence_type_id,
+            a.absence_status_id,
             mm.member_id as owner_id,
             d.d
     from	im_user_absences a,
@@ -80,6 +82,7 @@ set absence_sql "
     UNION
     -- Absences for bridge days
     select	a.absence_type_id,
+            a.absence_status_id,
             mm.member_id as owner_id,
             d.d
     from	im_user_absences a,
@@ -97,13 +100,25 @@ set absence_sql "
 
 
 # TODO: re-factor so that color codes also work in case of more than 10 absence types
+
+array set is_req_category_p [list]
+set req_categories [im_sub_categories [im_user_absence_status_requested]]
+foreach category_id $req_categories { 
+    set is_req_category_p($category_id) 1
+}
+
 array set absence_hash [list]
-db_foreach absences $absence_sql {
+array set cell_char [list]
+db_foreach absences $absences_sql {
     set date_date ${d}
     set key ${date_date}
     set value [get_value_if absence_hash(${key}) ""]
     set index [lsearch $category_list $absence_type_id]
     set absence_hash($key) [append value $index]
+
+    if { [get_value_if is_req_category_p($absence_status_id) "0"] } {
+        set cell_char($key) "?"
+    }
 }
 
 set weekend_days \
@@ -163,7 +178,7 @@ for {set month_num 1} {$month_num <= 12} {incr month_num} {
             set value "9"
         }
 
-        append table_body [im_absence_cube_render_cell $value]
+        append table_body [im_absence_cube_render_cell $value [get_value_if cell_char(${key}) ""]]
         ns_log debug "intranet-absences-procs::im_absence_cube_render_cell: $value"
     }
     append table_body "</tr>\n"
