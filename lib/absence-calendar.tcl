@@ -105,8 +105,10 @@ set weekend_days \
         -start_date $report_start_date \
         -end_date $report_end_date]
 
+set bank_holiday_absence_type_id [im_user_absence_type_bank_holiday]
+set index [lsearch $category_list $bank_holiday_absence_type_id]
 foreach weekend_date $weekend_days {
-    append absence_hash($weekend_date) 5
+    append absence_hash($weekend_date) $index
 }
 
 
