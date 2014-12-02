@@ -558,7 +558,7 @@ ad_proc im_absence_cube_render_cell {
 } {
     set color [im_absence_mix_colors $value]
     if {"" != $color} {
-	return "<td bgcolor=\#$color>${str}</td>\n"
+	return "<td bgcolor=\"\#$color\" align=\"center\">${str}</td>\n"
     } else {
 	return "<td>&nbsp;</td>\n"
     }
