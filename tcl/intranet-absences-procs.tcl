@@ -1154,6 +1154,8 @@ ad_proc -public im_absence_list_component {
 ad_proc -public im_absence_calendar_component {
     {-owner_id ""}
     {-year ""}
+    {-absence_status_id "" }
+    {-absence_type_id "" }
     {-hide_explanation_p "0"}
 } {
 
@@ -1178,6 +1180,8 @@ ad_proc -public im_absence_calendar_component {
         [list \
 		    [list user_selection $user_selection] \
 			[list year $year] \
+			[list absence_status_id $absence_status_id] \
+			[list absence_type_id $absence_type_id] \
             [list hide_explanation_p $hide_explanation_p]]
 
     set result [ad_parse_template -params $params "/packages/intranet-timesheet2/lib/absence-calendar"]

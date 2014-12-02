@@ -455,7 +455,11 @@ perform im_component_plugin__new (
     '/intranet/users/view',	-- page_url
     null,				    -- view_name
     20,				        -- sort_order
-    'im_absence_calendar_component -owner_id [im_coalesce $user_id_from_search [ad_get_user_id]] -year [clock format [clock seconds] -format "%Y"]'	-- component_tcl
+    E'im_absence_calendar_component \\
+                   -absence_status_id $filter_status_id \\
+                   -absence_type_id $org_absence_type_id \\
+                   -owner_id [im_coalesce $user_id_from_search [ad_get_user_id]] \\
+                   -year [clock format [clock seconds] -format "%Y"]'	-- component_tcl
 );
 
 
@@ -474,7 +478,11 @@ perform im_component_plugin__new (
     '/intranet-timesheet2/absences/index',	-- page_url
     null,				    -- view_name
     20,				        -- sort_order
-    'im_absence_calendar_component -owner_id [im_coalesce $user_id_from_search $user_selection [ad_get_user_id]] -year [im_year_from_date $timescale_date]'	-- component_tcl
+    E'im_absence_calendar_component \\
+                   -absence_status_id $filter_status_id \\
+                   -absence_type_id $org_absence_type_id \\
+                   -owner_id [im_coalesce $user_id_from_search $user_selection [ad_get_user_id]] \\
+                   -year [im_year_from_date $timescale_date]'	-- component_tcl
 );
 
 -- Create a plugin for the absence cube

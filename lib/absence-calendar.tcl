@@ -35,6 +35,12 @@ set num_days [ad_decode $leap_year_p t 366 365]
 set report_start_date "${year}-01-01"
 set report_end_date "${year}-12-31"
 
+im_absence_component__absence_criteria \
+    -where_clauseVar where_clause \
+    -user_selection $user_selection \
+    -absence_type_id $absence_type_id \
+    -absence_status_id $absence_status_id
+
 im_absence_component__user_selection \
     -where_clauseVar where_clause \
     -user_selection $user_selection \
