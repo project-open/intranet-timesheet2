@@ -99,6 +99,15 @@ db_foreach absences $absence_sql {
     set absence_hash($key) [append value $index]
 }
 
+set weekend_days \
+    [im_absence_week_days \
+        -start_date $report_start_date \
+        -end_date $report_end_date]
+
+foreach weekend_date $weekend_days {
+    append absence_hash($weekend_date) 5
+}
+
 
 # ---------------------------------------------------------------
 # Render the table
@@ -136,10 +145,6 @@ for {set month_num 1} {$month_num <= 12} {incr month_num} {
         set key ${date_date}
 
         set value [get_value_if absence_hash(${key}) ""]
-
-        if {[info exists holiday_hash($date_date)]} { 
-            append value $holiday_hash($date_date) 
-        }
 
         if {$hide_colors_p && $value != "" } {
             set value "1"
