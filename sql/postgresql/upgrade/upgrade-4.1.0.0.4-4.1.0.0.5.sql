@@ -24,8 +24,6 @@ perform im_component_plugin__new (
     null,				    -- view_name
     20,				        -- sort_order
     E'im_absence_calendar_component \\
-                   -absence_status_id $filter_status_id \\
-                   -absence_type_id $org_absence_type_id \\
                    -owner_id [im_coalesce $user_id_from_search [ad_get_user_id]] \\
                    -year [clock format [clock seconds] -format "%Y"]'	-- component_tcl
 );
