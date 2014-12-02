@@ -785,7 +785,9 @@ ad_proc -private im_absence_component__user_selection_helper {
                     on (cc.cost_center_id=e.department_id)
                     where employee_id = :owner_id
                 "
-                db_1row supervisor_and_cc_manager $sql
+                set exists_p [db_0or1row supervisor_and_cc_manager $sql]
+
+                if { !$exists_p } { return false }
 
                 set read_p 0
                 incr_if read_p {[im_permission $current_user_id "view_absences_all"]}
