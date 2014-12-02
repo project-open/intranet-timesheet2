@@ -288,9 +288,14 @@ foreach { value text } $absences_types {
     lappend absence_type_list [list $text $value]
 }
 
-
+set user_selection_in_types 0
 foreach { value text } $user_selection_types {
+    if {$value eq $user_selection} {set user_selection_in_types 1}
     lappend user_selection_type_list [list $text $value]
+}
+
+if {$user_selection_in_types eq 0} {
+    lappend user_selection_type_list [list [im_name_from_id $user_selection] $user_selection]
 }
 
 # ---------------------------------------------------------------
@@ -310,30 +315,30 @@ ad_form \
     -export {start_idx order_by how_many view_name}\
     -form {
 
-        {timescale_date:text(text) 
-            {label "[_ intranet-timesheet2.Start_Date]"} 
-            {html {size 10}} 
-            {value "$timescale_date"} 
-            {after_html {<input type="button" style="height:23px; width:23px; background: url('/resources/acs-templating/calendar.gif');" onclick ="return showCalendar('filter_start_date', 'y-m-d');" >}}}
+        {user_selection:text(select),optional
+            {label "[_ intranet-timesheet2.Show_Users]"}
+            {options $user_selection_type_list}
+            {value $user_selection}}
 
-        {timescale:text(select),optional 
-            {label "[_ intranet-timesheet2.Timescale]"} 
-            {options $timescale_type_list }}
-
-        {absence_type_id:text(select),optional 
-            {label "[_ intranet-timesheet2.Absence_Type]"} 
-            {value $absence_type_id} 
+        {absence_type_id:text(select),optional
+            {label "[_ intranet-timesheet2.Absence_Type]"}
+            {value $absence_type_id}
             {options $absence_type_list }}
 
-        {filter_status_id:text(im_category_tree),optional 
-            {label \#intranet-timesheet2.Status\#} 
-            {value $filter_status_id} 
+        {filter_status_id:text(im_category_tree),optional
+            {label \#intranet-timesheet2.Status\#}
+            {value $filter_status_id}
             {custom {category_type "Intranet Absence Status" translate_p 1}}}
 
-        {user_selection:text(select),optional 
-            {label "[_ intranet-timesheet2.Show_Users]"} 
-            {options $user_selection_type_list} 
-            {value $user_selection}}
+        {timescale:text(select),optional
+            {label "[_ intranet-timesheet2.Timescale]"}
+            {options $timescale_type_list }}
+
+        {timescale_date:text(text)
+            {label "[_ intranet-timesheet2.Start_Date]"}
+            {html {size 10}}
+            {value "$timescale_date"}
+            {after_html {<input type="button" style="height:23px; width:23px; background: url('/resources/acs-templating/calendar.gif');" onclick ="return showCalendar('filter_start_date', 'y-m-d');" >}}}
 
     }
 

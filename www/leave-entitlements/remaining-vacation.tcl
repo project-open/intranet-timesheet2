@@ -1,4 +1,4 @@
-# /packages/intranet-core/www/projects/index.tcl
+# /packages/intranet-timesheet2/www/leave-entitlements/remaining-vacation.tcl
 #
 # Copyright (C) 1998-2004 various parties
 # The software is based on ArsDigita ACS 3.4
@@ -153,6 +153,23 @@ ad_form \
 # List to store the view_type_options
 set view_type_options [list [list HTML ""]]
 
+## Deal with user filters
+im_dynfield::append_attributes_to_form \
+    -object_type "person" \
+    -form_id $form_id \
+    -page_url "/intranet-timesheet2/weekly-report" \
+    -advanced_filter_p 1 \
+    -object_id 0
+
+# Set the form values from the HTTP form variable frame
+im_dynfield::set_form_values_from_http -form_id $form_id
+
+array set extra_sql_array [im_dynfield::search_sql_criteria_from_form \
+			       -form_id $form_id \
+			       -object_type "person"
+			  ]
+
+
 # Run callback to extend the filter and/or add items to the view_type_options
 #callback im_projects_index_filter -form_id $form_id
 #ad_form -extend -name $form_id -form {
@@ -170,7 +187,6 @@ if {![im_user_is_hr_p $user_id]} {
     # Only HR can view all users, everyone only the users he is supervising
     lappend extra_wheres "employee_id in (select employee_id from im_employees where supervisor_id = :user_id)"
 }
-
 
 if {$view_order_by_clause != ""} {
     set order_by_clause "order by $view_order_by_clause"
@@ -196,6 +212,42 @@ if { ![empty_string_p $extra_from] } {
 set extra_where [join $extra_wheres " and "]
 if { ![empty_string_p $extra_where] } {
     set extra_where " and $extra_where"
+}
+
+# Create a ns_set with all local variables in order
+# to pass it to the SQL query
+set form_vars [ns_set create]
+foreach varname [info locals] {
+
+    # Don't consider variables that start with a "_", that
+    # contain a ":" or that are array variables:
+    if {"_" == [string range $varname 0 0]} { continue }
+    if {[regexp {:} $varname]} { continue }
+    if {[array exists $varname]} { continue }
+
+    # Get the value of the variable and add to the form_vars set
+    set value [expr "\$$varname"]
+    ns_set put $form_vars $varname $value
+}
+
+# Add the DynField variables to $form_vars
+set dynfield_extra_where $extra_sql_array(where)
+set ns_set_vars $extra_sql_array(bind_vars)
+set tmp_vars [util_list_to_ns_set $ns_set_vars]
+set tmp_var_size [ns_set size $tmp_vars]
+for {set i 0} {$i < $tmp_var_size} { incr i } {
+    set key [ns_set key $tmp_vars $i]
+    set value [ns_set get $tmp_vars $key]
+    set $key $value
+    ns_set put $form_vars $key $value
+}
+
+
+# Add the additional condition to the "where_clause"
+if {"" != $dynfield_extra_where} { 
+    append extra_where "
+                and im_employees.employee_id in $dynfield_extra_where
+            "
 }
 
 # Get a table with
@@ -253,9 +305,9 @@ set sql "select employee_id,im_name_from_user_id(employee_id,:name_order) as own
      where owner_id = employee_id
      and leave_entitlement_type_id = :absence_type_id
      and booking_date <= to_date(:eoy,'YYYY-MM-DD')) as entitlement_days_total
-    from im_employees e, cc_users c
-    where	c.user_id = e.employee_id
-        and c.member_state = 'approved'
+    from im_employees , cc_users 
+    where	cc_users.user_id = im_employees.employee_id
+        and cc_users.member_state = 'approved'
     $extra_where
     $order_by_clause
 "
