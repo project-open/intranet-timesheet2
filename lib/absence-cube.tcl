@@ -74,18 +74,6 @@ im_absence_component__user_selection \
 # Determine Top Dimension
 # ---------------------------------------------------------------
 
-# Initialize the hash for holidays.
-array set holiday_hash {}
-
-set sql "select to_char(to_date(:start_date,:date_format) + interval '$num_days days', :date_format)"
-set absence_week_days \
-    [im_absence_week_days \
-        -start_date $start_date \
-        -end_date [db_string end_date $sql]]
-
-foreach weekend_date $absence_week_days {
-    set holiday_hash($weekend_date) 5
-}
 set day_list \
     [im_absence_day_list \
         -date_format $date_format \
@@ -124,21 +112,6 @@ set user_list [db_list_of_lists user_list "
     lower(im_name_from_user_id(u.user_id, $name_order))
 "]
 
-
-# Get list of category_ids to determine index 
-# needed for color codes
-
-set sql "
-    select  category_id
-    from    im_categories
-    where   category_type = 'Intranet Absence Type'
-    order by category_id
-"
-
-set category_list [list]
-db_foreach category_id $sql {
-    lappend category_list [list $category_id]
-}
 
 # ---------------------------------------------------------------
 # Get individual absences
@@ -188,11 +161,33 @@ set absence_sql "
             a.absence_status_id in ([template::util::tcl_to_sql_list [im_sub_categories [im_user_absence_status_active]]])
 "
 
-# TODO: re-factor so that color codes also work in case of more than 10 absence types
+# Get list of category_ids to determine index 
+# needed for color codes
+
+set absence_types [im_absence_types]
+array set indexof [list]
+set index -1
+foreach absence_type $absence_types {
+    foreach {category_id category enabled_p bg_color fg_color} $absence_type break
+    set indexof($category_id) [incr index]
+}
+
 db_foreach absences $absence_sql {
     set key "$owner_id-$d"
-    set value [get_value_if absence_hash(${key}) ""]
-    set absence_hash($key) [append value [lsearch $category_list $absence_type_id]]
+    lappend absence_hash($key) $indexof($absence_type_id)
+}
+
+set sql "select to_char(to_date(:start_date,:date_format) + interval '$num_days days', :date_format)"
+set absence_week_days \
+    [im_absence_week_days \
+        -start_date $start_date \
+        -end_date [db_string end_date $sql]]
+
+set bank_holiday_absence_type_id [im_user_absence_type_bank_holiday]
+set index $indexof($bank_holiday_absence_type_id)
+array set holiday_hash [list]
+foreach weekend_date $absence_week_days {
+    set holiday_hash($weekend_date) $index
 }
 
 # ---------------------------------------------------------------
@@ -221,16 +216,22 @@ foreach user_tuple $user_list {
         set date_date [lindex $day 0]
         set key "$user_id-$date_date"
 
-        set value [get_value_if absence_hash(${key}) ""]
+        set index [lindex [get_value_if holiday_hash($date_date) [get_value_if absence_hash(${key}) ""]] end]
 
-        if {[info exists holiday_hash($date_date)]} { 
-            append value $holiday_hash($date_date) 
+        if { $index ne {} } {
+            foreach {category_id category enabled_p bg_color fg_color} [lindex $absence_types $index] break
+        } else {
+            set bg_color "#fff"
+            set fg_color "#fff"
         }
-        if {$hide_colors_p && $value != "" } {
-            set value "1"
+
+        if {$hide_colors_p} {
+            set bg_color "#fff"
+            set fg_color "#fff"
         }
-        append table_body [im_absence_cube_render_cell $value]
-        ns_log debug "intranet-absences-procs::im_absence_cube_render_cell: $value"
+
+        append table_body [im_absence_render_cell $bg_color]
+        ns_log debug "intranet-absences-procs::im_absence_cube_render_cell: $index"
     }
     append table_body "</tr>\n"
     incr row_ctr

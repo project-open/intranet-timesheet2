@@ -547,20 +547,50 @@ ad_proc im_absence_mix_colors {
     return $color
 }
 
+ad_proc im_absence_fg_color {
+   col
+} {
+    moved from im_absence_cube_legend
+} {
 
+    if { [string length $col] == 6} {
+        # Transform RGB Hex-Values (e.g. #a3b2c4) into Dec-Values
+        set r_bg [expr 0x[string range $col 0 1]]
+        set g_bg [expr 0x[string range $col 2 3]]
+        set b_bg [expr 0x[string range $col 4 5]]
+    } elseif { [string length $col] == 3 } {
+        # Transform RGB Hex-Values (e.g. #a3b) into Dec-Values
+        set r_bg [expr 0x[string range $col 0 0]]
+        set g_bg [expr 0x[string range $col 1 1]]
+        set b_bg [expr 0x[string range $col 2 2]]
+    } else {
+        # color codes can't be parsed -> set a middle value
+        set r_bg 127
+        set g_bg 127
+        set b_bg 127
+    }
+    # calculate a brightness-value for the color
+    # if brightness > 127 the foreground color is black, if < 127 the foreground color is white
+    set brightness [expr $r_bg * 0.2126 + $g_bg * 0.7152 + $b_bg * 0.0722]
+    set col_fg "fff"
+    if {$brightness >= 127} {set col_fg "000"}
 
-ad_proc im_absence_cube_render_cell {
-    value
+    return $col_fg
+}
+
+ad_proc im_absence_render_cell {
+    bg_color
+    {fg_color "#fff"}
     {str "&nbsp;"}
+    {align "center"}
 } {
     Renders a single report cell, depending on value.
     Takes the color from absences color lookup.
 } {
-    set color [im_absence_mix_colors $value]
-    if {"" != $color} {
-	return "<td bgcolor=\"\#$color\" align=\"center\">${str}</td>\n"
+    if { $bg_color ne {} } {
+        return "<td style='text-align:${align}; padding:3px; background-color:\#$bg_color; color:\#$fg_color;'>$str</td>"
     } else {
-	return "<td>&nbsp;</td>\n"
+        return "<td>&nbsp;</td>\n"
     }
 }
 
@@ -1807,60 +1837,49 @@ ad_proc -public im_absence_approval_component {
     return [string trim $result]
 }
 
+ad_proc -public im_absence_types {} {
+    @author Neophytos Demetriou (neophytos@azet.sk)
+} {
+    set color_list [im_absence_cube_color_list]
+    set sql "
+        select category_id, category, enabled_p, aux_string2
+        from im_categories
+        where category_type = 'Intranet Absence Type'
+        order by category_id
+    "
+    set result [list]
+    set index -1
+    db_foreach absence_category $sql {
+        if { $aux_string2 eq {} } {
+            set bg_color [lindex $color_list $index]
+            incr index
+        } else {
+            set bg_color $aux_string2
+        }
+        set fg_color [im_absence_fg_color $bg_color]
+        lappend result [list $category_id $category $enabled_p $bg_color $fg_color]
+    }
+    return $result
+}
+
 
 ad_proc -public im_absence_cube_legend {} {
     @author Neophytos Demetriou (neophytos@azet.sk)
 } {
 
-    set color_list [im_absence_cube_color_list]
-    set col_sql "
-        select	category_id, category, enabled_p, aux_string2
-        from	im_categories
-        where	
-                category_type = 'Intranet Absence Type'
-        order by category_id
-    "
-
     append admin_html "<div class=filter-title>[lang::message::lookup "" intranet-timesheet2.Color_codes "Color Codes"]</div>\n"
     append admin_html "<table cellpadding='5' cellspacing='5'>\n"
 
-# Marc Fleischer: A question of color
+    # Marc Fleischer: A question of color
     set index -1
-    db_foreach cols $col_sql {
-        if { "" == $aux_string2 } {
-        # set index [expr $category_id - 5000]
-        set col [lindex $color_list $index]
-        incr index
-        } else {
-        set col $aux_string2
-        }
+    set categories [im_absence_types]
+    foreach category_item $categories {
+        foreach {category_id category enabled_p bg_color fg_color} $category_item break
 
         if { "t" == $enabled_p } {
-        regsub -all " " $category "_" category_key
-        set category_l10n [lang::message::lookup "" intranet-core.$category_key $category]
-        if { [string length $col] == 6} {
-            # Transform RGB Hex-Values (e.g. #a3b2c4) into Dec-Values
-            set r_bg [expr 0x[string range $col 0 1]]
-            set g_bg [expr 0x[string range $col 2 3]]
-            set b_bg [expr 0x[string range $col 4 5]]
-        } elseif { [string length $col] == 3 } {
-            # Transform RGB Hex-Values (e.g. #a3b) into Dec-Values
-            set r_bg [expr 0x[string range $col 0 0]]
-            set g_bg [expr 0x[string range $col 1 1]]
-            set b_bg [expr 0x[string range $col 2 2]]
-        } else {
-            # color codes can't be parsed -> set a middle value
-            set r_bg 127
-            set g_bg 127
-            set b_bg 127
-        }
-        # calculate a brightness-value for the color
-        # if brightness > 127 the foreground color is black, if < 127 the foreground color is white
-        set brightness [expr $r_bg * 0.2126 + $g_bg * 0.7152 + $b_bg * 0.0722]
-        set col_fg "fff"
-        if {$brightness >= 127} {set col_fg "000"}
-        set category_l10n [lang::message::lookup "" intranet-core.$category_key $category]
-        append admin_html "<tr><td style='padding:3px; background-color:\#$col; color:\#$col_fg'>$category_l10n</td></tr>\n"
+            regsub -all " " $category "_" category_key
+            set category_l10n [lang::message::lookup "" intranet-core.$category_key $category]
+            append admin_html "<tr>[im_absence_render_cell $bg_color $fg_color $category_l10n left]</tr>\n"
        }
     }
 

@@ -11,19 +11,12 @@
 # Get list of absence types to determine index 
 # needed for color codes
 
-set sql "
-    select  category_id,category
-    from    im_categories
-    where   category_type = 'Intranet Absence Type'
-    and enabled_p = 't'
-    order by category_id
-"
-
-set category_list [list]
-set absence_types [list]
-db_foreach absence_types $sql {
-    lappend absence_types [list $category_id $category]
-    lappend category_list [list $category_id]
+set absence_types [im_absence_types]
+array set indexof [list]
+set index -1
+foreach absence_type $absence_types {
+    foreach {category_id category enabled_p bg_color fg_color} $absence_type break
+    set indexof($category_id) [incr index]
 }
 
 # ---------------------------------------------------------------
@@ -112,9 +105,8 @@ array set cell_char [list]
 db_foreach absences $absences_sql {
     set date_date ${d}
     set key ${date_date}
-    set value [get_value_if absence_hash(${key}) ""]
-    set index [lsearch $category_list $absence_type_id]
-    set absence_hash($key) [append value $index]
+    set index $indexof($absence_type_id)
+    lappend absence_hash($key) $index
 
     if { [get_value_if is_req_category_p($absence_status_id) "0"] } {
         set cell_char($key) "?"
@@ -127,9 +119,9 @@ set weekend_days \
         -end_date $report_end_date]
 
 set bank_holiday_absence_type_id [im_user_absence_type_bank_holiday]
-set index [lsearch $category_list $bank_holiday_absence_type_id]
+set index $indexof($bank_holiday_absence_type_id)
 foreach weekend_date $weekend_days {
-    append absence_hash($weekend_date) $index
+    lappend absence_hash($weekend_date) $index
 }
 
 
@@ -168,18 +160,27 @@ for {set month_num 1} {$month_num <= 12} {incr month_num} {
 
         set key ${date_date}
 
-        set value [get_value_if absence_hash(${key}) ""]
+        set index [lindex [get_value_if absence_hash(${key}) ""] end]
 
-        if {$hide_colors_p && $value != "" } {
-            set value "1"
+        if { $index ne {} } {
+            foreach {category_id category enabled_p bg_color fg_color} [lindex $absence_types $index] break
+        } else {
+            set bg_color "#fff"
+            set fg_color "#fff"
+        }
+
+        if {$hide_colors_p } {
+            set bg_color "#fff"
+            set fg_color "#fff"
         }
 
         if {$day_num > $num_days_in_month} {
-            set value "9"
+            set bg_color "#ccc"
+            set fg_color "#ccc"
         }
 
-        append table_body [im_absence_cube_render_cell $value [get_value_if cell_char(${key}) ""]]
-        ns_log debug "intranet-absences-procs::im_absence_cube_render_cell: $value"
+        append table_body [im_absence_render_cell $bg_color $fg_color [get_value_if cell_char(${key}) ""]]
+        ns_log debug "intranet-absences-procs::im_absence_cube_render_cell: $index"
     }
     append table_body "</tr>\n"
     incr row_ctr
@@ -187,19 +188,7 @@ for {set month_num 1} {$month_num <= 12} {incr month_num} {
 
 set absence_types_table ""
 if { !${hide_explanation_p} && !${hide_colors_p} } {
-    set row_ctr 0
-    append absence_types_table "<table style=\"width:75px;\">"
-    foreach absence_type_tuple $absence_types {
-        foreach {absence_type_id absence_type} $absence_type_tuple break
-
-        set color [im_absence_mix_colors $row_ctr]
-
-        append absence_types_table "<tr>"
-        append absence_types_table "<td bgcolor=\"\#${color}\">${absence_type}</td>"
-        append absence_types_table "</tr>"
-        incr row_ctr
-    }
-    append absence_types_table "</table>"
+    set absence_types_table [im_absence_cube_legend]
 }
 
 set table "
