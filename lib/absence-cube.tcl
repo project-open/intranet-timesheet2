@@ -15,6 +15,12 @@
 #    {-project_id ""}
 #}
 
+# it is not clear why hide any colors in cube,
+# so I've added this flag to enable or disable
+# coloring, if disabled all absences will show up
+# with the color for other absences
+set hide_colors_in_cube_p "0"
+
 set current_user_id [ad_get_user_id]
 set view_absences_all_p [im_permission $current_user_id "view_absences_all"]
 
@@ -183,12 +189,27 @@ set absence_week_days \
         -start_date $start_date \
         -end_date [db_string end_date $sql]]
 
+# we mark each weekend with the bank_holiday_index but we also
+# use the bank_holiday_index to exclude weekends from aggregate
+# results (so that we won't show everyone absent on weekends 
+# and bank holidays
 set bank_holiday_absence_type_id [im_user_absence_type_bank_holiday]
-set index $indexof($bank_holiday_absence_type_id)
+set bank_holiday_index $indexof($bank_holiday_absence_type_id)
 array set holiday_hash [list]
 foreach weekend_date $absence_week_days {
-    set holiday_hash($weekend_date) $index
+    set cell_char($weekend_date) "&nbsp;"
+    set holiday_hash($weekend_date) $bank_holiday_index
 }
+
+# other absences is used as the default type when
+# showing aggregate results like say in a project
+set other_absences_type_id [im_user_absence_type_personal]
+set index $indexof($other_absences_type_id)
+foreach {_category_id _category _dummy_enabled_p other_bg_color other_fg_color} \
+    [lindex $absence_types $index] break
+
+set extra_style ""
+set table_style ""
 
 # ---------------------------------------------------------------
 # Render the table
@@ -216,21 +237,32 @@ foreach user_tuple $user_list {
         set date_date [lindex $day 0]
         set key "$user_id-$date_date"
 
-        set index [lindex [get_value_if holiday_hash($date_date) [get_value_if absence_hash(${key}) ""]] end]
+        set day_absence_types [get_value_if absence_hash(${key}) ""] 
+        if { [info exists holiday_hash(${date_date})] } {
+            set index $bank_holiday_index
+        } else {
+            set index [lindex $day_absence_types end]
+        }
+        set cell_str [get_value_if cell_char(${key}) "&nbsp;"]
 
         if { $index ne {} } {
-            foreach {category_id category enabled_p bg_color fg_color} [lindex $absence_types $index] break
+            if { $hide_colors_in_cube_p && $index ne $bank_holiday_index && $hide_colors_p } {
+                # Expected behavior When trying to view the absence for one project as a project manager
+                # is to see all days marked with "other absence" where at least one employee from the
+                # project is absent. The value of the field should not be empty but equal the percentage
+                # of employees not present, so 100 = everyone in the team is gone.
+                set bg_color $other_bg_color
+                set fg_color $other_fg_color
+            } else {
+                foreach {category_id category enabled_p bg_color fg_color} \
+                    [lindex $absence_types $index] break
+            }
         } else {
             set bg_color "#fff"
             set fg_color "#fff"
         }
 
-        if {$hide_colors_p} {
-            set bg_color "#fff"
-            set fg_color "#fff"
-        }
-
-        append table_body [im_absence_render_cell $bg_color]
+        append table_body [im_absence_render_cell $bg_color $fg_color]
         ns_log debug "intranet-absences-procs::im_absence_cube_render_cell: $index"
     }
     append table_body "</tr>\n"

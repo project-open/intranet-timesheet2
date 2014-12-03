@@ -583,12 +583,13 @@ ad_proc im_absence_render_cell {
     {fg_color "#fff"}
     {str "&nbsp;"}
     {align "center"}
+    {extra_style "padding:3px;"}
 } {
     Renders a single report cell, depending on value.
     Takes the color from absences color lookup.
 } {
     if { $bg_color ne {} } {
-        return "<td style='text-align:${align}; padding:3px; background-color:\#$bg_color; color:\#$fg_color;'>$str</td>"
+        return "<td style='text-align:${align}; background-color:\#$bg_color; color:\#$fg_color;${extra_style}'>$str</td>"
     } else {
         return "<td>&nbsp;</td>\n"
     }
@@ -895,6 +896,9 @@ ad_proc -private im_absence_component__user_selection {
     -where_clauseVar:required
     -user_selection:required
     -hide_colors_pVar:required
+    {-user_selection_typeVar ""}
+    {-total_countVar ""}
+    {-is_aggregate_pVar ""}
 } {
     @last-modified 2014-11-24
     @last-modified-by Neophytos Demetriou (neophytos@azet.sk)
@@ -902,6 +906,15 @@ ad_proc -private im_absence_component__user_selection {
 
     upvar $where_clauseVar where_clause
     upvar $hide_colors_pVar hide_colors_p
+    if { $user_selection_typeVar ne {} } {
+        upvar $user_selection_typeVar user_selection_type
+    }
+    if { $total_countVar ne {} } {
+        upvar $total_countVar total_count
+    }
+    if { $is_aggregate_pVar ne {} } {
+        upvar $is_aggregate_pVar is_aggregate_p
+    }
 
     im_absence_component__user_selection_helper \
         -user_selection $user_selection \
@@ -913,36 +926,76 @@ ad_proc -private im_absence_component__user_selection {
 
     set current_user_id [ad_get_user_id]
 
+    set is_aggregate_p 0
+    set total_count ""
+
     switch $user_selection_type {
+
         "all" {
             # Nothing.
         }
+
         "mine" {
             lappend criteria "a.owner_id = :current_user_id"
         }
+
         "employees" {
-            lappend criteria "a.owner_id IN (
+
+           set sql "
                 select	m.member_id
                 from	group_approved_member_map m
                 where	m.group_id = [im_employee_group_id]
-            )"
+            "
+
+            lappend criteria "a.owner_id IN (${sql})"
+
+            if { $total_countVar ne {} } {
+                set total_count [db_string total_count "select count(1) from ($sql) t"]
+            }
+
+            set is_aggregate_p 1
+
         }
+
         "providers" {
-            lappend criteria "a.owner_id IN (
+
+            set sql "
                 select	m.member_id 
                 from	group_approved_member_map m 
                 where	m.group_id = [im_freelance_group_id]
-            )"
+            "
+
+            lappend criteria "a.owner_id IN (${sql})"
+
+            if { $total_countVar ne {} } {
+                set total_count [db_string total_count "select count(1) from ($sql) t"]
+            }
+
+            set is_aggregate_p 1
+
         }
+
         "customers" {
-            lappend criteria "a.owner_id IN (
+
+            set sql "
                 select	m.member_id
                 from	group_approved_member_map m
                 where	m.group_id = [im_customer_group_id]
-            )"
+            "
+
+            lappend criteria "a.owner_id IN (${sql})"
+
+            if { $total_countVar ne {} } {
+                set total_count [db_string total_count "select count(1) from ($sql) t"]
+            }
+
+            set is_aggregate_p 1
+
         }
+
         "direct_reports" {
-            lappend criteria "a.owner_id in (
+
+            set sql "
                 select employee_id from im_employees
                 where (supervisor_id = :current_user_id OR employee_id = :current_user_id)
                 UNION
@@ -957,30 +1010,76 @@ ad_proc -private im_absence_component__user_selection {
                          where	substring(cc.cost_center_code for t.len) = t.code) tt
                 where  (e.department_id = tt.cost_center_id
                     OR e.employee_id = tt.manager_id)
-            )"
+            "
+
+            lappend criteria "a.owner_id in (${sql})"
+
+            if { $total_countVar ne {} } {
+                set total_count [db_string total_count "select count(1) from ($sql) t"]
+            }
+
+            set is_aggregate_p 1
+
         }  
+
         "cost_center" {
+
             set cost_center_id $user_selection_id
             set cost_center_list [im_cost_center_options -parent_id $cost_center_id]
             set cost_center_ids [list $cost_center_id]
             foreach cost_center $cost_center_list {
                 lappend cost_center_ids [lindex $cost_center 1]
             }
-            lappend criteria "a.owner_id in (select employee_id from im_employees where department_id in ([template::util::tcl_to_sql_list $cost_center_ids]) and employee_status_id = [im_employee_status_active] union select :current_user_id from dual)"
+
+            set sql "
+                select employee_id 
+                from im_employees 
+                where department_id in ([template::util::tcl_to_sql_list $cost_center_ids]) 
+                and employee_status_id = [im_employee_status_active] 
+                UNION
+                select :current_user_id from dual
+            "
+
+            lappend criteria "a.owner_id in (${sql})"
+
+            if { $total_countVar ne {} } {
+                set total_count [db_string total_count "select count(1) from ($sql) t"]
+            }
+
+            set is_aggregate_p 1
+
         }
+
         "project" {
+
             set project_id $user_selection_id
             set project_ids [im_project_subproject_ids -project_id $project_id]
-            lappend criteria "a.owner_id in (select object_id_two from acs_rels where object_id_one in ([template::util::tcl_to_sql_list $project_ids]))"
+            set sql "
+                select object_id_two 
+                from acs_rels 
+                where object_id_one in ([template::util::tcl_to_sql_list $project_ids])
+            "
+
+            lappend criteria "a.owner_id in (${sql})"
+
+            if { $total_countVar ne {} } {
+                set total_count [db_string total_count "select count(1) from ($sql) t"]
+            }
+
+            set is_aggregate_p 1
+
         }
+
         "user" {
             set user_id $user_selection_id
             lappend criteria "a.owner_id=:user_id"
         }	    
+
         default  {
             # We shouldn't even be here, so just display his/her own ones
             lappend criteria "a.owner_id = :current_user_id"
         }
+
     }
 
     # temporary hack until I manage to refactor the code
