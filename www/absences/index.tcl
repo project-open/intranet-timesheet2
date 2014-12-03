@@ -338,7 +338,7 @@ ad_form \
             {label "[_ intranet-timesheet2.Start_Date]"}
             {html {size 10}}
             {value "$timescale_date"}
-            {after_html {<input type="button" style="height:23px; width:23px; background: url('/resources/acs-templating/calendar.gif');" onclick ="return showCalendar('filter_start_date', 'y-m-d');" >}}}
+            {after_html {<input type="button" style="height:23px; width:23px; background: url('/resources/acs-templating/calendar.gif');" onclick ="return showCalendar('timescale_date', 'y-m-d');" >}}}
 
     }
 
