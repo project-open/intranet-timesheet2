@@ -867,15 +867,18 @@ ad_proc -private im_absence_component__user_selection_helper {
             employees -
             providers -
             customers {
+                set user_selection_type $user_selection
                 return $can_view_all_p
             }
-            {direct reports} {
+            {direct_reports} {
+
+                set user_selection_type "direct_reports"
 
                 set can_add_absences_direct_reports_p \
-                    [im_permission $user_id "add_absences_direct_reports"]
+                    [im_permission $current_user_id "add_absences_direct_reports"]
 
                 set can_view_absences_direct_reports_p \
-                    [expr [im_permission $user_id "view_absences_direct_reports"] || $add_absences_direct_reports_p]
+                    [expr [im_permission $current_user_id "view_absences_direct_reports"] || $can_add_absences_direct_reports_p]
 
                 return $can_view_absences_direct_reports_p
 
