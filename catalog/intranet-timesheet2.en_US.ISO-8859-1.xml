@@ -13,7 +13,7 @@
   <msg key="Absence_Type_1">Absence Type</msg>
   <msg key="Absences">Absences</msg>
   <msg key="absences">absences</msg>
-  <msg key="Absences_for_user">Absences for user</msg>
+  <msg key="Absences_for_user">Absences for %user_name%</msg>
   <msg key="Absences_Next_Year"></msg>
   <msg key="Absences_This_Year"></msg>
   <msg key="Absent">Absent</msg>
@@ -112,7 +112,7 @@
   <msg key="Filter">Filter</msg>
   <msg key="Filter_Absences">Filter Absences</msg>
   <msg key="Filter_Tasks">Filter Tasks</msg>
-  <msg key="for_username">for username</msg>
+  <msg key="for_username">for %user_from_search_name%</msg>
   <msg key="For_which_project">For which project:</msg>
   <msg key="Friday">Friday</msg>
   <msg key="From">From:</msg>
