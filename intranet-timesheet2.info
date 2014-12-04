@@ -8,7 +8,7 @@
     <singleton-p>t</singleton-p>
     <auto-mount>intranet-timesheet2</auto-mount>
 
-    <version name="4.1.0.0.0" url="http://www.project-open.org/download/apm/intranet-timesheet2-4.1.0.0.0.apm">
+    <version name="4.1.0.0.1" url="http://www.project-open.org/download/apm/intranet-timesheet2-4.1.0.0.1.apm">
         <owner url="mailto:frank.bergmann@project-open.com">Frank Bergmann</owner>
         <release-date>2004-02-07</release-date>
         <vendor url="http://www.project-open.com/">]project-open[</vendor>
@@ -54,7 +54,7 @@
 
 	    <parameter datatype="number"  min_n_values="1"  max_n_values="1"  name="DirectReportsIncludeCostCenterMembersP" default="1" description="Should we include the members of cost centers as 'direct reports' of the cost center's managers? Default is '1'."/>
 	    <parameter datatype="number"  min_n_values="1"  max_n_values="1"  name="DirectReportsIncludeEmployeeDirectReportsP" default="1" description="Should we include employees with a set im_employees.supervisor_id as 'direct reports' of their supervisor? Default is '1'"/>
-
+	    <parameter datatype="number"  min_n_values="1"  max_n_values="1"  name="AllowAbsencesForFreelancersP" default="0" description="Allow logging absences for Freelancer?"/>
 	</parameters>
 
     </version>
