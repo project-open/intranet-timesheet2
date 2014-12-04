@@ -223,6 +223,7 @@ foreach { value text } $absences_types {
 
 # Now let's generate the sql query
 set criteria [list]
+
 # Compatibility with older version
 switch $user_selection {
     "employees" { set user_selection [im_employee_group_id] }
@@ -233,6 +234,16 @@ switch $user_selection {
 switch $user_selection {
     "all" {
 	# Nothing.
+    }
+    "all_freelancer" {
+	# Checkin' parameter probably not necessary, avoid misuse in case of URL par manipulation
+        if { [parameter::get -package_id [apm_package_id_from_key intranet-timesheet2] -parameter "AllowAbsencesForFreelancersP" -default 0] } {
+            lappend criteria "a.owner_id IN (
+                select  m.member_id
+                from    group_approved_member_map m
+                where   m.group_id = [im_freelance_group_id] 
+            )"
+	}
     }
     "mine" {
 	lappend criteria "(a.owner_id = :current_user_id OR a.group_id in (select group_id from group_member_map where member_id = :current_user_id))"
