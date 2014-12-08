@@ -15,11 +15,6 @@
 #    {-project_id ""}
 #}
 
-# it is not clear why hide any colors in cube,
-# so I've added this flag to enable or disable
-# coloring, if disabled all absences will show up
-# with the color for other absences
-set hide_colors_in_cube_p "0"
 
 set current_user_id [ad_get_user_id]
 set view_absences_all_p [im_permission $current_user_id "view_absences_all"]
@@ -246,7 +241,7 @@ foreach user_tuple $user_list {
         set cell_str [get_value_if cell_char(${key}) "&nbsp;"]
 
         if { $index ne {} } {
-            if { $hide_colors_in_cube_p && $index ne $bank_holiday_index && $hide_colors_p } {
+            if { $index ne $bank_holiday_index && $hide_colors_p } {
                 # Expected behavior When trying to view the absence for one project as a project manager
                 # is to see all days marked with "other absence" where at least one employee from the
                 # project is absent. The value of the field should not be empty but equal the percentage
