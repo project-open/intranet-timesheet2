@@ -705,7 +705,7 @@ ad_proc -private im_absence_component__absence_criteria {
     {-absence_type_id ""}
     {-absence_status_id ""}
 } {
-    @last-modified 2014-11-24
+    @last-modified 2014-12-08
     @last-modified-by Neophytos Demetriou (neophytos@azet.sk)
 } {
 
@@ -1166,6 +1166,10 @@ ad_proc im_absence_component__timescale {
     # Limit to start-date and end-date
     if {$start_date ne {}} { lappend criteria "a.end_date::date >= :start_date" }
     if {$end_date ne {}} { lappend criteria "a.start_date::date <= :end_date" }
+
+    set num_days [parameter::get -parameter HideAbsencesOlderThanDays]
+    set num_days_interval "$num_days days"
+    lappend criteria "a.start_date::date > now() - :num_days_interval::interval"
 
     # temporary hack until I manage to refactor the code
     append where_clause [db_bind_var_substitution [im_where_from_criteria $criteria]]
