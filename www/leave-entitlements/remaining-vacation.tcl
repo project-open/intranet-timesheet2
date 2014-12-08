@@ -145,7 +145,6 @@ ad_form \
     -method GET \
     -export {order_by}\
     -form {
-        {reference_date:text(text) {label "[_ intranet-timesheet2.Start_Date]"} {value "$reference_date"} {html {size 10}} {after_html {<input type="button" style="height:20px; width:20px; background: url('/resources/acs-templating/calendar.gif');" onclick ="return showCalendar('reference_date', 'y-m-d');" >}}}
         {absence_type_id:text(select) {label "[_ intranet-timesheet2.Absence_Type]"} {value $absence_type_id} {options $absence_type_list }}
     }
 
@@ -157,9 +156,13 @@ set view_type_options [list [list HTML ""]]
 im_dynfield::append_attributes_to_form \
     -object_type "person" \
     -form_id $form_id \
-    -page_url "/intranet-timesheet2/weekly-report" \
+    -page_url "/intranet-timesheet2/leave-entitlements/remaining-vacation" \
     -advanced_filter_p 1 \
     -object_id 0
+
+ad_form -extend -name $form_id -form {
+    {reference_date:text(text) {label "[_ intranet-timesheet2.Start_Date]"} {value "$reference_date"} {html {size 10}} {after_html {<input type="button" style="height:20px; width:20px; background: url('/resources/acs-templating/calendar.gif');" onclick ="return showCalendar('reference_date', 'y-m-d');" >}}}
+}
 
 # Set the form values from the HTTP form variable frame
 im_dynfield::set_form_values_from_http -form_id $form_id
