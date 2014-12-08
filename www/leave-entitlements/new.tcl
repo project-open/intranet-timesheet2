@@ -21,6 +21,7 @@ set user_id [ad_maybe_redirect_for_registration]
 set current_user_id $user_id
 set action_url "/intranet-timesheet2/leave-entitlement/new"
 set leave_entitlement_type [im_category_from_id $leave_entitlement_type_id]
+set date_time_format "YYYY MM DD"
 
 if {"" == $owner_id && ![info exists leave_entitlement_id]} {
     set owner_id $user_id
@@ -47,13 +48,14 @@ ad_form -name leave_entitlement -export {return_url leave_entitlement_status_id}
 # ------------------------------------------------------------------
 
 ad_form -extend -name leave_entitlement -edit_request {
-    db_1row entitlement "    select	*
+    db_1row entitlement "    select	*, to_char(booking_date,'YYYY-MM-DD') as ansi_booking_date
     from	im_user_leave_entitlements
     where   leave_entitlement_id = :leave_entitlement_id"
     set owner_name [im_name_from_user_id $owner_id]
     set owner_name "<a href=/intranet/users/view?user_id=$owner_id>$owner_name<a/>"
+    set booking_date [template::util::date::from_ansi $ansi_booking_date "YYYY-MM-DD"]
 } -on_request {
-    set booking_date [db_string now "select to_char(now(),'YYYY-MM-DD') from dual"]
+    if {![info exists booking_date]} { set booking_date [db_string today "select to_char(now(), :date_time_format)"] }
 } -validate {
     
 } -new_data {
