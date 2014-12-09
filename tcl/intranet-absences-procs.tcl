@@ -938,6 +938,10 @@ ad_proc -private im_absence_component__user_selection {
 
         "all" {
             # Nothing.
+            if { $total_countVar ne {} } {
+                set total_count [db_string total_count "select count(1) from im_employees"]
+            }
+            set is_aggregate_p 1
         }
 
         "mine" {
