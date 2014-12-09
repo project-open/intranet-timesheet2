@@ -30,6 +30,7 @@ ad_page_contract {
     { absence_type_id "[im_user_absence_type_vacation]"}
     { view_type "" }
     { department_id ""}
+    { user_selection ""}
     { order_by "" }
 }
 
@@ -138,6 +139,9 @@ foreach { value text } $absences_types {
     lappend absence_type_list [list $text $value]
 }
 
+set user_selection_options [im_user_timesheet_absences_options_2 -user_selection $user_selection]
+
+
 ad_form \
     -name $form_id \
     -action $action_url \
@@ -145,7 +149,16 @@ ad_form \
     -method GET \
     -export {order_by}\
     -form {
-        {absence_type_id:text(select) {label "[_ intranet-timesheet2.Absence_Type]"} {value $absence_type_id} {options $absence_type_list }}
+
+        {user_selection:text(select),optional
+            {label "[_ intranet-timesheet2.Show_Users]"}
+            {options $user_selection_options}
+            {value $user_selection}}
+
+        {absence_type_id:text(select) 
+            {label "[_ intranet-timesheet2.Absence_Type]"} 
+            {value $absence_type_id} 
+            {options $absence_type_list }}
     }
 
 
