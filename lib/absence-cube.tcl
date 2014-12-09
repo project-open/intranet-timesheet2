@@ -19,6 +19,15 @@
 set current_user_id [ad_get_user_id]
 set view_absences_all_p [im_permission $current_user_id "view_absences_all"]
 
+# Fix some timescales
+
+switch $timescale {
+    future {set timescale next_3m}
+    past {set timescale last_3m}
+    all {set timescale last_3m}
+    today {set timescale next_3w}
+}
+
 im_absence_component__timescale \
     -num_daysVar num_days \
     -start_dateVar start_date \
@@ -26,6 +35,7 @@ im_absence_component__timescale \
     -timescale_date $timescale_date \
     -timescale $timescale
 
+ds_comment "$num_days $timescale_date $timescale $start_date $end_date"
 set html ""
 
 if {$num_days eq {}} {
