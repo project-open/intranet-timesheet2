@@ -32,6 +32,8 @@ ad_proc -public im_user_absence_type_training {} { return 5004 }
 ad_proc -public im_user_absence_type_bank_holiday {} { return 5005 }
 ad_proc -public im_user_absence_type_overtime {} { return 5006 }
 ad_proc -public im_user_absence_type_rwh {} { return 5007 }
+ad_proc -public im_user_absence_type_bridge_day {} { return 5008 }
+ad_proc -public im_user_absence_type_weekend {} { return 5009 }
 
 
 ad_proc -public im_user_absence_status_active {} { return 16000 }

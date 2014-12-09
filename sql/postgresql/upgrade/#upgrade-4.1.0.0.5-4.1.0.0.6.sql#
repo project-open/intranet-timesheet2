@@ -22,7 +22,7 @@ begin
         END IF;
 
         SELECT INTO v_null im_category_new(5009, ''Weekend'', ''Intranet Absence Type'');
-	update im_categories set enabled_p=''f'' where category_id = 5009;
+	update im_categories set enabled_p=''f'' , sort_order = 5009, aux_string2 = (select aux_string2 from im_categories where category_id = 5005) where category_id = 5009;
 	insert into im_category_hierarchy (child_id ,parent_id) values (5009,5005);
         return 1;
 
