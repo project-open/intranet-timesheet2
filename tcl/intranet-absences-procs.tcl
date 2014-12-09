@@ -713,7 +713,7 @@ ad_proc im_absence_component__timescale_types {} {
 } {
 
     set types {
-        all "All"
+#        all "All"
         today "Today"
         next_3w "Next 3 Weeks"
         next_3m "Next 3 Months"
@@ -1724,7 +1724,6 @@ ad_proc -public im_absence_dates {
     @param ignore_absence_id Ignore this absence_id when calculating the dates. This is helpful if we edit an existing absence and want to get the other days the user is off
     @param type "dates" which is default returns the dates. "sum" returns the actual amount of days and "absence_ids" lists the absences which fall in this timeframe
 } {
-    ds_comment "im_absence_dates: absence_status_id=$absence_status_id"
     # Assume current year for start/enddate
     set current_year [dt_systime -format "%Y"]
     if {$start_date eq ""} {
