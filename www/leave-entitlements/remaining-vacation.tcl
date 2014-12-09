@@ -202,8 +202,9 @@ im_absence_component__user_selection \
     -hide_colors_pVar hide_colors_p \
     -im_where_from_criteria_keyword ""
 
-set where_clause "and (employee_id = :current_user_id or $where_clause)"
-
+if { $where_clause ne {} } {
+    set where_clause "and (employee_id = :current_user_id or $where_clause)"
+}
 # OLD
 # set criteria [list]
 # If the user isn't HR, we can only see employees where the current user is the supervisor
