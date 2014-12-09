@@ -284,6 +284,17 @@ if {!$log_hours_on_potential_project_p} {
 set closed_stati [db_list closed_stati $closed_stati_select]
 set closed_stati_list [join $closed_stati ","]
 
+set sql "
+    select project_id 
+    from im_hours 
+    where user_id=:user_id_from_search 
+    and day > now() - '1 week'::interval
+"
+set recent_project_ids [db_list recent_projects $sql]
+set recent_projects_list "[template::util::tcl_to_sql_list $recent_project_ids]"
+
+
+
 # ---------------------------------------------------------
 # Select the list of days for the weekly view
 # ---------------------------------------------------------
@@ -387,7 +398,7 @@ if {[string is integer $project_id] && 0 != $project_id} {
 				where	h.user_id = :user_id_from_search
 					and $h_day_in_dayweek
 		)
-		and p.project_status_id not in ($closed_stati_list)
+		and (p.project_status_id not in ($closed_stati_list) or p.project_id in ($recent_projects_list))
 		and p.project_type_id not in ([im_project_type_task], [im_project_type_ticket])
     "
 }
@@ -423,8 +434,8 @@ switch $task_visibility_scope {
 				where	r.object_id_two = :user_id_from_search
 					and r.object_id_one = main.project_id
 					and main.tree_sortkey = tree_ancestor_key(sub.tree_sortkey, 1)
-					and main.project_status_id not in ($closed_stati_list)
-					and sub.project_status_id not in ($closed_stati_list)
+					and (main.project_status_id not in ($closed_stati_list) or main.project_id in ($recent_projects_list))
+					and (sub.project_status_id not in ($closed_stati_list) or sub.project_id in ($recent_projects_list))
 	"
     }
     "specified" {
@@ -437,7 +448,7 @@ switch $task_visibility_scope {
 				where	(	main.project_id = :main_project_id 
 						OR main.project_id in ([join $main_project_id_list ","])
 					)
-					and main.project_status_id not in ($closed_stati_list)
+					and (main.project_status_id not in ($closed_stati_list) or main.project_id in ($recent_projects_list))
 					and sub.tree_sortkey between
 						main.tree_sortkey and
 						tree_right(main.tree_sortkey)
@@ -475,8 +486,8 @@ switch $task_visibility_scope {
 			task.parent_id = ctrl.project_id
 			and ctrl.project_type_id not in ( [im_project_type_task], [im_project_type_ticket])
 			and task.project_type_id in ( [im_project_type_task], [im_project_type_ticket] )
-			and ctrl.project_status_id not in ($closed_stati_list)
-			and task.project_status_id not in ($closed_stati_list)
+			and (ctrl.project_status_id not in ($closed_stati_list) or ctrl.project_id in ($recent_projects_list))
+			and (task.project_status_id not in ($closed_stati_list) or task.project_id in ($recent_projects_list))
 			and r.object_id_one = ctrl.project_id
 			and r.object_id_two = :user_id_from_search
 	"
@@ -499,8 +510,8 @@ switch $task_visibility_scope {
 					($ctrl_projects_sql) ctrl,
 					im_projects sub
 				where	ctrl.project_id = main.project_id
-					and main.project_status_id not in ($closed_stati_list)
-					and sub.project_status_id not in ($closed_stati_list)
+					and (main.project_status_id not in ($closed_stati_list) or main.project_id in ($recent_projects_list))
+					and (sub.project_status_id not in ($closed_stati_list) or sub.project_id in ($recent_projects_list))
 					and sub.tree_sortkey between
 						main.tree_sortkey and
 						tree_right(main.tree_sortkey)
@@ -625,7 +636,8 @@ set sql "
 		and parent.project_id in ($parent_project_sql)
 		and children.project_id in ($child_project_sql)
 		$exclude_closed_tickets_sql
-                and children.project_status_id not in ($closed_stati_list)
+        and (children.project_status_id not in ($closed_stati_list)
+            or children.project_id in ($recent_projects_list))
 	order by
 		lower(parent.project_name),
 		children.tree_sortkey
