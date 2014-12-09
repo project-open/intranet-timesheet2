@@ -145,7 +145,9 @@ set absence_sql "
             date_trunc('day',d.d) between date_trunc('day',a.start_date) and date_trunc('day',a.end_date) and 
             mm.group_id = a.group_id
             $where_clause
-    UNION
+"
+
+if {0} {   UNION
     -- Absences for bridge days
     select	a.absence_type_id,
             mm.member_id as owner_id,
@@ -160,7 +162,7 @@ set absence_sql "
             mm.group_id = a.group_id and
             a.absence_type_id in ([template::util::tcl_to_sql_list [im_sub_categories [im_user_absence_type_bank_holiday]]]) and
             a.absence_status_id in ([template::util::tcl_to_sql_list [im_sub_categories [im_user_absence_status_active]]])
-"
+}
 
 # Get list of category_ids to determine index 
 # needed for color codes
