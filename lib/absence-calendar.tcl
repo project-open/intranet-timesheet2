@@ -75,7 +75,10 @@ set absences_sql "
             date_trunc('day',d.d) between date_trunc('day',a.start_date) and date_trunc('day',a.end_date) and 
             mm.group_id = a.group_id
             $where_clause
-    UNION
+"
+
+# Bridge Days need to be appended after the fact. Assume that a bank holiday (and subtypes) are off for all users.
+if {0} {   UNION
     -- Absences for bridge days
     select	a.absence_type_id,
             a.absence_status_id,
@@ -92,7 +95,7 @@ set absences_sql "
             mm.group_id = a.group_id and
             a.absence_type_id in ([template::util::tcl_to_sql_list [im_sub_categories [im_user_absence_type_bank_holiday]]]) and
             a.absence_status_id in ([template::util::tcl_to_sql_list [im_sub_categories [im_user_absence_status_active]]])
-"
+}
 
 
 # TODO: re-factor so that color codes also work in case of more than 10 absence types
