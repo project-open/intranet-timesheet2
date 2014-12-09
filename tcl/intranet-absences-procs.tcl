@@ -907,8 +907,9 @@ ad_proc -private im_absence_component__user_selection {
     {-user_selection_typeVar ""}
     {-total_countVar ""}
     {-is_aggregate_pVar ""}
+    {-im_where_from_criteria_keyword "and"}
 } {
-    @last-modified 2014-11-24
+    @last-modified 2014-12-09
     @last-modified-by Neophytos Demetriou (neophytos@azet.sk)
 } {
 
@@ -1096,7 +1097,7 @@ ad_proc -private im_absence_component__user_selection {
     }
 
     # temporary hack until I manage to refactor the code
-    append where_clause [db_bind_var_substitution [im_where_from_criteria $criteria]]
+    append where_clause [db_bind_var_substitution [im_where_from_criteria $criteria $im_where_from_criteria_keyword]]
 
 
 }
