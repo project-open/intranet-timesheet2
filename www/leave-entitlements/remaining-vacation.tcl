@@ -199,8 +199,10 @@ im_absence_component__user_selection \
     -where_clauseVar where_clause \
     -user_selection_column "employee_id" \
     -user_selection $user_selection \
-    -hide_colors_pVar hide_colors_p
+    -hide_colors_pVar hide_colors_p \
+    -im_where_from_criteria_keyword ""
 
+set where_clause "and (employee_id = :current_user_id or $where_clause)"
 
 # OLD
 # set criteria [list]
