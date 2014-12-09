@@ -909,7 +909,7 @@ ad_proc -private im_absence_component__user_selection {
     {-is_aggregate_pVar ""}
     {-im_where_from_criteria_keyword "and"}
 } {
-    @last-modified 2014-11-24
+    @last-modified 2014-12-09
     @last-modified-by Neophytos Demetriou (neophytos@azet.sk)
 } {
 
