@@ -181,22 +181,40 @@ db_foreach absences $absence_sql {
 }
 
 set sql "select to_char(to_date(:start_date,:date_format) + interval '$num_days days', :date_format)"
-set absence_week_days \
+set end_date  [db_string end_date $sql]
+set weekend_days \
     [im_absence_week_days \
         -start_date $start_date \
-        -end_date [db_string end_date $sql]]
+        -end_date $end_date]
 
 # we mark each weekend with the bank_holiday_index but we also
 # use the bank_holiday_index to exclude weekends from aggregate
 # results (so that we won't show everyone absent on weekends 
 # and bank holidays
-set bank_holiday_absence_type_id [im_user_absence_type_bank_holiday]
-set bank_holiday_index $indexof($bank_holiday_absence_type_id)
-array set holiday_hash [list]
-foreach weekend_date $absence_week_days {
+set weekend_absence_type_id [im_user_absence_type_weekend]
+set weekend_index $indexof($weekend_absence_type_id)
+foreach weekend_date $weekend_days {
     set cell_char($weekend_date) "&nbsp;"
-    set holiday_hash($weekend_date) $bank_holiday_index
+    set holiday_hash($weekend_date) $weekend_index
 }
+
+# ---------------------------------------------------------------
+# Add bank holidays
+# ---------------------------------------------------------------
+set bank_holiday_ids [im_sub_categories [im_user_absence_type_bank_holiday]] 
+set bank_holiday_indexes [list]
+foreach bank_holiday_absence_type_id $bank_holiday_ids {
+    set bank_holidays [im_absence_dates -absence_type_ids $bank_holiday_absence_type_id \
+        -start_date $start_date \
+        -end_date $end_date
+    ]
+    lappend bank_holiday_indexes $indexof($bank_holiday_absence_type_id)
+    foreach bank_date $bank_holidays {
+        set cell_char($bank_date) "&nbsp;"
+        set holiday_hash($bank_date) $indexof($bank_holiday_absence_type_id)
+    }
+}
+
 
 # other absences is used as the default type when
 # showing aggregate results like say in a project
@@ -236,14 +254,15 @@ foreach user_tuple $user_list {
 
         set day_absence_types [get_value_if absence_hash(${key}) ""] 
         if { [info exists holiday_hash(${date_date})] } {
-            set index $bank_holiday_index
+            set index $holiday_hash($date_date)
+            ds_comment "Date $date_date $index"
         } else {
             set index [lindex $day_absence_types end]
         }
         set cell_str [get_value_if cell_char(${key}) "&nbsp;"]
 
         if { $index ne {} } {
-            if { $index ne $bank_holiday_index && $hide_colors_p } {
+            if { [lsearch $bank_holiday_indexes $index]<0 && $hide_colors_p } {
                 # Expected behavior When trying to view the absence for one project as a project manager
                 # is to see all days marked with "other absence" where at least one employee from the
                 # project is absent. The value of the field should not be empty but equal the percentage
