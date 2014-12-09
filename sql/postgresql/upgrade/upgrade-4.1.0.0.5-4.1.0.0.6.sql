@@ -5,8 +5,8 @@ SELECT acs_log__debug('/packages/intranet-timesheet2/sql/postgresql/upgrade/upgr
 -- -------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION inline_0 () 
-RETURNS INTEGER AS '
-
+RETURNS INTEGER AS
+$$
 declare
         v_count                 integer;
 	v_null			integer;	
@@ -17,16 +17,30 @@ begin
 
         IF      0 != v_count
         THEN
-                RAISE NOTICE ''upgrade-4.1.0.0.5-4.1.0.0.6.sql failed - could not add categories'';
+                RAISE NOTICE 'upgrade-4.1.0.0.5-4.1.0.0.6.sql failed - could not add categories';
                 return 0;
         END IF;
 
-        SELECT INTO v_null im_category_new(5009, ''Weekend'', ''Intranet Absence Type'');
-	update im_categories set enabled_p=''f'' where category_id = 5009;
+        SELECT INTO v_null im_category_new(5009, 'Weekend', 'Intranet Absence Type');
+	update im_categories set enabled_p='f' where category_id = 5009;
 	insert into im_category_hierarchy (child_id ,parent_id) values (5009,5005);
-        return 1;
 
-end;' LANGUAGE 'plpgsql';
+    perform im_new_menu(
+            'intranet-timesheet2',
+            'timesheet2_remaining_vacation',
+            'Remaining Vacation Report',
+            '/intranet-timesheet2/leave-entitlements/remaining-vacation',
+            20,
+            'timesheet2_absences',
+            null
+    );
+
+    perform im_new_menu_perms('timesheet2_remaining_vacation', 'Employees');
+
+    return 1;
+
+end;
+$$ LANGUAGE 'plpgsql';
 
 SELECT inline_0 ();
 DROP FUNCTION inline_0 ();
