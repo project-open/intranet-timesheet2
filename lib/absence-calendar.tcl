@@ -105,7 +105,7 @@ foreach category_id $req_categories {
 
 array set absence_hash [list]
 array set cell_char [list]
-array set seen [list]
+array set num_requested [list]
 db_foreach absences $absences_sql {
     set date_date ${d}
     set key ${date_date}
@@ -114,16 +114,13 @@ db_foreach absences $absences_sql {
     # we have observed multiple absence types
     # from the same user, the same day,
     # here we only count them once
-    if { ![info exists seen(${owner_id},${d})] } {
-        lappend absence_hash($key) $index
-        set seen(${owner_id},${d}) ""
-    }
+    lappend absence_hash($key) $index
 
     if { [get_value_if is_req_category_p($absence_status_id) "0"] } {
         set cell_char($key) "?"
+        set num_requested($key) [expr { [get_value_if num_requested($key) "0"] + 1 }]
     }
 }
-array unset seen
 
 set weekend_days \
     [im_absence_week_days \
@@ -214,7 +211,9 @@ for {set month_num 1} {$month_num <= 12} {incr month_num} {
                 set fg_color $other_fg_color
 
                 if { $total_count ne {} } {
-                    set count [llength [lsearch -inline -all -not $day_absence_types $bank_holiday_index]]
+                    set day_absence_types [lsearch -inline -all -not $day_absence_types $bank_holiday_index]
+                    set count [expr { [llength $day_absence_types] - [get_value_if num_requested(${date_date}) "0"] }]
+
                     set decimal [expr { double(${count}) / ${total_count} }]
                     if { ${decimal} == 0 } {
                         set cell_str "&nbsp;"
