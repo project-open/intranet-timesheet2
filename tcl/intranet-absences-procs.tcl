@@ -732,7 +732,7 @@ ad_proc -private im_absence_component__absence_criteria {
         }
     }
 
-    if { $absence_type_id ne {} && $absence_type_id != "0" } {
+    if { $absence_type_id ne {} && $absence_type_id > "0" } {
         lappend criteria "a.absence_type_id = :absence_type_id"
     }
 
