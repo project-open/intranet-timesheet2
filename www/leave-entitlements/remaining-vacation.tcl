@@ -30,6 +30,7 @@ ad_page_contract {
     { absence_type_id "[im_user_absence_type_vacation]"}
     { view_type "" }
     { department_id ""}
+    { user_selection ""}
     { order_by "" }
 }
 
@@ -85,9 +86,7 @@ set view_order_by_clause ""
 set column_sql "
 select
 	vc.*
-from
-	im_view_columns vc
-where
+from im_view_columns vc where
 	view_id=:view_id
 	and group_id is null
 order by
@@ -138,6 +137,9 @@ foreach { value text } $absences_types {
     lappend absence_type_list [list $text $value]
 }
 
+set user_selection_options [im_user_timesheet_absences_options_2 -user_selection $user_selection]
+
+
 ad_form \
     -name $form_id \
     -action $action_url \
@@ -145,7 +147,16 @@ ad_form \
     -method GET \
     -export {order_by}\
     -form {
-        {absence_type_id:text(select) {label "[_ intranet-timesheet2.Absence_Type]"} {value $absence_type_id} {options $absence_type_list }}
+
+        {user_selection:text(select),optional
+            {label "[_ intranet-timesheet2.Show_Users]"}
+            {options $user_selection_options}
+            {value $user_selection}}
+
+        {absence_type_id:text(select) 
+            {label "[_ intranet-timesheet2.Absence_Type]"} 
+            {value $absence_type_id} 
+            {options $absence_type_list }}
     }
 
 
@@ -183,13 +194,21 @@ array set extra_sql_array [im_dynfield::search_sql_criteria_from_form \
 # 5. Generate SQL Query
 # ---------------------------------------------------------------
 
-set criteria [list]
+set where_clause ""
+im_absence_component__user_selection \
+    -where_clauseVar where_clause \
+    -user_selection_column "employee_id" \
+    -user_selection $user_selection \
+    -hide_colors_pVar hide_colors_p
 
+
+# OLD
+# set criteria [list]
 # If the user isn't HR, we can only see employees where the current user is the supervisor
-if {![im_user_is_hr_p $user_id]} {
+# if {![im_user_is_hr_p $user_id]} {
     # Only HR can view all users, everyone only the users he is supervising
-    lappend extra_wheres "employee_id in (select employee_id from im_employees where supervisor_id = :user_id)"
-}
+    #lappend extra_wheres "employee_id in (select employee_id from im_employees where supervisor_id = :user_id)"
+# }
 
 if {$view_order_by_clause != ""} {
     set order_by_clause "order by $view_order_by_clause"
@@ -197,10 +216,10 @@ if {$view_order_by_clause != ""} {
     set order_by_clause "order by owner_name"
 }
 
-set where_clause [join $criteria " and "]
-if { ![empty_string_p $where_clause] } {
-    set where_clause " and $where_clause"
-}
+# set where_clause [join $criteria " and "]
+# if { ![empty_string_p $where_clause] } {
+#    set where_clause " and $where_clause"
+# }
 
 set extra_select [join $extra_selects ","]
 if { ![empty_string_p $extra_select] } {
@@ -212,9 +231,8 @@ if { ![empty_string_p $extra_from] } {
     set extra_from ",$extra_from"
 }
 
-set extra_where [join $extra_wheres " and "]
-if { ![empty_string_p $extra_where] } {
-    set extra_where " and $extra_where"
+if { $extra_wheres ne {} } {
+    append where_clause " and [join $extra_wheres " and "] "
 }
 
 # Create a ns_set with all local variables in order
@@ -248,9 +266,7 @@ for {set i 0} {$i < $tmp_var_size} { incr i } {
 
 # Add the additional condition to the "where_clause"
 if {"" != $dynfield_extra_where} { 
-    append extra_where "
-                and im_employees.employee_id in $dynfield_extra_where
-            "
+    append extra_where "and im_employees.employee_id in $dynfield_extra_where"
 }
 
 # Get a table with
@@ -311,7 +327,7 @@ set sql "select employee_id,im_name_from_user_id(employee_id,:name_order) as own
     from im_employees , cc_users 
     where	cc_users.user_id = im_employees.employee_id
         and cc_users.member_state = 'approved'
-    $extra_where
+    $where_clause
     $order_by_clause
 "
 

@@ -903,6 +903,7 @@ ad_proc -private im_absence_component__user_selection {
     -where_clauseVar:required
     -user_selection:required
     -hide_colors_pVar:required
+    {-user_selection_column "a.owner_id"}
     {-user_selection_typeVar ""}
     {-total_countVar ""}
     {-is_aggregate_pVar ""}
@@ -947,7 +948,7 @@ ad_proc -private im_absence_component__user_selection {
         }
 
         "mine" {
-            lappend criteria "a.owner_id = :current_user_id"
+            lappend criteria "${user_selection_column} = :current_user_id"
         }
 
         "employees" {
@@ -958,7 +959,7 @@ ad_proc -private im_absence_component__user_selection {
                 where	m.group_id = [im_employee_group_id]
             "
 
-            lappend criteria "a.owner_id IN (${sql})"
+            lappend criteria "${user_selection_column} IN (${sql})"
 
             if { $total_countVar ne {} } {
                 set total_count [db_string total_count "select count(1) from ($sql) t"]
@@ -976,7 +977,7 @@ ad_proc -private im_absence_component__user_selection {
                 where	m.group_id = [im_freelance_group_id]
             "
 
-            lappend criteria "a.owner_id IN (${sql})"
+            lappend criteria "${user_selection_column} IN (${sql})"
 
             if { $total_countVar ne {} } {
                 set total_count [db_string total_count "select count(1) from ($sql) t"]
@@ -994,7 +995,7 @@ ad_proc -private im_absence_component__user_selection {
                 where	m.group_id = [im_customer_group_id]
             "
 
-            lappend criteria "a.owner_id IN (${sql})"
+            lappend criteria "${user_selection_column} IN (${sql})"
 
             if { $total_countVar ne {} } {
                 set total_count [db_string total_count "select count(1) from ($sql) t"]
@@ -1023,7 +1024,7 @@ ad_proc -private im_absence_component__user_selection {
                     OR e.employee_id = tt.manager_id)
             "
 
-            lappend criteria "a.owner_id in (${sql})"
+            lappend criteria "${user_selection_column} in (${sql})"
 
             if { $total_countVar ne {} } {
                 set total_count [db_string total_count "select count(1) from ($sql) t"]
@@ -1052,7 +1053,7 @@ ad_proc -private im_absence_component__user_selection {
                 select :current_user_id from dual
             "
 
-            lappend criteria "a.owner_id in (${sql})"
+            lappend criteria "${user_selection_column} in (${sql})"
 
             if { $total_countVar ne {} } {
                 set total_count [db_string total_count "select count(1) from ($sql) t"]
@@ -1072,7 +1073,7 @@ ad_proc -private im_absence_component__user_selection {
                 where object_id_one in ([template::util::tcl_to_sql_list $project_ids])
             "
 
-            lappend criteria "a.owner_id in (${sql})"
+            lappend criteria "${user_selection_column} in (${sql})"
 
             if { $total_countVar ne {} } {
                 set total_count [db_string total_count "select count(1) from ($sql) t"]
@@ -1084,12 +1085,12 @@ ad_proc -private im_absence_component__user_selection {
 
         "user" {
             set user_id $user_selection_id
-            lappend criteria "a.owner_id=:user_id"
+            lappend criteria "${user_selection_column}=:user_id"
         }	    
 
         default  {
             # We shouldn't even be here, so just display his/her own ones
-            lappend criteria "a.owner_id = :current_user_id"
+            lappend criteria "${user_selection_column} = :current_user_id"
         }
 
     }
