@@ -870,7 +870,7 @@ ad_proc -private im_absence_component__user_selection_helper {
 
                 set read_p 0
                 incr_if read_p {[im_permission $current_user_id "view_absences_all"]}
-                incr_if read_p {[im_permission $current_user_id view_hr]}
+                incr_if read_p {[im_user_is_hr_p [ad_conn user_id]]}
                 incr_if read_p {$owner_id == $current_user_id}
                 incr_if read_p {$supervisor_id == $current_user_id}
 
