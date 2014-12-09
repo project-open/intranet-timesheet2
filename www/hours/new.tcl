@@ -293,6 +293,7 @@ set sql "
 set recent_project_ids [db_list recent_projects $sql]
 set recent_projects_list "[template::util::tcl_to_sql_list $recent_project_ids]"
 
+if {$recent_projects_list eq ""} {set recent_projects_list 1}
 
 
 # ---------------------------------------------------------
