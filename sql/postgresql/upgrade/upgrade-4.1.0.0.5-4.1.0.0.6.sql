@@ -1,0 +1,3 @@
+SELECT acs_log__debug('/packages/intranet-timesheet2/sql/postgresql/upgrade/upgrade-4.1.0.0.5-4.1.0.0.6.sql','');
+
+update im_dynfield_type_attribute_map set default_value = 'global_var {absence_owner_id current_user_id} tcl {db_string supervisor "select supervisor_id from im_employees where employee_id = $absence_owner_id" -default "$current_user_id"}' where attribute_id = (select attribute_id from im_dynfield_attributes where acs_attribute_id = (select attribute_id from acs_attributes where attribute_name = 'vacation_replacement_id' and object_type = 'im_user_absence'));

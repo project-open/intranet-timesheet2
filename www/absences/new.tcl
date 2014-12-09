@@ -381,7 +381,6 @@ ad_form -extend -name $form_id -on_request {
 	set user_id_from_search $current_user_id
     }    
 } -new_request {
-    template::element::set_value absence vacation_replacement_id [db_string supervisor "select supervisor_id from im_employees where employee_id = :absence_owner_id" -default $current_user_id]
 } -edit_request {
     db_1row absence "	select	a.*, to_char(a.start_date,'YYYY-MM-DD') as old_start_date, to_char(a.end_date,'YYYY-MM-DD') as old_end_date,
 		a.owner_id as absence_owner_id
