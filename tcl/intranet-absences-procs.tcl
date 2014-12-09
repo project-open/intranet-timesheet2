@@ -712,8 +712,8 @@ ad_proc im_absence_component__timescale_types {} {
     @last-modified-by Neophytos Demetriou (neophytos@azet.sk)
 } {
 
+# all "ALL" might have to be added later
     set types {
-#        all "All"
         today "Today"
         next_3w "Next 3 Weeks"
         next_3m "Next 3 Months"
@@ -870,7 +870,7 @@ ad_proc -private im_absence_component__user_selection_helper {
 
                 set read_p 0
                 incr_if read_p {[im_permission $current_user_id "view_absences_all"]}
-                incr_if read_p {[im_permission $current_user_id view_hr]}
+                incr_if read_p {[im_user_is_hr_p [ad_conn user_id]]}
                 incr_if read_p {$owner_id == $current_user_id}
                 incr_if read_p {$supervisor_id == $current_user_id}
 
@@ -1196,11 +1196,11 @@ ad_proc im_absence_component__timescale {
             set start_date [db_string 3w "select to_date(:timescale_date,'YYYY-MM-DD') + :num_days::integer"]
         }
         "past" { 
-            set num_days ""
+            set num_days [parameter::get -parameter HideAbsencesOlderThanDays -default "365"]
             set start_date [db_string 3w "select to_date(:timescale_date,'YYYY-MM-DD') - 365"]
         }
         "future" { 
-            set num_days "21" 
+            set num_days [parameter::get -parameter HideAbsencesOlderThanDays -default "365"]
             set end_date [db_string 3w "select to_date(:timescale_date,'YYYY-MM-DD') + 365"]
         }
         "last_3m" { 
@@ -1221,7 +1221,6 @@ ad_proc im_absence_component__timescale {
     if {$start_date ne {}} { lappend criteria "a.end_date::date >= :start_date" }
     if {$end_date ne {}} { lappend criteria "a.start_date::date <= :end_date" }
 
-    set num_days [parameter::get -parameter HideAbsencesOlderThanDays -default "365"]
     set num_days_interval "$num_days days"
     lappend criteria "a.start_date::date > now() - :num_days_interval::interval"
 
