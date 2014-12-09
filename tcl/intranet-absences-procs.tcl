@@ -1167,7 +1167,7 @@ ad_proc im_absence_component__timescale {
     if {$start_date ne {}} { lappend criteria "a.end_date::date >= :start_date" }
     if {$end_date ne {}} { lappend criteria "a.start_date::date <= :end_date" }
 
-    set num_days [parameter::get -parameter HideAbsencesOlderThanDays]
+    set num_days [parameter::get -parameter HideAbsencesOlderThanDays -default "365"]
     set num_days_interval "$num_days days"
     lappend criteria "a.start_date::date > now() - :num_days_interval::interval"
 
