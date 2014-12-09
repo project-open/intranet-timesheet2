@@ -136,13 +136,29 @@ set weekend_days \
 # use the bank_holiday_index to exclude weekends from aggregate
 # results (so that we won't show everyone absent on weekends 
 # and bank holidays
-set bank_holiday_absence_type_id [im_user_absence_type_bank_holiday]
-set bank_holiday_index $indexof($bank_holiday_absence_type_id)
+set weekend_absence_type_id [im_user_absence_type_weekend]
+set weekend_index $indexof($weekend_absence_type_id)
 foreach weekend_date $weekend_days {
     set cell_char($weekend_date) "&nbsp;"
-    lappend absence_hash($weekend_date) $bank_holiday_index
+    lappend absence_hash($weekend_date) $weekend_index
 }
 
+# ---------------------------------------------------------------
+# Add bank holidays
+# ---------------------------------------------------------------
+set bank_holiday_ids [im_sub_categories [im_user_absence_type_bank_holiday]] 
+set bank_holiday_indexes [list]
+foreach bank_holiday_absence_type_id $bank_holiday_ids {
+    set bank_holidays [im_absence_dates -absence_type_ids $bank_holiday_absence_type_id \
+        -start_date $report_start_date \
+        -end_date $report_end_date
+    ]
+    lappend bank_holiday_indexes $indexof($bank_holiday_absence_type_id)
+    foreach bank_date $bank_holidays {
+        set cell_char($bank_date) "&nbsp;"
+        lappend absence_hash($bank_date) $indexof($bank_holiday_absence_type_id)
+    }
+}
 
 # ---------------------------------------------------------------
 # Render the table
@@ -205,9 +221,8 @@ for {set month_num 1} {$month_num <= 12} {incr month_num} {
         set day_absence_types [get_value_if absence_hash(${key}) ""] 
         set index [lindex $day_absence_types end]
         set cell_str [get_value_if cell_char(${key}) "&nbsp;"]
-
         if { $index ne {} } {
-            if {$index ne $bank_holiday_index && ($hide_colors_p || $is_aggregate_p) } {
+            if {[lsearch $bank_holiday_indexes $index]<0 && ($hide_colors_p || $is_aggregate_p) } {
                 # Expected behavior When trying to view the absence for one project as a project manager
                 # is to see all days marked with "other absence" where at least one employee from the
                 # project is absent. The value of the field should not be empty but equal the percentage
@@ -216,7 +231,7 @@ for {set month_num 1} {$month_num <= 12} {incr month_num} {
                 set fg_color $other_fg_color
 
                 if { $total_count ne {} } {
-                    set day_absence_types [lsearch -inline -all -not $day_absence_types $bank_holiday_index]
+                    set day_absence_types [lsearch -inline -all -not $day_absence_types $bank_holiday_indexes]
                     set count [llength $day_absence_types]
                     #set count [expr { [llength $day_absence_types] - [get_value_if num_requested(${date_date}) "0"] }]
 
@@ -239,7 +254,7 @@ for {set month_num 1} {$month_num <= 12} {incr month_num} {
                 }
 
             } else {
-                if { $index eq $bank_holiday_index && $is_aggregate_p } {
+                if { [lsearch $bank_holiday_indexes $index]>-1 && $is_aggregate_p } {
                     set cell_str "&nbsp;"
                 }
                 foreach {category_id category enabled_p bg_color fg_color} \
