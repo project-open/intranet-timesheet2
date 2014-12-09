@@ -255,7 +255,6 @@ foreach user_tuple $user_list {
         set day_absence_types [get_value_if absence_hash(${key}) ""] 
         if { [info exists holiday_hash(${date_date})] } {
             set index $holiday_hash($date_date)
-            ds_comment "Date $date_date $index"
         } else {
             set index [lindex $day_absence_types end]
         }
