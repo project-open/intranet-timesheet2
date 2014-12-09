@@ -231,7 +231,14 @@ for {set month_num 1} {$month_num <= 12} {incr month_num} {
                 set fg_color $other_fg_color
 
                 if { $total_count ne {} } {
-                    set day_absence_types [lsearch -inline -all -not $day_absence_types $bank_holiday_indexes]
+
+                    #set day_absence_types [lsearch -inline -all -not $day_absence_types $bank_holiday_indexes]
+
+                    foreach {_intersection_ no_bank_holiday_types _no_absence_types_} \
+                         [im_intersect3 $day_absence_types $bank_holiday_indexes] break
+
+                    set day_absence_types $no_bank_holiday_types
+
                     set count [llength $day_absence_types]
                     #set count [expr { [llength $day_absence_types] - [get_value_if num_requested(${date_date}) "0"] }]
 

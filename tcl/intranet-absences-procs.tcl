@@ -83,7 +83,52 @@ ad_proc incr_if {varName expr} {
 }
 
 ad_proc im_coalesce {args} {
+    @author Neophytos Demetriou (neophytos@azet.sk)
+} {
     return [lsearch -inline -not $args {}]
+}
+
+ad_proc im_intersect3 {a b} {
+    from tcl wiki (http://wiki.tcl.tk/283)
+} {
+
+    if {[llength $a] == 0} {
+        return [list {} {} $b]
+    }
+    if {[llength $b] == 0} {
+        return [list {} $a {}]
+    }
+
+    set res_i  {}
+    set res_ab {}
+    set res_ba {}
+
+    foreach e $b {
+        set ba($e) .
+    }
+
+    foreach e $a {
+        set aa($e) .
+    }
+
+    foreach e $a {
+        if {![info exists ba($e)]} {
+            lappend res_ab $e
+        } else {
+            lappend res_i $e
+        }
+    }
+
+    foreach e $b {
+        if {![info exists aa($e)]} {
+            lappend res_ba $e
+        } else {
+            lappend res_i $e
+        }
+    }
+
+    list $res_i $res_ab $res_ba
+
 }
 
 ad_proc im_name_from_id {object_id} {
