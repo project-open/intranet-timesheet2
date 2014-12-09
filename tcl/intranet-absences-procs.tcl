@@ -1023,6 +1023,7 @@ ad_proc -private im_absence_component__user_selection {
                 set total_count [db_string total_count "select count(1) from ($sql) t"]
             }
 
+
             set is_aggregate_p 1
 
         }  
