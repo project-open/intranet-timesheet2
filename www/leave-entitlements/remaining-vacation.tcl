@@ -28,6 +28,7 @@ ad_page_contract {
     { reference_date "" }
     { view_name "remaining_vacation_list" }
     { absence_type_id "[im_user_absence_type_vacation]"}
+    { employee_status_id:integer ""}
     { view_type "" }
     { department_id ""}
     { user_selection ""}
@@ -199,12 +200,20 @@ im_absence_component__user_selection \
     -where_clauseVar where_clause \
     -user_selection_column "employee_id" \
     -user_selection $user_selection \
-    -hide_colors_pVar hide_colors_p \
-    -im_where_from_criteria_keyword ""
+    -hide_colors_pVar hide_colors_p
 
-if { $where_clause ne {} } {
-    set where_clause "and (employee_id = :current_user_id or $where_clause)"
+# __user_selection already adds current_user_id when showing a department
+# so no need for the commented-out code below:
+#
+# if { $where_clause ne {} } {
+#    set where_clause "and (employee_id = :current_user_id or $where_clause)"
+# }
+
+if { $employee_status_id ne {} } {
+    append where_clause "and employee_status_id=:employee_status_id"
 }
+
+
 # OLD
 # set criteria [list]
 # If the user isn't HR, we can only see employees where the current user is the supervisor
