@@ -246,7 +246,8 @@ ad_proc -public im_user_absence_permissions {user_id absence_id view_var read_va
             inner join wf_user_tasks ut
             on (ut.case_id=wfc.case_id)
             where wfc.object_id = :absence_id
-            and ut.holding_user = :current_user_id
+            and ut.user_id = :current_user_id
+            limit 1
         "
 
         set assigned_to_user_p [db_string assigned_to_user_p $sql -default false]
@@ -254,9 +255,9 @@ ad_proc -public im_user_absence_permissions {user_id absence_id view_var read_va
         if { $assigned_to_user_p } { 
             set read 1
             set write 1
-            set view 1
         }
     }
+
 
     if {!$read} { set write 0 }
     set view $read
