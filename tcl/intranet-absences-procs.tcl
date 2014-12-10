@@ -1178,9 +1178,14 @@ ad_proc im_absence_component__timescale {
     set end_date $timescale_date
     switch $timescale {
         "all" {
-            set num_days ""
-            set start_date "2000-01-01"
-            set end_date "2099-12-31"
+            set num_days [parameter::get -parameter HideAbsencesOlderThanDays -default "365"]
+	    if {$num_days eq ""} {
+		set start_date "2000-01-01"
+		set end_date "2099-12-31"
+	    } else {
+		set start_date [db_string all "select to_date(:timescale_date,'YYYY-MM-DD') - :num_days::integer"]
+		set end_date [db_string all "select to_date(:timescale_date,'YYYY-MM-DD') + :num_days::integer"]
+	    }
         }
         "today" { 
             set num_days 1
@@ -1197,11 +1202,19 @@ ad_proc im_absence_component__timescale {
         }
         "past" { 
             set num_days [parameter::get -parameter HideAbsencesOlderThanDays -default "365"]
-            set start_date [db_string 3w "select to_date(:timescale_date,'YYYY-MM-DD') - 365"]
+	    if {$num_days eq ""} {
+		set start_date "2000-01-01"
+	    } else {
+		set start_date [db_string past "select to_date(:timescale_date,'YYYY-MM-DD') - :num_days::integer"]
+	    }
         }
         "future" { 
             set num_days [parameter::get -parameter HideAbsencesOlderThanDays -default "365"]
-            set end_date [db_string 3w "select to_date(:timescale_date,'YYYY-MM-DD') + 365"]
+	    if {$num_days eq ""} {
+		set end_date "2099-12-31"
+	    } else {
+		set end_date [db_string future "select to_date(:timescale_date,'YYYY-MM-DD') + :num_days::integer"]
+	    } 
         }
         "last_3m" { 
             set num_days -93 
