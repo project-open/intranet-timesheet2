@@ -182,16 +182,16 @@ ad_proc -public im_user_absence_permissions {user_id absence_id view_var read_va
 
     # Get cached absence info
     if {![db_0or1row absence_info "
-	select	a.owner_id,
-		a.group_id,
-		a.vacation_replacement_id,
-		(select count(*) from wf_cases wfc where wfc.object_id = a.absence_id) as wf_count
-	from	im_user_absences a
-	where	a.absence_id = $absence_id
+        select	a.owner_id,
+            a.group_id,
+            a.vacation_replacement_id,
+            (select count(1) from wf_cases wfc where wfc.object_id = a.absence_id) as wf_count
+        from	im_user_absences a
+        where	a.absence_id = :absence_id
     "]} {
-	# Thic can happen if this procedure is called while the absence hasn't yet been created
-	ns_log Error "im_user_absence_permissions: user_id=$user_id, absence_id=$absence_id: Absence not found"
-	return
+        # Thic can happen if this procedure is called while the absence hasn't yet been created
+        ns_log Error "im_user_absence_permissions: user_id=$user_id, absence_id=$absence_id: Absence not found"
+        return
     }
 
     # Get cached permissions
@@ -205,40 +205,57 @@ ad_proc -public im_user_absence_permissions {user_id absence_id view_var read_va
 
     # The owner and administrators can always read and write
     if {$current_user_id == $owner_id || $add_absences_all_p} {
-	set read 1
-	set write 1
+        set read 1
+        set write 1
     }
 
     # Vacation replacement and admins can always read
     if {$view_absences_all_p || $current_user_id == $vacation_replacement_id} {
-	set read 1
+        set read 1
     }
 
     # Certain managers can read/write the absences of their direct reports:
     if {!$read && $view_absences_direct_reports_p} {
-	# Get the direct reports of current_user_id (cached in the library)
-	set current_user_direct_reports [im_user_direct_reports_ids -user_id $current_user_id]
-	if {[lsearch $current_user_direct_reports $owner_id] > -1} {
-	    set read 1
-	}
+        # Get the direct reports of current_user_id (cached in the library)
+        set current_user_direct_reports [im_user_direct_reports_ids -user_id $current_user_id]
+        if {[lsearch $current_user_direct_reports $owner_id] > -1} {
+            set read 1
+        }
     }
 
     if {!$write && $add_absences_direct_reports_p} {
-	# Get the direct reports of current_user_id (cached in the library)
-	set current_user_direct_reports [im_user_direct_reports_ids -user_id $current_user_id]
-	if {[lsearch $current_user_direct_reports $owner_id] > -1} {
-	    set read 1
-	}
+        # Get the direct reports of current_user_id (cached in the library)
+        set current_user_direct_reports [im_user_direct_reports_ids -user_id $current_user_id]
+        if {[lsearch $current_user_direct_reports $owner_id] > -1} {
+            set read 1
+        }
     }
 
     # Absence under Workflow control: Don't allow to modify
     # outside the workflow
     if {$wf_count} {
-	# Special permission for users to modify an absence 
-	# even under workflow control
-	if {!$edit_absence_status} {
-	    set write 0
-	}
+        # Special permission for users to modify an absence 
+        # even under workflow control
+        if {!$edit_absence_status} {
+            set write 0
+        }
+
+        set sql "
+            select true 
+            from wf_cases wfc 
+            inner join wf_user_tasks ut
+            on (ut.case_id=wfc.case_id)
+            where wfc.object_id = :absence_id
+            and ut.holding_user = :current_user_id
+        "
+
+        set assigned_to_user_p [db_string assigned_to_user_p $sql -default false]
+
+        if { $assigned_to_user_p } { 
+            set read 1
+            set write 1
+            set view 1
+        }
     }
 
     if {!$read} { set write 0 }
