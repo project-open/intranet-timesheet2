@@ -121,10 +121,15 @@ append table_header_html "</tr>\n"
 # SQL Query
 
 # Get the list of all "open" (=enabled or started) tasks with their assigned users
+set where_clause ""
 if { $user_id ne {} } {
     set where_clause "and (wta.party_id = :user_id or o.creation_user = :user_id)"
 } else {
-    # TODO
+    set sql "select object_id_two from acs_rels where object_id_one=:project_id"
+    set project_member_ids [db_list project_members $sql]
+    if { $project_member_ids ne {} } {
+        set where_clause "and wta.party_id in ([template::util::tcl_to_sql_list $project_member_ids])"
+    }
 }
 
 set tasks_sql "
