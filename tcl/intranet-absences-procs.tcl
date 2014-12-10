@@ -1056,18 +1056,6 @@ ad_proc -private im_absence_component__user_selection {
             set sql "
                 select employee_id from im_employees
                 where (supervisor_id = :current_user_id OR employee_id = :current_user_id)
-                UNION
-                select	e.employee_id 
-                from	im_employees e,
-                        -- Select all departments where the current user is manager
-                        (select	cc.cost_center_id, cc.manager_id
-                         from	im_cost_centers cc,
-                                (select cost_center_code as code, length(cost_center_code) len
-                                 from	im_cost_centers
-                                 where	manager_id = :current_user_id) t
-                         where	substring(cc.cost_center_code for t.len) = t.code) tt
-                where  (e.department_id = tt.cost_center_id
-                    OR e.employee_id = tt.manager_id)
             "
 
             lappend criteria "${user_selection_column} in (${sql})"
