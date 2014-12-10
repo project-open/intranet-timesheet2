@@ -78,32 +78,95 @@ begin
 end;$BODY$
 language 'plpgsql';
 
-insert into im_dynfield_layout_pages (
-       page_url,object_type,layout_type,default_p
-) values (
-       '/intranet-timesheet2/weekly-report','person','table','f'
-);
+CREATE OR REPLACE FUNCTION inline_0 () 
+RETURNS INTEGER AS
+$$
+declare
+        v_count                 integer;
+	v_attribute_id 		integer;	
+begin
+        select count(*) into v_count from im_dynfield_layout_pages
+        where page_url = '/intranet-timesheet2/weekly-report' and object_type = 'person';
 
-insert into im_dynfield_layout (
-       attribute_id, page_url, pos_y, label_style
-) values (
-       59631, '/intranet-timesheet2/weekly-report', 1, 'plain'
-);
+        IF      0 != v_count
+        THEN
+                RAISE NOTICE 'upgrade-4.1.0.0.3-4.1.0.0.4.sql failed - layout page already present';
+	ELSE
 
-insert into im_dynfield_layout (
-       attribute_id, page_url, pos_y, label_style
-) values (
-       59627, '/intranet-timesheet2/weekly-report', 2, 'plain'
-);
+	insert into im_dynfield_layout_pages (
+	   page_url,object_type,layout_type,default_p
+	) values (
+       	  '/intranet-timesheet2/weekly-report','person','table','f'
+	);
+        END IF;
 
-insert into im_dynfield_layout_pages (
-       page_url,object_type,layout_type,default_p
-) values (
-       '/intranet-timesheet2/leave-entitlements/remaining-vacation','person','table','f'
-);
+        select count(*) into v_count from im_dynfield_layout_pages
+        where page_url = '/intranet-timesheet2/leave-entitlements/remaining-vacation' and object_type = 'person';
 
-insert into im_dynfield_layout (
-       attribute_id, page_url, pos_y, label_style
-) values (
-       59627, '/intranet-timesheet2/leave-entitlements/remaining-vacation', 1, 'plain'
-);
+        IF      0 != v_count
+        THEN
+                RAISE NOTICE 'upgrade-4.1.0.0.3-4.1.0.0.4.sql failed - layout page already present for remaining vacation';
+	ELSE
+
+	insert into im_dynfield_layout_pages (
+	   page_url,object_type,layout_type,default_p
+	) values (
+	   '/intranet-timesheet2/leave-entitlements/remaining-vacation','person','table','f'
+	);
+        END IF;
+
+ 	select attribute_id into v_attribute_id from im_dynfield_attributes where widget_name = 'employee_supervisors';
+
+        select count(*) into v_count from im_dynfield_layout
+        where page_url = '/intranet-timesheet2/weekly-report' and attribute_id = v_attribute_id;
+
+        IF      0 != v_count
+        THEN
+                RAISE NOTICE 'upgrade-4.1.0.0.3-4.1.0.0.4.sql failed - employee supervisors already present in weekly report';
+	ELSE
+
+	insert into im_dynfield_layout (
+	  attribute_id, page_url, pos_y, label_style
+	) values (
+	  v_attribute_id, '/intranet-timesheet2/weekly-report', 1, 'plain'
+	);
+        END IF;
+
+ 	select attribute_id into v_attribute_id from im_dynfield_attributes where widget_name = 'employee_status';
+
+        select count(*) into v_count from im_dynfield_layout
+        where page_url = '/intranet-timesheet2/weekly-report' and attribute_id = v_attribute_id;
+
+        IF      0 != v_count
+        THEN
+                RAISE NOTICE 'upgrade-4.1.0.0.3-4.1.0.0.4.sql failed - employee status already present in weekly report';
+	ELSE
+
+	insert into im_dynfield_layout (
+	  attribute_id, page_url, pos_y, label_style
+	) values (
+       	  v_attribute_id, '/intranet-timesheet2/weekly-report', 1, 'plain'
+	);
+        END IF;
+
+        select count(*) into v_count from im_dynfield_layout
+        where page_url = '/intranet-timesheet2/leave-entitlements/remaining-vacation' and attribute_id = v_attribute_id;
+
+        IF      0 != v_count
+        THEN
+                RAISE NOTICE 'upgrade-4.1.0.0.3-4.1.0.0.4.sql failed - employee status already present in remaining vacation';
+	ELSE
+
+	insert into im_dynfield_layout (
+	  attribute_id, page_url, pos_y, label_style
+	) values (
+       	  v_attribute_id, '/intranet-timesheet2/leave-entitlements/remaining-vacation', 1, 'plain'
+	);
+        END IF;
+    return 1;
+
+end;
+$$ LANGUAGE 'plpgsql';
+
+SELECT inline_0 ();
+DROP FUNCTION inline_0 ();
