@@ -782,8 +782,17 @@ ad_proc -public im_absence_vacation_balance_component {
     for the user
 } {
 
-    # Show only if user is an employee
-    if { ![im_user_is_employee_p $user_id_from_search] } { return "" }
+    # User needs to be Employee or Freelancer 
+    if { ![im_user_is_employee_p $user_id_from_search] } { 
+	if { [im_profile::member_p -profile_id [im_freelance_group_id] -user_id $user_id_from_search] } {
+	    if { ![parameter::get -package_id [apm_package_id_from_key intranet-timesheet2] -parameter "AllowAbsencesForFreelancersP" -default 0]  } {
+		return ""
+	    }
+	} else {
+	    # User is neither a Freelancer nor an Employee
+	    return ""
+	}
+    }
 
     set current_user_id [ad_get_user_id]
     # This is a sensitive field, so only allows this for the user himself
@@ -804,15 +813,25 @@ ad_proc -public im_absence_vacation_balance_component {
 }
 
 
-ad_proc -public im_absence_vacation_balance_component_xhtml {
+ad_proc -public im_absence_vacation_balance_component_ajax {
     -user_id_from_search:required
 } {
     Returns a HTML component for vacation management. 
     Allows viewing vacations for current, last and next year 
+    
 } {
 
-    # Show only if user is an employee
-    if { ![im_user_is_employee_p $user_id_from_search] } { return "" }
+    # User needs to be Employee or Freelancer 
+    if { ![im_user_is_employee_p $user_id_from_search] } { 
+	if { [im_profile::member_p -profile_id [im_freelance_group_id] -user_id $user_id_from_search] } {
+	    if { ![parameter::get -package_id [apm_package_id_from_key intranet-timesheet2] -parameter "AllowAbsencesForFreelancersP" -default 0]  } {
+		return ""
+	    }
+	} else {
+	    # User is neither a Freelancer nor an Employee
+	    return ""
+	}
+    }
 
     set current_user_id [ad_get_user_id]
     # This is a sensitive field, so only allows this for the user himself
@@ -836,7 +855,6 @@ ad_proc -public im_absence_vacation_balance_component_xhtml {
 		</div>
         <script type='text/JavaScript'>
                 \$(function(){
-                        // XHTML request
                         function getVacationPortlet() {
                                 var LoadMsg = '<img src=\"/intranet/images/ajax-loader.gif\" alt=\"ajaxloader\">';
                                 var _Href = '/intranet-timesheet2/absences/xhtml-vacation-balance-component';
@@ -903,8 +921,6 @@ ad_proc -public im_get_next_absence_link { { user_id } } {
 }
 
 
-
-
 ad_proc -public im_user_absence_nuke {
     { -current_user_id ""}
     absence_id
@@ -921,3 +937,13 @@ ad_proc -public im_user_absence_nuke {
     return $absence_id
 }
 
+
+ad_proc -public im_absence_vacation_balance_component_xhtml {
+    -user_id_from_search:required
+} {
+    Returns a HTML component for vacation management.
+    Allows viewing vacations for current, last and next year
+} {
+    ns_log Notice "Deprecated proc im_absence_vacation_balance_component_xhtml used, please use im_absence_vacation_balance_component_ajax"
+    return [im_absence_vacation_balance_component_ajax -user_id_from_search $user_id_from_search]
+}
