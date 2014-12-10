@@ -18,6 +18,11 @@ set page_title "[lang::message::lookup "" intranet-timesheet2.Absences_for_user 
 # critical information
 # im_company_permissions $user_id $company_id view read write admin
 
+im_absence_component__user_selection \
+    -where_clauseVar where_clause \
+    -user_selection $user_id_from_search \
+    -hide_colors_pVar hide_colors_p
+
 
 # ---------------------------------------------------------------
 # 3. Define Table Columns

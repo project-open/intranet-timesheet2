@@ -111,8 +111,6 @@ set total_in_limited [db_string projects_total_in_limited "
    "]
 set selection "$sql $order_by_clause"
 
-
-
 #ad_return_complaint 1 "<pre>$selection :: $user_selection</pre>"
 
 # ---------------------------------------------------------------
