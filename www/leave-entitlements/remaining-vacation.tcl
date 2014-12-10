@@ -163,6 +163,7 @@ ad_form \
 # List to store the view_type_options
 set view_type_options [list [list HTML ""]]
 
+
 ## Deal with user filters
 im_dynfield::append_attributes_to_form \
     -object_type "person" \
@@ -185,10 +186,10 @@ array set extra_sql_array [im_dynfield::search_sql_criteria_from_form \
 
 
 # Run callback to extend the filter and/or add items to the view_type_options
-#callback im_projects_index_filter -form_id $form_id
-#ad_form -extend -name $form_id -form {
-#    {view_type:text(select),optional {label "#intranet-openoffice.View_type#"} {options $view_type_options}}
-#}
+callback im_projects_index_filter -form_id $form_id
+ad_form -extend -name $form_id -form {
+    {view_type:text(select),optional {label "#intranet-openoffice.View_type#"} {options $view_type_options}}
+}
 
 # ---------------------------------------------------------------
 # 5. Generate SQL Query
@@ -205,24 +206,13 @@ im_absence_component__user_selection \
 if { $where_clause ne {} } {
     set where_clause "and (employee_id = :current_user_id or $where_clause)"
 }
-# OLD
-# set criteria [list]
-# If the user isn't HR, we can only see employees where the current user is the supervisor
-# if {![im_user_is_hr_p $user_id]} {
-    # Only HR can view all users, everyone only the users he is supervising
-    #lappend extra_wheres "employee_id in (select employee_id from im_employees where supervisor_id = :user_id)"
-# }
+
 
 if {$view_order_by_clause != ""} {
     set order_by_clause "order by $view_order_by_clause"
 } else {
     set order_by_clause "order by owner_name"
 }
-
-# set where_clause [join $criteria " and "]
-# if { ![empty_string_p $where_clause] } {
-#    set where_clause " and $where_clause"
-# }
 
 set extra_select [join $extra_selects ","]
 if { ![empty_string_p $extra_select] } {
@@ -237,6 +227,10 @@ if { ![empty_string_p $extra_from] } {
 if { $extra_wheres ne {} } {
     append where_clause " and [join $extra_wheres " and "] "
 }
+
+set booking_year [string range $reference_date 0 3]
+set eoy "${booking_year}-12-31"
+set soy "${booking_year}-01-01"
 
 # Create a ns_set with all local variables in order
 # to pass it to the SQL query
@@ -282,15 +276,16 @@ if {"" != $dynfield_extra_where} {
 # Ordering should be by default by the owner
 
 
-set booking_year [string range $reference_date 0 3]
-set eoy "${booking_year}-12-31"
-set soy "${booking_year}-01-01"
 
 
 # Fill Has values for each employee that is visible
 set active_category_ids [template::util::tcl_to_sql_list [im_sub_categories [im_user_absence_status_active]]]
 set requested_category_ids [template::util::tcl_to_sql_list [im_sub_categories [im_user_absence_status_requested]]]
-set sql "select employee_id,im_name_from_user_id(employee_id,:name_order) as owner_name,im_cost_center_name_from_id(department_id) as department_name, (
+
+set sql "select *, 
+     entitlement_days_total - total_absence_days - requested_absence_days_this_year as remaining_vacation_days 
+     from (
+select employee_id,im_name_from_user_id(employee_id,:name_order) as owner_name,im_cost_center_name_from_id(department_id) as department_name, (
         select coalesce(sum(duration_days),0) from im_user_absences
         where start_date::date <= to_date(:eoy,'YYYY-MM-DD')
         and absence_status_id in ($active_category_ids)
@@ -331,7 +326,7 @@ set sql "select employee_id,im_name_from_user_id(employee_id,:name_order) as own
     where	cc_users.user_id = im_employees.employee_id
         and cc_users.member_state = 'approved'
     $where_clause
-    $order_by_clause
+    $order_by_clause) absences
 "
 
 # ---------------------------------------------------------------
@@ -397,8 +392,13 @@ set bgcolor(0) " class=roweven "
 set bgcolor(1) " class=rowodd "
 set ctr 0
 
-# callback im_projects_index_before_render -view_name $view_name \
-#    -view_type $view_type -sql $selection -table_header $page_title -variable_set $form_vars
+
+# ---------------------------------------------------------------
+# We reuse the projects_index filter callback for the time being
+# ---------------------------------------------------------------
+
+callback im_projects_index_before_render -view_name $view_name \
+    -view_type $view_type -sql $sql -table_header $page_title -variable_set $form_vars
 
 db_foreach remaining_vacation_query $sql {
     if {$taken_absence_days_this_year == 0 && $remaining_absence_days_this_year == 0 && $requested_absence_days_this_year == 0 && $entitlement_days_this_year == 0} {continue}
