@@ -97,7 +97,7 @@ set user_view_page "/intranet/users/view"
 # ---------- setting filter 'User selection' ------------- # 
 
 
-set user_selection_options [im_user_timesheet_absences_options_2 -project_id $project_id -user_selection $user_selection]
+set user_selection_options [im_user_timesheet_absences_options -project_id $project_id -user_selection $user_selection]
 
 
 # ---------- / setting filter 'User selection' ------------- # 
