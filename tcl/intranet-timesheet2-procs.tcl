@@ -764,7 +764,7 @@ ad_proc im_do_row {
 } {
 
     if { $user_daysl != ""  } {
-	# ad_return_complaint 1 $user_daysl
+	    # ad_return_complaint 1 $user_daysl
     }
 
     set user_view_page "/intranet/users/view"
@@ -786,53 +786,53 @@ ad_proc im_do_row {
 
     # Adding feature: Set bg of cell to green when all logged hours have been confirmed 
     if {  "" != $workflow_key } {
-	set wf_status_list [wf_status_list $curr_owner_id $days $workflow_key]
-	foreach rec $wf_status_list {
-		set wf_status_array([lindex [split $rec " "] 0]) [lindex [split $rec " "] 1]
+        set wf_status_list [wf_status_list $curr_owner_id $days $workflow_key]
+        foreach rec $wf_status_list {
+            set wf_status_array([lindex [split $rec " "] 0]) [lindex [split $rec " "] 1]
     	}
     }
 
     for { set i 0 } { $i < [llength $days] } { incr i } {
-	# Defaults 
-	set cell_text [list]
-	set cell_param [list]
-	set absent_p "f"
+        # Defaults 
+        set cell_text [list]
+        set cell_param [list]
+        set absent_p "f"
 
-	# if { [lsearch -exact $holydays [lindex $days $i]] >= 0 } {
-	#    set holy_html " style=\"background-color=\#DDDDDD;\" "
-	# } else {
-	#    set holy_html ""
-	# }
+        # if { [lsearch -exact $holydays [lindex $days $i]] >= 0 } {
+        #    set holy_html " style=\"background-color=\#DDDDDD;\" "
+        # } else {
+        #    set holy_html ""
+        # }
 
-	# Check for Absence and write absence information to cell (if applicable) 
-	if { [info exists absence([lindex $days $i])] } {
-	    set abs_id $absence([lindex $days $i])
-	    lappend cell_text "<a href=\"$absence_view_page?absence_id=$abs_id\" style=\"color:\\\#FF0000;\">[_ intranet-timesheet2.Absent]</a> ($descr($abs_id))"
-	    set absent_p "t"
-	}
-
-	# Check for hours logged and write hours logged for this day (if applicable) 
-	if { [info exists user_days([lindex $days $i])] } {
-	    lappend cell_text "$user_days([lindex $days $i]) [_ intranet-timesheet2.hours]"
-	    set absent_p "t"	
-	    # Set bg color to green when all logged hours have been confirmed
-	    if { "" != $workflow_key } {
-	    	if { 1 == $wf_status_array([lindex $days $i]) } {
-			set cell_param "style='background-color:#99CC33;'"
-	    	}
-	   }
-	} 
-	
-	# If no hours are logged and no absence is registered, set bg color of cell to yellow 
-        if { $absent_p == "f" } {
-             lappend cell_text "[_ intranet-timesheet2.No_hours_logged]"
-             lappend cell_param "style=\"background-color: #ffcc66;\""
+        # Check for Absence and write absence information to cell (if applicable) 
+        if { [info exists absence([lindex $days $i])] } {
+            set abs_id $absence([lindex $days $i])
+            lappend cell_text "<a href=\"$absence_view_page?absence_id=$abs_id\" style=\"color:\\\#FF0000;\">[_ intranet-timesheet2.Absent]</a> ($descr($abs_id))"
+            set absent_p "t"
         }
 
-	if { [lsearch -exact $holydays [lindex $days $i]] >= 0 } {
-	    set cell_param "style=\"background-color: #DDDDDD;\""
-	}
-	append html "<td [join $cell_param " "]>[join $cell_text "<br>"]</td>\n"
+        # Check for hours logged and write hours logged for this day (if applicable) 
+        if { [info exists user_days([lindex $days $i])] } {
+            lappend cell_text "$user_days([lindex $days $i]) [_ intranet-timesheet2.hours]"
+            set absent_p "t"	
+            # Set bg color to green when all logged hours have been confirmed
+            if { "" != $workflow_key } {
+                if { 1 == $wf_status_array([lindex $days $i]) } {
+                set cell_param "style='background-color:#99CC33;'"
+                }
+           }
+        } 
+        
+        # If no hours are logged and no absence is registered, set bg color of cell to yellow 
+            if { $absent_p == "f" } {
+                 lappend cell_text "[_ intranet-timesheet2.No_hours_logged]"
+                 lappend cell_param "style=\"background-color: #ffcc66;\""
+            }
+
+        if { [lsearch -exact $holydays [lindex $days $i]] >= 0 } {
+            set cell_param "style=\"background-color: #DDDDDD;\""
+        }
+        append html "<td [join $cell_param { }]>[join $cell_text {<br>}]</td>\n"
     }
     append html "</tr>\n"
     return $html
@@ -959,29 +959,6 @@ ad_proc get_unconfirmed_hours_for_period {
     return [db_string get_unconfirmed_hours $sql -default 0]
 }
 
-ad_proc -public im_timesheet_approval_component {
-    -user_id:required
-} {
-    Returns a HTML component showing the vacations
-    for the user
-} {
-    set current_user_id [ad_get_user_id]
-    # This is a sensitive field, so only allows this for the user himself
-    # and for users with HR permissions.
-
-    set read_p 0
-    if {$user_id == $current_user_id} { set read_p 1 }
-    if {[im_permission $current_user_id view_hr]} { set read_p 1 }
-    if {!$read_p} { return "" }
-
-    set params [list \
-		    [list user_id $user_id] \
-		    [list return_url [im_url_with_query]] \
-    ]
-
-    set result [ad_parse_template -params $params "/packages/intranet-timesheet2/lib/timesheet-approval"]
-    return [string trim $result]
-}
 
 ad_proc -public im_timesheet_remind_employees {
 } {
@@ -1055,5 +1032,47 @@ ad_proc -public im_hour_nuke {
     db_string delete_hour_cost "delete from im_hours where hour_id = :hour_id"
 
     return $hour_id
+}
+
+ad_proc -public im_project_assignment_component {
+    {-user_id ""}
+    {-project_id ""}
+    {-return_url ""}
+} {
+    catches errors thrown by intranet/projects/view
+    so that we can focus on our other tasks
+} {
+    ns_log error "missing im_project_assignment_component"
+}
+
+ad_proc -public im_timesheet_approval_component {
+    {-user_id ""}
+    {-project_id ""}
+} {
+    Returns a HTML component showing the vacations
+    for the user
+} {
+
+    if { ($user_id eq {} && $project_id eq {}) || ($user_id ne {} && $project_id ne {}) } {
+        error "im_timesheet_approval_component requires a user_id or (exclusive or) a project_id"
+    }
+
+    set current_user_id [ad_get_user_id]
+    # This is a sensitive field, so only allows this for the user himself
+    # and for users with HR permissions.
+
+    set read_p 0
+    if {$user_id == $current_user_id} { set read_p 1 }
+    if {[im_permission $current_user_id view_hr]} { set read_p 1 }
+    if {!$read_p} { return "" }
+
+    set params [list \
+		    [list user_id $user_id] \
+		    [list project_id $project_id] \
+		    [list return_url [im_url_with_query]] \
+    ]
+
+    set result [ad_parse_template -params $params "/packages/intranet-timesheet2/lib/timesheet-approval"]
+    return [string trim $result]
 }
 

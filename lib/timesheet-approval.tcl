@@ -1,3 +1,6 @@
+# user_id:integer
+# project_id:integer
+
 # ----------------------------------------------------------------------
 # Inbox for "Business Objects"
 # ----------------------------------------------------------------------
@@ -118,6 +121,12 @@ append table_header_html "</tr>\n"
 # SQL Query
 
 # Get the list of all "open" (=enabled or started) tasks with their assigned users
+if { $user_id ne {} } {
+    set where_clause "and (wta.party_id = :user_id or o.creation_user = :user_id)"
+} else {
+    # TODO
+}
+
 set tasks_sql "
 	select
 		o.object_id,
@@ -137,16 +146,16 @@ set tasks_sql "
 		wf_cases ca left outer join (select sum(hours) as hours, conf_object_id as task_id from im_hours group by conf_object_id) h on h.task_id = ca.object_id,
 		wf_transitions tr,
 		wf_tasks t,
-                wf_task_assignments wta
+        wf_task_assignments wta
 	where
-                wta.task_id = t.task_id
-                and (wta.party_id = :user_id or o.creation_user = :user_id)
+        wta.task_id = t.task_id
 		and o.object_id = ca.object_id
 		and ca.case_id = t.case_id
 		and t.state in ('enabled', 'started')
 		and t.transition_key = tr.transition_key
 		and t.workflow_key = tr.workflow_key
-                and t.workflow_key = 'timesheet_approval_wf'
+        and t.workflow_key = 'timesheet_approval_wf'
+        ${where_clause}
     "
 
 if {"" != $order_by_clause} {
