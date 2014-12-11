@@ -100,12 +100,17 @@ ad_proc -public im_leave_entitlement_remaining_days_helper {
     {-approved_p "0"}
     {-ignore_absence_ids ""}
     {-booking_date ""}
+    {-requested_daysVar ""}
 } {
     Returns the number of remaining days for the user of a certain absence type for the year in which the absence is requested.
     
     @param approved_p Only calculate based on the approved vacation days
     @param booking_date Define which leave entitlements should be included. Defaults to current date (everything earned up until today)
 } {
+
+    if { $requested_daysVar ne {} } {
+        upvar $requested_daysVar requested_days
+    }
 
     set current_year [dt_systime -format "%Y"]
     set eoy "${current_year}-12-31"
@@ -187,14 +192,17 @@ ad_proc -public im_leave_entitlement_remaining_days_helper {
         set ignore_absence_sql "and absence_id not in ([template::util::tcl_to_sql_list $ignore_absence_ids])"
     }
     
+    set requested_days ""
     if {$wf_exists_p} {
+
         set absence_days [db_string absence_days "select coalesce(sum(duration_days),0)
             from im_user_absences 
             where $date_sql
-            and absence_status_id in ([template::util::tcl_to_sql_list [im_sub_categories [im_user_absence_status_active]]])
             and absence_type_id = :absence_type_id
+            and absence_status_id in ([template::util::tcl_to_sql_list [im_sub_categories [im_user_absence_status_active]]])
             and owner_id = :user_id
             $ignore_absence_sql" -default 0]
+
         set requested_days [db_string requested_days "select coalesce(sum(duration_days),0) 
             from im_user_absences 
             where $date_sql
