@@ -42,6 +42,11 @@ im_absence_component__user_selection \
     -is_aggregate_pVar is_aggregate_p \
     -hide_colors_pVar hide_colors_p
 
+# Hard Limit for the start_date 
+set num_days [parameter::get -parameter HideAbsencesOlderThanDays -default "365"]
+set num_days_interval "$num_days days"
+append where_clause "and a.start_date::date > now() - :num_days_interval::interval"
+
 set absences_sql "
     -- Individual Absences per user
     select	a.absence_type_id,

@@ -28,14 +28,16 @@ switch $timescale {
     today {set timescale next_3w}
 }
 
+set where_clause ""
+
 im_absence_component__timescale \
     -num_daysVar num_days \
     -start_dateVar start_date \
     -end_dateVar end_date \
     -timescale_date $timescale_date \
-    -timescale $timescale
+    -timescale $timescale \
+    -where_clauseVar where_clause
 
-ds_comment "$num_days $timescale_date $timescale $start_date $end_date"
 set html ""
 
 if {$num_days eq {}} {
@@ -68,7 +70,6 @@ set name_order [parameter::get -package_id [apm_package_id_from_key intranet-cor
 # Generate SQL
 # ---------------------------------------------------------------
 
-set where_clause ""
 
 im_absence_component__absence_criteria \
     -where_clauseVar where_clause \
@@ -104,8 +105,7 @@ set user_list [db_list_of_lists user_list "
               -- Individual Absences per user
               select	a.owner_id
               from	users u inner join im_user_absences a on (a.owner_id=u.user_id)
-              where	a.start_date <= :end_date::date and
-                    a.end_date >= :start_date::date
+              where	1=1
                     $where_clause
               UNION
               -- Absences for user groups
@@ -113,8 +113,6 @@ set user_list [db_list_of_lists user_list "
               from	users u inner join im_user_absences a on (a.owner_id=u.user_id),
                     group_distinct_member_map mm
               where	mm.member_id = u.user_id and
-                    a.start_date <= :end_date::date and
-                    a.end_date >= :start_date::date and
                     mm.group_id = a.group_id
                     $where_clause
             )
@@ -137,8 +135,6 @@ set absence_sql "
       from	cc_users u inner join im_user_absences a on (a.owner_id=u.user_id),
             (select im_day_enumerator as d from im_day_enumerator(:start_date, :end_date)) d
     where   u.member_state = 'approved' and
-            a.start_date <= :end_date::date and
-            a.end_date >= :start_date::date and
             date_trunc('day',d.d) between date_trunc('day',a.start_date) and date_trunc('day',a.end_date) 
             $where_clause
     UNION
@@ -150,8 +146,6 @@ set absence_sql "
             group_distinct_member_map mm,
             (select im_day_enumerator as d from im_day_enumerator(:start_date, :end_date)) d
     where	mm.member_id = u.user_id and
-            a.start_date <= :end_date::date and
-            a.end_date >= :start_date::date and
             date_trunc('day',d.d) between date_trunc('day',a.start_date) and date_trunc('day',a.end_date) and 
             mm.group_id = a.group_id
             $where_clause

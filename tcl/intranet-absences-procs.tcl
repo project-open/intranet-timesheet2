@@ -1175,8 +1175,9 @@ ad_proc im_absence_component__timescale {
 
     set criteria [list]
 
+    set today_date [db_string today "select now()::date"]
     if {$timescale_date eq {}} {
-        set timescale_date [db_string today "select now()::date"]
+	set timescale_date $today_date
     }
 
     set num_days ""
@@ -1184,14 +1185,10 @@ ad_proc im_absence_component__timescale {
     set end_date $timescale_date
     switch $timescale {
         "all" {
-            set num_days [parameter::get -parameter HideAbsencesOlderThanDays -default "365"]
-	    if {$num_days eq ""} {
-		set start_date "2000-01-01"
-		set end_date "2099-12-31"
-	    } else {
-		set start_date [db_string all "select to_date(:timescale_date,'YYYY-MM-DD') - :num_days::integer"]
-		set end_date [db_string all "select to_date(:timescale_date,'YYYY-MM-DD') + :num_days::integer"]
-	    }
+	    # Limit the display to 365 days back and forward as you can always change by start date.
+            set num_days 365
+	    set start_date [db_string all "select to_date(:timescale_date,'YYYY-MM-DD') - :num_days::integer"]
+	    set end_date [db_string all "select to_date(:timescale_date,'YYYY-MM-DD') + :num_days::integer"]
         }
         "today" { 
             set num_days 1
@@ -1207,20 +1204,14 @@ ad_proc im_absence_component__timescale {
             set start_date [db_string 3w "select to_date(:timescale_date,'YYYY-MM-DD') + :num_days::integer"]
         }
         "past" { 
-            set num_days [parameter::get -parameter HideAbsencesOlderThanDays -default "365"]
-	    if {$num_days eq ""} {
-		set start_date "2000-01-01"
-	    } else {
-		set start_date [db_string past "select to_date(:timescale_date,'YYYY-MM-DD') - :num_days::integer"]
-	    }
+	    # Limit to the last 6 months, if you need to go further, change start date
+            set num_days 185
+	    set start_date [db_string past "select to_date(:timescale_date,'YYYY-MM-DD') - :num_days::integer"]
         }
         "future" { 
-            set num_days [parameter::get -parameter HideAbsencesOlderThanDays -default "365"]
-	    if {$num_days eq ""} {
-		set end_date "2099-12-31"
-	    } else {
-		set end_date [db_string future "select to_date(:timescale_date,'YYYY-MM-DD') + :num_days::integer"]
-	    } 
+	    # We assume noone has planing ahead for more then one year, otherwise change start_date
+            set num_days 365
+	    set end_date [db_string future "select to_date(:timescale_date,'YYYY-MM-DD') + :num_days::integer"]
         }
         "last_3m" { 
             set num_days -93 
@@ -1240,8 +1231,10 @@ ad_proc im_absence_component__timescale {
     if {$start_date ne {}} { lappend criteria "a.end_date::date >= :start_date" }
     if {$end_date ne {}} { lappend criteria "a.start_date::date <= :end_date" }
 
-    set num_days_interval "$num_days days"
-    lappend criteria "a.start_date::date > now() - :num_days_interval::interval"
+    # Hard Limit for the start_date 
+    set max_days [parameter::get -parameter HideAbsencesOlderThanDays -default "365"]
+    set max_days_interval "$max_days days"
+    lappend criteria "a.start_date::date > now() - :max_days_interval::interval"
 
     # temporary hack until I manage to refactor the code
     append where_clause [db_bind_var_substitution [im_where_from_criteria $criteria]]
@@ -1315,7 +1308,8 @@ ad_proc -public im_absence_cube_component {
     }
 
     if { ![im_absence_component_view_p -user_selection $user_selection] } {
-        return "You do not have enough privileges to view this component"
+#        return "You do not have enough privileges to view this component"
+	return ""
     }
 
     set params [list \
@@ -1349,7 +1343,8 @@ ad_proc -public im_absence_list_component {
 } {
 
     if { ![im_absence_component_view_p -user_selection $user_selection] } {
-        return "You do not have enough privileges to view this component"
+#        return "You do not have enough privileges to view this component"
+	return ""
     }
 
     set params [list \
@@ -1390,7 +1385,8 @@ ad_proc -public im_absence_calendar_component {
     set user_selection $owner_id
     set current_user_id [ad_get_user_id]
     if { ![im_absence_component_view_p -user_selection $user_selection] } {
-        return "You do not have enough privileges to view this component"
+#        return "You do not have enough privileges to view this component"
+	return ""
     }
 
     set params \
@@ -1539,14 +1535,10 @@ ad_proc -public im_absence_user_component {
     Returns a HTML component showing the vacations
     for the user
 } {
-    set current_user_id [ad_get_user_id]
-    # This is a sensitive field, so only allows this for the user himself
-    # and for users with HR permissions.
-
-    set read_p 0
-    if {$user_id == $current_user_id} { set read_p 1 }
-    if {[im_permission $current_user_id view_hr]} { set read_p 1 }
-    if {!$read_p} { return "" }
+    if { ![im_absence_component_view_p -user_selection $user_id] } {
+#        return "You do not have enough privileges to view this component"
+	return "" ; # Returning nothing will hide the component. Horray!
+    }
 
     set params [list \
 		    [list user_id_from_search $user_id] \
