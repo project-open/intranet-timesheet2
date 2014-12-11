@@ -28,7 +28,6 @@ ad_page_contract {
     { reference_date "" }
     { view_name "remaining_vacation_list" }
     { absence_type_id "[im_user_absence_type_vacation]"}
-    { employee_status_id:integer ""}
     { view_type "" }
     { department_id ""}
     { user_selection ""}
@@ -210,10 +209,6 @@ im_absence_component__user_selection \
 #    set where_clause "and (employee_id = :current_user_id or $where_clause)"
 # }
 
-if { $employee_status_id ne {} } {
-    append where_clause "and employee_status_id=:employee_status_id"
-}
-
 if {$view_order_by_clause != ""} {
     set order_by_clause "order by $view_order_by_clause"
 } else {
@@ -266,10 +261,9 @@ for {set i 0} {$i < $tmp_var_size} { incr i } {
     ns_set put $form_vars $key $value
 }
 
-
 # Add the additional condition to the "where_clause"
 if {"" != $dynfield_extra_where} { 
-    append extra_where "and im_employees.employee_id in $dynfield_extra_where"
+    append where_clause "and im_employees.employee_id in $dynfield_extra_where"
 }
 
 # Get a table with

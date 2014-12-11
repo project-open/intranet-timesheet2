@@ -24,7 +24,7 @@ begin
         '/intranet/users/view',	-- page_url
         null,				    -- view_name
         20,				        -- sort_order
-        'im_absence_cube_component -user_selection [im_coalesce $user_id_from_search [ad_get_user_id]]'	-- component_tcl
+        'im_absence_cube_component -user_selection [im_coalesce $user_id_from_search [ad_get_user_id]] -absence_status_id [im_user_absence_status_active]'	-- component_tcl
     );
 
     perform im_component_plugin__new (
