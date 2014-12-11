@@ -1023,26 +1023,7 @@ template::multirow foreach hours_multirow {
     }
 
    # Make sure to surpress closed projects
-   if {$project_status_id == [im_project_status_closed]} { set surpress_output_p 1 }
-
-    # ---------------------------------------------
-    # Write out the name of the project nicely indented
-
-    # Set project title & URL
-    set project_url [export_vars -base "/intranet/projects/view?" {project_id return_url}]
-    if {$show_project_nr_p} { set ptitle "$project_nr - $project_name" } else { set ptitle $project_name }
-
-    if { !$filter_surpress_output_p } { 
-	if { !$top_parent_shown_p && $project_id != $top_project_id && "" != $search_task } {
-	    # This row only serves as "title" row showing the top-parent project in case a "string search filter" us used  
-	    append table_rows "<tr $tr_class([expr $ctr % 2])>\n<td>@@fold-icon-class@@"
-	    append table_rows "<strong><a href='/intranet/projects/view?project_id=$top_project_id' style='text-decoration: none'>
-					<span style='color:\#A9D0F5'>$top_parent_project_name $dots_for_filter</span></a></strong><br>"
-	    append table_rows "</td></tr>"
-	    set top_parent_shown_p 1
-	}	
-	append table_rows "<tr $tr_class([expr $ctr % 2]) id=\"${project_id}\" hidden_by=\"@@hidden_by@@\" fold_status=\"@@fold_status@@\" >\n<td><nobr>$indent @@fold-icon-class@@ <a href=\"$project_url\">$ptitle</a></nobr></td>\n" 
-    }
+   if {$project_status_id == [im_project_status_closed]} { set filter_surpress_output_p 1 }
 
     # ------------------------------------------------------------------------------
     # Create help texts to explain the user why certain projects aren't shown
@@ -1050,6 +1031,9 @@ template::multirow foreach hours_multirow {
     set help_text ""
     if {$closed_p && (!$user_is_project_member_p && $project_is_task_p)} { 
 	append help_text [lang::message::lookup "" intranet-timesheet2.Nolog_closed_p "The project or one of its parents has been closed or requires membership. "] 
+	
+	# Don't show this row actually.
+	set filter_surpress_output_p 1
     }
     if {![string eq "t" $edit_hours_p]} { append help_text [lang::message::lookup "" intranet-timesheet2.Nolog_edit_hours_p "The time period has been closed for editing. "] }
     if {!$log_on_parent_p} { append help_text [lang::message::lookup "" intranet-timesheet2.Nolog_log_on_parent_p "This project has sub-projects or tasks. "] }
@@ -1077,7 +1061,32 @@ template::multirow foreach hours_multirow {
 	}
     }
 
-    if {$show_member_p && !$user_is_project_member_p} { append help_text [lang::message::lookup "" intranet-timesheet2.Not_member_of_project "You are not a member of this project. "] }
+    if {$show_member_p && !$user_is_project_member_p} { 
+	
+	# No need to show this project either.
+	set filter_surpress_output_p 1
+	append help_text [lang::message::lookup "" intranet-timesheet2.Not_member_of_project "You are not a member of this project. "] 
+    }
+
+    # ---------------------------------------------
+    # Write out the name of the project nicely indented
+
+    # Set project title & URL
+    set project_url [export_vars -base "/intranet/projects/view?" {project_id return_url}]
+    if {$show_project_nr_p} { set ptitle "$project_nr - $project_name" } else { set ptitle $project_name }
+
+    if { !$filter_surpress_output_p } { 
+	if { !$top_parent_shown_p && $project_id != $top_project_id && "" != $search_task } {
+	    # This row only serves as "title" row showing the top-parent project in case a "string search filter" us used  
+	    append table_rows "<tr $tr_class([expr $ctr % 2])>\n<td>@@fold-icon-class@@"
+	    append table_rows "<strong><a href='/intranet/projects/view?project_id=$top_project_id' style='text-decoration: none'>
+					<span style='color:\#A9D0F5'>$top_parent_project_name $dots_for_filter</span></a></strong><br>"
+	    append table_rows "</td></tr>"
+	    set top_parent_shown_p 1
+	}	
+	append table_rows "<tr $tr_class([expr $ctr % 2]) id=\"${project_id}\" hidden_by=\"@@hidden_by@@\" fold_status=\"@@fold_status@@\" >\n<td><nobr>$indent @@fold-icon-class@@ <a href=\"$project_url\">$ptitle</a></nobr></td>\n" 
+    }
+
 
     # -----------------------------------------------
     # Write out help and debug information
