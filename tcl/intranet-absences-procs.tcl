@@ -1539,14 +1539,9 @@ ad_proc -public im_absence_user_component {
     Returns a HTML component showing the vacations
     for the user
 } {
-    set current_user_id [ad_get_user_id]
-    # This is a sensitive field, so only allows this for the user himself
-    # and for users with HR permissions.
-
-    set read_p 0
-    if {$user_id == $current_user_id} { set read_p 1 }
-    if {[im_permission $current_user_id view_hr]} { set read_p 1 }
-    if {!$read_p} { return "" }
+    if { ![im_absence_component_view_p -user_selection $user_id] } {
+        return "You do not have enough privileges to view this component"
+    }
 
     set params [list \
 		    [list user_id_from_search $user_id] \
