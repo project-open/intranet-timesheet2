@@ -36,7 +36,7 @@ ad_page_contract {
     { start_idx:integer 0 }
     { order_by "User" }
     { how_many "" }
-    { absence_type_id:integer "5000" }
+    { absence_type_id:integer "-1" }
     { user_selection "mine" }
     { timescale "future" }
     { view_name "absence_list_home" }
