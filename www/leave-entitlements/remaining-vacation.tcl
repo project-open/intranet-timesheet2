@@ -137,7 +137,7 @@ foreach { value text } $absences_types {
     lappend absence_type_list [list $text $value]
 }
 
-set user_selection_options [im_user_timesheet_absences_options -user_selection $user_selection]
+set user_selection_options [im_user_timesheet_absences_options -user_selection $user_selection -project_id "-1"]
 
 
 ad_form \
