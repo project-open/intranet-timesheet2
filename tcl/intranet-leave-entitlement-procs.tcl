@@ -132,27 +132,33 @@ ad_proc -public im_leave_entitlement_remaining_days_helper {
     }
     
     
-    set sql "
-        select coalesce(sum(l.entitlement_days),0) as absence_days 
-        from im_user_leave_entitlements l 
-        where leave_entitlement_type_id = :absence_type_id 
-        and owner_id = :user_id 
-        and $booking_date_sql
-    "
-    set entitlement_days [db_string entitlement_days $sql -default 0]    
-    
-    # for the overtime category (and child categories) we are not 
-    # filtering the leave entitlements only for the current / booking
-    # year, but use all of them
-    set sql "
-        select coalesce(sum(l.entitlement_days),0) as absence_days 
-        from im_user_leave_entitlements l 
-        where leave_entitlement_type_id in ([template::util::tcl_to_sql_list [im_sub_categories [im_user_absence_type_overtime]]])
-        and owner_id = :user_id 
-    "
-    set overtime_entitlement_days [db_string overtime_days $sql -default 0]
+    if { $absence_type_id == [im_user_absence_type_overtime] } {
 
-    set entitlement_days [expr { $entitlement_days + $overtime_entitlement_days }]
+        set sql "
+            select coalesce(sum(l.entitlement_days),0) as absence_days 
+            from im_user_leave_entitlements l 
+            where leave_entitlement_type_id = :absence_type_id 
+            and owner_id = :user_id 
+            and $booking_date_sql
+        "
+
+        set entitlement_days [db_string entitlement_days $sql -default 0]    
+
+    } else {
+        
+        # for the overtime category (and child categories) we are not 
+        # filtering the leave entitlements only for the current / booking
+        # year, but use all of them
+        set sql "
+            select coalesce(sum(l.entitlement_days),0) as absence_days 
+            from im_user_leave_entitlements l 
+            where leave_entitlement_type_id in ([template::util::tcl_to_sql_list [im_sub_categories [im_user_absence_type_overtime]]])
+            and owner_id = :user_id 
+        "
+
+        set entitlement_days [db_string overtime_days $sql -default 0]
+
+    }
 
 	set absence_type [im_category_from_id $absence_type_id]
     
