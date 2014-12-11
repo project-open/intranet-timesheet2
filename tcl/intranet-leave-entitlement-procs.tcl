@@ -107,7 +107,6 @@ ad_proc -public im_leave_entitlement_remaining_days_helper {
     @param booking_date Define which leave entitlements should be included. Defaults to current date (everything earned up until today)
 } {
 
-
     set current_year [dt_systime -format "%Y"]
     set eoy "${current_year}-12-31"
     set soy "${current_year}-01-01"
@@ -133,18 +132,6 @@ ad_proc -public im_leave_entitlement_remaining_days_helper {
     
     
     if { $absence_type_id == [im_user_absence_type_overtime] } {
-
-        set sql "
-            select coalesce(sum(l.entitlement_days),0) as absence_days 
-            from im_user_leave_entitlements l 
-            where leave_entitlement_type_id = :absence_type_id 
-            and owner_id = :user_id 
-            and $booking_date_sql
-        "
-
-        set entitlement_days [db_string entitlement_days $sql -default 0]    
-
-    } else {
         
         # for the overtime category (and child categories) we are not 
         # filtering the leave entitlements only for the current / booking
@@ -157,6 +144,20 @@ ad_proc -public im_leave_entitlement_remaining_days_helper {
         "
 
         set entitlement_days [db_string overtime_days $sql -default 0]
+
+        set date_sql "end_date::date >= :soy"
+
+    } else {
+
+        set sql "
+            select coalesce(sum(l.entitlement_days),0) as absence_days 
+            from im_user_leave_entitlements l 
+            where leave_entitlement_type_id = :absence_type_id 
+            and owner_id = :user_id 
+            and $booking_date_sql
+        "
+
+        set entitlement_days [db_string entitlement_days $sql -default 0]    
 
     }
 
@@ -218,7 +219,7 @@ ad_proc -public im_leave_entitlement_remaining_days_helper {
             $ignore_absence_sql" -default 0]
         set remaining_days [expr $entitlement_days - $absence_days]
     } 
-        
+
     return $remaining_days
 }
 
