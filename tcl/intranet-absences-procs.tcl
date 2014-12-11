@@ -1308,7 +1308,8 @@ ad_proc -public im_absence_cube_component {
     }
 
     if { ![im_absence_component_view_p -user_selection $user_selection] } {
-        return "You do not have enough privileges to view this component"
+#        return "You do not have enough privileges to view this component"
+	return ""
     }
 
     set params [list \
@@ -1342,7 +1343,8 @@ ad_proc -public im_absence_list_component {
 } {
 
     if { ![im_absence_component_view_p -user_selection $user_selection] } {
-        return "You do not have enough privileges to view this component"
+#        return "You do not have enough privileges to view this component"
+	return ""
     }
 
     set params [list \
@@ -1383,7 +1385,8 @@ ad_proc -public im_absence_calendar_component {
     set user_selection $owner_id
     set current_user_id [ad_get_user_id]
     if { ![im_absence_component_view_p -user_selection $user_selection] } {
-        return "You do not have enough privileges to view this component"
+#        return "You do not have enough privileges to view this component"
+	return ""
     }
 
     set params \
@@ -1533,7 +1536,8 @@ ad_proc -public im_absence_user_component {
     for the user
 } {
     if { ![im_absence_component_view_p -user_selection $user_id] } {
-        return "You do not have enough privileges to view this component"
+#        return "You do not have enough privileges to view this component"
+	return "" ; # Returning nothing will hide the component. Horray!
     }
 
     set params [list \

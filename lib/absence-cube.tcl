@@ -30,7 +30,6 @@ switch $timescale {
 
 set where_clause ""
 
-ds_comment "DDDD $timescale"
 im_absence_component__timescale \
     -num_daysVar num_days \
     -start_dateVar start_date \
