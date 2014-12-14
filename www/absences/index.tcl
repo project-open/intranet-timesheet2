@@ -32,7 +32,7 @@ ad_page_contract {
     @author Marc Fleischer (marc.fleischer@leinhaeuser-solutions.de)
 
 } {
-    { filter_status_id:integer "[im_user_absence_status_active]" }
+    { filter_status_id:integer "[im_user_absence_status_requested_or_active]" }
     { start_idx:integer 0 }
     { order_by "User" }
     { how_many "" }
