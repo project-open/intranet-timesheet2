@@ -815,6 +815,7 @@ ad_proc -public im_absence_vacation_balance_component {
 
 ad_proc -public im_absence_vacation_balance_component_ajax {
     -user_id_from_search:required
+    { -show_new_absence_links_p 0}
 } {
     Returns a HTML component for vacation management. 
     Allows viewing vacations for current, last and next year 
@@ -890,6 +891,11 @@ ad_proc -public im_absence_vacation_balance_component_ajax {
                 });
         </script>
     "
+    # Give user the possibility to create new absence for user shown from this portlet
+    if { $show_new_absence_links_p } {
+	append result "<br>[im_menu_ul_list "timesheet2_absences" [list user_id_from_search $user_id_from_search return_url "/intranet/users/view?user_id=$user_id_from_search"]]"
+    }
+
     return [string trim $result]
 }
 
