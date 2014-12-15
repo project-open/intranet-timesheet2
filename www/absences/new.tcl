@@ -213,12 +213,6 @@ if {$button_pressed =="delete"} {
         db_dml cancel_absence "update im_user_absences set absence_status_id = [im_user_absence_status_deleted] where absence_id = :absence_id"
         im_audit -object_type im_user_absence -action after_delete -object_id $absence_id -status_id [im_user_absence_status_deleted]
 
-        db_1row absence_info "select to_char(start_date,'YYYY-MM-DD') as start_date, to_char(end_date,'YYYY-MM-DD') as end_date from im_user_absences where absence_id = :absence_id"
-        set affected_absence_ids [im_absence_dates -start_date $start_date -end_date $end_date -owner_id $absence_owner_id -type absence_ids -ignore_absence_ids $absence_id]
-        ns_log Notice "AFFECTED :: $affected_absence_ids"
-        foreach affected_absence_id $affected_absence_ids {        
-            im_absence_update_duration_days -absence_id $affected_absence_id
-        }
     } else {
         db_transaction {
 	        callback absence_on_change \
