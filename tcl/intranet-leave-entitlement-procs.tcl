@@ -117,10 +117,10 @@ ad_proc -public im_leave_entitlement_remaining_days_helper {
     set soy "${current_year}-01-01"
     
     # By default calculate all entitlements from the past
-    set booking_date_sql "booking_date <= to_date(:eoy,'YYYY-MM-DD')"
+    set booking_date_sql "and booking_date <= to_date(:eoy,'YYYY-MM-DD')"
     
     # Calculate against all absences in the past
-    set date_sql "start_date::date <=:eoy"
+    set date_sql "and start_date::date <=:eoy"
     
     if {$booking_date ne ""} {
         set booking_year [string range $booking_date 0 3]
@@ -130,8 +130,8 @@ ad_proc -public im_leave_entitlement_remaining_days_helper {
 
             # This is a booking for a future year
             # Only calculate entitlements for that year
-            set booking_date_sql "booking_date <= to_date(:eoy,'YYYY-MM-DD') and to_date(:soy,'YYYY-MM-DD') <= booking_date"
-            set date_sql "start_date::date <=:eoy and end_date::date >=:soy"
+            set booking_date_sql "and booking_date <= to_date(:eoy,'YYYY-MM-DD') and to_date(:soy,'YYYY-MM-DD') <= booking_date"
+            set date_sql "and start_date::date <=:eoy and end_date::date >=:soy"
         }
     }
     
@@ -141,30 +141,21 @@ ad_proc -public im_leave_entitlement_remaining_days_helper {
         # for the overtime category (and child categories) we are not 
         # filtering the leave entitlements only for the current / booking
         # year, but use all of them
-        set sql "
-            select coalesce(sum(l.entitlement_days),0) as absence_days 
-            from im_user_leave_entitlements l 
-            where leave_entitlement_type_id in ([template::util::tcl_to_sql_list [im_sub_categories [im_user_absence_type_overtime]]])
-            and owner_id = :user_id 
-        "
-
-        set entitlement_days [db_string overtime_days $sql -default 0]
-
-        set date_sql "end_date::date >= :soy"
-
-    } else {
-
-        set sql "
+        
+        set booking_date_sql ""
+        set date_sql ""
+        
+    } 
+    
+    set sql "
             select coalesce(sum(l.entitlement_days),0) as absence_days 
             from im_user_leave_entitlements l 
             where leave_entitlement_type_id = :absence_type_id 
             and owner_id = :user_id 
-            and $booking_date_sql
+            $booking_date_sql
         "
 
-        set entitlement_days [db_string entitlement_days $sql -default 0]    
-
-    }
+    set entitlement_days [db_string entitlement_days $sql -default 0]    
 
 	set absence_type [im_category_from_id $absence_type_id]
     
@@ -197,22 +188,21 @@ ad_proc -public im_leave_entitlement_remaining_days_helper {
 
         set absence_days [db_string absence_days "select coalesce(sum(duration_days),0)
             from im_user_absences 
-            where $date_sql
-            and absence_type_id = :absence_type_id
+            where absence_type_id = :absence_type_id
             and absence_status_id in ([template::util::tcl_to_sql_list [im_sub_categories [im_user_absence_status_active]]])
             and owner_id = :user_id
+            $date_sql
             $ignore_absence_sql" -default 0]
 
         set requested_days [db_string requested_days "select coalesce(sum(duration_days),0) 
             from im_user_absences 
-            where $date_sql
-            and absence_type_id = :absence_type_id
+            where absence_type_id = :absence_type_id
             and absence_status_id in ([template::util::tcl_to_sql_list [im_sub_categories [im_user_absence_status_requested]]])
             and owner_id = :user_id
+            $date_sql
             $ignore_absence_sql" -default 0]
 
         set remaining_days [expr $entitlement_days - $absence_days]
-
         if {!$approved_p} {
             # We need to substract the requested days as well
             set remaining_days [expr $remaining_days - $requested_days]
@@ -220,10 +210,10 @@ ad_proc -public im_leave_entitlement_remaining_days_helper {
     } else {
         set absence_days [db_string absence_days "select coalesce(sum(duration),0)
             from im_user_absences 
-            where $date_sql
-            and absence_type_id = :absence_type_id
+            where absence_type_id = :absence_type_id
             and absence_status_id in ([template::util::tcl_to_sql_list [im_sub_categories [im_user_absence_status_active]]])
             and owner_id = :user_id
+            $date_sql
             $ignore_absence_sql" -default 0]
         set remaining_days [expr $entitlement_days - $absence_days]
     } 
