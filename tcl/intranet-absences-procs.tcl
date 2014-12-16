@@ -1102,8 +1102,6 @@ ad_proc -private im_absence_component__user_selection {
                 from im_employees 
                 where department_id in ([template::util::tcl_to_sql_list $cost_center_ids]) 
                 and employee_status_id = [im_employee_status_active] 
-                UNION
-                select :current_user_id from dual
             "
 
             lappend criteria "${user_selection_column} in (${sql})"
