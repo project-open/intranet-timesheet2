@@ -117,6 +117,8 @@ begin
 
  	select attribute_id into v_attribute_id from im_dynfield_attributes where widget_name = 'employee_supervisors';
 
+	IF v_attribute_id > 0
+	THEN
         select count(*) into v_count from im_dynfield_layout
         where page_url = '/intranet-timesheet2/weekly-report' and attribute_id = v_attribute_id;
 
@@ -131,9 +133,12 @@ begin
 	  v_attribute_id, '/intranet-timesheet2/weekly-report', 1, 'plain'
 	);
         END IF;
+	END IF;
 
  	select attribute_id into v_attribute_id from im_dynfield_attributes where widget_name = 'employee_status';
-
+	
+	IF v_attribute_id > 0
+	THEN
         select count(*) into v_count from im_dynfield_layout
         where page_url = '/intranet-timesheet2/weekly-report' and attribute_id = v_attribute_id;
 
@@ -163,6 +168,7 @@ begin
        	  v_attribute_id, '/intranet-timesheet2/leave-entitlements/remaining-vacation', 1, 'plain'
 	);
         END IF;
+	END IF;
     return 1;
 
 end;
