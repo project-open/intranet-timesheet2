@@ -208,7 +208,7 @@ set admin_html [im_menu_ul_list "timesheet2_absences" [list user_id_from_search 
 # Set color scheme 
 # ----------------------------------------------------------
 
-set admin_html [im_absence_cube_legend]
+append admin_html "[im_absence_cube_legend]"
 
 # ---------------------------------------------------------------
 # Left Navbar
