@@ -401,7 +401,7 @@ callback im_projects_index_before_render -view_name $view_name \
     -view_type $view_type -sql $sql -table_header $page_title -variable_set $form_vars
 
 db_foreach remaining_vacation_query $sql {
-    if {$taken_absence_days_this_year == 0 && $remaining_absence_days_this_year == 0 && $requested_absence_days_this_year == 0 && $entitlement_days_this_year == 0} {continue}
+    if {$taken_absence_days_this_year == 0 && $remaining_absence_days_this_year == 0 && $requested_absence_days_this_year == 0 && $entitlement_days_this_year == 0 && $remaining_vacation_days == 0} {continue}
 
     set remaining_vacation_days [expr $entitlement_days_total - $total_absence_days - $requested_absence_days_this_year]
     set owner_name [im_name_from_user_id $employee_id]
