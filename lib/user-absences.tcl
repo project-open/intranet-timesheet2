@@ -182,10 +182,5 @@ db_foreach absences_list $selection {
 
 }
 
-if {$hr_p} {
-    set absence_link_html "<a href=\"[export_vars -base "/intranet-timesheet2/absences/index" -url {{user_selection $user_id_from_search} {timescale all}}]\">All absences</a>"
-} else {
-    set absence_link_html ""
-}
 # Links to add absences
 set admin_html [im_menu_ul_list -package_key "intranet-timesheet2" "timesheet2_absences" "{user_id_from_search} {$user_id_from_search} {return_url} {$return_url}"]
