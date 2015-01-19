@@ -874,7 +874,6 @@ ad_proc -private im_absence_component__user_selection_helper {
                 
                 # Show only if user is an employee
                 set owner_id $user_selection_id
-                if { ![im_user_is_employee_p $owner_id] } { return false }
 
                 set sql "
                     select supervisor_id,manager_id
