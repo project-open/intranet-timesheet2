@@ -166,8 +166,8 @@ set weekend_index $indexof($weekend_absence_type_id)
 lappend bank_holiday_indexes $weekend_index
 foreach weekend_date $weekend_days {
     set cell_char($weekend_date) "&nbsp;"
-    set absence_hash($weekend_date) $bank_holiday_index
-    #set absence_hash($weekend_date) $weekend_index
+    #set absence_hash($weekend_date) $bank_holiday_index
+    set absence_hash($weekend_date) $weekend_index
 }
 
 # ---------------------------------------------------------------
