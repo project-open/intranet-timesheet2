@@ -903,7 +903,7 @@ ad_proc -private im_absence_component__user_selection_helper {
 
             im_project {
 
-                set project_manager_p [im_biz_object_member_p -role_id 1301 $current_user_id $user_selection]
+                set project_manager_p [im_biz_object_member_p -role_id [im_biz_object_role_project_manager] $current_user_id $user_selection]
                 if {$project_manager_p || $can_view_all_p} {
                     set user_name [db_string project_name "select project_name from im_projects where project_id = :user_selection" -default ""]
                     set hide_colors_p 1
