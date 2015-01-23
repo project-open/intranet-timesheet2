@@ -31,7 +31,7 @@ ad_page_contract {
     @author Malte Sussdorff (malte.sussdorff@cognovis.de)
 } {
     { owner_id:integer "" }
-    { project_id:integer "" }
+    { filter_project_id:integer "" }
     { cost_center_id:integer "" }
     { end_date "" }
     { start_date "" }
@@ -62,7 +62,7 @@ set date_format "YYYY-MM-DD"
 if {$view_type ne "actual"} {set timescale "monthly"}
 
 # Single only makes sense if we have a project_id
-if {$project_id eq "" && $detail_level eq "single"} {
+if {$filter_project_id eq "" && $detail_level eq "single"} {
     set detail_level "summary"
 }
 
@@ -96,8 +96,8 @@ if {![im_permission $current_user_id "view_hours_all"] && $owner_id == ""} {
 set view_options {{#intranet-core.Projects# timesheet_projects_list}}
 
 # Allow the project_manager to see the hours of this project
-if {"" != $project_id} {
-    set manager_p [db_string manager "select count(*) from acs_rels ar, im_biz_object_members bom where ar.rel_id = bom.rel_id and object_id_one = :project_id and object_id_two = :current_user_id and object_role_id = 1301" -default 0]
+if {"" != $filter_project_id} {
+    set manager_p [db_string manager "select count(*) from acs_rels ar, im_biz_object_members bom where ar.rel_id = bom.rel_id and object_id_one = :filter_project_id and object_id_two = :current_user_id and object_role_id = 1301" -default 0]
     if {$manager_p || [im_permission $current_user_id "view_hours_all"]} {
 	set owner_id ""
     }
@@ -111,9 +111,10 @@ if {"" != $cost_center_id} {
     }
 }
 
-if { $project_id != "" } {
-    set error_msg [lang::message::lookup "" intranet-core.No_name_for_project_id "No Name for project %project_id%"]
-    set project_name [db_string get_project_name "select project_name from im_projects where project_id = :project_id" -default $error_msg]
+if { $filter_project_id != "" } {
+#    set error_msg [lang::message::lookup "" intranet-core.No_name_for_project_id "No Name for project %filter_project_id%"]
+    set error_msg ""
+    set project_name [db_string get_project_name "select project_name from im_projects where project_id = :filter_project_id" -default $error_msg]
 }
 
 # ---------------------------------------------------------------
@@ -123,11 +124,13 @@ if { $project_id != "" } {
 set form_id "report_filter"
 set action_url "timesheet-projects"
 set form_mode "edit"
-if {[im_permission $current_user_id "view_projects_all"]} {
+
+if {[im_permission $current_user_id "view_hours_all"]} {
     set project_options [im_project_options -include_empty 1 -exclude_subprojects_p 0 -include_empty_name [lang::message::lookup "" intranet-core.All "All"]]
 } else {
-    set project_options [im_project_options -include_empty 0 -exclude_subprojects_p 0 -include_empty_name [lang::message::lookup "" intranet-core.All "All" -member_user_id $current_user_id]]
+    set project_options [im_project_options -include_empty 1 -exclude_subprojects_p 0 -include_empty_name [lang::message::lookup "" intranet-core.All "All"] -pm_user_id $current_user_id]
 }
+
 
 set company_options [im_company_options -include_empty_p 1 -include_empty_name "[_ intranet-core.All]" -type "CustOrIntl" ]
 set levels {{"#intranet-timesheet2.lt_hours_spend_on_projec#" "project"} {"#intranet-timesheet2.lt_hours_spend_on_project_and_sub#" subproject} {"#intranet-timesheet2.hours_spend_overall#" all}}
@@ -149,7 +152,7 @@ if {[apm_package_installed_p intranet-timesheet2-workflow]} {
 }
 
 ad_form -extend -name $form_id -form {
-    {project_id:text(select),optional {label \#intranet-cost.Project\#} {options $project_options} {value $project_id}}
+    {filter_project_id:text(select),optional {label \#intranet-cost.Project\#} {options $project_options} {value $filter_project_id}}
 }
 
 # Deal with the department
@@ -271,13 +274,13 @@ if {$owner_id != ""} {
 }    
 
 # Filter for projects
-if {$project_id != ""} {
+if {$filter_project_id != ""} {
     # Get all hours for this project, including hours logged on
     # tasks (100) or tickets (101)
     lappend view_arr(extra_wheres) "(h.project_id in (	
         select p.project_id
 		from   im_projects p, im_projects parent_p
-        where  parent_p.project_id = :project_id
+        where  parent_p.project_id = :filter_project_id
         and    p.tree_sortkey between parent_p.tree_sortkey and tree_right(parent_p.tree_sortkey)
         and    p.project_status_id not in (82)
 		))"
@@ -285,8 +288,13 @@ if {$project_id != ""} {
 
 # Filter for department_id
 if { "" != $cost_center_id } {
-        lappend view_arr(extra_wheres) "
-        h.user_id in (select employee_id from im_employees where department_id in (select object_id from acs_object_context_index where ancestor_id = $cost_center_id) or h.user_id = :current_user_id)
+    set cost_center_list [im_cost_center_options -parent_id $cost_center_id]
+    set cost_center_ids [list $cost_center_id]
+    foreach cost_center $cost_center_list {
+        lappend cost_center_ids [lindex $cost_center 1]
+    }
+    lappend view_arr(extra_wheres) "
+        h.user_id in (select employee_id from im_employees where department_id in ([template::util::tcl_to_sql_list $cost_center_ids]) or h.user_id = :current_user_id)
 "
 }
 
@@ -323,7 +331,7 @@ append __output "<table:table-row table:style-name=\"ro1\">\n$__header_defs</tab
 
 switch $view_type {
     actual {
-            set possible_projects_sql " (select distinct user_id,project_id from im_hours)"
+            set possible_projects_sql " (select distinct user_id,project_id from (select user_id,p.project_id from im_hours h, im_projects p where p.project_id=h.project_id and p.project_type_id not in (100,101) UNION select user_id,parent_id from im_hours h, im_projects p where p.project_id = h.project_id and p.project_type_id in (100,101) ) possi)"
     }
     forecast {
             set possible_projects_sql " (select distinct user_id, project_id from (select distinct user_id,h1.project_id from im_hours h1, im_projects p1 where h1.project_id = p1.project_id and p1.parent_id is null union select distinct item_project_member_id as user_id, item_project_phase_id as project_id from im_planning_items) hp)"
@@ -333,19 +341,25 @@ switch $view_type {
     }
 }
 
+# ---------------------------------------------------------------
+#  Define the calculation for the hours based on detail level 
+#  and approval
+# ---------------------------------------------------------------
+
+
 set user_list [list]
-db_foreach projects_info_query "
-    select username,project_name,personnel_number,p.project_id,employee_id,h.user_id,project_nr,company_id, project_type_id
-    $view_arr(extra_selects_sql)
-    from im_projects p, im_employees e, users u,$possible_projects_sql h
-    $view_arr(extra_froms_sql)
-    where u.user_id = h.user_id
-    and p.project_id = h.project_id
-    and e.employee_id = h.user_id
-    $view_arr(extra_wheres_sql)
-    group by username,project_name,personnel_number,employee_id,h.user_id,p.project_id,project_nr,company_id, project_type_id
-    $view_arr(extra_group_by_sql)
-    order by $order_by
+set project_ids [list]
+db_foreach projects_info_query "select username,project_name,personnel_number,p.project_id,employee_id,h.user_id,project_nr,company_id, project_type_id
+$view_arr(extra_selects_sql)
+from im_projects p, im_employees e, users u,$possible_projects_sql h
+$view_arr(extra_froms_sql)
+where u.user_id = h.user_id
+and p.project_id = h.project_id
+and e.employee_id = h.user_id
+$view_arr(extra_wheres_sql)
+group by username,project_name,personnel_number,employee_id,h.user_id,p.project_id,project_nr,company_id, project_type_id
+$view_arr(extra_group_by_sql)
+order by $order_by
 " {
     #  If we have a ticket or a task we should not show this as a potential project in the report
     # Therefore we will search for the parent_id which must be a project.
@@ -360,57 +374,42 @@ db_foreach projects_info_query "
         set user_projects($employee_id) [list]
     }
     lappend user_projects($employee_id) $project_id
+    lappend project_ids $project_id
 }
 
-# ---------------------------------------------------------------
-#  Define the calculation for the hours based on detail level 
-#  and approval
-# ---------------------------------------------------------------
 
-switch $detail_level {
-    single - summary {
-        set filter_type_sql ""
-    }
-    detailed {        
-        set filter_type_sql "and p.project_type_id in (100,101)"
-    }
-}
 
 # Approved comes from the category type "Intranet Timesheet Conf Status"
 if {$approved_only_p && [apm_package_installed_p "intranet-timesheet2-workflow"]} {
-    set timescale_value_sql "select sum(hours) as sum_hours,$timescale_sql as timescale_header
+    set timescale_value_sql "select sum(hours) as sum_hours,$timescale_sql as timescale_header, user_id
                             from im_hours, im_timesheet_conf_objects tco
                             where tco.conf_id = im_hours.conf_object_id and tco.conf_status_id = 17010
-                            and user_id = :user_id
                             and project_id in (	
                                 select p.project_id
                                 from im_projects p, im_projects parent_p
                                 where parent_p.project_id = :project_id
                                 and p.tree_sortkey between parent_p.tree_sortkey and tree_right(parent_p.tree_sortkey)
                                 and p.project_status_id not in (82)
-                                $filter_type_sql
                             )
                             and day >= :start_date
                             and day <= :end_date
-                            group by timescale_header
-                            order by timescale_header
+                            group by user_id,timescale_header
+                            order by user_id,timescale_header
                           "
 } else {
-    set timescale_value_sql "select sum(hours) as sum_hours,$timescale_sql as timescale_header
+    set timescale_value_sql "select sum(hours) as sum_hours,$timescale_sql as timescale_header,user_id
                              from im_hours
-                             where user_id = :user_id
-                             and project_id in (	
+                             where project_id in (	
                                     select p.project_id
                                     from im_projects p, im_projects parent_p
                                     where parent_p.project_id = :project_id
                                     and p.tree_sortkey between parent_p.tree_sortkey and tree_right(parent_p.tree_sortkey)
                                     and p.project_status_id not in (82)
-                                    $filter_type_sql
                             )		   
                             and day >= :start_date
                             and day <= :end_date
-                            group by timescale_header
-                            order by timescale_header
+                            group by user_id,timescale_header
+                            order by user_id,timescale_header
                           "
 }
 
@@ -442,36 +441,59 @@ if {"percentage" == $dimension && "planned" != $view_type} {
 # Run through each combination of user and projec to retrieve the
 # values
 
+# Load the user - project - timescale into an array
+
+# ---------------------------------------------------------------
+# Overwrite the projects in case we have single or summary view.
+# ---------------------------------------------------------------
+
+set project_ids [lsort -unique $project_ids] 
+
+switch $detail_level {
+    single {
+        set project_ids $filter_project_id
+    }
+    summary {
+        if {$filter_project_id eq ""} {
+            set project_ids [db_list project_ids "select project_id from im_projects where parent_id is null and project_type_id not in (100,101)"]
+        } else {
+            set project_ids [db_list project_ids "select project_id from im_projects where parent_id = :filter_project_id and project_type_id not in (100,101)"]
+        }
+    }
+}
+
+foreach project_id $project_ids {
+    db_foreach timescale_info $timescale_value_sql {
+        set project_hours(${user_id}-$project_id) $sum_hours
+        set var ${user_id}_${project_id}($timescale_header)
+        if {"percentage" == $dimension} {
+            if {[info exists user_hours_${timescale_header}_$user_id]} {
+                set total [set user_hours_${timescale_header}_$user_id]
+            } else {
+                set total 0
+            }
+            if {0 < $total} {
+                set $var "[expr round($sum_hours / $total *100)]"
+            } else {
+                set $var "0"
+            }
+        } else {
+            set $var $sum_hours
+        }        
+    }    
+}
+
 foreach user_id $user_list {
-    foreach project_id  [lsort -unique $user_projects($user_id)]  {
-        set project_hours(${user_id}-$project_id) 0   
+    if {$detail_level == "detailed"} {
+        set project_ids [lsort -unique $user_projects($user_id)] 
+    }
+    
+    foreach project_id $project_ids {
         # Now load all the months variables
         # We need to differentiate by the view type to know where we get
         # the values from
         switch $view_type {
             actual {
-        	       # get the hours only
-        	       # Store the value for the timescale for the project in an array
-    	           # for later use.
-    	           
-    	           db_foreach timescale_info $timescale_value_sql {
-                   set project_hours(${user_id}-$project_id) [expr $project_hours(${user_id}-$project_id) + $sum_hours]
-        	           set var ${user_id}_${project_id}($timescale_header)
-        	           if {"percentage" == $dimension} {
-            	           if {[info exists user_hours_${timescale_header}_$user_id]} {
-        	                   set total [set user_hours_${timescale_header}_$user_id]
-        	               } else {
-    	                       set total 0
-    	                   }
-    	                   if {0 < $total} {
-        	                   set $var "[expr round($sum_hours / $total *100)]"
-        	               } else {
-            	               set $var "0"
-            	           }
-    	               } else {
-        	               set $var $sum_hours
-    	               }
-    	           }
     	        }
     	        forecast {
                 # ---------------------------------------------------------------
@@ -583,7 +605,7 @@ foreach user_id $user_list {
             }
         }
         
-        if {$project_hours(${user_id}-$project_id) ne 0} {
+        if {[info exists project_hours(${user_id}-$project_id)]} {
         # ---------------------------------------------------------------
         # Now we append the actual row for the user_id and project_id
         # ---------------------------------------------------------------
