@@ -38,7 +38,6 @@ ad_page_contract {
     { approved_only_p:integer "0"}
     { workflow_key ""}
     { view_name "timesheet_projects_list" }
-    { view_type "actual" }
     { detail_level "summary"}
     { dimension "hours" }
     { order_by "username,project_name"}
@@ -57,10 +56,6 @@ set site_url "/intranet-timesheet2"
 set return_url "timesheet-projects"
 set date_format "YYYY-MM-DD"
 
-# We can only provide weekly and daily numbers for actual hours, not for planned, as we don't have that granularity there yet.
-# This might come at a later time when we calculate the days of the month and evenly split the planning percentage across the days
-if {$view_type ne "actual"} {set timescale "monthly"}
-
 # Single only makes sense if we have a project_id
 if {$filter_project_id eq "" && $detail_level eq "single"} {
     set detail_level "summary"
@@ -72,13 +67,12 @@ set hours_per_month [expr [parameter::get -parameter TimesheetWorkDaysPerYear] *
 set hours_per_absence [parameter::get -package_id [apm_package_id_from_key intranet-timesheet2] -parameter "TimesheetHoursPerAbsence" -default 8.0]
 
 if {"" == $start_date} { 
-    set start_date [db_string get_today "select to_char(sysdate,'YYYY-01-01
-') from dual"]   
+    set start_date [db_string get_today "select to_char(sysdate - interval '10 weeks',:date_format) from dual"]
 }
 
 if {"" == $end_date} { 
     # if no end_date is given, set it to six months in the future
-    set end_date [db_string current_month "select to_char(sysdate + interval '6 month',:date_format) from dual"]
+    set end_date [db_string current_month "select to_char(sysdate + interval '1 week',:date_format) from dual"]
 }
 
 
@@ -172,7 +166,6 @@ if {"" != $cost_center_options} {
 ad_form -extend -name $form_id -form {
     {dimension:text(select) {label "Dimension"} {options {{Hours hours} {Percentage percentage}}} {value $dimension}}
     {timescale:text(select) {label "Timescale"} {options {{Daily daily} {Weekly weekly} {Monthly monthly}}} {value $timescale}}
-    {view_type:text(select) {label "Type"} {options {{Planning planning} {Actual actual} {Forecast forecast}}} {value $view_type}}
     {detail_level:text(select) {label "Detail Level"} {options {{Single single} {Summary summary} {Detailed detailed}}} {value $detail_level}}
     {start_date:text(text) {label "[_ intranet-timesheet2.Start_Date]"} {value "$start_date"} {html {size 10}} {after_html {<input type="button" style="height:20px; width:20px; background: url('/resources/acs-templating/calendar.gif');" onclick ="return showCalendar('start_date', 'y-m-d');" >}}}
     {end_date:text(text) {label "[_ intranet-timesheet2.End_Date]"} {value "$end_date"} {html {size 10}} {after_html {<input type="button" style="height:20px; width:20px; background: url('/resources/acs-templating/calendar.gif');" onclick ="return showCalendar('end_date', 'y-m-d');" >}}}
@@ -191,7 +184,7 @@ set filter_html $__adp_output
 # we want to show:
 #
 
-im_view_set_def_vars -view_name $view_name -array_name "view_arr" -order_by $order_by -url "[export_vars -base "hours_report" -url {owner_id project_id cost_center_id end_date start_date approved_only_p workflow_key view_name view_type dimension display_type}]"
+im_view_set_def_vars -view_name $view_name -array_name "view_arr" -order_by $order_by -url "[export_vars -base "hours_report" -url {owner_id project_id cost_center_id end_date start_date approved_only_p workflow_key view_name dimension display_type}]"
 
 set __column_defs ""
 set __header_defs ""
@@ -324,28 +317,12 @@ set __output $__column_defs
 # Set the first row
 append __output "<table:table-row table:style-name=\"ro1\">\n$__header_defs</table:table-row>\n"
 
-
-# ---------------------------------------------------------------
-# Get the username / project combinations
-# ---------------------------------------------------------------
-
-switch $view_type {
-    actual {
-            set possible_projects_sql " (select distinct user_id,project_id from (select user_id,p.project_id from im_hours h, im_projects p where p.project_id=h.project_id and p.project_type_id not in (100,101) UNION select user_id,parent_id from im_hours h, im_projects p where p.project_id = h.project_id and p.project_type_id in (100,101) ) possi)"
-    }
-    forecast {
-            set possible_projects_sql " (select distinct user_id, project_id from (select distinct user_id,h1.project_id from im_hours h1, im_projects p1 where h1.project_id = p1.project_id and p1.parent_id is null union select distinct item_project_member_id as user_id, item_project_phase_id as project_id from im_planning_items) hp)"
-    }
-    planning {
-            set possible_projects_sql " (select distinct item_project_member_id as user_id, item_project_phase_id as project_id from im_planning_items)"
-    }
-}
-
 # ---------------------------------------------------------------
 #  Define the calculation for the hours based on detail level 
 #  and approval
 # ---------------------------------------------------------------
 
+set possible_projects_sql " (select distinct user_id,project_id from (select user_id,p.project_id from im_hours h, im_projects p where p.project_id=h.project_id and p.project_type_id not in (100,101) UNION select user_id,parent_id from im_hours h, im_projects p where p.project_id = h.project_id and p.project_type_id in (100,101) ) possi)"
 
 set user_list [list]
 set project_ids [list]
@@ -430,7 +407,7 @@ if {$approved_only_p && [apm_package_installed_p "intranet-timesheet2-workflow"]
 	group by user_id, month"
 }
 
-if {"percentage" == $dimension && "planned" != $view_type} {
+if {"percentage" == $dimension} {
     db_foreach logged_hours $hours_sql {
         	if {$user_id != "" && $month != ""} {
 	       set user_hours_${month}_${user_id} $total
@@ -492,128 +469,16 @@ foreach user_id $user_list {
         # Now load all the months variables
         # We need to differentiate by the view type to know where we get
         # the values from
-        switch $view_type {
-            actual {
-    	        }
-    	        forecast {
-                # ---------------------------------------------------------------
-                # Forecast Display
-                # ---------------------------------------------------------------
-    
-            	    set current_month [db_string current_month "select to_char(now(),'YYMM') from dual"]
-    
-        	        # First get the forecasted hours including the current month
-            	    if {"percentage" == $dimension} {
-                	    set sql "
-                    	    select round(item_value,0) as value, to_char(item_date,'YYMM') as month 
-    		            from im_planning_items 
-                		    where item_project_member_id = :employee_id
-    		            and item_project_phase_id = :project_id
-    		        "
-    		        } else {
-        	           # As we deal with actual hours, we need to use the
-        		       # hours_per_month do translate the percentage based planning
-        		       set sql "
-        		          select round(item_value/100 * :hours_per_month,0) as value, to_char(item_date,'YYMM') as month 
-    		          from im_planning_items 
-    		          where item_project_member_id = :employee_id
-    		          and item_project_phase_id = :project_id
-    		       "
-    		       }
-        		    db_foreach months_info $sql {
-                	   set planned($month) $value
-        	        }
-    	    
-            	    # Now get the actual hours until the current month
-    	            # get the hours only
-    	            set start_of_month "${current_month}01"
-            	    db_foreach months_info "
-                	    select sum(hours) as sum_hours, to_char(day,'YYMM') as month
-    		            from im_hours
-                		where user_id = :employee_id
-                    and project_id in (	
-                  	   select p.project_id
-    		               from im_projects p, im_projects parent_p
-                       where parent_p.project_id = :project_id
-                       and p.tree_sortkey between parent_p.tree_sortkey and tree_right(parent_p.tree_sortkey)
-                       and p.project_status_id not in (82)
-    		        )		   
-                		group by month
-    	            " {
-        	            if {"percentage" == $dimension} {
-            	            if {[info exists user_hours_${month}_$employee_id]} {
-                	            set total [set user_hours_${month}_$employee_id]
-                	        } else {
-                    	       set total 0
-                    	    }
-                    	    if {0 < $total} {
-        		              set $month "[expr round($sum_hours / $total *100)]"
-        		           } else {
-        		              set $month ""
-        		           }
-        		       } else {
-            		       set $month $sum_hours
-            		   }
-    		
-                		# if the actual differs form planned, highlight this
-                		# by appending the planned value
-                		if {![info exists planned(${month})]} {
-                		    set planned($month) 0
-                		}
-                		
-                		# Calculate the color
-                		set deviation_factor "0.2"
-                		if {[set $month] < [expr $planned($month) * (1-$deviation_factor)]} {
-                		    # Actual hours lower then planned, corrected by deviation_factor
-                		    set color "red"
-                		} elseif {[set $month] > [expr $planned($month) * (1+$deviation_factor)]} {
-                		    # Actual hours more then planned, corrected by deviation_factor
-                		    set color "yellow"
-                		} else {
-                		    set color "green"
-                		}
-                
-                		if {"percentage" == $dimension} {
-                		    set $month "<td bgcolor=$color align=right>[set $month]%</td><td align=left>$planned($month)%</td>"
-                		} else {
-                		    set $month "<td bgcolor=$color align=right>[set $month]</td><td align=left>$planned($month)</td>"
-                		}
-    	            }
-            	} 
-            planning {
-            	    if {"percentage" == $dimension} {
-                		db_foreach months_info {		    
-                		    select round(item_value,0) || '%' as value, to_char(item_date,'YYMM') as month 
-                		    from im_planning_items 
-                		    where item_project_member_id = :employee_id
-                		    and item_project_phase_id = :project_id
-                	    	    } {
-                			set $month "<td>$value</td>"
-                		    }
-                	} else {
-                		db_foreach months_info "      	    
-                		    select round(item_value/100*${hours_per_month},0) as value, to_char(item_date,'YYMM') as month 
-                		    from im_planning_items, im_employees
-                		    where item_project_member_id = :employee_id
-                		    and employee_id = item_project_member_id
-                		    and item_project_phase_id = :project_id
-                	    	" {
-                		    set $month "<td>$value</td>"
-                		}
-            	    }
-            
-            }
-        }
         
         if {[info exists project_hours(${user_id}-$project_id)]} {
-        # ---------------------------------------------------------------
-        # Now we append the actual row for the user_id and project_id
-        # ---------------------------------------------------------------
-        append __output "<table:table-row table:style-name=\"ro1\">\n"
-        append table_body_html "<tr>"
+            # ---------------------------------------------------------------
+            # Now we append the actual row for the user_id and project_id
+            # ---------------------------------------------------------------
+            append __output "<table:table-row table:style-name=\"ro1\">\n"
+            append table_body_html "<tr>"
 
-        # Get the column information
-        db_1row project_info_query "
+            # Get the column information
+            db_1row project_info_query "
             select project_name,personnel_number,p.project_id,employee_id,project_nr,company_id, project_type_id
             $view_arr(extra_selects_sql)
             from im_projects p, im_employees e
@@ -622,34 +487,34 @@ foreach user_id $user_list {
             and p.project_id = :project_id
             limit 1
         " 
-        foreach column_var $view_arr(column_vars) {
-            set column_value [expr $column_var]
-            # HTML
-            append table_body_html "<td>$column_value</td>"
-            # and XLS
-            append __output " <table:table-cell office:value-type=\"string\"><text:p>$column_value</text:p></table:table-cell>\n"
-        }
+            foreach column_var $view_arr(column_vars) {
+                set column_value [expr $column_var]
+                # HTML
+                append table_body_html "<td>$column_value</td>"
+                # and XLS
+                append __output " <table:table-cell office:value-type=\"string\"><text:p>$column_value</text:p></table:table-cell>\n"
+            }
 
-        # Now create the actual columns for the timescale
-        foreach timescale_header $timescale_headers {
-            set var ${user_id}_${project_id}($timescale_header)	   
-            if {[info exists $var]} {
-                set value [set $var]
-            } else {
-                set value ""
+            # Now create the actual columns for the timescale
+            foreach timescale_header $timescale_headers {
+                set var ${user_id}_${project_id}($timescale_header)	   
+                if {[info exists $var]} {
+                    set value [set $var]
+                } else {
+                    set value ""
+                }
+                if {"percentage" == $dimension} {
+                    if {$value == ""} {set value 0}
+                    append table_body_html "<td>${value}%</td>"
+                    set xls_value [expr $value / 100.0]
+                    append __output "<table:table-cell office:value-type=\"percentage\" office:value=\"$xls_value\"></table:table-cell>"
+                } else {
+                    append table_body_html "<td>${value}</td>"
+                    append __output "<table:table-cell office:value-type=\"float\" office:value=\"$value\"></table:table-cell>"
+                }
             }
-            if {"percentage" == $dimension} {
-                if {$value == ""} {set value 0}
-                append table_body_html "<td>${value}%</td>"
-                set xls_value [expr $value / 100.0]
-                append __output "<table:table-cell office:value-type=\"percentage\" office:value=\"$xls_value\"></table:table-cell>"
-            } else {
-                append table_body_html "<td>${value}</td>"
-                append __output "<table:table-cell office:value-type=\"float\" office:value=\"$value\"></table:table-cell>"
-            }
-        }
-        append table_body_html "</tr>"
-        append __output "\n</table:table-row>\n"
+            append table_body_html "</tr>"
+            append __output "\n</table:table-row>\n"
         }
     }
 }

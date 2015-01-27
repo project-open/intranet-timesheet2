@@ -24,3 +24,9 @@ values (1059,1006,'#intranet-core.User#','"<a href=''/intranet/users/view?user_i
 
 insert into im_view_columns (column_id, view_id, column_name, column_render_tcl, sort_order,variable_name,datatype) 
 values (1060,1006,'#intranet-core.Project#','"<a href=''/intranet/projects/view?project_id=$project_id''>$project_name</a>"',2,'project_name','string');
+
+update im_menus SET url = '/intranet-timesheet2/reports/timesheet-projects' where url = '/intranet-timesheet2/reports/actual_hours';
+
+select im_menu__new(NULL,'acs_object',now(),NULL,NULL,NULL,'intranet-timesheet2','reporting-timesheet-planned-hours-report','Timesheet Planned Hours Report','/intranet-timesheet2/reports/timesheet-planned-projects','2','25975',NULL);
+
+update im_menus SET url = '/intranet-timesheet2/reports/timesheet-planned-projects' where url = '/intranet-timesheet2/reports/planning_hours';
