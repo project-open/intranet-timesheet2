@@ -70,6 +70,7 @@
   <msg key="Currency">Currency:</msg>
   <msg key="Customers">Customers</msg>
   <msg key="D">D</msg>
+  <msg key="Daily">Daily</msg>
   <msg key="Daily_project_notes">Daily project notes</msg>
   <msg key="Date">Date</msg>
   <msg key="Date_for_user">%pretty_date% for %user_name_from_search%</msg>
@@ -89,7 +90,10 @@
   <msg key="December">December</msg>
   <msg key="Delete">Delete</msg>
   <msg key="Description">Description</msg>
+  <msg key="Detail_Level">Detail Level</msg>
+  <msg key="Detailed">Detailed</msg>
   <msg key="Deviation">Deviation</msg>
+  <msg key="Dimension">Dimension</msg>
   <msg key="Direct_reports">Direct reports</msg>
   <msg key="Display">Display:</msg>
   <msg key="Display_Users">Display Users:</msg>
@@ -148,6 +152,7 @@
   <msg key="Last_3_Month">Last 3 month</msg>
   <msg key="Last_3_months">Last 3 months</msg>
   <msg key="Last_3_Weeks">Last 3 weeks</msg>
+  <msg key="Leave_entitlements">Leave Entitlements</msg>
   <msg key="Local">Local</msg>
   <msg key="Log_Absences">Log Absences</msg>
   <msg key="log_dedication">log dedication</msg>
@@ -271,6 +276,7 @@ of those units were billed hourly, for a total amount of</msg>
   <msg key="Mine">Mine</msg>
   <msg key="Monday">Monday</msg>
   <msg key="Month">Month</msg>
+  <msg key="Monthly">Monthly</msg>
   <msg key="More_currencies">More currencies</msg>
   <msg key="N">N</msg>
   <msg key="Name">Name</msg>
@@ -352,10 +358,12 @@ of those units were billed hourly, for a total amount of</msg>
   <msg key="September">September</msg>
   <msg key="Show_one">Show one</msg>
   <msg key="Show_Users">Show Users</msg>
+  <msg key="Single">Single</msg>
   <msg key="Start_Date">Start Date</msg>
   <msg key="Starting">Starting:</msg>
   <msg key="Status">Status</msg>
   <msg key="submit">submit</msg>
+  <msg key="Subprojects">Subprojects</msg>
   <msg key="Summary">Summary</msg>
   <msg key="Summary_by_date">Summary by date</msg>
   <msg key="Sunday">Sunday</msg>
@@ -414,6 +422,8 @@ of those units were billed hourly, for a total amount of</msg>
   <msg key="Week">Week</msg>
   <msg key="Week_total">Week total</msg>
   <msg key="Week_total_1">Week total:</msg>
+  <msg key="Weekday">Weekday</msg>
+  <msg key="Weekly">Weekly</msg>
   <msg key="Weekly_hours">Weekly hours</msg>
   <msg key="Work_done">Work done</msg>
   <msg key="Workdays">Workdays</msg>

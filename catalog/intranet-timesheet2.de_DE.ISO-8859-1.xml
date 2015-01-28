@@ -377,6 +377,7 @@ name</msg>
   <msg key="Week">Woche</msg>
   <msg key="Week_total">Woche total</msg>
   <msg key="Week_total_1">Woche gesamt</msg>
+  <msg key="Weekday">Wochentag</msg>
   <msg key="Weekly_hours">Wöchentliche Stunden</msg>
   <msg key="Work_done">Geleistete Arbeit - Kommentierung</msg>
   <msg key="Worked_Day">Arbeitstag</msg>

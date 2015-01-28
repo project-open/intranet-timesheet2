@@ -56,11 +56,6 @@ set site_url "/intranet-timesheet2"
 set return_url "timesheet-projects"
 set date_format "YYYY-MM-DD"
 
-# Single only makes sense if we have a project_id
-if {$filter_project_id eq "" && $detail_level eq "single"} {
-    set detail_level "summary"
-}
-
 # We need to set the overall hours per month an employee is working
 # Make this a default for all for now.
 set hours_per_month [expr [parameter::get -parameter TimesheetWorkDaysPerYear] * [parameter::get -parameter TimesheetHoursPerDay] / 12] 
@@ -73,6 +68,16 @@ if {"" == $start_date} {
 if {"" == $end_date} { 
     # if no end_date is given, set it to six months in the future
     set end_date [db_string current_month "select to_char(sysdate + interval '1 week',:date_format) from dual"]
+}
+
+# ---------------------------------------------------------------
+# This report only offers users and projects
+# Redirect to a user only report if no projects are given
+# ---------------------------------------------------------------
+
+if {$filter_project_id eq "" && $detail_level eq "single"} {
+#    ad_returnredirect [export_vars -base "/intranet-reporting/timesheet-incomplete-days" -url {start_date end_date cost_center_id}]
+    set detail_level "summary"
 }
 
 
@@ -91,16 +96,19 @@ set view_options {{#intranet-core.Projects# timesheet_projects_list}}
 
 # Allow the project_manager to see the hours of this project
 if {"" != $filter_project_id} {
-    set manager_p [db_string manager "select count(*) from acs_rels ar, im_biz_object_members bom where ar.rel_id = bom.rel_id and object_id_one = :filter_project_id and object_id_two = :current_user_id and object_role_id = 1301" -default 0]
+    set filter_project_ids [im_parent_projects -project_ids $filter_project_id]
+    ds_comment "Filters:: $filter_project_ids"
+    set manager_p [db_string manager "select count(*) from acs_rels ar, im_biz_object_members bom where ar.rel_id = bom.rel_id and object_id_one 
+        in ([template::util::tcl_to_sql_list $filter_project_ids]) and object_id_two = :current_user_id and object_role_id = 1301" -default 0]
     if {$manager_p || [im_permission $current_user_id "view_hours_all"]} {
-	set owner_id ""
+        	set owner_id ""
     }
 }
 
 # Allow the manager to see the department
 if {"" != $cost_center_id} {
-    set manager_id [db_string manager "select manager_id from im_cost_centers where cost_center_id = :cost_center_id" -default ""]
-    if {$manager_id == $current_user_id || [im_permission $current_user_id "view_hours_all"]} {
+    set manager_p [im_manager_of_cost_center_p -user_id $current_user_id -cost_center_id $cost_center_id]
+    if {$manager_p || [im_permission $current_user_id "view_hours_all"]} {
         set owner_id ""
     }
 }
@@ -159,18 +167,18 @@ if {[im_permission $current_user_id "view_hours_all"]} {
 
 if {"" != $cost_center_options} {
     ad_form -extend -name $form_id -form {
-        {cost_center_id:text(select),optional {label "User's Department"} {options $cost_center_options} {value $cost_center_id}}
+        {cost_center_id:text(select),optional {label "[_ intranet-core.Department]"} {options $cost_center_options} {value $cost_center_id}}
     }
 }
 
 ad_form -extend -name $form_id -form {
-    {dimension:text(select) {label "Dimension"} {options {{Hours hours} {Percentage percentage}}} {value $dimension}}
-    {timescale:text(select) {label "Timescale"} {options {{Daily daily} {Weekly weekly} {Monthly monthly}}} {value $timescale}}
-    {detail_level:text(select) {label "Detail Level"} {options {{Single single} {Summary summary} {Detailed detailed}}} {value $detail_level}}
+    {dimension:text(select) {label "[_ intranet-timesheet2.Dimension]"} {options {{[_ intranet-timesheet2.Hours] hours} {[_ intranet-timesheet2.Percentage] percentage}}} {value $dimension}}
+    {timescale:text(select) {label "[_ intranet-timesheet2.Timescale]"} {options {{[_ intranet-timesheet2.Daily] daily} {[_ intranet-timesheet2.Weekly] weekly} {[_ intranet-timesheet2.Monthly] monthly}}} {value $timescale}}
+    {detail_level:text(select) {label "[_ intranet-timesheet2.Detail_Level]"} {options {{[_ intranet-timesheet2.Single] single} {[_ intranet-timesheet2.Subprojects] summary} {[_ intranet-timesheet2.Detailed] detailed}}} {value $detail_level}}
     {start_date:text(text) {label "[_ intranet-timesheet2.Start_Date]"} {value "$start_date"} {html {size 10}} {after_html {<input type="button" style="height:20px; width:20px; background: url('/resources/acs-templating/calendar.gif');" onclick ="return showCalendar('start_date', 'y-m-d');" >}}}
     {end_date:text(text) {label "[_ intranet-timesheet2.End_Date]"} {value "$end_date"} {html {size 10}} {after_html {<input type="button" style="height:20px; width:20px; background: url('/resources/acs-templating/calendar.gif');" onclick ="return showCalendar('end_date', 'y-m-d');" >}}}
     {view_name:text(select) {label \#intranet-core.View_Name\#} {value "$view_name"} {options $view_options}}
-    {display_type:text(select) {label "Type"} {options {{HTML html} {Excel xls}}} {value $display_type}}
+    {display_type:text(select) {label "[_ intranet-core.Type]"} {options {{HTML html} {Excel xls}}} {value $display_type}}
 }
 
 eval [template::adp_compile -string {<formtemplate id="$form_id" style="tiny-plain-po"></formtemplate>}]
@@ -322,6 +330,7 @@ append __output "<table:table-row table:style-name=\"ro1\">\n$__header_defs</tab
 #  and approval
 # ---------------------------------------------------------------
 
+    
 set possible_projects_sql " (select distinct user_id,project_id from (select user_id,p.project_id from im_hours h, im_projects p where p.project_id=h.project_id and p.project_type_id not in (100,101) UNION select user_id,parent_id from im_hours h, im_projects p where p.project_id = h.project_id and p.project_type_id in (100,101) ) possi)"
 
 set user_list [list]
@@ -355,19 +364,54 @@ order by $order_by
 }
 
 
+set project_ids [lsort -unique $project_ids] 
+
+switch $detail_level {
+    single {
+        set project_ids $filter_project_id
+        set subproject_sql "and project_id in (	
+                                select p.project_id
+                                from im_projects p, im_projects parent_p
+                                where parent_p.project_id = :project_id
+                                and p.tree_sortkey between parent_p.tree_sortkey and tree_right(parent_p.tree_sortkey)
+                                and p.project_status_id not in (82)
+                            )"
+    }
+    summary {
+        set subproject_sql "and project_id in (	
+            select p.project_id
+            from im_projects p, im_projects parent_p
+            where parent_p.project_id = :project_id
+            and p.tree_sortkey between parent_p.tree_sortkey and tree_right(parent_p.tree_sortkey)
+            and p.project_status_id not in (82)
+        )"
+        if {$filter_project_id eq ""} {
+            set project_ids [db_list project_ids "select project_id from im_projects where parent_id is null and project_type_id not in (100,101)"]
+        } else {
+            set project_ids [db_list project_ids "select project_id from im_projects where parent_id = :filter_project_id and project_type_id not in (100,101)"]
+            if {$project_ids eq ""} {set project_ids $filter_project_id}
+        }
+    }
+    detailed {
+        # Only show hours logged on the project itself or the timesheet tasks below it
+        set subproject_sql "and project_id in (	
+            select p.project_id
+            from im_projects p
+            where parent_id = :project_id
+            and p.project_status_id not in (82)
+            and p.project_type_id in (100,101)
+            UNION select :project_id from dual
+        )"
+    }
+}
+
 
 # Approved comes from the category type "Intranet Timesheet Conf Status"
 if {$approved_only_p && [apm_package_installed_p "intranet-timesheet2-workflow"]} {
     set timescale_value_sql "select sum(hours) as sum_hours,$timescale_sql as timescale_header, user_id
                             from im_hours, im_timesheet_conf_objects tco
                             where tco.conf_id = im_hours.conf_object_id and tco.conf_status_id = 17010
-                            and project_id in (	
-                                select p.project_id
-                                from im_projects p, im_projects parent_p
-                                where parent_p.project_id = :project_id
-                                and p.tree_sortkey between parent_p.tree_sortkey and tree_right(parent_p.tree_sortkey)
-                                and p.project_status_id not in (82)
-                            )
+                            $subproject_sql
                             and day >= :start_date
                             and day <= :end_date
                             group by user_id,timescale_header
@@ -376,15 +420,9 @@ if {$approved_only_p && [apm_package_installed_p "intranet-timesheet2-workflow"]
 } else {
     set timescale_value_sql "select sum(hours) as sum_hours,$timescale_sql as timescale_header,user_id
                              from im_hours
-                             where project_id in (	
-                                    select p.project_id
-                                    from im_projects p, im_projects parent_p
-                                    where parent_p.project_id = :project_id
-                                    and p.tree_sortkey between parent_p.tree_sortkey and tree_right(parent_p.tree_sortkey)
-                                    and p.project_status_id not in (82)
-                            )		   
-                            and day >= :start_date
+                             where day >= :start_date
                             and day <= :end_date
+                            $subproject_sql
                             group by user_id,timescale_header
                             order by user_id,timescale_header
                           "
@@ -424,20 +462,6 @@ if {"percentage" == $dimension} {
 # Overwrite the projects in case we have single or summary view.
 # ---------------------------------------------------------------
 
-set project_ids [lsort -unique $project_ids] 
-
-switch $detail_level {
-    single {
-        set project_ids $filter_project_id
-    }
-    summary {
-        if {$filter_project_id eq ""} {
-            set project_ids [db_list project_ids "select project_id from im_projects where parent_id is null and project_type_id not in (100,101)"]
-        } else {
-            set project_ids [db_list project_ids "select project_id from im_projects where parent_id = :filter_project_id and project_type_id not in (100,101)"]
-        }
-    }
-}
 
 foreach project_id $project_ids {
     db_foreach timescale_info $timescale_value_sql {
