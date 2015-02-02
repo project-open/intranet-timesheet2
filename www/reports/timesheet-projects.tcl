@@ -40,7 +40,7 @@ ad_page_contract {
     { view_name "timesheet_projects_list" }
     { detail_level "summary"}
     { dimension "hours" }
-    { order_by "username,project_name"}
+    { order_by "user_name,project_name"}
     { display_type "html" }
     { timescale "weekly" }
 }
@@ -55,6 +55,8 @@ set subsite_id [ad_conn subsite_id]
 set site_url "/intranet-timesheet2"
 set return_url "timesheet-projects"
 set date_format "YYYY-MM-DD"
+set name_order [parameter::get -package_id [apm_package_id_from_key intranet-core] -parameter "NameOrder" -default 1]
+
 
 # We need to set the overall hours per month an employee is working
 # Make this a default for all for now.
@@ -337,7 +339,7 @@ set possible_projects_sql " (select distinct user_id,project_id from (select use
 
 set user_list [list]
 set project_ids [list]
-db_foreach projects_info_query "select username,project_name,personnel_number,p.project_id,employee_id,h.user_id,project_nr,company_id, project_type_id
+db_foreach projects_info_query "select im_name_from_user_id(employee_id, $name_order) as user_name,project_name,personnel_number,p.project_id,employee_id,h.user_id,project_nr,company_id, project_type_id
 $view_arr(extra_selects_sql)
 from im_projects p, im_employees e, users u,$possible_projects_sql h
 $view_arr(extra_froms_sql)
@@ -358,7 +360,6 @@ order by $order_by
 
     if {[lsearch $user_list $employee_id] < 0} {
         lappend user_list $employee_id
-        set user_pretty($employee_id) $username_pretty
         set user_projects($employee_id) [list]
     }
     lappend user_projects($employee_id) $project_id
@@ -486,19 +487,25 @@ foreach project_id $project_ids {
     }    
 }
 
-if {$with_absences_p} {
+if {$with_absences_p == 1} {
     lappend project_ids "0"; # Special project_id for absences! 
 }
 
+# List for the hidden users
+set displayed_user_ids [list]
+
 foreach user_id $user_list {
+    
+    set user_name [im_name_from_user_id $user_id]
+
     if {$detail_level == "detailed"} {
         set project_ids [lsort -unique $user_projects($user_id)]
-        if {$with_absences_p} {
+        if {$with_absences_p == 1} {
             lappend project_ids "0"; # Special project_id for absences! 
         }
     }
 
-    if {$with_absences_p} {
+    if {$with_absences_p == 1} {
         # Get the list of absences for the user and create a new line for the user
         if {$approved_only_p} {
             set absence_dates [im_absence_dates -owner_id $user_id -start_date $start_date -end_date $end_date -absence_status_id 16000]
@@ -550,6 +557,7 @@ foreach user_id $user_list {
         # the values from
         
         if {[info exists project_hours(${user_id}-$project_id)]} {
+            lappend displayed_user_ids $user_id
             # ---------------------------------------------------------------
             # Now we append the actual row for the user_id and project_id
             # ---------------------------------------------------------------
@@ -613,7 +621,7 @@ foreach user_id $user_list {
             }
             append table_body_html "</tr>"
             append __output "\n</table:table-row>\n"
-        }
+        } 
     }
     
 }
@@ -634,4 +642,22 @@ if {"xls" == $display_type} {
                 $filter_html
             </div>
     "
+}
+
+# ---------------------------------------------------------------
+# Display the name of the users which are not included in the list
+# ---------------------------------------------------------------
+
+set hidden_users_html "<ul>"
+set hidden_user_ids [list]
+
+foreach user_id $user_list {
+    if {[lsearch $displayed_user_ids $user_id]<0} {
+        lappend hidden_user_ids $user_id
+    }
+}
+
+db_foreach hidden_users "select user_id,im_name_from_user_id(user_id, $name_order) as user_name from users where user_id in ([template::util::tcl_to_sql_list $hidden_user_ids]) order by user_name" {
+    set hidden_user_url [export_vars -base "/intranet/users/view" -url {user_id}]
+    append hidden_users_html "<li><a href='$hidden_user_url'>$user_name</li>"
 }

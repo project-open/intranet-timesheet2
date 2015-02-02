@@ -8,3 +8,4 @@
 	            <%= $table_header_html %>
 	            <%= $table_body_html %>
 		</table>
+                @hidden_users_html;noquote@
