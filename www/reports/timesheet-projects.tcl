@@ -57,7 +57,6 @@ set return_url "timesheet-projects"
 set date_format "YYYY-MM-DD"
 set name_order [parameter::get -package_id [apm_package_id_from_key intranet-core] -parameter "NameOrder" -default 1]
 
-
 # We need to set the overall hours per month an employee is working
 # Make this a default for all for now.
 set hours_per_month [expr [parameter::get -parameter TimesheetWorkDaysPerYear] * [parameter::get -parameter TimesheetHoursPerDay] / 12] 
@@ -371,14 +370,19 @@ set project_ids [lsort -unique $project_ids]
 
 switch $detail_level {
     single {
-        set project_ids $filter_project_id
-        set subproject_sql "and project_id in (	
-                                select p.project_id
-                                from im_projects p, im_projects parent_p
-                                where parent_p.project_id = :project_id
-                                and p.tree_sortkey between parent_p.tree_sortkey and tree_right(parent_p.tree_sortkey)
-                                and p.project_status_id not in (82)
-                            )"
+        if {$filter_project_id ne ""} {
+            set project_ids $filter_project_id
+            set subproject_sql "and project_id in (	
+                                    select p.project_id
+                                    from im_projects p, im_projects parent_p
+                                    where parent_p.project_id = :project_id
+                                    and p.tree_sortkey between parent_p.tree_sortkey and tree_right(parent_p.tree_sortkey)
+                                    and p.project_status_id not in (82)
+                                )"
+        } else {
+            set project_ids 1 ; # Special project_id to not display the project information
+            set subproject_sql ""
+        }
     }
     summary {
         set subproject_sql "and project_id in (	
@@ -487,8 +491,8 @@ foreach project_id $project_ids {
     }    
 }
 
-if {$with_absences_p == 1} {
-    lappend project_ids "0"; # Special project_id for absences! 
+if {$with_absences_p == 1 && [lsearch $project_ids 1]<0} {
+    lappend project_ids "0"; # Special project_id for absences! (only if we don't show single and all projects
 }
 
 # List for the hidden users
@@ -515,7 +519,7 @@ foreach user_id $user_list {
         
         set values_list [list]
         foreach absence_date $absence_dates {
-            lappend values_list "('$absence_date'::date,8)"
+            lappend values_list "('$absence_date'::date,$hours_per_absence)"
         }
         if {[llength $values_list]>0} {
             # ---------------------------------------------------------------
@@ -529,7 +533,7 @@ foreach user_id $user_list {
                   from $values_sql
                   group by timescale_header order by timescale_header"
 
-            set project_id 0            
+            set project_id 0 ; # Special Project_id for the "absences" virtual project
             db_foreach absence_timescale_info $absence_timescale_value_sql {
                 set project_hours(${user_id}-$project_id) 1
                 set var ${user_id}_${project_id}($timescale_header)
@@ -579,6 +583,17 @@ foreach user_id $user_list {
                     
                     set project_url [export_vars -base "/intranet-timesheet2/absences/index" -url {{user_id_from_search $user_id}}]
                 }
+                1 {
+                    set project_name "All"
+                    set project_url ""
+                    db_1row project_info_query "
+                    select personnel_number,employee_id
+                    $view_arr(extra_selects_sql)
+                    from im_employees e
+                    $view_arr(extra_froms_sql)
+                    where e.employee_id = :user_id
+                    limit 1"
+                }
                 default {
                     db_1row project_info_query "
                         select project_name,personnel_number,p.project_id,employee_id,project_nr,company_id, project_type_id
@@ -603,20 +618,32 @@ foreach user_id $user_list {
 
             # Now create the actual columns for the timescale
             foreach timescale_header $timescale_headers {
-                set var ${user_id}_${project_id}($timescale_header)	   
+                set var ${user_id}_${project_id}($timescale_header)
                 if {[info exists $var]} {
                     set value [set $var]
                 } else {
                     set value ""
                 }
-                if {"percentage" == $dimension} {
-                    if {$value == ""} {set value 0}
-                    append table_body_html "<td>${value}%</td>"
-                    set xls_value [expr $value / 100.0]
-                    append __output "<table:table-cell office:value-type=\"percentage\" office:value=\"$xls_value\"></table:table-cell>"
-                } else {
+                if {$project_id eq 1} {
+                    # We need to add the absences to the value as this is the special case
+                    # where we only display the user and not the projects, so all values
+                    # are being aggregated.
+                    set absence_var ${user_id}_0($timescale_header)
+                    if {[info exists $absence_var]} {
+                        set value [expr $value + [set $absence_var]]
+                    }
                     append table_body_html "<td>${value}</td>"
                     append __output "<table:table-cell office:value-type=\"float\" office:value=\"$value\"></table:table-cell>"
+                } else {
+                    if {"percentage" == $dimension} {
+                        if {$value == ""} {set value 0}
+                        append table_body_html "<td>${value}%</td>"
+                        set xls_value [expr $value / 100.0]
+                        append __output "<table:table-cell office:value-type=\"percentage\" office:value=\"$xls_value\"></table:table-cell>"
+                    } else {
+                        append table_body_html "<td>${value}</td>"
+                        append __output "<table:table-cell office:value-type=\"float\" office:value=\"$value\"></table:table-cell>"
+                    }
                 }
             }
             append table_body_html "</tr>"
@@ -657,7 +684,9 @@ foreach user_id $user_list {
     }
 }
 
-db_foreach hidden_users "select user_id,im_name_from_user_id(user_id, $name_order) as user_name from users where user_id in ([template::util::tcl_to_sql_list $hidden_user_ids]) order by user_name" {
-    set hidden_user_url [export_vars -base "/intranet/users/view" -url {user_id}]
-    append hidden_users_html "<li><a href='$hidden_user_url'>$user_name</li>"
+if {[llength $hidden_user_ids]>0} {
+    db_foreach hidden_users "select user_id,im_name_from_user_id(user_id, $name_order) as user_name from users where user_id in ([template::util::tcl_to_sql_list $hidden_user_ids]) order by user_name" {
+        set hidden_user_url [export_vars -base "/intranet/users/view" -url {user_id}]
+        append hidden_users_html "<li><a href='$hidden_user_url'>$user_name</li>"
+    }
 }
