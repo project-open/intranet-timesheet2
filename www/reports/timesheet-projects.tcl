@@ -97,7 +97,6 @@ set view_options {{#intranet-core.Projects# timesheet_projects_list}}
 # Allow the project_manager to see the hours of this project
 if {"" != $filter_project_id} {
     set filter_project_ids [im_parent_projects -project_ids $filter_project_id]
-    ds_comment "Filters:: $filter_project_ids"
     set manager_p [db_string manager "select count(*) from acs_rels ar, im_biz_object_members bom where ar.rel_id = bom.rel_id and object_id_one 
         in ([template::util::tcl_to_sql_list $filter_project_ids]) and object_id_two = :current_user_id and object_role_id = 1301" -default 0]
     if {$manager_p || [im_permission $current_user_id "view_hours_all"]} {
@@ -175,10 +174,13 @@ ad_form -extend -name $form_id -form {
     {dimension:text(select) {label "[_ intranet-timesheet2.Dimension]"} {options {{[_ intranet-timesheet2.Hours] hours} {[_ intranet-timesheet2.Percentage] percentage}}} {value $dimension}}
     {timescale:text(select) {label "[_ intranet-timesheet2.Timescale]"} {options {{[_ intranet-timesheet2.Daily] daily} {[_ intranet-timesheet2.Weekly] weekly} {[_ intranet-timesheet2.Monthly] monthly}}} {value $timescale}}
     {detail_level:text(select) {label "[_ intranet-timesheet2.Detail_Level]"} {options {{[_ intranet-timesheet2.Single] single} {[_ intranet-timesheet2.Subprojects] summary} {[_ intranet-timesheet2.Detailed] detailed}}} {value $detail_level}}
+    {with_absences_p:text(checkbox),optional {label "[_ intranet-timesheet2.WithAbsencesP]"} {options {{"" 1}}}}
     {start_date:text(text) {label "[_ intranet-timesheet2.Start_Date]"} {value "$start_date"} {html {size 10}} {after_html {<input type="button" style="height:20px; width:20px; background: url('/resources/acs-templating/calendar.gif');" onclick ="return showCalendar('start_date', 'y-m-d');" >}}}
     {end_date:text(text) {label "[_ intranet-timesheet2.End_Date]"} {value "$end_date"} {html {size 10}} {after_html {<input type="button" style="height:20px; width:20px; background: url('/resources/acs-templating/calendar.gif');" onclick ="return showCalendar('end_date', 'y-m-d');" >}}}
     {view_name:text(select) {label \#intranet-core.View_Name\#} {value "$view_name"} {options $view_options}}
     {display_type:text(select) {label "[_ intranet-core.Type]"} {options {{HTML html} {Excel xls}}} {value $display_type}}
+} -on_request {
+    set with_absences_p 0
 }
 
 eval [template::adp_compile -string {<formtemplate id="$form_id" style="tiny-plain-po"></formtemplate>}]
@@ -386,7 +388,7 @@ switch $detail_level {
             and p.project_status_id not in (82)
         )"
         if {$filter_project_id eq ""} {
-            set project_ids [db_list project_ids "select project_id from im_projects where parent_id is null and project_type_id not in (100,101)"]
+            set project_ids [db_list project_ids "select project_id from im_projects where parent_id is null and project_type_id not in (100,101) and project_id in ([template::util::tcl_to_sql_list [im_parent_projects -project_ids $project_ids]])"]
         } else {
             set project_ids [db_list project_ids "select project_id from im_projects where parent_id = :filter_project_id and project_type_id not in (100,101)"]
             if {$project_ids eq ""} {set project_ids $filter_project_id}
@@ -484,9 +486,62 @@ foreach project_id $project_ids {
     }    
 }
 
+if {$with_absences_p} {
+    lappend project_ids "0"; # Special project_id for absences! 
+}
+
 foreach user_id $user_list {
     if {$detail_level == "detailed"} {
-        set project_ids [lsort -unique $user_projects($user_id)] 
+        set project_ids [lsort -unique $user_projects($user_id)]
+        if {$with_absences_p} {
+            lappend project_ids "0"; # Special project_id for absences! 
+        }
+    }
+
+    if {$with_absences_p} {
+        # Get the list of absences for the user and create a new line for the user
+        if {$approved_only_p} {
+            set absence_dates [im_absence_dates -owner_id $user_id -start_date $start_date -end_date $end_date -absence_status_id 16000]
+        } else {
+            set absence_dates [im_absence_dates -owner_id $user_id -start_date $start_date -end_date $end_date -absence_status_id 16001]            
+        }
+        
+        set values_list [list]
+        foreach absence_date $absence_dates {
+            lappend values_list "('$absence_date'::date,8)"
+        }
+        if {[llength $values_list]>0} {
+            # ---------------------------------------------------------------
+            # Create a special project line for absences and calculate
+            # the absence hours using a virtual table made up of the 
+            # absence hours
+            # ---------------------------------------------------------------
+
+            set values_sql "(values [join $values_list ","]) as absences (day,hours)"
+            set absence_timescale_value_sql "select sum(hours) as sum_hours,$timescale_sql as timescale_header
+                  from $values_sql
+                  group by timescale_header order by timescale_header"
+
+            set project_id 0            
+            db_foreach absence_timescale_info $absence_timescale_value_sql {
+                set project_hours(${user_id}-$project_id) 1
+                set var ${user_id}_${project_id}($timescale_header)
+                if {"percentage" == $dimension} {
+                    if {[info exists user_hours_${timescale_header}_$user_id]} {
+                        set total [set user_hours_${timescale_header}_$user_id]
+                    } else {
+                        set total 0
+                    }
+                    if {0 < $total} {
+                        set $var "[expr round($sum_hours / $total *100)]"
+                    } else {
+                        set $var "0"
+                    }
+                } else {
+                    set $var $sum_hours
+                }        
+            }
+        }
     }
     
     foreach project_id $project_ids {
@@ -501,16 +556,35 @@ foreach user_id $user_list {
             append __output "<table:table-row table:style-name=\"ro1\">\n"
             append table_body_html "<tr>"
 
-            # Get the column information
-            db_1row project_info_query "
-            select project_name,personnel_number,p.project_id,employee_id,project_nr,company_id, project_type_id
-            $view_arr(extra_selects_sql)
-            from im_projects p, im_employees e
-            $view_arr(extra_froms_sql)
-            where e.employee_id = :user_id
-            and p.project_id = :project_id
-            limit 1
-        " 
+            # Get the column information for the view
+            # If we have a special project_id, don't query the projects table
+            switch $project_id {
+                0 {
+                    set project_name "Absences"
+                    db_1row project_info_query "
+                                        select personnel_number,employee_id
+                                        $view_arr(extra_selects_sql)
+                                        from im_employees e
+                                        $view_arr(extra_froms_sql)
+                                        where e.employee_id = :user_id
+                                        limit 1"
+                    
+                    set project_url [export_vars -base "/intranet-timesheet2/absences/index" -url {{user_id_from_search $user_id}}]
+                }
+                default {
+                    db_1row project_info_query "
+                        select project_name,personnel_number,p.project_id,employee_id,project_nr,company_id, project_type_id
+                        $view_arr(extra_selects_sql)
+                        from im_projects p, im_employees e
+                        $view_arr(extra_froms_sql)
+                        where e.employee_id = :user_id
+                        and p.project_id = :project_id
+                        limit 1
+                    " 
+                    set project_url [export_vars -base "/intranet/projects/view" -url {project_id}]
+                }
+                
+            }
             foreach column_var $view_arr(column_vars) {
                 set column_value [expr $column_var]
                 # HTML
@@ -541,6 +615,7 @@ foreach user_id $user_list {
             append __output "\n</table:table-row>\n"
         }
     }
+    
 }
 
 if {"xls" == $display_type} {

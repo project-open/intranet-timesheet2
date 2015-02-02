@@ -23,7 +23,7 @@ insert into im_view_columns (column_id, view_id, column_name, column_render_tcl,
 values (1059,1006,'#intranet-core.User#','"<a href=''/intranet/users/view?user_id=$user_id''>$username_pretty</a>"',1,'username_pretty','im_name_from_user_id(employee_id,3) as username_pretty','string');
 
 insert into im_view_columns (column_id, view_id, column_name, column_render_tcl, sort_order,variable_name,datatype) 
-values (1060,1006,'#intranet-core.Project#','"<a href=''/intranet/projects/view?project_id=$project_id''>$project_name</a>"',2,'project_name','string');
+values (1060,1006,'#intranet-core.Project#','"<a href=''$project_url''>$project_name</a>"',2,'project_name','string');
 
 update im_menus SET url = '/intranet-timesheet2/reports/timesheet-projects' where url = '/intranet-timesheet2/reports/actual_hours';
 
