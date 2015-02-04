@@ -208,7 +208,7 @@ ad_proc -public im_leave_entitlement_remaining_days_helper {
             set remaining_days [expr $remaining_days - $requested_days]
         }
     } else {
-        set absence_days [db_string absence_days "select coalesce(sum(duration),0)
+        set absence_days [db_string absence_days "select coalesce(sum(duration_days),0)
             from im_user_absences 
             where absence_type_id = :absence_type_id
             and absence_status_id in ([template::util::tcl_to_sql_list [im_sub_categories [im_user_absence_status_active]]])
