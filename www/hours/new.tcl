@@ -290,7 +290,7 @@ set edit_hours_p "t"
 # When should we consider the last month to be closed?
 set last_month_closing_day [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter TimesheetLastMonthClosingDay -default 0]
 
-if {0 != $last_month_closing_day && "" != $last_month_closing_day && !$add_hours_all_p} {
+if {0 != $last_month_closing_day && "" != $last_month_closing_day } {
     # Check that $julian_date is before the Nth of the next month:
     # Select the 1st day of the last month:
     set first_of_last_month [db_string last_month "
