@@ -787,7 +787,8 @@ ad_proc -private im_absence_component__absence_criteria {
 
     if {$hide_colors_p} {
         # show only approved and requested
-        set absence_status_id [list [im_user_absence_status_active],[im_user_absence_status_requested]]
+        set absence_status_id [list [im_user_absence_status_active] [im_user_absence_status_requested]]
+        lappend criteria "a.absence_status_id in ([template::util::tcl_to_sql_list $absence_status_id])"
     } else {
         if { $absence_status_id ne {} } {
             if { [llength $absence_status_id] == 1 } {
