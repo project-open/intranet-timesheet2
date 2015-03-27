@@ -130,9 +130,10 @@ array set absence_hash {}
 set absence_sql "
     -- Individual Absences per user
     select	a.absence_type_id,
+            a.absence_status_id,
             a.owner_id,
             d.d
-      from	cc_users u inner join im_user_absences a on (a.owner_id=u.user_id),
+      from  cc_users u inner join im_user_absences a on (a.owner_id=u.user_id),
             (select im_day_enumerator as d from im_day_enumerator(:start_date, :end_date)) d
     where   u.member_state = 'approved' and
             date_trunc('day',d.d) between date_trunc('day',a.start_date) and date_trunc('day',a.end_date) 
@@ -140,9 +141,10 @@ set absence_sql "
     UNION
     -- Absences for user groups
     select	a.absence_type_id,
+            a.absence_status_id,
             mm.member_id as owner_id,
             d.d
-    from	users u inner join im_user_absences a on (a.owner_id=u.user_id),
+    from    users u inner join im_user_absences a on (a.owner_id=u.user_id),
             group_distinct_member_map mm,
             (select im_day_enumerator as d from im_day_enumerator(:start_date, :end_date)) d
     where	mm.member_id = u.user_id and
@@ -150,23 +152,6 @@ set absence_sql "
             mm.group_id = a.group_id
             $where_clause
 "
-
-if {0} {   UNION
-    -- Absences for bridge days
-    select	a.absence_type_id,
-            mm.member_id as owner_id,
-            d.d
-    from	users u inner join im_user_absences a on (a.owner_id=u.user_id),
-            group_distinct_member_map mm,
-            (select im_day_enumerator as d from im_day_enumerator(:start_date, :end_date)) d
-    where	mm.member_id = u.user_id and
-            a.start_date <= :end_date::date and
-            a.end_date >= :start_date::date and
-            date_trunc('day',d.d) between date_trunc('day',a.start_date) and date_trunc('day',a.end_date) and 
-            mm.group_id = a.group_id and
-            a.absence_type_id in ([template::util::tcl_to_sql_list [im_sub_categories [im_user_absence_type_bank_holiday]]]) and
-            a.absence_status_id in ([template::util::tcl_to_sql_list [im_sub_categories [im_user_absence_status_active]]])
-}
 
 # Get list of category_ids to determine index 
 # needed for color codes
@@ -182,6 +167,10 @@ foreach absence_type $absence_types {
 db_foreach absences $absence_sql {
     set key "$owner_id-$d"
     lappend absence_hash($key) $indexof($absence_type_id)
+    
+    if {[lsearch [im_sub_categories [im_user_absence_status_requested]] $absence_status_id]>-1} {
+        set cell_char($key) "?"
+    }
 }
 
 set sql "select to_char(to_date(:start_date,:date_format) + interval '$num_days days', :date_format)"
@@ -280,8 +269,7 @@ foreach user_tuple $user_list {
             set bg_color "#fff"
             set fg_color "#fff"
         }
-
-        append table_body [im_absence_render_cell $bg_color $fg_color]
+        append table_body [im_absence_render_cell $bg_color $fg_color $cell_str "center" ${extra_style}]
         ns_log debug "intranet-absences-procs::im_absence_cube_render_cell: $index"
     }
     append table_body "</tr>\n"
