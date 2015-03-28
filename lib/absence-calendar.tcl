@@ -52,13 +52,16 @@ set absences_sql "
     select	a.absence_type_id,
             a.absence_status_id,
             a.owner_id,
-            d.d
+            d.d,
+            c.aux_string2
     from	    im_user_absences a,
             users u,
             (select im_day_enumerator as d from im_day_enumerator(:report_start_date, :report_end_date)) d,
-            cc_users cc
+            cc_users cc,
+            im_categories c
     where	a.owner_id = u.user_id and
             cc.user_id = u.user_id and 
+            c.category_id = a.absence_status_id and
             cc.member_state = 'approved' and
             a.start_date <= :report_end_date::date and
             a.end_date >= :report_start_date::date and
@@ -69,12 +72,15 @@ set absences_sql "
     select	a.absence_type_id,
             a.absence_status_id,
             mm.member_id as owner_id,
-            d.d
+            d.d,
+            c.aux_string2
     from	    im_user_absences a,
             users u,
             group_distinct_member_map mm,
-            (select im_day_enumerator as d from im_day_enumerator(:report_start_date, :report_end_date)) d
+            (select im_day_enumerator as d from im_day_enumerator(:report_start_date, :report_end_date)) d,
+            im_categories c
     where	mm.member_id = u.user_id and
+            c.category_id = a.absence_status_id and
             a.start_date <= :report_end_date::date and
             a.end_date >= :report_start_date::date and
             date_trunc('day',d.d) between date_trunc('day',a.start_date) and date_trunc('day',a.end_date) and 
@@ -107,9 +113,7 @@ db_foreach absences $absences_sql {
         set seen(${owner_id},${d}) ""
     }
 
-    if { [get_value_if is_req_category_p($absence_status_id) "0"] } {
-        set cell_char($key) "?"
-    }
+    set cell_char($key) "$aux_string2"
 }
 
 set weekend_days \

@@ -132,10 +132,13 @@ set absence_sql "
     select	a.absence_type_id,
             a.absence_status_id,
             a.owner_id,
+            c.aux_string2,
             d.d
       from  cc_users u inner join im_user_absences a on (a.owner_id=u.user_id),
-            (select im_day_enumerator as d from im_day_enumerator(:start_date, :end_date)) d
+            (select im_day_enumerator as d from im_day_enumerator(:start_date, :end_date)) d,
+            im_categories c
     where   u.member_state = 'approved' and
+            c.category_id = a.absence_status_id and            
             date_trunc('day',d.d) between date_trunc('day',a.start_date) and date_trunc('day',a.end_date) 
             $where_clause
     UNION
@@ -143,11 +146,14 @@ set absence_sql "
     select	a.absence_type_id,
             a.absence_status_id,
             mm.member_id as owner_id,
+            c.aux_string2,
             d.d
     from    users u inner join im_user_absences a on (a.owner_id=u.user_id),
             group_distinct_member_map mm,
-            (select im_day_enumerator as d from im_day_enumerator(:start_date, :end_date)) d
+            (select im_day_enumerator as d from im_day_enumerator(:start_date, :end_date)) d,
+            im_categories c
     where	mm.member_id = u.user_id and
+            c.category_id = a.absence_status_id and
             date_trunc('day',d.d) between date_trunc('day',a.start_date) and date_trunc('day',a.end_date) and 
             mm.group_id = a.group_id
             $where_clause
@@ -168,9 +174,7 @@ db_foreach absences $absence_sql {
     set key "$owner_id-$d"
     lappend absence_hash($key) $indexof($absence_type_id)
     
-    if {[lsearch [im_sub_categories [im_user_absence_status_requested]] $absence_status_id]>-1} {
-        set cell_char($key) "?"
-    }
+    set cell_char($key) "$aux_string2"
 }
 
 set sql "select to_char(to_date(:start_date,:date_format) + interval '$num_days days', :date_format)"
