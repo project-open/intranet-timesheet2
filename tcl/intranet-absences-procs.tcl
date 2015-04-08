@@ -2188,4 +2188,23 @@ ad_proc -callback im_trace_table_change -impl im_trace_absence_change {
         -message $message
 }
 
+ad_proc -public im_absence_ics {
+    {-absence_id:required}
+} {
+    the cal_item_id is obvious.
+} {
+    db_1row absence_info "select description, absence_name, to_char(start_date,'YYYYMMDD') as start_date, to_char(end_date,'YYYYMMDD') as end_date, last_modified from im_user_absences where absence_id = :absence_id"
+    set CREATION_DATE [calendar::outlook::ics_timestamp_format -timestamp $last_modified]
+    
+    # Put it together
+    set ics_event "BEGIN:VCALENDAR\r\nPRODID:-//OpenACS//OpenACS 5.0 MIMEDIR//EN\r\nVERSION:2.0\r\nMETHOD:PUBLISH\r\nBEGIN:VEVENT\r\nDTSTART;VALUE=DATE:$start_date\r\nDTEND;VALUE=DATE:$end_date\r\n"
+        
+    set DESCRIPTION $description
+    set TITLE $absence_name
+    append ics_event "LOCATION:Not Listed\r\nCATEGORIES:VACATION\r\nX-MICROSOFT-CDO-BUSYSTATUS:OOF\r\nTRANSP:TRANSPARENT\r\nSEQUENCE:0\r\nUID:$absence_id\r\nDTSTAMP:$CREATION_DATE\r\nDESCRIPTION:$DESCRIPTION\r\nSUMMARY:$TITLE\r\nPRIORITY:5\r\nCLASS:PUBLIC\r\n"
+    
+    append ics_event "END:VEVENT\r\nEND:VCALENDAR\r\n"
+    return $ics_event
+}
+
 
