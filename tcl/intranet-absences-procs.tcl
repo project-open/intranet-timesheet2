@@ -2193,15 +2193,46 @@ ad_proc -public im_absence_ics {
 } {
     the cal_item_id is obvious.
 } {
-    db_1row absence_info "select description, absence_name, to_char(start_date,'YYYYMMDD') as start_date, to_char(end_date,'YYYYMMDD') as end_date, last_modified from im_user_absences where absence_id = :absence_id"
-    set CREATION_DATE [calendar::outlook::ics_timestamp_format -timestamp $last_modified]
+    db_1row absence_info "select description, absence_name, owner_id, to_char(o.creation_date,'YYYY-MM-DD HH24:MI:SS') as creation_date,absence_status_id, absence_type_id, to_char(start_date,'YYYYMMDD') as start_date, to_char(end_date + interval '1 day','YYYYMMDD') as end_date, to_char(o.last_modified,'YYYY-MM-DD HH24:MI:SS') as last_modified from im_user_absences ua, acs_objects o where absence_id = :absence_id and ua.absence_id = o.object_id"
+
+    # Get some defaults
+    set owner_name [im_name_from_user_id $owner_id]
+    set owner_email [party::email -party_id $owner_id]
+    set CREATED [calendar::outlook::ics_timestamp_format -timestamp $creation_date]
+    set DTSTAMP [calendar::outlook::ics_timestamp_format -timestamp $last_modified]
+    set DESCRIPTION $absence_name
+    set SUMMARY "[im_category_from_id $absence_type_id] [im_category_from_id $absence_status_id] ($owner_name)"
+    set UID $absence_id
+    set ORGANIZER $owner_email
+    
+    if {[lsearch [im_sub_categories [im_user_absence_status_requested]] $absence_status_id]>=0} {
+        set METHOD "PUBLISH"
+        set SEQUENCE "0"
+        set TRANSP "TRANSPARENT"
+        set STATUS "TENTATIVE"
+        set BUSYSTATUS "FREE"
+    } elseif {[lsearch [im_sub_categories [im_user_absence_status_active]] $absence_status_id]>=0} {
+        # Active 
+        set METHOD "PUBLISH"        
+        set BUSYSTATUS "OOF"
+        set TRANSP "OPAQUE"
+        set STATUS "CONFIRMED"
+        set SEQUENCE "1"
+    } elseif {[lsearch [im_sub_categories [im_user_absence_status_deleted]] $absence_status_id]>=0} {
+        # Active 
+        set METHOD "CANCEL"
+        set SEQUENCE "2"
+        set TRANSP "TRANSPARENT"
+        set STATUS "CANCELLED"
+        set BUSYSTATUS "OOF"
+    }
     
     # Put it together
-    set ics_event "BEGIN:VCALENDAR\r\nPRODID:-//OpenACS//OpenACS 5.0 MIMEDIR//EN\r\nVERSION:2.0\r\nMETHOD:PUBLISH\r\nBEGIN:VEVENT\r\nDTSTART;VALUE=DATE:$start_date\r\nDTEND;VALUE=DATE:$end_date\r\n"
-        
-    set DESCRIPTION $description
-    set TITLE $absence_name
-    append ics_event "LOCATION:Not Listed\r\nCATEGORIES:VACATION\r\nX-MICROSOFT-CDO-BUSYSTATUS:OOF\r\nTRANSP:TRANSPARENT\r\nSEQUENCE:0\r\nUID:$absence_id\r\nDTSTAMP:$CREATION_DATE\r\nDESCRIPTION:$DESCRIPTION\r\nSUMMARY:$TITLE\r\nPRIORITY:5\r\nCLASS:PUBLIC\r\n"
+    set ics_event "BEGIN:VCALENDAR\r\nPRODID:-//OpenACS//OpenACS 5.0 MIMEDIR//EN\r\nVERSION:2.0\r\nMETHOD:$METHOD\r\n"
+    
+    # Now for the actual event
+    append ics_event "BEGIN:VEVENT\r\nCREATED:$CREATED\r\nDTSTART;VALUE=DATE:$start_date\r\nDTEND;VALUE=DATE:$end_date\r\nLOCATION:\r\nX-MICROSOFT-CDO-BUSYSTATUS:$BUSYSTATUS\r\nTRANSP:$TRANSP\r\nSEQUENCE:$SEQUENCE\r\nUID:$UID\r\nDTSTAMP:$DTSTAMP\r\nDESCRIPTION:$DESCRIPTION\r\nSUMMARY:$SUMMARY\r\nORGANIZER:$ORGANIZER\r\nSTATUS:$STATUS\r\nPRIORITY:5\r\nCLASS:PUBLIC\r\n"
+    append ics_event "ATTENDEE;CN=\"$owner_name\";PARTSTAT=ACCEPTED:mailto:$owner_email\r\n"
     
     append ics_event "END:VEVENT\r\nEND:VCALENDAR\r\n"
     return $ics_event
