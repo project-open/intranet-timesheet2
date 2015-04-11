@@ -92,17 +92,6 @@ set page_focus "im_header_form.keywords"
 set return_url [im_url_with_query]
 set user_view_page "/intranet/users/view"
 
-# Prepare the subscription link
-set salt [db_string salt "select salt from users where user_id = :current_user_id" -default ""]
-set token [ns_sha1 "${user_id}${salt}"]
-regsub -all {http://} [ad_url] {} server_name
-set subscribe_url [export_vars -base "webcal://${server_name}/intranet-timesheet2/absences/ics/${user_id}-${token}.ics" -url {user_selection}]
-if {$user_selection eq "mine"} {
-    set calname "$owner_name Absences"
-} else {
-    set calname "[im_name_from_id $user_selection] Absences"
-}
-set subscribe_link "<a href='$subscribe_url'>$calname</a>"
 
 ############################################################
 #                                                          #
@@ -181,10 +170,46 @@ ad_form \
             {html {size 10}}
             {value "$timescale_date"}
             {after_html {<input type="button" style="height:23px; width:23px; background: url('/resources/acs-templating/calendar.gif');" onclick ="return showCalendar('timescale_date', 'y-m-d');" >}}}
-        {subscribe_link:text(inform)
+        {subscribe:text(inform)
             {label "[_ intranet-core.Subscribe]"}
-            {value $subscribe_link}
         }
+    } \
+    -on_request {
+        # Prepare the subscription link
+        set salt [db_string salt "select salt from users where user_id = :current_user_id" -default ""]
+        set token [ns_sha1 "${user_id}${salt}"]
+        regsub -all {http://} [ad_url] {} server_name
+        set subscribe_url [export_vars -base "webcal://${server_name}/intranet-timesheet2/absences/ics/${user_id}-${token}.ics" -url {user_selection}]
+        if {$user_selection eq "mine"} {
+            set calname "[im_name_from_user_id $current_user_id] Absences"
+        } elseif {$user_selection eq "direct_reports"} {
+            set calname "Direct Reports"
+        } elseif {$user_selection eq "all"} {
+            set calname "Not Allowed"
+            set subscribe_url ""
+        } {
+            set calname "[im_name_from_id $user_selection] Absences"
+        }
+        template::element set_value $form_id subscribe "<a href='$subscribe_url'>$calname</a>"
+    } \
+    -on_submit {
+        # Prepare the subscription link
+        set salt [db_string salt "select salt from users where user_id = :current_user_id" -default ""]
+        set token [ns_sha1 "${user_id}${salt}"]
+        regsub -all {http://} [ad_url] {} server_name
+        set subscribe_url [export_vars -base "webcal://${server_name}/intranet-timesheet2/absences/ics/${user_id}-${token}.ics" -url {user_selection}]
+        if {$user_selection eq "mine"} {
+            set calname "[im_name_from_user_id $current_user_id] Absences"
+        } elseif {$user_selection eq "direct_reports"} {
+            set calname "Direct Reports"
+        } elseif {$user_selection eq "all"} {
+            set calname "Not Allowed"
+            set subscribe_url ""
+        } {
+            set calname "[im_name_from_id $user_selection] Absences"
+        }
+        template::element set_value $form_id subscribe "<a href='$subscribe_url'>$calname</a>"
+        
     }
 
 template::element::set_value $form_id timescale_date $timescale_date
