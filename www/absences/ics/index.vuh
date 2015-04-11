@@ -1,0 +1,88 @@
+
+ad_page_contract {
+    
+    Output the absences as ics for Outlook
+    The expected URL is <cal_item_id>.ics
+
+    @author Malte Sussdorff ( malte.sussdorff@cognovis.de )
+    
+} {
+    {user_selection "mine"}    
+}
+
+set path [ad_conn path_info]
+
+# Match the path
+
+if {![regexp {([0-9]*)-([0-9A-Z]*)\.ics} $path all user_id token]} {
+    ad_returnredirect "../"
+    ad_script_abort
+}
+
+# Check if we have an access problem
+set salt [db_string salt "select salt from users where user_id = :user_id" -default ""]
+set check_token [ns_sha1 "${user_id}${salt}"]
+
+if {$token ne $check_token} {
+    ad_returnredirect "../"
+    ad_script_abort    
+}
+
+im_absence_component__absence_criteria \
+    -where_clauseVar where_clause \
+    -user_selection $user_selection \
+    -absence_type_id "-1" \
+    -absence_status_id "16001" \
+    -current_user_id $user_id
+
+im_absence_component__user_selection \
+    -where_clauseVar where_clause \
+    -user_selection $user_selection \
+    -hide_colors_pVar hide_colors_p \
+    -current_user_id $user_id
+
+set date_format "YYYY-MM-DD"
+
+set sql "
+    select
+    absence_id
+    from
+    im_user_absences a
+    where	(a.owner_id is null OR a.owner_id not in (
+            -- Exclude deleted or disabled users
+            select	m.member_id
+            from    group_member_map m, 
+                membership_rels mr
+            where   m.group_id = acs__magic_object_id('registered_users') and 
+                m.rel_id = mr.rel_id and 
+                m.container_id = m.group_id and
+                mr.member_state != 'approved'
+        ))
+    $where_clause
+"
+
+if {$user_selection eq "mine"} {
+    set calname "$owner_name Absences"
+} else {
+    set calname "[im_name_from_id $user_selection] Absences"
+}
+
+set absence_ids [db_list absences "$sql"]
+set owner_name [im_name_from_user_id $user_id]
+
+set cal_ics "BEGIN:VCALENDAR
+X-WR-CALNAME:$calname
+X-WR-CALDESC:Absence Calendar
+X-PUBLISHED-TTL:PT15M
+PRODID:-//OpenACS//OpenACS 5.0 MIMEDIR//EN
+VERSION:2.0"
+
+foreach absence_id $absence_ids {
+    append cal_ics [im_absence_vevent -absence_id $absence_id]
+}
+
+append cal_ics "\r\nEND:VCALENDAR"
+ns_return 200 application/x-msoutlook $cal_ics
+
+# This is for testing
+# ns_return 200 text/plain $ics_stuff

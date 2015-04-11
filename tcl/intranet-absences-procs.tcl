@@ -770,7 +770,10 @@ ad_proc -private im_absence_component__absence_criteria {
     -user_selection:required
     {-absence_type_id ""}
     {-absence_status_id ""}
+    {-current_user_id ""}
 } {
+    @param current_user_id Ability to pass in the current user id especially when not logged in
+    
     @last-modified 2014-12-08
     @last-modified-by Neophytos Demetriou (neophytos@azet.sk)
 } {
@@ -783,7 +786,8 @@ ad_proc -private im_absence_component__absence_criteria {
         -user_selection $user_selection \
         -user_selection_idVar user_selection_id \
         -user_selection_typeVar user_selection_type \
-        -hide_colors_pVar hide_colors_p
+        -hide_colors_pVar hide_colors_p \
+        -current_user_id $current_user_id
 
     if {$hide_colors_p} {
         # show only approved and requested
@@ -814,6 +818,7 @@ ad_proc -private im_absence_component__user_selection_helper {
     -user_selection_typeVar:required
     {-hide_colors_pVar ""}
     {-user_nameVar ""}
+    {-current_user_id ""}
 } {
     Returns true if the current user can view the given selection. 
     Otherwise, it returns false. 
@@ -838,7 +843,9 @@ ad_proc -private im_absence_component__user_selection_helper {
     set user_name ""
     set hide_colors_p 0
 
-    set current_user_id [ad_get_user_id]
+    if {$current_user_id eq ""} {
+        set current_user_id [ad_get_user_id]        
+    }
 
     set can_add_all_p [im_permission $current_user_id "add_absences_all"]
     set can_view_all_p [expr { [im_permission $current_user_id "view_absences_all"] || $can_add_all_p }]
@@ -972,6 +979,7 @@ ad_proc -private im_absence_component__user_selection {
     {-total_countVar ""}
     {-is_aggregate_pVar ""}
     {-im_where_from_criteria_keyword "and"}
+    {-current_user_id ""}
 } {
     @last-modified 2014-12-09
     @last-modified-by Neophytos Demetriou (neophytos@azet.sk)
@@ -989,15 +997,18 @@ ad_proc -private im_absence_component__user_selection {
         upvar $is_aggregate_pVar is_aggregate_p
     }
 
+    if {$current_user_id eq ""} {
+        set current_user_id [ad_get_user_id]        
+    }
+
     im_absence_component__user_selection_helper \
         -user_selection $user_selection \
         -user_selection_idVar user_selection_id \
         -user_selection_typeVar user_selection_type \
-        -hide_colors_pVar hide_colors_p
+        -hide_colors_pVar hide_colors_p \
+        -current_user_id $current_user_id
 
     set criteria [list]
-
-    set current_user_id [ad_get_user_id]
 
     set is_aggregate_p 0
     set total_count ""
@@ -2203,7 +2214,6 @@ ad_proc -public im_absence_ics {
     set DESCRIPTION $absence_name
     set SUMMARY "[im_category_from_id $absence_type_id] [im_category_from_id $absence_status_id] ($owner_name)"
     set UID $absence_id
-    set ORGANIZER $owner_email
     
     if {[lsearch [im_sub_categories [im_user_absence_status_requested]] $absence_status_id]>=0} {
         set METHOD "PUBLISH"
@@ -2231,11 +2241,55 @@ ad_proc -public im_absence_ics {
     set ics_event "BEGIN:VCALENDAR\r\nPRODID:-//OpenACS//OpenACS 5.0 MIMEDIR//EN\r\nVERSION:2.0\r\nMETHOD:$METHOD\r\n"
     
     # Now for the actual event
-    append ics_event "BEGIN:VEVENT\r\nCREATED:$CREATED\r\nDTSTART;VALUE=DATE:$start_date\r\nDTEND;VALUE=DATE:$end_date\r\nLOCATION:\r\nX-MICROSOFT-CDO-BUSYSTATUS:$BUSYSTATUS\r\nTRANSP:$TRANSP\r\nSEQUENCE:$SEQUENCE\r\nUID:$UID\r\nDTSTAMP:$DTSTAMP\r\nDESCRIPTION:$DESCRIPTION\r\nSUMMARY:$SUMMARY\r\nORGANIZER:$ORGANIZER\r\nSTATUS:$STATUS\r\nPRIORITY:5\r\nCLASS:PUBLIC\r\n"
-    append ics_event "ATTENDEE;CN=\"$owner_name\";PARTSTAT=ACCEPTED:mailto:$owner_email\r\n"
+    append ics_event "BEGIN:VEVENT\r\nCREATED:$CREATED\r\nDTSTART;VALUE=DATE:$start_date\r\nDTEND;VALUE=DATE:$end_date\r\nLOCATION:\r\nX-MICROSOFT-CDO-BUSYSTATUS:$BUSYSTATUS\r\nTRANSP:$TRANSP\r\nSEQUENCE:$SEQUENCE\r\nUID:$UID\r\nDTSTAMP:$DTSTAMP\r\nDESCRIPTION:$DESCRIPTION\r\nSUMMARY:$SUMMARY\r\nSTATUS:$STATUS\r\nPRIORITY:5\r\nCLASS:PUBLIC\r\n"
     
     append ics_event "END:VEVENT\r\nEND:VCALENDAR\r\n"
     return $ics_event
+}
+
+ad_proc -public im_absence_vevent {
+    {-absence_id:required}
+} {
+    Returns the ICS for one VEVENT. Still needs the calendar wrapper in order to succeed
+} {
+    db_1row absence_info "select description, absence_name, owner_id, to_char(o.creation_date,'YYYY-MM-DD HH24:MI:SS') as creation_date,absence_status_id, absence_type_id, to_char(start_date,'YYYYMMDD') as start_date, to_char(end_date + interval '1 day','YYYYMMDD') as end_date, to_char(o.last_modified,'YYYY-MM-DD HH24:MI:SS') as last_modified from im_user_absences ua, acs_objects o where absence_id = :absence_id and ua.absence_id = o.object_id"
+
+    # Get some defaults
+    set owner_name [im_name_from_user_id $owner_id]
+    set owner_email [party::email -party_id $owner_id]
+    set CREATED [calendar::outlook::ics_timestamp_format -timestamp $creation_date]
+    set DTSTAMP [calendar::outlook::ics_timestamp_format -timestamp $last_modified]
+    set DESCRIPTION $absence_name
+    set SUMMARY "[im_category_from_id $absence_type_id] [im_category_from_id $absence_status_id] ($owner_name)"
+    set UID $absence_id
+    set ORGANIZER $owner_email
+
+    if {[lsearch [im_sub_categories [im_user_absence_status_requested]] $absence_status_id]>=0} {
+        set METHOD "PUBLISH"
+        set SEQUENCE "0"
+        set TRANSP "TRANSPARENT"
+        set STATUS "TENTATIVE"
+        set BUSYSTATUS "FREE"
+    } elseif {[lsearch [im_sub_categories [im_user_absence_status_active]] $absence_status_id]>=0} {
+        # Active 
+        set METHOD "PUBLISH"        
+        set BUSYSTATUS "OOF"
+        set TRANSP "OPAQUE"
+        set STATUS "CONFIRMED"
+        set SEQUENCE "1"
+    } elseif {[lsearch [im_sub_categories [im_user_absence_status_deleted]] $absence_status_id]>=0} {
+        # Active 
+        set METHOD "CANCEL"
+        set SEQUENCE "2"
+        set TRANSP "TRANSPARENT"
+        set STATUS "CANCELLED"
+        set BUSYSTATUS "OOF"
+    }
+
+
+    # Now for the actual event
+    set vevent "\r\nBEGIN:VEVENT\r\nCREATED:$CREATED\r\nDTSTART;VALUE=DATE:$start_date\r\nDTEND;VALUE=DATE:$end_date\r\nLOCATION:\r\nX-MICROSOFT-CDO-BUSYSTATUS:$BUSYSTATUS\r\nTRANSP:$TRANSP\r\nSEQUENCE:$SEQUENCE\r\nUID:$UID\r\nDTSTAMP:$DTSTAMP\r\nDESCRIPTION:$DESCRIPTION\r\nSUMMARY:$SUMMARY\r\nSTATUS:$STATUS\r\nPRIORITY:5\r\nCLASS:PUBLIC\r\nEND:VEVENT"
+    return $vevent
 }
 
 
