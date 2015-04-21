@@ -284,11 +284,11 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
     }
 
     if { [info exists users_hours($current_date)] } {
-	if { [info exists unconfirmed_hours($current_date)] && $confirm_timesheet_hours_p } {
-	    set no_unconfirmed_hours [get_unconfirmed_hours_for_period $user_id_from_search $current_date $current_date]  
-	    if {0 == $no_unconfirmed_hours || "" == $no_unconfirmed_hours} {
-		# ns_log notice "There are no unconfirmed hours: [info exists hash_conf_object_id($julian_date)]"
-		set wf_actice_case_sql "
+        	if { [info exists unconfirmed_hours($current_date)] && $confirm_timesheet_hours_p } {
+	       set no_unconfirmed_hours [get_unconfirmed_hours_for_period $user_id_from_search $current_date $current_date]  
+        	   if {0 == $no_unconfirmed_hours || "" == $no_unconfirmed_hours} {
+		      # ns_log notice "There are no unconfirmed hours: [info exists hash_conf_object_id($julian_date)]"
+		      set wf_actice_case_sql "
                                 select count(*)
                                 from im_hours h, wf_cases c
                                 where   c.object_id = h.conf_object_id and
@@ -296,25 +296,25 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
                                         c.state <> 'finished' and
                                         h.user_id = $user_id_from_search
                         "
-		set no_wf_cases [db_string no_wf_cases $wf_actice_case_sql]
-		if { $no_wf_cases > 0 } {
-		    set html "<span id='hours_confirmed_yellow'>$hours</span>$curr_absence$log_hours_for_the_week_html"
-		} else {
-		    set html "<span id='hours_confirmed_green'>$hours</span>$curr_absence$log_hours_for_the_week_html"
-		}
-	    } else {
-		set html "${hours}${curr_absence}<br>" 
-		if {$confirm_timesheet_hours_p} {
-		    append html "[lang::message::lookup "" intranet-timesheet2.ToConfirm "To confirm"]:&nbsp;"
-		    append html "<span id='hours_confirmed_red'>${no_unconfirmed_hours}&nbsp;[_ intranet-timesheet2.hours]</span>"
-		}	
-		append html "$log_hours_for_the_week_html"
+                set no_wf_cases [db_string no_wf_cases $wf_actice_case_sql]
+		        if { $no_wf_cases > 0 } {
+    		          set html "<span id='hours_confirmed_yellow'>$hours</span>$curr_absence$log_hours_for_the_week_html"
+                } else {
+            		  set html "<span id='hours_confirmed_green'>$hours</span>$curr_absence$log_hours_for_the_week_html"
+            		}
+	       } else {
+    	           set html "${hours}${curr_absence}<br>" 
+            	   if {$confirm_timesheet_hours_p} {
+            	       append html "[lang::message::lookup "" intranet-timesheet2.ToConfirm "To confirm"]:&nbsp;"
+            		   append html "<span id='hours_confirmed_red'>${no_unconfirmed_hours}&nbsp;[_ intranet-timesheet2.hours]</span>"
+            	   }	
+		       append html "$log_hours_for_the_week_html"
+	       }
+        	} else {
+	       set html "${hours}${curr_absence}$log_hours_for_the_week_html"
 	    }
-	} else {
-	    set html "${hours}${curr_absence}$log_hours_for_the_week_html"
-	}
     } else {
-	set html "${hours}${curr_absence}$log_hours_for_the_week_html"
+	   set html "${hours}${curr_absence}$log_hours_for_the_week_html"
     }
 
 
