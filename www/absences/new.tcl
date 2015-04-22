@@ -197,7 +197,7 @@ if {$button_pressed =="delete"} {
     if {[parameter::get_from_package_key -package_key intranet-timesheet2 -parameter "CancelAbsenceP" -default 1]} {
 
 	    # We just cancel the workflow and not delete it
-        callback im_user_absence_before_delete  -object_id $absence_id -status_id [im_user_absence_status_deleted]
+        callback im_user_absence_before_nuke  -object_id $absence_id -status_id [im_user_absence_status_deleted]
 	
         # Set the workflow to finished
         if {$absence_under_wf_control_p} {
@@ -410,7 +410,7 @@ ad_form -extend -name $form_id -on_request {
         "[_ intranet-timesheet2.lt_Please_revise_your_st]"
     }
     {duration_days
-        {$duration_days >0 || [im_user_is_hr_p $current_user_id]}
+        {$duration_days >=0 || [im_user_is_hr_p $current_user_id]}
         "Can't insert an absence without duration. Maybe you already have a vaction at the requested time period?"
     }
     {end_date
