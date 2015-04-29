@@ -83,16 +83,34 @@ ad_form -extend -name hours -on_request {
 } -after_submit {
 
     if {[catch {
-      db_dml hours_update "
+	# Delete the cost item associated with the im_hours entry
+	# (too complicated to more)
+	im_timesheet_costs_delete \
+            -project_id $old_project_id \
+            -user_id $user_id \
+            -day_julian $julian_date
+
+	# Change the actual im_hours item
+	db_dml hours_update "
 	update	im_hours set
 		project_id = :project_id,
 		hours = :hours,
 		note = :note
-	where
-		project_id = :old_project_id
+	where	project_id = :old_project_id
 		and user_id = :user_id
 		and day::date = to_date(:julian_date, 'J')
-      "
+        "
+
+	foreach project_id [list $project_id $old_project_id] {
+	    # Update sum(hours) and percent_completed for all modified projects
+	    im_timesheet_update_timesheet_cache -project_id $project_id
+	    # Create timesheet cost_items for all modified projects
+	    im_timesheet2_sync_timesheet_costs -project_id $project_id
+	}
+
+	# Recalculate the cost caches
+	im_cost_cache_sweeper
+
     } errmsg]} {
 	ad_return_complaint 1 "
 	    <b>Error updating timesheet information</b>:<p>
