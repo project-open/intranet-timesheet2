@@ -158,6 +158,7 @@ if {[info exists absence_id]} {
 set button_pressed [template::form get_action absence]
 if {"delete" == $button_pressed} {
     im_user_absence_nuke $absence_id
+    ad_returnredirect $return_url
 }
 
 # ------------------------------------------------------------------
