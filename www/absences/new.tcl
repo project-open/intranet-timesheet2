@@ -91,10 +91,25 @@ set add_absences_for_group_p [im_permission $current_user_id "add_absences_for_g
 if {[info exists absence_id]} {
     im_user_absence_permissions $current_user_id $absence_id view read write admin
 }
-if {![im_permission $current_user_id "add_absences"]} {
-    ad_return_complaint "[_ intranet-timesheet2.lt_Insufficient_Privileg]" "
-    <li>[_ intranet-timesheet2.lt_You_dont_have_suffici]"
+
+# Check permissions
+# ad_return_complaint 1 "absence_id=$absence_id, cur_uid=$current_user_id, form_mode=$form_mode, read=$read, write=$write"
+switch [string tolower $form_mode] {
+    display {
+	if {!$read} {
+	    ad_return_complaint 1 "<li>[_ intranet-timesheet2.lt_You_dont_have_suffici]"
+	}
+    }
+    edit {
+	if {!$write} {
+	    ad_return_complaint 1 "<li>[lang::message::lookup "" intranet-timesheet2.No_write_permissions "You don't have permissions to modify this absence"]"
+	}
+    }
+    default {
+	ad_return_complaint 1 "<li>[lang::message::lookup "" intranet-timesheet2.Unknown_form_mode "Unknown form_mode='%form_mode%'"]"
+    }
 }
+
 
 # Redirect if the type of the object hasn't been defined and
 # if there are DynFields specific for subtypes.
@@ -232,9 +247,6 @@ ad_form \
     -mode $form_mode \
     -export $hidden_field_list \
     -form $form_fields
-
-# ad_return_complaint 1 $write
-
 
 if {!$absence_under_wf_control_p || [im_permission $current_user_id edit_absence_status]} {
     set form_list {{absence_status_id:text(im_category_tree) {label "[lang::message::lookup {} intranet-timesheet2.Status Status]"} {custom {category_type "Intranet Absence Status"}}}}
