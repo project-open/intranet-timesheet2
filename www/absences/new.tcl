@@ -88,8 +88,17 @@ set read [im_permission $current_user_id "read_absences_all"]
 set write [im_permission $current_user_id "add_absences"]
 set add_absences_for_group_p [im_permission $current_user_id "add_absences_for_group"]
 
+# ad_return_complaint 1 "absence_id=$absence_id"
+# ad_script_abort
+
 if {[info exists absence_id]} {
-    im_user_absence_permissions $current_user_id $absence_id view read write admin
+    set absence_exists_p [db_string exists_p "select count(*) from im_user_absences where absence_id = :absence_id"]
+    if {$absence_exists_p} {
+	im_user_absence_permissions $current_user_id $absence_id view read write admin
+    } else {
+	# About to create a new absence
+	set read 1
+    }
 }
 
 # Check permissions
