@@ -340,6 +340,7 @@ switch $order_by {
     "End" { set order_by_clause "order by end_date" }
     "Type" { set order_by_clause "order by absence_type, owner_name" }
     "Status" { set order_by_clause "order by absence_status, owner_name" }
+    "Replacement" { set order_by_clause "order by replacement_name, start_date" }
 }
 
 set where_clause [join $criteria " and\n	    "]
@@ -357,7 +358,8 @@ set sql "
 		im_category_from_id(absence_type_id) as absence_type,
 		to_char(a.start_date, :date_format) as start_date_pretty,
 		to_char(a.end_date, :date_format) as end_date_pretty,
-		im_name_from_user_id(a.owner_id, $name_order) as owner_name
+		im_name_from_user_id(a.owner_id, $name_order) as owner_name,
+		im_name_from_user_id(a.vacation_replacement_id, $name_order) as replacement_name
 	from
 		im_user_absences a
 	where	(a.owner_id is null OR a.owner_id not in (
@@ -566,6 +568,14 @@ db_foreach absences_list $selection {
     # Calculate the link for the user/group for which the absence is valid
     set user_link "<a href=\"[export_vars -base "/intranet/users/view" {{user_id $owner_id}}]\">$owner_name</a>"
     if {"" != $group_id} { set user_link [im_profile::profile_name_from_id -profile_id $group_id] }
+
+    # Calculate replacement link
+    im_user_permissions $current_user_id $owner_id view read write admin
+    if {!$read} {
+	set replacement_link "$replacement_name"
+    } else {
+	set replacement_link "<a href=\"[export_vars -base "/intranet/users/view" {{user_id $vacation_replacement_id}}]\">$replacement_name</a>"
+    }
 
     #Append together a line of data based on the "column_vars" parameter list
     append table_body_html "<tr $bgcolor([expr $ctr % 2])>\n"
