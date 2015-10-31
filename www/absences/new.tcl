@@ -203,7 +203,7 @@ set form_fields {
 # A callback can be set up to prevent that users create unauthorized absences by URL manipulation.  
 # For now provisional solution, RequireAbsenceTypeInUrlP is therfore a hidden parameter 
 if { ![parameter::get -package_id [apm_package_id_from_key intranet-timesheet2] -parameter "RequireAbsenceTypeInUrlP" -default 0] } {
-    lappend form_fields "absence_type_id:text(im_category_tree) {label \"[_ intranet-timesheet2.Type]\"} {custom {category_type \"Intranet Absence Type\"}}"
+    lappend form_fields "absence_type_id:text(im_category_tree) {label \"[_ intranet-timesheet2.Type]\"} {custom {category_type \"Intranet Absence Type\" translate_p 1}}"
 } 
 # / -------
 
@@ -258,11 +258,11 @@ ad_form \
     -form $form_fields
 
 if {!$absence_under_wf_control_p || [im_permission $current_user_id edit_absence_status]} {
-    set form_list {{absence_status_id:text(im_category_tree) {label "[lang::message::lookup {} intranet-timesheet2.Status Status]"} {custom {category_type "Intranet Absence Status"}}}}
+    set form_list {{absence_status_id:text(im_category_tree) {label "[lang::message::lookup {} intranet-timesheet2.Status Status]"} {custom {category_type "Intranet Absence Status" translate_p 1}}}}
 } else {
-#   set form_list {{absence_status_id:text(im_category_tree) {mode display} {label "[lang::message::lookup {} intranet-timesheet2.Status Status]"} {custom {category_type "Intranet Absence Status"}}}}
     set form_list {{absence_status_id:text(hidden)}}
 }
+
 ad_form -extend -name absence -form $form_list
 
 ad_form -extend -name absence -form {
