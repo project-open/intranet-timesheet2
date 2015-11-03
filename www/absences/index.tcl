@@ -560,8 +560,9 @@ set user_link ""
 db_foreach absences_list $selection {
 
     # Use cached TCL function to implement localization
-    set absence_status [im_category_from_id $absence_status_id]
-    set absence_type [im_category_from_id $absence_type_id]
+
+    set absence_status [im_category_from_id -current_user_id $current_user_id -package_key intranet-core -translate_p 1 $absence_status_id] 
+    set absence_type [im_category_from_id -current_user_id $current_user_id -package_key intranet-core -translate_p 1 $absence_type_id]
 
     set absence_view_url [export_vars -base "$absences_url/new" {absence_id return_url {form_mode "display"}}]
 
