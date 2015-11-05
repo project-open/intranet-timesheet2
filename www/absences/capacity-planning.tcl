@@ -593,16 +593,16 @@ set list_sort_order [parameter::get_from_package_key -package_key "intranet-time
     append table_body_html "<td style='background-color:#ccc;font-weight:bold'>[lang::message::lookup "" intranet-core.AvailableDays "Days available"]</td>\n"
     append table_body_html "<td colspan='1000'>&nbsp;</td></tr>\n"
 
-    db_foreach project_name $sql {
+	db_foreach project_name $sql {
 	append table_body_html "<tr$bgcolor([expr $ctr % 2])>\n"
 	append table_body_html "<td><a href='$project_url$project_id'>$project_name_shortened</a></td>\n"
-        append table_body_html "<td>$lead_name</td>\n"
+    append table_body_html "<td>$lead_name</td>\n"
 	append table_body_html "<td>$start_date</td>\n"	
 	append table_body_html "<td>$end_date</td>\n"	
 
 	if { [empty_string_p $sum_planned_units] } { set sum_planned_units 0}
-        if { [empty_string_p $sum_logged_units] } { set sum_logged_units 0}
-	append table_body_html "<td align='center'>[expr $sum_planned_units - $sum_logged_units]</td>\n"
+    if { [empty_string_p $sum_logged_units] } { set sum_logged_units 0}
+	append table_body_html "<td align='center'>[format "%.2f" [expr {double(round(100*[expr $sum_planned_units - $sum_logged_units]))/100}]]</td>\n"
 
 	for { set i 1 } { $i <= $ctr_employees } { incr i } {
 		set cap_array_index [concat $employee_array([expr $i-1]).$project_id]		
