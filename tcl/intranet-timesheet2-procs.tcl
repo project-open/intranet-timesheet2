@@ -60,7 +60,7 @@ ad_proc -public im_timesheet2_sync_timesheet_costs {
     set sync_timesheet_costs [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter SyncHoursP -default 1]
     if {!$sync_timesheet_costs} { return }
     
-    set default_currency [ad_parameter -package_id [im_package_cost_id] "DefaultCurrency" "" "EUR"]
+    set default_currency [im_parameter -package_id [im_package_cost_id] "DefaultCurrency" "" "EUR"]
 
     set user_sql ""
     set project_sql ""
@@ -532,7 +532,7 @@ ad_proc im_force_user_to_log_hours { conn args why } {
 } {
     set user_id [ad_maybe_redirect_for_registration]
 
-    if { ![im_enabled_p] || ![ad_parameter TrackHours "" 0] } {
+    if { ![im_enabled_p] || ![im_parameter TrackHours "" 0] } {
 	# intranet or hours-logging not turned on. Do nothing
 	return filter_ok
     } 
