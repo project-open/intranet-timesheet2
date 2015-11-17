@@ -30,7 +30,7 @@ ad_page_contract {
 # Security
 # ---------------------------------------------------------------
 
-set current_user_id [ad_get_user_id]
+set current_user_id [ad_conn user_id]
     # This is a sensitive field, so only allows this for the user himself
     # and for users with HR permissions.
 

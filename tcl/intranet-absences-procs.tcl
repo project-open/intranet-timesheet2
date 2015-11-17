@@ -499,7 +499,7 @@ ad_proc im_absence_cube {
     Returns a rendered cube with a graphical absence display
     for users.
 } {
-    set current_user_id [ad_get_user_id]
+    set current_user_id [ad_conn user_id]
     set user_url "/intranet/users/view"
     set date_format "YYYY-MM-DD"
     set bgcolor(0) " class=roweven "
@@ -794,7 +794,7 @@ ad_proc -public im_absence_vacation_balance_component {
 	}
     }
 
-    set current_user_id [ad_get_user_id]
+    set current_user_id [ad_conn user_id]
     # This is a sensitive field, so only allows this for the user himself
     # and for users with HR permissions.
 
@@ -834,7 +834,7 @@ ad_proc -public im_absence_vacation_balance_component_ajax {
 	}
     }
 
-    set current_user_id [ad_get_user_id]
+    set current_user_id [ad_conn user_id]
     # This is a sensitive field, so only allows this for the user himself
     # and for users with HR permissions.
 

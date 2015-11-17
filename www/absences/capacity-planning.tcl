@@ -447,7 +447,7 @@ set exclude_type_id ""
 # do not exclude tasks
 set exclude_tasks_p 1
 
-set current_user_id [ad_get_user_id]
+set current_user_id [ad_conn user_id]
 set max_project_name_len 50
 
 set list_sort_order [parameter::get_from_package_key -package_key "intranet-timesheet2" -parameter TimesheetAddHoursSortOrder -default "name"]
