@@ -111,7 +111,7 @@ ad_proc calendar_get_info_from_db {
 }
 
 
-proc_doc calendar_convert_julian_to_ansi { 
+ad_proc -public calendar_convert_julian_to_ansi { 
     julian_date 
 } {
     Return an ANSI date for a Julian date
