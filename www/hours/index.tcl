@@ -426,7 +426,7 @@ set left_navbar_html "
         </div>
 
 	<form action=index method=GET>
-	[export_form_vars show_week_p] 
+	[export_vars -form {show_week_p}] 
 	<table border=0 cellpadding=1 cellspacing=1>
 	<tr>
 	    <td>[lang::message::lookup "" intranet-core.Date "Date"]</td>

@@ -1190,7 +1190,7 @@ if { [empty_string_p results] } {
 </tr>\n"
 }
 
-set export_form_vars [export_form_vars return_url julian_date user_id_from_search show_week_p]
+set export_form_vars [export_vars -form {return_url julian_date user_id_from_search show_week_p}]
 
 
 # ---------------------------------------------------------
@@ -1225,7 +1225,7 @@ set left_navbar_html "
 
 	<form action=new method=GET>
 	<!-- don't include return_url in the export_form_vars, as it includes the old user -->
-	[export_form_vars julian_date show_week_p] 
+	[export_vars -form {julian_date show_week_p}] 
 	<table border=0 cellpadding=1 cellspacing=1>
 	<tr>
 	    <td>[lang::message::lookup "" intranet-timesheet2.Project_br_Name "Project<br>Name"]</td>
