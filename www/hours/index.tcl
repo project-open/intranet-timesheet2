@@ -371,11 +371,11 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
 
 set prev_month_template "
 <font color=white>&lt;</font> 
-<a href=\"index?[export_url_vars user_id_from_search]&date=\$ansi_date\">
+<a href=\"index?[export_vars -url {user_id_from_search}]&date=\$ansi_date\">
   <font color=white>\[_ intranet-timesheet2.$prev_month_name] </font>
 </a>"
 set next_month_template "
-<a href=\"index?[export_url_vars user_id_from_search]&date=\$ansi_date\">
+<a href=\"index?[export_vars -url {user_id_from_search}]&date=\$ansi_date\">
   <font color=white>\[_ intranet-timesheet2.$next_month_name]</font>
 </a> 
 <font color=white>&gt;</font>"

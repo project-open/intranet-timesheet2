@@ -141,7 +141,7 @@ if {[llength $items] > 0 } {
 	set project_name [lindex $row 1]
 	set total [lindex $row 2]
 	append hour_table "<tr bgcolor=#efefef>
-	<td><a href=/intranet/projects/view?[export_url_vars project_id]>
+	<td><a href=/intranet/projects/view?[export_vars -url {project_id}]>
 	    $project_name</a></td>
 	<td align=right>[format "%0.02f" $total]</td>
 	<td align=right>[format "%0.02f%%" \

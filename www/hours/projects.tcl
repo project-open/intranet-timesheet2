@@ -63,7 +63,7 @@ if { [empty_string_p $user_id] } {
     "
 
     db_foreach users_who_logged_hours $sql {
-        append page_body "<li><a href=projects?[export_url_vars user_id]>$user_name</a>\n"
+        append page_body "<li><a href=projects?[export_vars -url {user_id}]>$user_name</a>\n"
     } if_no_rows {
         append page_body "<em>[_ intranet-timesheet2.No_users_found]</em>"
     }
@@ -104,7 +104,7 @@ if { [empty_string_p $user_id] } {
     db_foreach hours_on_project $sql {
 	set first_day_str "[util_AnsiDatetoPrettyDate $first_day]"
 	set last_day_str "[util_AnsiDatetoPrettyDate $last_day]"
-        append page_body "<li><a href=full?project_id=$project_id&[export_url_vars user_id]&date=$last_day&item=[ad_urlencode $project_name]>$project_name</a>, [_ intranet-timesheet2.lt_total_hours_hours_bet]</em>"
+        append page_body "<li><a href=full?project_id=$project_id&[export_vars -url {user_id}]&date=$last_day&item=[ad_urlencode $project_name]>$project_name</a>, [_ intranet-timesheet2.lt_total_hours_hours_bet]</em>"
     } if_no_rows {
         append page_body "<em>[_ intranet-timesheet2.lt_No_time_logged_on_any]</em>"
     }

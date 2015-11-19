@@ -156,7 +156,7 @@ set selection_block "
     </form>"
 doc_body_append $selection_block
 doc_set_property author "koljalehmann@uni.de"
-doc_set_property navbar [list [list index?[export_url_vars on_which_table] "[_ intranet-timesheet2.Your_hours]"] "[_ intranet-timesheet2.Project_History]"]
+doc_set_property navbar [list [list index?[export_vars -url {on_which_table}] "[_ intranet-timesheet2.Your_hours]"] "[_ intranet-timesheet2.Project_History]"]
 doc_set_property title "[_ intranet-timesheet2.View_History]"
 
 if {[empty_string_p [ns_conn form]] || [empty_string_p $on_what_id]} {

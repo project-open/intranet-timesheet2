@@ -427,7 +427,7 @@ ad_proc mini_calendar_widget {
 	calendar views.  It takes a base url, which is the url to which this 
 	mini calendar will navigate.  pass_in_vars, if defined, can be
 	url variables to be set in base_url.  They should be in the format
-	returned by export_url_vars
+	returned by export_vars
 	This proc will set 2 variables in that
 	url's environment: the current view and the current date.  Valid views 
 	are list, day, week, month, and year.  
@@ -1346,10 +1346,10 @@ proc day_view {current_date logged_in_user_id group_id {compress_day_view_p "f"}
 		set item_text "$pretty_start_time - $pretty_end_day $pretty_end_time"
 	    }
 
-	    append item_text " <a href=\"?[export_url_vars action calendar_id current_date group_id]\">$title</a>"
+	    append item_text " <a href=\"?[export_vars -url {action calendar_id current_date group_id}]\">$title</a>"
 	    
 	    if {($group_id != 0) || ([string compare $user_p "t"] == 0)} {
-		set grouped_link "/new-calendar/?[export_url_vars current_view current_date group_id]"
+		set grouped_link "/new-calendar/?[export_vars -url {current_view current_date group_id}]"
 		append item_text "
 		<a href=\"$grouped_link&delete_calendar_id=$calendar_id\">
 		<img border=0 width=16 height=16 src=\"/graphics/trash.gif\" title= \"Delete\" alt=\"Delete\"></a>
@@ -1447,7 +1447,7 @@ proc day_view {current_date logged_in_user_id group_id {compress_day_view_p "f"}
 	<a href=\"?action=item-edit&calendar_id=$calendar_id&current_view=day&current_date=$current_date\">$title</a>"
 
 	if {($group_id != 0) || ([string compare $user_p "t"] == 0)} {
-	    set grouped_link "/new-calendar/?[export_url_vars current_view current_date group_id]"
+	    set grouped_link "/new-calendar/?[export_vars -url {current_view current_date group_id}]"
 	    append all_day_items "
 	    <a href=\"$grouped_link&delete_calendar_id=$calendar_id\">
 	    <img border=0 width=16 height=16 src=\"/graphics/trash.gif\" title=\"Delete\" alt=\"Delete\"></a>

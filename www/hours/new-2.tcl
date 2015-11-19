@@ -610,6 +610,6 @@ if { ![empty_string_p $return_url] } {
     ns_log Notice "ad_returnredirect $return_url"
     ad_returnredirect $return_url
 } else {
-    ns_log Notice "ad_returnredirect index?[export_url_vars julian_date]"
-    ad_returnredirect index?[export_url_vars julian_date]
+    ns_log Notice "ad_returnredirect index?[export_vars -url {julian_date}]"
+    ad_returnredirect index?[export_vars -url {julian_date}]
 }

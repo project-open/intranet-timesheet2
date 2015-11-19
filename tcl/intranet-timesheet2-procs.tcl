@@ -249,11 +249,11 @@ ad_proc -public im_timesheet_home_component {user_id} {
     if {[im_permission $user_id view_hours_all]} {
         append hours_html "
 	    <ul>
-	    <li><a href=/intranet-timesheet2/hours/projects?[export_url_vars user_id]>
+	    <li><a href=/intranet-timesheet2/hours/projects?[export_vars -url {user_id}]>
 		[_ intranet-timesheet2.lt_View_your_hours_on_al]</a>
-	    <li><a href=/intranet-timesheet2/hours/total?[export_url_vars]>
+	    <li><a href=/intranet-timesheet2/hours/total?[export_vars -url {}]>
 		[_ intranet-timesheet2.lt_View_time_spent_on_al]</a>
-	    <li><a href=/intranet-timesheet2/hours/projects?[export_url_vars]>
+	    <li><a href=/intranet-timesheet2/hours/projects?[export_vars -url {}]>
 		[_ intranet-timesheet2.lt_View_the_hours_logged]</a>
 	    <li><a href=\"/intranet-timesheet2/weekly_report\">
 		[_ intranet-timesheet2.lt_View_hours_logged_dur]</a>
@@ -584,7 +584,7 @@ ad_proc im_force_user_to_log_hours { conn args why } {
 
     # Pull up the screen to log hours for yesterday
     set return_url [im_url_with_query]
-    ad_returnredirect "/intranet-timesheet2/hours/new?[export_url_vars return_url julian_date]"
+    ad_returnredirect "/intranet-timesheet2/hours/new?[export_vars -url {return_url julian_date}]"
     return filter_return
 }
 

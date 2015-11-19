@@ -172,7 +172,7 @@ if {$internal_note_exists_p} {
 set bind_vars [list user_id $current_user_id user_id_from_search $user_id_from_search julian_date $julian_date return_url $return_url show_week_p $show_week_p]
 set menu_links_html [im_menu_ul_list -no_uls 1 "timesheet_hours_new_admin" $bind_vars]
 
-set different_project_url "other-projects?[export_url_vars julian_date user_id_from_search]"
+set different_project_url "other-projects?[export_vars -url {julian_date user_id_from_search}]"
 
 # Log Absences
 set add_absences_p [im_permission $current_user_id add_absences]
