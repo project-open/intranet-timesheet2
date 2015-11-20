@@ -760,7 +760,7 @@ ad_proc im_absence_cube {
 	    if {[info exists absence_hash($key)]} { set value $absence_hash($key) }
 	    if {[info exists holiday_hash($date_date)]} { append value $holiday_hash($date_date) }
 	    append table_body [im_absence_cube_render_cell $value]
-	    ns_log NOTICE "intranet-absences-procs::im_absence_cube_render_cell: $value"
+	    ns_log Notice "intranet-absences-procs::im_absence_cube_render_cell: $value"
 	}
 	append table_body "</tr>\n"
 	incr row_ctr

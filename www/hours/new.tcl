@@ -836,7 +836,7 @@ template::multirow foreach hours_multirow {
 		    set last_level_shown $subproject_level
 		} else {
 		    if { $level_entered_in_showing_child_elements >= $subproject_level} {
-			# ns_log NOTICE "/intranet-timesheet2/www/hours/new:: Check for searchstring"
+			# ns_log Notice "/intranet-timesheet2/www/hours/new:: Check for searchstring"
 			if { [string first [string tolower $search_task] [string tolower $project_name]] == -1 } {
 			    set showing_child_elements_p 0
 			    set filter_surpress_output_p 1
@@ -1190,7 +1190,7 @@ if { [empty_string_p results] } {
 </tr>\n"
 }
 
-set export_form_vars [export_vars -form {return_url julian_date user_id_from_search show_week_p}]
+set export_vars [export_vars -form {return_url julian_date user_id_from_search show_week_p}]
 
 
 # ---------------------------------------------------------
@@ -1224,7 +1224,7 @@ set left_navbar_html "
 	</div>
 
 	<form action=new method=GET>
-	<!-- don't include return_url in the export_form_vars, as it includes the old user -->
+	<!-- don't include return_url in the export_vars, as it includes the old user -->
 	[export_vars -form {julian_date show_week_p}] 
 	<table border=0 cellpadding=1 cellspacing=1>
 	<tr>

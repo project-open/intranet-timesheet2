@@ -229,7 +229,7 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
     	"
 	set no_ts_approval_wf [db_string workflow_started_p $no_ts_approval_wf_sql -default "0"]
 	if { $confirm_timesheet_hours_p && ("monthly" == $confirmation_period || "weekly" == $confirmation_period) && 0 != $no_ts_approval_wf } { 
-	    ns_log NOTICE "TS: Entry blocked: Date: $current_date_ansi; Number: $no_ts_approval_wf; $no_ts_approval_wf_sql"
+	    ns_log Notice "TS: Entry blocked: Date: $current_date_ansi; Number: $no_ts_approval_wf; $no_ts_approval_wf_sql"
 	    set timesheet_entry_blocked_p 1 
     	}
     }
@@ -244,7 +244,7 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
 	if { $timesheet_entry_blocked_p } {
 	    set hours "<span class='log_hours'>[lang::message::lookup "" intranet-timesheet2.Nolog_Workflow_In_Progress "0 hours"]</span>"
 	} else {
-	    ns_log NOTICE "TS: Not Blocked: $current_date"
+	    ns_log Notice "TS: Not Blocked: $current_date"
 	    if { [string first $week_day $weekly_logging_days] != -1 } {
 		set hours "<span class='log_hours'>[_ intranet-timesheet2.log_hours]</span>"
 	    }
@@ -337,7 +337,7 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
 
 	    set no_unconfirmed_hours [get_unconfirmed_hours_for_period $user_id_from_search $start_date_julian_wf $end_date_julian_wf]
 
-	    # ns_log NOTICE "Create weekly CONFIRM button: start: $start_date_julian_wf, end: $start_date_julian_wf, No. unconfirmed Hours $no_unconfirmed_hours, confirm: $confirm_timesheet_hours_p" 
+	    # ns_log Notice "Create weekly CONFIRM button: start: $start_date_julian_wf, end: $start_date_julian_wf, No. unconfirmed Hours $no_unconfirmed_hours, confirm: $confirm_timesheet_hours_p" 
 	    if {$confirm_timesheet_hours_p && (0 < $no_unconfirmed_hours || "" != $no_unconfirmed_hours) } {
 		set base_url_confirm_wf "/intranet-timesheet2-workflow/conf-objects/new-timesheet-workflow"  
 		set conf_url [export_vars -base $base_url_confirm_wf { {user_id $user_id_from_search} {start_date_julian $start_date_julian_wf} {end_date_julian $end_date_julian_wf } return_url}]

@@ -169,7 +169,7 @@ ad_proc im_do_row {
 	set wf_status_list [wf_status_list $curr_owner_id $days $workflow_key]
 	# wf_status_list list of lists {ansi-date status} 
 	# Example: {20120720 2} {20120719 2} {20120721 1}
-	ns_log NOTICE "KHD: wf_status_list: $wf_status_list"
+	ns_log Notice "KHD: wf_status_list: $wf_status_list"
 
 	foreach rec $wf_status_list {
 	    set wf_status_array([lindex [split $rec " "] 0]) [lindex [split $rec " "] 1]
