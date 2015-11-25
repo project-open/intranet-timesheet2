@@ -44,7 +44,7 @@ ad_page_contract {
 # Security & Defaults
 # ---------------------------------------------------------------
 
-set current_user_id [ad_maybe_redirect_for_registration]
+set current_user_id [auth::require_login]
 set add_hours_all_p [im_permission $current_user_id "add_hours_all"]
 set add_hours_direct_reports_p [im_permission $current_user_id "add_hours_direct_reports"]
 
@@ -80,7 +80,7 @@ if {[string is integer $user_id_from_search]} {
 if {"" == $return_url} {
     set return_url [ns_conn url]
     set query [export_ns_set_vars url {header message}]
-    if {![empty_string_p $query]} {
+    if {$query ne ""} {
         append return_url "?$query"
     }
 }
@@ -236,10 +236,10 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
 
     # User's hours for the day
     set hours ""
-    if { [info exists users_hours($current_date)] && ![empty_string_p $users_hours($current_date)] } {
+    if { [info exists users_hours($current_date)] && $users_hours($current_date) ne "" } {
  	set hours "$users_hours($current_date)  [lang::message::lookup "" intranet-timesheet2.hours "hours"]"
-	set hours_for_this_week [expr $hours_for_this_week + $users_hours($current_date)]
-	set hours_for_this_month [expr $hours_for_this_month + $users_hours($current_date)]
+	set hours_for_this_week [expr {$hours_for_this_week + $users_hours($current_date)}]
+	set hours_for_this_month [expr {$hours_for_this_month + $users_hours($current_date)}]
     } else {
 	if { $timesheet_entry_blocked_p } {
 	    set hours "<span class='log_hours'>[lang::message::lookup "" intranet-timesheet2.Nolog_Workflow_In_Progress "0 hours"]</span>"
@@ -255,8 +255,8 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
     if {![info exists unconfirmed_hours($current_date)]} { set unconfirmed_hours($current_date) "" }
     if {"" == $unconfirmed_hours($current_date)} { set unconfirmed_hours($current_date) 0 }
 
-    set unconfirmed_hours_for_this_week [expr $unconfirmed_hours_for_this_week + $unconfirmed_hours($current_date)]
-    set unconfirmed_hours_for_this_month [expr $unconfirmed_hours_for_this_month + $unconfirmed_hours($current_date)]
+    set unconfirmed_hours_for_this_week [expr {$unconfirmed_hours_for_this_week + $unconfirmed_hours($current_date)}]
+    set unconfirmed_hours_for_this_month [expr {$unconfirmed_hours_for_this_month + $unconfirmed_hours($current_date)}]
 
     # User's Absences for the day
     set curr_absence [lindex $absence_list $absence_index]
@@ -325,13 +325,13 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
 
 	# Include link for weekly TS confirmation
 	# Monthly confirmation_period not supported yet, always assume weekly
-	# if { [string equal $confirmation_period "weekly"] && $confirm_timesheet_hours_p } {}
+	# if { $confirmation_period eq "weekly" && $confirm_timesheet_hours_p } {}
 	if {$confirm_timesheet_hours_p} {
 	    if { !$fill_up_first_last_row_p } {
 		set start_date_julian_wf [eval_wf_start_date $current_date $column_ctr]
 		set end_date_julian_wf $current_date
 	    } else {
-		set start_date_julian_wf [expr $current_date - 6]
+		set start_date_julian_wf [expr {$current_date - 6}]
 		set end_date_julian_wf $current_date    
 	    }
 
@@ -371,11 +371,11 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
 
 set prev_month_template "
 <font color=white>&lt;</font> 
-<a href=\"index?[export_vars -url {user_id_from_search}]&date=\$ansi_date\">
+<a href=\"[export_vars -base index {user_id_from_search}]&date=\$ansi_date\">
   <font color=white>\[_ intranet-timesheet2.$prev_month_name] </font>
 </a>"
 set next_month_template "
-<a href=\"index?[export_vars -url {user_id_from_search}]&date=\$ansi_date\">
+<a href=\"[export_vars -base index {user_id_from_search}]&date=\$ansi_date\">
   <font color=white>\[_ intranet-timesheet2.$next_month_name]</font>
 </a> 
 <font color=white>&gt;</font>"
@@ -475,7 +475,7 @@ if {$add_absences_p} {
     "
 }
 
-if {![empty_string_p $return_url] && ![regexp {^/intranet-timesheet2/hours/index} $return_url]} {
+if {$return_url ne "" && ![regexp {^/intranet-timesheet2/hours/index} $return_url]} {
     append left_navbar_html "
 	    <li><a href='$return_url'>#intranet-timesheet2.lt_Return_to_previous_pa#</a></li>
     "

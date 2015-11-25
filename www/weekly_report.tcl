@@ -15,7 +15,7 @@
 
 proc stripzeros {value} {
     set retval [string trimleft $value 0]
-    if { ![string length $retval] } { return 0 } 
+    if { $retval eq "" } { return 0 } 
     return $retval
 }
 
@@ -158,7 +158,7 @@ ad_proc im_do_row {
 
     # Write HEADER 
     append html "
-    	<tr$bgcolor([expr $ctr % 2])>
+    	<tr$bgcolor([expr {$ctr % 2}])>
     	    <td>
     	        <a href=\"$user_view_page?user_id=$curr_owner_id\">$owner_name</a>
     	    </td>
@@ -264,7 +264,7 @@ ad_page_contract {
 # Defaults & Security
 # ---------------------------------------------------------------
 
-set user_id [ad_maybe_redirect_for_registration]
+set user_id [auth::require_login]
 set subsite_id [ad_conn subsite_id]
 set site_url "/intranet-timesheet2"
 set return_url "$site_url/weekly_report"
@@ -276,7 +276,7 @@ if { $owner_id != $user_id && ![im_permission $user_id "view_hours_all"] } {
 
 }
 
-if { $start_at == "" && $project_id != 0 } {
+if { $start_at eq "" && $project_id != 0 } {
 
     set hours_start_date [db_string get_new_start_at "
 	select	to_char(max(day), :date_format) 
@@ -308,12 +308,12 @@ if { $start_at == "" && $project_id != 0 } {
 	return
     }
 
-    ad_returnredirect "$return_url?[export_vars -url {start_at duration project_id owner_id workflow_key}]"
+    ad_returnredirect [export_vars -base $return_url {start_at duration project_id owner_id workflow_key}]
     return
 }
 
 
-if { $start_at == "" } {
+if { $start_at eq "" } {
     set start_at [db_string get_today "select to_char(next_day(to_date(to_char(sysdate,:date_format),:date_format)+1, 'sun'), :date_format) from dual"]
 } else {
     set start_at [db_string get_today "select to_char(next_day(to_date(:start_at, :date_format), 'sun'), :date_format) from dual"]
@@ -332,8 +332,8 @@ if { $project_id != 0 } {
 set sel_all ""
 set sel_pro ""
 
-if { $display == "all" } { set sel_all "selected" }
-if { $display == "project" } { set sel_pro "selected" }
+if { $display eq "all" } { set sel_all "selected" }
+if { $display eq "project" } { set sel_pro "selected" }
 
 if { $project_id != 0 } {
     set filter_form_html "
@@ -411,7 +411,7 @@ if { [im_permission $user_id "add_hours"] } {
 
 # 2010-12-10: Links should no more appear on this report, moved to /intranet-timesheet2/absences/index 
 # 
-# if { $admin_html != "" } {
+# if { $admin_html ne "" } {
 #     set filter_html [append filter_form_html "<ul>$admin_html</ul>"]
 # } else {
     set filter_html $filter_form_html
@@ -427,7 +427,7 @@ set holydays [list]
 set sql_from [list]
 set sql_from2 [list]
 
-for { set i [expr $duration - 1]  } { $i >= 0 } { incr i -1 } {
+for { set i [expr {$duration - 1}]  } { $i >= 0 } { incr i -1 } {
 	set col_sql "
     select 
 	to_char(sysdate, :date_format) as today_date,
@@ -441,7 +441,7 @@ for { set i [expr $duration - 1]  } { $i >= 0 } { incr i -1 } {
 
     db_1row get_date $col_sql
     lappend days $i_date
-    if { $h_date == "SAT" || $h_date == "SUN" } {
+    if { $h_date eq "SAT" || $h_date eq "SUN" } {
 	lappend holydays $i_date
     }
     #prepare the data to UNION
@@ -464,7 +464,7 @@ for { set i [expr $duration - 1]  } { $i >= 0 } { incr i -1 } {
     if { 1 == [stripzeros $f_date_mon] } {
 	set f_date_mon_index 0
     } else {
-	set f_date_mon_index [expr [stripzeros $f_date_mon]-1]	
+	set f_date_mon_index [expr {[stripzeros $f_date_mon]-1}]	
     }
 
     set f_date "[_ intranet-timesheet2.[string trim $f_date_day]] <br> $f_date_dd. [lindex [_ acs-lang.localization-mon] $f_date_mon_index] <br>$f_date_yyyy" 
@@ -477,16 +477,16 @@ append table_header_html "</tr>"
 # Get the Data and fill it up into lists
 # ---------------------------------------------------------------
 
-if { $owner_id == "" && $project_id == 0 } {
+if { $owner_id eq "" && $project_id == 0 } {
     set mode 1
     set sql_where ""  
-} elseif { $owner_id == "" && $project_id != 0 } {
+} elseif { $owner_id eq "" && $project_id != 0 } {
     set mode 2
     set sql_where "and u.user_id in (select object_id_two from acs_rels where object_id_one=:project_id)"
-} elseif { $owner_id != "" && $project_id == 0 } {
+} elseif { $owner_id ne "" && $project_id == 0 } {
     set mode 3
     set sql_where "and u.user_id = :owner_id"
-} elseif { $owner_id != "" && $project_id != 0 } {
+} elseif { $owner_id ne "" && $project_id != 0 } {
     set mode 4
     set sql_where "and u.user_id in (select object_id_two from acs_rels where object_id_one=:project_id)  and u.user_id = :owner_id"
 } else {
@@ -496,7 +496,7 @@ if { $owner_id == "" && $project_id == 0 } {
 set sql_from_joined [join $sql_from " UNION "]
 set sql_from2_joined [join $sql_from2 " UNION "]
 
-if { $project_id != 0 && $display == "project"} {
+if { $project_id != 0 && $display eq "project"} {
     set sql_from_imhours "select day, user_id, sum(hours) as val, 'h' as type, '' as descr from im_hours where project_id = :project_id group by user_id, day"
 } else {
     set sql_from_imhours "select day, user_id, sum(hours) as val, 'h' as type, '' as descr from im_hours group by user_id, day"
@@ -637,12 +637,12 @@ db_foreach get_hours $sql {
     }
 
     # Set hours 
-    if { $type == "h" } {
+    if { $type eq "h" } {
 	set user_days($curr_day) $val
     }
     
     # Set absences 
-    if { $type == "a" } {
+    if { $type eq "a" } {
 	set user_absences($curr_day) $val
 	set user_ab_descr($val) $descr
     }
@@ -650,14 +650,14 @@ db_foreach get_hours $sql {
     incr ctr
 }
 
-set colspan [expr [llength $days]+1]
+set colspan [expr {[llength $days]+1}]
 
 
 if { $ctr > 0 } {
     # Writing last record 
     ns_log notice  "weekly_report: left loop, now writing last record" 
     append table_body_html [im_do_row [array get bgcolor] $ctr $curr_owner_id $owner_name $days [array get user_days] [array get user_absences] $holydays $today_date [array get user_ab_descr] $workflow_key ]
-} elseif { [empty_string_p $table_body_html] } {
+} elseif { $table_body_html eq "" } {
     # Show a reasonable message when there are no result rows:
     set table_body_html "
 	 <tr><td colspan=$colspan><ul><li><b>
@@ -677,7 +677,7 @@ set navig_sql "
     	dual"
 db_1row get_navig_dates $navig_sql
 
-set switch_link_html "<a href=\"weekly_report?[export_vars -url {owner_id project_id duration display}]"
+set switch_link_html "<a href=\[export_vars -base weekly_report {owner_id project_id duration display}]
 
 set switch_past_html "$switch_link_html&start_at=$past_date&cost_center_id=$cost_center_id&department_id=$department_id&workflow_key=$workflow_key\">&laquo;</a>"
 set switch_future_html "$switch_link_html&start_at=$future_date&cost_center_id=$cost_center_id&department_id=$department_id&workflow_key=$workflow_key\">&raquo;"
@@ -691,7 +691,7 @@ set table_continuation_html "
   <td align='left'>
      <span class='backward_smaller_than'>$switch_past_html</span>
   </td>
-  <td colspan=[expr $colspan - 2]></td>
+  <td colspan=[expr {$colspan - 2}]></td>
   <td align='right'>
     <span class='forward_greater_than'>$switch_future_html</span>
   </td>
@@ -699,7 +699,7 @@ set table_continuation_html "
 
 set page_title "[_ intranet-timesheet2.Timesheet_Summary]"
 set context_bar [im_context_bar $page_title]
-if { $owner_id != "" && [info exists owner_name] } {
+if { $owner_id ne "" && [info exists owner_name] } {
     append page_title " of $owner_name"
 }
 if { $project_id != 0 && [info exists project_name] } {

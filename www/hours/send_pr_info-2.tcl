@@ -74,10 +74,10 @@ foreach project_id $projects {
 
 	db_foreach get_user_projects $sql_query {
 	    append page_body "<tr>"
-	    if { $rownum == "1" } {
-		append mail_content "<tr><td class=row[expr $rownum%2]><b>$project_name</b></td>"
+	    if { $rownum == 1 } {
+		append mail_content "<tr><td class=row[expr {$rownum%2}]><b>$project_name</b></td>"
 	    } else {
-		append mail_content "<tr><td class=row[expr $rownum%2]>&nbsp;</td>"
+		append mail_content "<tr><td class=row[expr {$rownum%2}]>&nbsp;</td>"
 	    }
 	    
 	    set days [db_string g_days "select TO_CHAR(NVL(field_value,0),'999990D9') \
@@ -95,10 +95,10 @@ foreach project_id $projects {
                                            where on_what_id=:project_id \
                                            and user_id=:employee_id" -default "0.0"]
 
-	    set days_diff [expr $days - $real_days]
-	    set cost [format "%0.0f" [expr $days * $day_cost]]
-	    set real_cost [format "%0.0f" [expr $real_days * $day_cost]]
-	    set cost_diff [format "%0.0f" [expr $cost - $real_cost]]
+	    set days_diff [expr {$days - $real_days}]
+	    set cost [format "%0.0f" [expr {$days * $day_cost}]]
+	    set real_cost [format "%0.0f" [expr {$real_days * $day_cost}]]
+	    set cost_diff [format "%0.0f" [expr {$cost - $real_cost}]]
 
 	    if { $days_diff < 0 } {
 		set days_diff_color " style=\"color:red\" "
@@ -111,37 +111,37 @@ foreach project_id $projects {
 	    } else {
 		set cost_diff_color " style=\"color:blue\" "
 	    }
-	    if { $days == "0" } {
+	    if { $days == 0 } {
 		set per_days "NaN"
 	    } else {
-		set per_days [format "%0.2f" [expr [expr $days_diff / $days] * 100]]%
+		set per_days [format "%0.2f" [expr {[expr {$days_diff / $days}] * 100}]]%
 	    }
-	    if { $cost == "0" } {
+	    if { $cost == 0 } {
 		set per_cost "NaN"
 	    } else {
-		set per_cost [format "%0.2f" [expr [expr $cost_diff.0 / $cost] * 100]]%
+		set per_cost [format "%0.2f" [expr {[expr {$cost_diff.0 / $cost}] * 100}]]%
 	    }
 	    
 	    append mail_content "
-	    <td class=row[expr $rownum%2]>$emp_name</td>
-	    <td class=row[expr $rownum%2] align=right>$days</td>
-	    <td class=row[expr $rownum%2] align=right>$real_days</td>
-	    <td class=row[expr $rownum%2] align=right $days_diff_color>$days_diff</td>
-	    <td class=row[expr $rownum%2] align=right $days_diff_color>$per_days</td>
-	    <td class=row[expr $rownum%2]>&nbsp;</td>
-	    <td class=row[expr $rownum%2] align=right>$cost</td>
-	    <td class=row[expr $rownum%2] align=right>$real_cost</td>
-	    <td class=row[expr $rownum%2] align=right $cost_diff_color>$cost_diff</td>
-	    <td class=row[expr $rownum%2] align=right $cost_diff_color>$per_cost</td>
+	    <td class=row[expr {$rownum%2}]>$emp_name</td>
+	    <td class=row[expr {$rownum%2}] align=right>$days</td>
+	    <td class=row[expr {$rownum%2}] align=right>$real_days</td>
+	    <td class=row[expr {$rownum%2}] align=right $days_diff_color>$days_diff</td>
+	    <td class=row[expr {$rownum%2}] align=right $days_diff_color>$per_days</td>
+	    <td class=row[expr {$rownum%2}]>&nbsp;</td>
+	    <td class=row[expr {$rownum%2}] align=right>$cost</td>
+	    <td class=row[expr {$rownum%2}] align=right>$real_cost</td>
+	    <td class=row[expr {$rownum%2}] align=right $cost_diff_color>$cost_diff</td>
+	    <td class=row[expr {$rownum%2}] align=right $cost_diff_color>$per_cost</td>
 	    </tr>"
-	    set sum_days [expr $sum_days + $days]
-	    set sum_cost [expr $sum_cost + $cost]
-	    set sum_real_days [expr $sum_real_days + $real_days]
-	    set sum_real_cost [expr $sum_real_cost + $real_cost]
+	    set sum_days [expr {$sum_days + $days}]
+	    set sum_cost [expr {$sum_cost + $cost}]
+	    set sum_real_days [expr {$sum_real_days + $real_days}]
+	    set sum_real_cost [expr {$sum_real_cost + $real_cost}]
 	}
 	
-	set sum_days_diff [expr $sum_days - $sum_real_days]
-	set sum_cost_diff [expr $sum_cost - $sum_real_cost]
+	set sum_days_diff [expr {$sum_days - $sum_real_days}]
+	set sum_cost_diff [expr {$sum_cost - $sum_real_cost}]
 	if { $sum_days_diff < 0 } {
             set sum_days_color " style=\"color:red\" "
 	} else {
@@ -152,15 +152,15 @@ foreach project_id $projects {
 	} else {
             set sum_cost_color ""
 	}
-	if { $sum_days == "0" } {
+	if { $sum_days == 0 } {
             set per_sum_days "NaN"
 	} else {
-            set per_sum_days [format "%0.2f" [expr [expr $sum_days_diff / $sum_days] * 100]]%
+            set per_sum_days [format "%0.2f" [expr {[expr {$sum_days_diff / $sum_days}] * 100}]]%
 	}
-	if { $sum_cost == "0" } {
+	if { $sum_cost == 0 } {
             set per_sum_cost "NaN"
 	} else {
-            set per_sum_cost [format "%0.2f" [expr [expr $sum_cost_diff.0 / $sum_cost] * 100]]%
+            set per_sum_cost [format "%0.2f" [expr {[expr {$sum_cost_diff.0 / $sum_cost}] * 100}]]%
 	}
 	
 	append mail_content "
@@ -214,9 +214,9 @@ ns_set cput $myheaders "Content-Type" "text/html; charset=\"us-ascii\""
 
 set subject "\[cIntranet\] Projects budget details."
 
-if [ catch {
+if {[ catch {
     ns_sendmail $to $from $subject $mail_html $myheaders
-} errmsg ] {
+} errmsg ]} {
     set page_body "<li>There was an error sending the email:<br><code>$errmsg</code> \n"
     ns_log Notice "\n-------------> Error in 'send_pr_info-2.tcl' : $errmsg \n"
 } else {

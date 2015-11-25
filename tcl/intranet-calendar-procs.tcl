@@ -44,12 +44,12 @@ ad_proc calendar_get_info_from_db {
 
     set query_first_day_of_month "to_char(trunc(to_date(:the_date, 'yyyy-mm-dd'), 'Month'), 'D') as first_day_of_month,"
     if {$start_day > 0 && $start_day < 7} {
-	set add [expr 7 - $start_day]
+	set add [expr {7 - $start_day}]
 	set query_first_day_of_month "mod(cast(extract(dow from trunc(to_date(:the_date, 'yyyy-mm-dd'), 'Month')) as numeric)+$add,7)+1 as first_day_of_month,"
     }
 
     # If no date was passed in, let's set it to today
-    if { $the_date == "" } {
+    if { $the_date eq "" } {
 	set the_date [db_string sysdate_from_dual "select trunc(sysdate) from dual"]
     }
 
@@ -87,22 +87,22 @@ ad_proc calendar_get_info_from_db {
     ad_ns_set_to_tcl_vars $calendar_info_set
 
     ns_set put $calendar_info_set first_julian_date \
-        [expr $first_julian_date_of_month + 1 - $first_day_of_month]
+        [expr {$first_julian_date_of_month + 1 - $first_day_of_month}]
 
     ns_set put $calendar_info_set first_day \
-        [expr $days_in_last_month + 2 - $first_day_of_month]
+        [expr {$days_in_last_month + 2 - $first_day_of_month}]
 
     ns_set put $calendar_info_set last_julian_date_in_month \
-        [expr $first_julian_date_of_month + $num_days_in_month - 1]
+        [expr {$first_julian_date_of_month + $num_days_in_month - 1}]
 
-    set days_in_next_month [expr 7 - (($num_days_in_month + $first_day_of_month - 1) % 7)]
+    set days_in_next_month [expr {7 - (($num_days_in_month + $first_day_of_month - 1) % 7)}]
 
     if {$days_in_next_month == 7} {
         set days_in_next_month 0
     }
 
     ns_set put $calendar_info_set last_julian_date \
-	    [expr $first_julian_date_of_month + $num_days_in_month - 1 + $days_in_next_month]
+	    [expr {$first_julian_date_of_month + $num_days_in_month - 1 + $days_in_next_month}]
 
 
     # Now, set the variables in the caller's environment
@@ -157,7 +157,7 @@ ad_proc calendar_basic_month {
     calendar_get_info_from_db $date
     set todays_date [lindex [split [ns_localsqltimestamp] " "] 0]
 
-    if { $calendar_details == "" } {
+    if { $calendar_details eq "" } {
 	set calendar_details [ns_set create calendar_details]
     }
 
@@ -170,11 +170,11 @@ ad_proc calendar_basic_month {
     set next_month_url ""
     set prev_month_url ""
 
-    if { $prev_month_template != "" } { 
+    if { $prev_month_template ne "" } { 
 	set ansi_date [ns_urlencode $prev_month]
 	set prev_month_url [subst $prev_month_template]
     }
-    if { $next_month_template != "" } {
+    if { $next_month_template ne "" } {
 	set ansi_date [ns_urlencode $next_month]
 	set next_month_url [subst $next_month_template]
     }
@@ -237,7 +237,7 @@ ad_proc calendar_basic_month {
             set day_number 1
         } elseif {$julian_date > $last_julian_date} {
             break
-        } elseif {$julian_date == [expr $last_julian_date_in_month +1]} {
+        } elseif {$julian_date == [expr {$last_julian_date_in_month +1}]} {
             set day_number 1
         }
 
@@ -269,7 +269,7 @@ ad_proc calendar_basic_month {
 		    if { "1" == $day_of_week || "7" == $day_of_week } {	set weekend "_weekend" }  	
 	    }
 
-            if {[string equal $todays_date $day_ansi]} {
+            if {$todays_date eq $day_ansi} {
 	        append output "<td class='todays_date$weekend' bgcolor=#6699CC align=right valign=top>[subst $day_number_template]&nbsp;"
             } else {
 	        append output "<td class='not_todays_date$weekend' bgcolor=$day_bgcolor align=right valign=top>[subst $day_number_template]&nbsp;"
@@ -433,21 +433,21 @@ ad_proc mini_calendar_widget {
 	are list, day, week, month, and year.  
 	The current_date must be formatted YYYY-MM-DD."} {
     #valid views are "list" "day" "week" "month" "year"
-    if {![exists_and_not_null current_view]} {
+    if {(![info exists current_view] || $current_view eq "")} {
 	set current_view "week"
     }
 
-    if {![exists_and_not_null base_url]} {
+    if {(![info exists base_url] || $base_url eq "")} {
 	set base_url [ns_conn url]
     }
 
-    if {[exists_and_not_null pass_in_vars]} {
+    if {([info exists pass_in_vars] && $pass_in_vars ne "")} {
 	append base_url "?$pass_in_vars&"
     } else {
 	append base_url "?"
     }
 
-    if {![exists_and_not_null current_date]} {
+    if {(![info exists current_date] || $current_date eq "")} {
 	set current_date [db_string sysdate_from_dual "select
 	sysdate from dual"]
     }
@@ -533,7 +533,7 @@ ad_proc mini_calendar_widget {
     "
 
     #if this is a month or year view, show the current year in the main bar
-    if {([string compare $current_view "month"] == 0) || ([string compare $current_view "year"] == 0)} {
+    if {($current_view eq "month" ) || ($current_view eq "year" )} {
 		append return_html "
 	<tr><TD NOWRAP ALIGN=CENTER bgcolor=lavender colspan=5>
 	<TABLE CELLSPACING=0 CELLPADDING=1 BORDER=0>
@@ -549,7 +549,7 @@ ad_proc mini_calendar_widget {
 	</TD></tr>"
     }
 
-    if {[string compare $current_view "month"] == 0} {
+    if {$current_view eq "month" } {
 	#month view
 	append return_html "
 	<tr><td colspan=5>
@@ -563,18 +563,18 @@ ad_proc mini_calendar_widget {
 	    set month [lindex $months_list $i]
 
 	    #show 3 months in a row
-	    if {([expr int(fmod($i, 3))] == 0) && ($i != 0)} {
+	    if {([expr {int(fmod($i, 3))}] == 0) && ($i != 0)} {
 		append return_html "</tr><tr>"
 	    }
 	    
-	    if {[string compare $month $this_month] == 0} {
+	    if {$month eq $this_month } {
 		append return_html "
 		<td>
 		<font size=-1 color=red>$month</font>
 		</td>
 		"
 	    } else {
-		set new_month_mon "[expr $i + 1]"
+		set new_month_mon "[expr {$i + 1}]"
 		if {[string length $new_month_mon] == 1} {
 		    set new_month_mon "0$new_month_mon"
 		} 
@@ -593,7 +593,7 @@ ad_proc mini_calendar_widget {
 	append return_html "</tr>"	    
 
 	
-    } elseif {[string compare $current_view "year"] == 0} {
+    } elseif {$current_view eq "year" } {
 	#year view
 	append return_html "
 	<tr><td colspan=5>
@@ -601,13 +601,13 @@ ad_proc mini_calendar_widget {
 	<tr>
 	"
 
-	set i [expr $current_year - 2]
-	set end_year [expr $current_year + 2]
+	set i [expr {$current_year - 2}]
+	set end_year [expr {$current_year + 2}]
 	set count 0
 
 	while {$i <= $end_year} {
 	    
-	    if {[string compare $i $current_year] == 0} {
+	    if {$i eq $current_year } {
 		append return_html "
 		<td>
 		<font size=-1 color=red>$i</font>
@@ -676,7 +676,7 @@ ad_proc mini_calendar_widget {
 	set pad_index $first_day_index
 	while {$pad_index > 0} {
 	    #pad the lists with days from the last month as necessary
-	    set pad_index [expr $pad_index -1]
+	    set pad_index [expr {$pad_index -1}]
 
 	    set day_list [lindex $week_map $pad_index]
 
@@ -692,19 +692,19 @@ ad_proc mini_calendar_widget {
 
 	    append $day_list "<br>$day_date_link"
 
-	    set prev_month_last_day [expr $prev_month_last_day - 1]
+	    set prev_month_last_day [expr {$prev_month_last_day - 1}]
 	}
 
 	set i 1
 	#we want to use 1-based indexing for the day_index so that we
 	#can distinguish the first and last day of the week using the
 	#mod function.
-	set day_index [expr $first_day_index +1]
+	set day_index [expr {$first_day_index +1}]
 	while {$i <= $last_day} {
 	    #fill in the lists
 	    
 	    #convert day_index back to 0-based indexing for lindex
-	    set day_list [lindex $week_map [expr $day_index - 1]]
+	    set day_list [lindex $week_map $day_index-1]
 
 	    set day_date "$current_year-"
 	    append day_date "$current_month_num-"
@@ -726,7 +726,7 @@ ad_proc mini_calendar_widget {
 
 	    incr i
 
-	    set day_index [expr int(fmod($day_index+1, 7))]
+	    set day_index [expr {int(fmod($day_index+1, 7))}]
 	    if {$day_index == 0} {
 		set day_index 7
 	    }
@@ -745,7 +745,7 @@ ad_proc mini_calendar_widget {
 	#pad the rest of the weekdays with dates from the following month
 	set i 1
 	while {$day_index <= 7} {
-	    set day_list [lindex $week_map [expr $day_index - 1]]
+	    set day_list [lindex $week_map $day_index-1]
 
 	    set day_date "$next_month_year-"
 	    append day_date "$next_month_month-"
@@ -880,7 +880,7 @@ proc mini_month_calendar {current_year month {group_id 0}} {
     set pad_index $first_day_index
     while {$pad_index > 0} {
 	#pad the lists with days from the last month as necessary
-	set pad_index [expr $pad_index -1]
+	set pad_index [expr {$pad_index -1}]
 
 	set day_list [lindex $week_map $pad_index]
 
@@ -895,19 +895,19 @@ proc mini_month_calendar {current_year month {group_id 0}} {
 
 	append $day_list "<br>$day_date_link"
 
-	set prev_month_last_day [expr $prev_month_last_day - 1]
+	set prev_month_last_day [expr {$prev_month_last_day - 1}]
     }
 
     set i 1
     #we want to use 1-based indexing for the day_index so that we
     #can distinguish the first and last day of the week using the
     #mod function.
-    set day_index [expr $first_day_index +1]
+    set day_index [expr {$first_day_index +1}]
     while {$i <= $last_day} {
 	#fill in the lists
 	
 	#convert day_index back to 0-based indexing for lindex
-	set day_list [lindex $week_map [expr $day_index - 1]]
+	set day_list [lindex $week_map $day_index-1]
 
 	set day_date "$current_year-"
 	append day_date "$current_month_num-"
@@ -923,7 +923,7 @@ proc mini_month_calendar {current_year month {group_id 0}} {
 
 	incr i
 
-	set day_index [expr int(fmod($day_index+1, 7))]
+	set day_index [expr {int(fmod($day_index+1, 7))}]
 	if {$day_index == 0} {
 	    set day_index 7
 	}
@@ -941,7 +941,7 @@ proc mini_month_calendar {current_year month {group_id 0}} {
     #pad the rest of the weekdays with dates from the following month
     set i 1
     while {$day_index <= 7} {
-	set day_list [lindex $week_map [expr $day_index - 1]]
+	set day_list [lindex $week_map $day_index-1]
 
 	set day_date "$next_month_year-"
 	append day_date "$next_month_month-"
@@ -961,13 +961,13 @@ proc mini_month_calendar {current_year month {group_id 0}} {
     set first_day_index [lsearch -exact $week_list $month_start]
     if {$first_day_index != 0} {
 	#this is the date of the first sunday
-	set first_sun [expr 8 - $first_day_index]
+	set first_sun [expr {8 - $first_day_index}]
 	set extra_week 1
     } else {
 	set first_sun 1
 	set extra_week 0
     }
-    set num_weeks [expr int(ceil(double($last_day+1-$first_sun)/double(7)) + $extra_week)]
+    set num_weeks [expr {int(ceil(double($last_day+1-$first_sun)/double(7)) + $extra_week)}]
     if {$num_weeks < 6} {
 	set i 0
 	while {$i < 7} {
@@ -1032,7 +1032,7 @@ proc year_calendar {current_year current_date {group_id 0}} {
 	    set month $i
 	}
 
-	if {[expr int(fmod([expr $i -1], 3))] == 0} {
+	if {[expr int(fmod([expr {$i -1}], 3))] == 0} {
 	    if {$i != 1} {
 		append return_html "</tr>"
 	    }
@@ -1138,7 +1138,7 @@ proc create_table {{num_rows 1} {num_cols 1}} {
 
 #i: col; j: row
 proc table_get_cell {table i j} {
-    return [lindex [lindex $table $i] $j]
+    return [lindex $table $i $j]
 }
 
 proc table_set_cell {table i j cell} {
@@ -1180,7 +1180,7 @@ proc table_first_empty_col {table row} {
     set i 0
     while {$i < $num_cols} {
 	set cell [table_get_cell $table $i $row]
-	if {[cell_get_text $cell] == ""} {
+	if {[cell_get_text $cell] eq ""} {
 	    return $i
 	}
 	incr i
@@ -1195,7 +1195,7 @@ proc table_next_filled_col {table row {col 0}} {
     set i $col
     while {$i < $num_cols} {
 	set cell [table_get_cell $table $i $row]
-	if {[cell_get_text $cell] != ""} {
+	if {[cell_get_text $cell] ne ""} {
 	    return $i
 	}
 	incr i
@@ -1213,7 +1213,7 @@ proc table_filled_cols_left {table row {col 0}} {
     set i $col
     while {$i < $num_cols} {
 	set cell [table_get_cell $table $i $row]
-	if {![empty_string_p [cell_get_text $cell] ]} {
+	if {[cell_get_text $cell] ne ""} {
 	    incr return_num
 	}
 	incr i
@@ -1296,21 +1296,21 @@ proc day_view {current_date logged_in_user_id group_id {compress_day_view_p "f"}
     )
     order by hour, start_date"  {
 	#if there is a calendar item at this time...
-	if {[exists_and_not_null title]} {
+	if {([info exists title] && $title ne "")} {
 
-	    if {[string compare $start_date $end_date] == 0} {
+	    if {$start_date eq $end_date } {
 		if {($end_minute > 0) && ($end_hour < $end_cal_hour)} {
-		    set end_index [expr $end_hour + 1]
+		    set end_index [expr {$end_hour + 1}]
 		} else {
 		    set end_index $end_hour
 		}
 	    } else {
 		set end_index 24
-		#set end_index [expr $end_hour + 1]
+		#set end_index [expr {$end_hour + 1}]
 	    }
 
 	    #the number of rows this item takes
-	    set row_span [expr $end_index - $hour]
+	    set row_span [expr {$end_index - $hour}]
 
 	    #i is the row, col_index is the col
 
@@ -1325,7 +1325,7 @@ proc day_view {current_date logged_in_user_id group_id {compress_day_view_p "f"}
 		    #add a new column to the table--no room for
 		    #this entry
 		    set table [table_add_col $table]
-		    set col_index [expr [table_num_cols $table] - 1]
+		    set col_index [expr {[table_num_cols $table] - 1}]
 		    break
 		    
 		}
@@ -1346,10 +1346,10 @@ proc day_view {current_date logged_in_user_id group_id {compress_day_view_p "f"}
 		set item_text "$pretty_start_time - $pretty_end_day $pretty_end_time"
 	    }
 
-	    append item_text " <a href=\"?[export_vars -url {action calendar_id current_date group_id}]\">$title</a>"
+	    append item_text " <a href=\"?[export_vars {action calendar_id current_date group_id}]\">$title</a>"
 	    
-	    if {($group_id != 0) || ([string compare $user_p "t"] == 0)} {
-		set grouped_link "/new-calendar/?[export_vars -url {current_view current_date group_id}]"
+	    if {($group_id != 0) || ($user_p == "t" )} {
+		set grouped_link [export_vars -base /new-calendar/ {current_view current_date group_id}]
 		append item_text "
 		<a href=\"$grouped_link&delete_calendar_id=$calendar_id\">
 		<img border=0 width=16 height=16 src=\"/graphics/trash.gif\" title= \"Delete\" alt=\"Delete\"></a>
@@ -1446,8 +1446,8 @@ proc day_view {current_date logged_in_user_id group_id {compress_day_view_p "f"}
 	append all_day_items "<li>
 	<a href=\"?action=item-edit&calendar_id=$calendar_id&current_view=day&current_date=$current_date\">$title</a>"
 
-	if {($group_id != 0) || ([string compare $user_p "t"] == 0)} {
-	    set grouped_link "/new-calendar/?[export_vars -url {current_view current_date group_id}]"
+	if {($group_id != 0) || ($user_p == "t" )} {
+	    set grouped_link [export_vars -base /new-calendar/ {current_view current_date group_id}]
 	    append all_day_items "
 	    <a href=\"$grouped_link&delete_calendar_id=$calendar_id\">
 	    <img border=0 width=16 height=16 src=\"/graphics/trash.gif\" title=\"Delete\" alt=\"Delete\"></a>
@@ -1464,7 +1464,7 @@ proc day_view {current_date logged_in_user_id group_id {compress_day_view_p "f"}
     }
     append all_day_html "</td></tr>"    
 
-    if {([string compare $compress_day_view_p "f"] == 0) || (([string compare $compress_day_view_p "t"] == 0) && ($count > 0))} {
+    if {($compress_day_view_p == "f" ) || (($compress_day_view_p == "t" ) && ($count > 0))} {
 	append return_html $all_day_html
     }
 
@@ -1484,7 +1484,7 @@ proc day_view {current_date logged_in_user_id group_id {compress_day_view_p "f"}
 		set time "12:00 pm"
 		set bgcolor_html "bgcolor=\"FFF8DC\""
 	    } else {
-		set time "[expr $i - 12]:00 pm"
+		set time "[expr {$i - 12}]:00 pm"
 	    }	 
 	}
 
@@ -1511,29 +1511,29 @@ proc day_view {current_date logged_in_user_id group_id {compress_day_view_p "f"}
 	    
 	    #need to check if there is room for this empty cell
 	    set filled_left [table_filled_cols_left $table $i $j] 
-	    set filled_check [expr $num_cols - $filled_left - $total_cols]
+	    set filled_check [expr {$num_cols - $filled_left - $total_cols}]
 
 	    #see if we need to write an empty table cell
-	    if {[empty_string_p $cell_text] && ($filled_check >0)} {
+	    if {$cell_text eq "" && ($filled_check >0)} {
 		#this cell is empty, so we may write an empty tag
 		
 		#see how long to make the colspan for this cell
 		set filled_index [table_next_filled_col $table $i $j]
 		if {$filled_index == -1} {
-		    set colspan [expr $num_cols - $j]
+		    set colspan [expr {$num_cols - $j}]
 		} else {
-		    set colspan [expr abs($j - $filled_index)]
+		    set colspan [expr {abs($j - $filled_index)}]
 		}
 
 		if {$colspan > 0} {
 		    append row_html "<td colspan=$colspan bgcolor=\"DCDCDC\">&nbsp;</td>"
-		    set total_cols [expr $total_cols + $colspan]
+		    set total_cols [expr {$total_cols + $colspan}]
 		}
 	    }
 
 	    #see if we write the contents of this cell
 	    set cell_root [cell_get_root $cell]
-	    if {![empty_string_p $cell_text]} {
+	    if {$cell_text ne ""} {
 		incr filled_cell_count
 		
 		#get the rowspan
@@ -1544,10 +1544,10 @@ proc day_view {current_date logged_in_user_id group_id {compress_day_view_p "f"}
 		#start at the root row
 		set k [lindex [cell_get_root $cell] 1]
 		#go until this cell ends
-		set cell_end_row [expr $k + [cell_get_rowspan $cell]]
+		set cell_end_row [expr {$k + [cell_get_rowspan $cell]}]
 		set filled_index [table_num_cols $table]
 		while {$k < $cell_end_row} {
-		    set tmp_filled_index [table_next_filled_col $table $k [expr $j + 1]]
+		    set tmp_filled_index [table_next_filled_col $table $k [expr {$j + 1}]]
 		    if {($tmp_filled_index < $filled_index) && ($tmp_filled_index != -1)} {
 			set filled_index $tmp_filled_index
 		    }
@@ -1555,9 +1555,9 @@ proc day_view {current_date logged_in_user_id group_id {compress_day_view_p "f"}
 		}
 
 		if {$filled_index == -1} {
-		    set colspan [expr $num_cols - $j]
+		    set colspan [expr {$num_cols - $j}]
 		} else {
-		    set colspan [expr $filled_index - $j]
+		    set colspan [expr {$filled_index - $j}]
 		}
 
 		#this is the root cell, so write its contents
@@ -1568,13 +1568,13 @@ proc day_view {current_date logged_in_user_id group_id {compress_day_view_p "f"}
 		    </td>\n"	
 		}
 
-		set total_cols [expr $total_cols + $colspan]
+		set total_cols [expr {$total_cols + $colspan}]
 	    }
 	    incr j
 	}
 	append row_html "</tr>"
 	
-	if {($filled_cell_count > 0) || (([string compare $compress_day_view_p "f"] == 0) && ($i >= $begin_cal_hour) && ($i <= $end_cal_hour))} {
+	if {($filled_cell_count > 0) || (($compress_day_view_p == "f" ) && ($i >= $begin_cal_hour) && ($i <= $end_cal_hour))} {
 	    append return_html $row_html
 	} 
 

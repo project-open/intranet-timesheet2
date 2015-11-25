@@ -29,7 +29,7 @@ if {![info exists enable_master_p]} { set enable_master_p 1}
 # Default & Security
 # ------------------------------------------------------------------
 
-set user_id [ad_maybe_redirect_for_registration]
+set user_id [auth::require_login]
 set current_user_id $user_id
 set action_url "/intranet-timesheet2/absences/new"
 set cancel_url "/intranet-timesheet2/absences/index"
@@ -67,8 +67,8 @@ if {[info exists absence_id]} {
     "]
 }
 
-if {![exists_and_not_null absence_owner_id]} { set absence_owner_id $user_id_from_search }
-if {![exists_and_not_null absence_owner_id]} { set absence_owner_id $current_user_id }
+if {(![info exists absence_owner_id] || $absence_owner_id eq "")} { set absence_owner_id $user_id_from_search }
+if {(![info exists absence_owner_id] || $absence_owner_id eq "")} { set absence_owner_id $current_user_id }
 
 if {![info exists absence_id]} {
     set page_title [lang::message::lookup "" intranet-timesheet2.New_Absence_Type "%absence_type%"]
@@ -76,7 +76,7 @@ if {![info exists absence_id]} {
     set page_title [lang::message::lookup "" intranet-timesheet2.Absence_absence_type "%absence_type%"]
 }
 
-if {[exists_and_not_null user_id_from_search]} {
+if {([info exists user_id_from_search] && $user_id_from_search ne "")} {
     set user_from_search_name [db_string name "select im_name_from_user_id(:user_id_from_search)" -default ""]
     append page_title " "
     append page_title [lang::message::lookup "" intranet-timesheet2.for_username " for %user_from_search_name%"]
@@ -252,7 +252,7 @@ ad_form \
     -cancel_url $cancel_url \
     -action $action_url \
     -actions $actions \
-    -has_edit [expr !$write] \
+    -has_edit [expr {!$write}] \
     -mode $form_mode \
     -export $hidden_field_list \
     -form $form_fields
@@ -336,7 +336,7 @@ ad_form -extend -name absence -on_request {
 
     # Check the number of absence days per interval
     set date_range_days [db_string date_range "select date($end_date_sql) - date($start_date_sql) + 1"]
-    if {$duration_days > [expr $date_range_days+1]} {
+    if {$duration_days > [expr {$date_range_days+1}]} {
 	ad_return_complaint 1 "<b>Date Range Error</b>:<br>Duration is longer then date interval."
 	ad_script_abort
     }

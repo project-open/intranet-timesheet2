@@ -38,18 +38,18 @@ ad_page_contract {
 }
 
 set form [ns_conn form]
-if {[empty_string_p $form]} {
+if {$form eq ""} {
     set form [ns_set new]
 }
 
 set from [validate_ad_dateentrywidget "" from_date $form allownull]
-if { [empty_string_p $from] } {
+if { $from eq "" } {
     set from [db_string sysdate \
             "select to_char(add_months(sysdate,-3),'YYYY-MM-DD') from dual"]
 }
 
 set ending [validate_ad_dateentrywidget "" to_date $form allownull]
-if { [empty_string_p $ending] } {
+if { $ending eq "" } {
     set ending [db_string sysdate \
             "select to_char(sysdate,'YYYY-MM-DD') from dual"]
 }
@@ -115,7 +115,7 @@ function prj_List() {
 #  	append project_select "<input type=radio name=on_what_id value=$group_id>$group_name\n"
 #      }
 #      incr colno
-#      if {[expr $colno % $columns]==0} {
+#      if {[expr {$colno % $columns}]==0} {
 #  	append project_select "<br>"
 #      }
 #  }
@@ -156,10 +156,10 @@ set selection_block "
     </form>"
 doc_body_append $selection_block
 doc_set_property author "koljalehmann@uni.de"
-doc_set_property navbar [list [list index?[export_vars -url {on_which_table}] "[_ intranet-timesheet2.Your_hours]"] "[_ intranet-timesheet2.Project_History]"]
+doc_set_property navbar [list [[export_vars -base index -url {on_which_table}] "[_ intranet-timesheet2.Your_hours]"] "[_ intranet-timesheet2.Project_History]"]
 doc_set_property title "[_ intranet-timesheet2.View_History]"
 
-if {[empty_string_p [ns_conn form]] || [empty_string_p $on_what_id]} {
+if {[ns_conn form] eq "" || $on_what_id eq ""} {
     return
 } else {
     doc_body_append "
@@ -208,7 +208,7 @@ while {$inter_date<$ending} {
     }
 }
 
-set last_date [lindex $inter_dates [expr [llength $inter_dates] - 1]]
+set last_date [lindex $inter_dates [llength $inter_dates]-1]
 db_1row pretty_start_end_time "select to_char(to_date(:last_date,'YYYY-MM-DD'),'DD. Mon YY') as pretty_start,
 to_char(to_date(:ending,'YYYY-MM-DD'),'DD. Mon YY') as pretty_end,
 (to_date(:ending,'YYYY-MM-DD')-to_date(:last_date,'YYYY-MM-DD')+1) as days from dual"
@@ -229,7 +229,7 @@ foreach end_time $inter_dates {
         h.day >= to_date('$begin_time','YYYY-MM-DD') and
         h.day < to_date('$end_time','YYYY-MM-DD')
     group by user_id" {
-	if {[lsearch -exact $user_id_list $user_id]==-1} {
+	if {$user_id ni $user_id_list} {
 	    lappend user_id_list $user_id
 	}
 	set table_data($end_time.$user_id) $hours 
@@ -237,7 +237,7 @@ foreach end_time $inter_dates {
     set begin_time $end_time
 }
 
-if {[empty_string_p $user_id_list]} {
+if {$user_id_list eq ""} {
     doc_body_append "[_ intranet-timesheet2.lt_No_hours_logged_on_pr]"
     return
 }
@@ -268,8 +268,8 @@ foreach user_id $user_id_list {
     foreach end_time $inter_dates {
 	doc_body_append "
 	    <td align=right>[export_var table_data($end_time.$user_id) "0"]"
-	set rowsum [expr $rowsum + [export_var table_data($end_time.$user_id) 0]]
-	set colsum($end_time) [expr $colsum($end_time) + [export_var table_data($end_time.$user_id) 0]]
+	set rowsum [expr {$rowsum + [export_var table_data($end_time.$user_id) 0]}]
+	set colsum($end_time) [expr {$colsum($end_time) + [export_var table_data($end_time.$user_id) 0]}]
     }
     doc_body_append "<th align=right>$rowsum</tr>"
 }
@@ -279,7 +279,7 @@ doc_body_append "<tr><th>[_ intranet-timesheet2.lt_Full_Time_Equivalents]"
 foreach end_time $inter_dates {
     doc_body_append "<th>[format "%4.0f"\
     [expr ($colsum($end_time) * 700) / ($interval_length($end_time) * $based)]]% </th>"
-    set total [expr $total + $colsum($end_time)]
+    set total [expr {$total + $colsum($end_time)}]
 }
 
 doc_body_append "<th>$total</tr></table>"

@@ -43,7 +43,7 @@ ad_page_contract {
 set show_context_help_p 1
 # Should we show debugging information for each project?
 set debug 0
-set current_user_id [ad_maybe_redirect_for_registration]
+set current_user_id [auth::require_login]
 set add_hours_p [im_permission $current_user_id "add_hours"]
 set add_hours_all_p [im_permission $current_user_id "add_hours_all"]
 set add_hours_direct_reports_p [im_permission $current_user_id "add_hours_direct_reports"]
@@ -79,8 +79,8 @@ if {"" == $project_id} { set project_id 0 }
 im_security_alert_check_integer -location "/intranet-timesheet2/www/hours/new" -value $project_id
 
 # Get the date. Accept a gregorian or julian format. Use today as default.
-if {![empty_string_p $gregorian_date]} { set julian_date [db_string sysdate_as_julian "select to_char(:gregorian_date::date, 'J')"] }
-if {[empty_string_p $julian_date]} { set julian_date [db_string sysdate_as_julian "select to_char(sysdate,'J') from dual"] }
+if {$gregorian_date ne ""} { set julian_date [db_string sysdate_as_julian "select to_char(:gregorian_date::date, 'J')"] }
+if {$julian_date eq ""} { set julian_date [db_string sysdate_as_julian "select to_char(sysdate,'J') from dual"] }
 
 if {"" == $return_url} { set return_url [export_vars -base "/intranet-timesheet2/hours/index" {julian_date user_id_from_search}] }
 
@@ -88,7 +88,7 @@ if {"" == $return_url} { set return_url [export_vars -base "/intranet-timesheet2
 set weekly_logging_days [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter TimesheetWeeklyLoggingDays -default "0 1 2 3 4 5 6"]
 
 # PG to_start starts with Sunday - index (1)
-if { !$show_week_p && [string first [expr [db_string dow "select to_char(to_date(:julian_date, 'J'), 'D')"] -1] $weekly_logging_days] == -1} {
+if { !$show_week_p && [string first [expr {[db_string dow "select to_char(to_date(:julian_date, 'J'), 'D')"] -1}] $weekly_logging_days] == -1} {
     ad_return_complaint 1  [lang::message::lookup "" intranet-timesheet2.Not_Allowed "You are not allowed to log hours for this day due to configuration restrictions. (Parameter: 'TimesheetWeeklyLoggingDays') "]
 }
 
@@ -122,15 +122,15 @@ if {$show_week_p} {
     # for the current week by adding or subtracting days depending on the weekday (to_char(.., 'D'))
 
     ## set day_of_week [db_string dow "select to_char(to_date(:julian_date, 'J'), 'D')"]
-    # set julian_week_start [expr $julian_date + 1 - $day_of_week]
-    # set julian_week_end [expr $julian_date + (7-$day_of_week)]
+    # set julian_week_start [expr {$julian_date + 1 - $day_of_week}]
+    # set julian_week_end [expr {$julian_date + (7-$day_of_week)}]
 
     ## Reset the day to the start of the week.
     # set julian_date $julian_week_start
 
     # 1st day shown should be julian_date passed to this page
     set julian_week_start $julian_date
-    set julian_week_end [expr $julian_date + [expr [llength $weekly_logging_days]-1]]
+    set julian_week_end [expr $julian_date + [expr {[llength $weekly_logging_days]-1}]]
 
     # Condition to check for hours this week:
     set h_day_in_dayweek "h.day between to_date(:julian_week_start, 'J') and to_date(:julian_week_end, 'J')"
@@ -172,7 +172,7 @@ if {$internal_note_exists_p} {
 set bind_vars [list user_id $current_user_id user_id_from_search $user_id_from_search julian_date $julian_date return_url $return_url show_week_p $show_week_p]
 set menu_links_html [im_menu_ul_list -no_uls 1 "timesheet_hours_new_admin" $bind_vars]
 
-set different_project_url "other-projects?[export_vars -url {julian_date user_id_from_search}]"
+set different_project_url [export_vars -base other-projects {julian_date user_id_from_search}]
 
 # Log Absences
 set add_absences_p [im_permission $current_user_id add_absences]
@@ -199,11 +199,11 @@ if {$show_week_p} {
 
     set page_title [lang::message::lookup "" intranet-timesheet2.The_week_for_user "The week for %user_name_from_search%"]
 
-    set prev_week_julian_date [expr $julian_date - 7]
+    set prev_week_julian_date [expr {$julian_date - 7}]
     set prev_week_url [export_vars -base "new" {{julian_date $prev_week_julian_date} user_id_from_search return_url project_id show_week_p}]
     set prev_week_link "<a href=$prev_week_url>$left_gif</a>"
 
-    set next_week_julian_date [expr $julian_date + 7]
+    set next_week_julian_date [expr {$julian_date + 7}]
     set next_week_url [export_vars -base "new" {{julian_date $next_week_julian_date} user_id_from_search return_url project_id show_week_p}]
     set next_week_link "<a href=$next_week_url>$right_gif</a>"
 
@@ -219,18 +219,18 @@ if {$show_week_p} {
 
     set page_title "[lang::message::lookup "" intranet-timesheet2.Date_for_user "%pretty_date% for %user_name_from_search%"]"
 
-    set prev_day_julian_date [expr $julian_date - 1]
+    set prev_day_julian_date [expr {$julian_date - 1}]
     set prev_day_url [export_vars -base "new" {{julian_date $prev_day_julian_date} user_id_from_search project_id show_week_p}]
     set prev_day_link "<a href=$prev_day_url>$left_gif</a>"
 
-    set next_day_julian_date [expr $julian_date + 1]
+    set next_day_julian_date [expr {$julian_date + 1}]
     set next_day_url [export_vars -base "new" {{julian_date $next_day_julian_date} user_id_from_search project_id show_week_p}]
     set next_day_link "<a href=$next_day_url>$right_gif</a>"
 
     set forward_backward_buttons "
 	<tr>
 	<td align=left>$prev_day_link</td>
-	<td colspan=[expr 1+$internal_note_exists_p]>&nbsp;</td>
+	<td colspan=[expr {1+$internal_note_exists_p}]>&nbsp;</td>
 	<td align=right>$next_day_link</td>
 	</tr>
     "
@@ -864,7 +864,7 @@ template::multirow foreach hours_multirow {
 	"main_project" - "specified" {
 	    # Membership is this specific project not necessary - just check status
 	    set log_p 1
-	    if {[lsearch -exact $closed_stati $project_status_id] > -1} { set log_p 0 }
+	    if {$project_status_id in $closed_stati} { set log_p 0 }
 	}
 	"sub_project" {
 	    # Control is with subprojects, tasks are always considered open.
@@ -953,7 +953,7 @@ template::multirow foreach hours_multirow {
     set dots_for_filter ""
     while {$level > 0} {
 	set indent "$nbsps$indent"
-	set level [expr $level-1]
+	set level [expr {$level-1}]
 	append dots_for_filter "."
     }
 
@@ -984,13 +984,13 @@ template::multirow foreach hours_multirow {
     if { !$filter_surpress_output_p } { 
 	if { !$top_parent_shown_p && $project_id != $top_project_id && "" != $search_task } {
 	    # This row only serves as "title" row showing the top-parent project in case a "string search filter" us used  
-	    append table_rows "<tr $tr_class([expr $ctr % 2])>\n<td>@@fold-icon-class@@"
+	    append table_rows "<tr $tr_class([expr {$ctr % 2}])>\n<td>@@fold-icon-class@@"
 	    append table_rows "<strong><a href='/intranet/projects/view?project_id=$top_project_id' style='text-decoration: none'>
 					<span style='color:\#A9D0F5'>$top_parent_project_name $dots_for_filter</span></a></strong><br>"
 	    append table_rows "</td></tr>"
 	    set top_parent_shown_p 1
 	}	
-	append table_rows "<tr $tr_class([expr $ctr % 2]) id=\"${project_id}\" hidden_by=\"@@hidden_by@@\" fold_status=\"@@fold_status@@\" >\n<td><nobr>$indent @@fold-icon-class@@ <a href=\"$project_url\">$ptitle</a></nobr></td>\n" 
+	append table_rows "<tr $tr_class([expr {$ctr % 2}]) id=\"${project_id}\" hidden_by=\"@@hidden_by@@\" fold_status=\"@@fold_status@@\" >\n<td><nobr>$indent @@fold-icon-class@@ <a href=\"$project_url\">$ptitle</a></nobr></td>\n" 
     }
 
     # ------------------------------------------------------------------------------
@@ -1000,7 +1000,7 @@ template::multirow foreach hours_multirow {
     if {$closed_p && (!$user_is_project_member_p && $project_is_task_p)} { 
 	append help_text [lang::message::lookup "" intranet-timesheet2.Nolog_closed_p "The project or one of its parents has been closed or requires membership. "] 
     }
-    if {![string eq "t" $edit_hours_p]} { append help_text [lang::message::lookup "" intranet-timesheet2.Nolog_edit_hours_p "The time period has been closed for editing. "] }
+    if {"t" ne $edit_hours_p } { append help_text [lang::message::lookup "" intranet-timesheet2.Nolog_edit_hours_p "The time period has been closed for editing. "] }
     if {!$log_on_parent_p} { append help_text [lang::message::lookup "" intranet-timesheet2.Nolog_log_on_parent_p "This project has sub-projects or tasks. "] }
     if {$solitary_main_project_p} { 
 	append help_text [lang::message::lookup "" intranet-timesheet2.Nolog_solitary_main_project_p "This is a 'solitary' main project. Your system is configured in such a way, that you can't log hours on it. "] 
@@ -1015,7 +1015,7 @@ template::multirow foreach hours_multirow {
 	"sub_project" {
 	    # user_is_project_member_p only relevant for projects, not for tasks,
 	    # because it is the "controlling" (sub-) project that determines.
-	    set show_member_p [expr !$project_is_task_p]
+	    set show_member_p [expr {!$project_is_task_p}]
 	}
 	"task" {
 	    # user_is_project_member_p relevant everywhere
@@ -1052,7 +1052,7 @@ template::multirow foreach hours_multirow {
 
     set i 0 
     foreach j $weekly_logging_days {
-	set julian_day_offset [expr $julian_date + $i]
+	set julian_day_offset [expr {$julian_date + $i}]
 	set hours ""
 	set note ""
 	set internal_note ""
@@ -1204,7 +1204,7 @@ set week_header_html ""
 
 set i 0 
 foreach j $weekly_logging_days {
-    set julian_day_offset [expr $julian_week_start + $i]
+    set julian_day_offset [expr {$julian_week_start + $i}]
     im_security_alert_check_integer -location "intranet-timesheet2/hours/new.tcl" -value $julian_day_offset
     set header_day_of_week [util_memoize [list db_string day_of_week "select to_char(to_date('$julian_day_offset', 'J'), 'Dy')"]]
     set header_day_of_week_l10n [lang::message::lookup "" intranet-timesheet2.Day_of_week_$header_day_of_week $header_day_of_week]
@@ -1279,7 +1279,7 @@ if {[im_permission $current_user_id view_projects_all]} {
 	    <li><a href='$different_project_url'>#intranet-timesheet2.lt_Add_hours_on_other_pr#</A></li>
     "
 }
-if {![empty_string_p $return_url]} {
+if {$return_url ne ""} {
     append left_navbar_html "
 	    <li><a href='$return_url'>#intranet-timesheet2.lt_Return_to_previous_pa#</a></li>
     "

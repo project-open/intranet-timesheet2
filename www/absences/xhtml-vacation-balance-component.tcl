@@ -60,12 +60,12 @@ set current_year [db_string current_year "select to_char(now(), 'YYYY')"]
 
 switch $period {
     last_year {
-	set start_of_year "[expr $current_year - 1]-01-01"
-	set end_of_year "[expr $current_year - 1]-12-31"
+	set start_of_year "[expr {$current_year - 1}]-01-01"
+	set end_of_year "[expr {$current_year - 1}]-12-31"
     }
     next_year {
-	set start_of_year "[expr $current_year + 1]-01-01"
-	set end_of_year "[expr $current_year + 1]-12-31"
+	set start_of_year "[expr {$current_year + 1}]-01-01"
+	set end_of_year "[expr {$current_year + 1}]-12-31"
     }
     default {
 	set start_of_year "$current_year-01-01"
@@ -144,7 +144,7 @@ set vacation_sql "
 if {![info exists vacation_balance] || "" == $vacation_balance} { set vacation_balance 0 }
 if {"" == $vacation_days_per_year} { set vacation_days_per_year 0 }
 
-set vacation_days_left [expr $vacation_balance + $vacation_days_per_year]
+set vacation_days_left [expr {$vacation_balance + $vacation_days_per_year}]
 set vacation_days_taken 0
 
 db_multirow -extend { absence_url absence_type } vacation_balance_multirow vacation_balance $vacation_sql {
@@ -152,8 +152,8 @@ db_multirow -extend { absence_url absence_type } vacation_balance_multirow vacat
     set absence_url [export_vars -base "$absence_base_url/new" {{form_mode display} absence_id}]
     set absence_type [im_category_from_id $absence_type_id]
 
-    set vacation_days_taken [expr $vacation_days_taken + $duration_days]
-    set vacation_days_left [expr $vacation_days_left - $duration_days] 
+    set vacation_days_taken [expr {$vacation_days_taken + $duration_days}]
+    set vacation_days_left [expr {$vacation_days_left - $duration_days}] 
     set duration_days [format "%.2f" $duration_days]
 
 }

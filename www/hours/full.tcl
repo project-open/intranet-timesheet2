@@ -30,7 +30,7 @@ ad_page_contract {
 }
 
 
-set current_user_id [ad_maybe_redirect_for_registration]
+set current_user_id [auth::require_login]
 
 # Has the current user the right to edit all timesheet information?
 set edit_timesheet_p [im_permission $current_user_id "add_hours_all"]
@@ -45,7 +45,7 @@ if {!$view_ours_all_p} {
 
 set return_url [im_url_with_query]
 
-if { [empty_string_p $user_id] && ($current_user_id != 0) } {
+if { $user_id eq "" && ($current_user_id != 0) } {
     set looking_at_self_p 1
     set user_id $current_user_id
 } else {
@@ -58,7 +58,7 @@ if { [empty_string_p $user_id] && ($current_user_id != 0) } {
 
 set user_name [db_string user_name "select im_name_from_user_id(:user_id) from dual"]
 
-if { ![empty_string_p $item] } {
+if { $item ne "" } {
     set page_title "[_ intranet-timesheet2.lt_Units_on_item_by_user]"
 } else {
     set page_title "[_ intranet-timesheet2.Units_by_user_name]"
@@ -118,19 +118,19 @@ db_foreach hours_on_project $sql {
     }
     append page_body "<p><li>$pretty_day <br><em>$hours_units</em>\n"
 
-    set total_hours_on_project [expr $total_hours_on_project + $hours]
+    set total_hours_on_project [expr {$total_hours_on_project + $hours}]
 
-    if {$view_finance_p && ![empty_string_p $amount_earned]} {
+    if {$view_finance_p && $amount_earned ne ""} {
         append page_body " (${currency} [format %4.2f $billing_rate]/hour = ${currency} [format %4.2f $amount_earned])"
-        set hourly_bill [expr $hourly_bill + $amount_earned]
-        set total_hours_billed_hourly [expr $total_hours_billed_hourly + $hours]
+        set hourly_bill [expr {$hourly_bill + $amount_earned}]
+        set total_hours_billed_hourly [expr {$total_hours_billed_hourly + $hours}]
     }
 
     if {$edit_timesheet_p} {
 	set note "<a href=\"[export_vars -base "/intranet-timesheet2/hours/one" {{julian_date $j_day} user_id {project_id $hours_project_id} return_url}]\">$note</a>\n"
     }
 
-    if ![empty_string_p $note] {
+    if {$note ne ""} {
         append page_body "<blockquote>$note</blockquote>"
     }
 }

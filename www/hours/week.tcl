@@ -28,10 +28,10 @@ ad_page_contract {
     { user_id_from_search:integer "" }
 }
 
-set user_id [ad_maybe_redirect_for_registration]
+set user_id [auth::require_login]
 
-if { [empty_string_p $user_id_from_search] } {
-    set user_id_from_search [ad_maybe_redirect_for_registration]
+if { $user_id_from_search eq "" } {
+    set user_id_from_search [auth::require_login]
 }
 
 # Permissions - limit view to the user himself,
@@ -42,7 +42,7 @@ if {"" == $user_id_from_search || ![im_permission $user_id "add_hours_all"]} {
 
 
 
-if { [empty_string_p $julian_date] } {
+if { $julian_date eq "" } {
     set julian_date [db_string sysdate_as_julian "select to_char(sysdate,'J') from dual"]
 }
 
@@ -77,7 +77,7 @@ set grand_total 0
 
 db_foreach hour_select $sql {
     if {"" == $total} { set total 0 }
-    set grand_total [expr $grand_total+$total]
+    set grand_total [expr {$grand_total+$total}]
     lappend items [list $project_id $project_name $total]
 }
 
@@ -103,7 +103,7 @@ set pcount 0
 set notes "<hr>\n<h2>[_ intranet-timesheet2.Daily_project_notes]</h2>\n"
 
 db_foreach hours_daily_project_notes $sql {
-    if {[empty_string_p $note]} {
+    if {$note eq ""} {
 	set note "<i>[_ intranet-timesheet2.none]</i>"
     }
     if { $last_id != $project_id } {
@@ -141,11 +141,11 @@ if {[llength $items] > 0 } {
 	set project_name [lindex $row 1]
 	set total [lindex $row 2]
 	append hour_table "<tr bgcolor=#efefef>
-	<td><a href=/intranet/projects/view?[export_vars -url {project_id}]>
+	<td><a href=/intranet/projects/[export_vars -base view {project_id}]>
 	    $project_name</a></td>
 	<td align=right>[format "%0.02f" $total]</td>
 	<td align=right>[format "%0.02f%%" \
-	    [expr double($total)/$grand_total*100]]</td>
+	    [expr {double($total)/$grand_total*100}]]</td>
 	</tr>
 	"
     }

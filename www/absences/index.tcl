@@ -49,15 +49,15 @@ ad_page_contract {
 # 2. Defaults & Security
 # ---------------------------------------------------------------
 
-set user_id [ad_maybe_redirect_for_registration]
+set user_id [auth::require_login]
 set admin_p [im_is_user_site_wide_or_intranet_admin $user_id]
 set current_user_id $user_id
 set subsite_id [ad_conn subsite_id]
 set add_absences_for_group_p [im_permission $user_id "add_absences_for_group"]
 set add_absences_all_p [im_permission $user_id "add_absences_all"]
-set view_absences_all_p [expr [im_permission $user_id "view_absences_all"] || $add_absences_all_p]
+set view_absences_all_p [expr {[im_permission $user_id "view_absences_all"] || $add_absences_all_p}]
 set add_absences_direct_reports_p [im_permission $user_id "add_absences_direct_reports"]
-set view_absences_direct_reports_p [expr [im_permission $user_id "view_absences_direct_reports"] || $add_absences_direct_reports_p]
+set view_absences_direct_reports_p [expr {[im_permission $user_id "view_absences_direct_reports"] || $add_absences_direct_reports_p}]
 set add_absences_p [im_permission $user_id "add_absences"]
 set org_absence_type_id $absence_type_id
 set show_context_help_p 1
@@ -153,12 +153,12 @@ foreach { value text } $timescale_types {
     lappend timescale_type_list [list $text $value]
 }
 
-if { ![exists_and_not_null absence_type_id] } {
+if { (![info exists absence_type_id] || $absence_type_id eq "") } {
     # Default type is "all" == -1 - select the id once and memoize it
     set absence_type_id -1;
 }
 
-set end_idx [expr $start_idx + $how_many - 1]
+set end_idx [expr {$start_idx + $how_many - 1}]
 set date_format "YYYY-MM-DD"
 set date_time_format "YYYY-MM-DD HH24:MI"
 
@@ -187,7 +187,7 @@ set column_sql "
 "
 
 db_foreach column_list_sql $column_sql {
-    if {$visible_for == "" || [eval $visible_for]} {
+    if {$visible_for eq "" || [eval $visible_for]} {
 	lappend column_headers "$column_name"
 	lappend column_vars "$column_render_tcl"
 
@@ -278,7 +278,7 @@ switch $user_selection {
     }
 }
 
-if { ![empty_string_p $absence_type_id] &&  $absence_type_id != -1 } {
+if { $absence_type_id ne "" &&  $absence_type_id != -1 } {
     lappend criteria "a.absence_type_id = :absence_type_id"
 }
 
@@ -344,7 +344,7 @@ switch $order_by {
 }
 
 set where_clause [join $criteria " and\n	    "]
-if { ![empty_string_p $where_clause] } {
+if { $where_clause ne "" } {
     set where_clause " and $where_clause"
 }
 
@@ -475,7 +475,7 @@ append admin_html "<table cellpadding='5' cellspacing='5'>\n"
 set index 0
 db_foreach cols $col_sql {
     if { "" == $aux_string2 } {
-	# set index [expr $category_id - 5000]
+	# set index [expr {$category_id - 5000}]
 	set col [lindex $color_list $index]
 	incr index
     } else {
@@ -503,7 +503,7 @@ db_foreach cols $col_sql {
 	}
 	# calculate a brightness-value for the color
 	# if brightness > 127 the foreground color is black, if < 127 the foreground color is white
-	set brightness [expr $r_bg * 0.2126 + $g_bg * 0.7152 + $b_bg * 0.0722]
+	set brightness [expr {$r_bg * 0.2126 + $g_bg * 0.7152 + $b_bg * 0.0722}]
 	set col_fg "fff"
 	if {$brightness >= 127} {set col_fg "000"}
 	set category_l10n [lang::message::lookup "" intranet-core.$category_key $category]
@@ -518,7 +518,7 @@ append admin_html "</table>\n"
 # ---------------------------------------------------------------
 
 # Set up colspan to be the number of headers + 1 for the # column
-set colspan [expr [llength $column_headers] + 1]
+set colspan [expr {[llength $column_headers] + 1}]
 
 # Format the header names with links that modify the
 # sort order of the SQL query.
@@ -526,7 +526,7 @@ set colspan [expr [llength $column_headers] + 1]
 set table_header_html ""
 set url "index?"
 set query_string [export_ns_set_vars url [list order_by]]
-if { ![empty_string_p $query_string] } {
+if { $query_string ne "" } {
     append url "$query_string&"
 }
 
@@ -537,7 +537,7 @@ foreach col $column_headers {
     set wrench_html [lindex $column_headers_admin $ctr]
     regsub -all " " $col "_" col_key
     set col_txt [lang::message::lookup "" intranet-core.$col_key $col]
-    if { [string equal $order_by $col] } {
+    if {$order_by eq $col} {
 	append table_header_html "  <td class=rowtitle>$col_txt$wrench_html</td>\n"
     } else {
 	append table_header_html "  <td class=rowtitle><a href=\"${url}order_by=[ns_urlencode $col]\">$col_txt</a>$wrench_html</td>\n"
@@ -579,7 +579,7 @@ db_foreach absences_list $selection {
     }
 
     #Append together a line of data based on the "column_vars" parameter list
-    append table_body_html "<tr $bgcolor([expr $ctr % 2])>\n"
+    append table_body_html "<tr $bgcolor([expr {$ctr % 2}])>\n"
     foreach column_var $column_vars {
 	append table_body_html "\t<td valign=top>"
 	set cmd "append table_body_html $column_var"
@@ -596,7 +596,7 @@ db_foreach absences_list $selection {
 } 
 
 # Show a reasonable message when there are no result rows:
-if { [empty_string_p $table_body_html] } {
+if { $table_body_html eq "" } {
     set table_body_html "
 	<tr><td colspan=$colspan><ul><li><b>
 	[_ intranet-timesheet2.lt_There_are_currently_n]
@@ -606,7 +606,7 @@ if { [empty_string_p $table_body_html] } {
 if { $ctr == $how_many && $end_idx < $total_in_limited } {
     # This means that there are rows that we decided not to return
     # Include a link to go to the next page
-    set next_start_idx [expr $end_idx + 1]
+    set next_start_idx [expr {$end_idx + 1}]
     set next_page_url "index?start_idx=$next_start_idx&[export_ns_set_vars url [list start_i\
 dx]]"
 } else {
@@ -616,7 +616,7 @@ dx]]"
 if { $start_idx > 0 } {
     # This means we didn't start with the first row - there is
     # at least 1 previous row. add a previous page link
-    set previous_start_idx [expr $start_idx - $how_many]
+    set previous_start_idx [expr {$start_idx - $how_many}]
     if { $previous_start_idx < 0 } { set previous_start_idx 1 }
     set previous_page_url "index?start_idx=$previous_start_idx&[export_ns_set_vars url [list start_idx]]"
 } else {

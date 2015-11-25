@@ -23,7 +23,7 @@ ad_page_contract {
     { month "" }
 }
 
-set user_id [ad_maybe_redirect_for_registration]
+set user_id [auth::require_login]
 
 if {"" == $year} { set year [db_string current_year "select to_char(sysdate, 'yyyy') from dual"] }
 if {"" == $month} { set month [db_string current_month "select to_char(sysdate, 'mm') from dual"] }

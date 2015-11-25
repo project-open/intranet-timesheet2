@@ -3,7 +3,7 @@
 	<table>
 	<!--
 	<tr class=rowtitle>
-		<td colspan=2 class=rowtitle><%= [lang::message::lookup "" intranet-timesheet2.Vacation_Balance "Vacation Balance"] %></td>
+		<td colspan="2" class=rowtitle><%= [lang::message::lookup "" intranet-timesheet2.Vacation_Balance "Vacation Balance"] %></td>
 	</tr>
 	-->
 	<tr class=roweven>

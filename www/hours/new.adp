@@ -1,9 +1,9 @@
 <master>
-<property name="title">@page_title@</property>
+<property name="doc(title)">@page_title;literal@</property>
 <property name="context">#intranet-timesheet2.context#</property>
 <property name="main_navbar_label">timesheet2_timesheet</property>
-<property name="left_navbar">@left_navbar_html;noquote@</property>
-<property name="show_context_help_p">@show_context_help_p;noquote@</property>
+<property name="left_navbar">@left_navbar_html;literal@</property>
+<property name="show_context_help_p">@show_context_help_p;literal@</property>
 
 <%= [im_box_header $page_title] %>
 
@@ -13,7 +13,7 @@
 <table>
 	  <if @edit_hours_p@ eq "f">
 	  <tr>
-		<td colspan=7>
+		<td colspan="7">
 		<font color=red>
 		<h3>@edit_hours_closed_message;noquote@</h3>
 		</font>
@@ -46,7 +46,7 @@
 	    @results;noquote@
 	    <tr>
 		<td></td>
-		<td colspan=99>
+		<td colspan="99">
 		<if @edit_hours_p@ eq "t">
 		    <INPUT TYPE=Submit VALUE="#intranet-timesheet2.Add_hours#">
 		</if>

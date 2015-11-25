@@ -235,7 +235,7 @@ ad_proc im_timesheet_absences_sum {
 		and a.end_date >= d.d
     "]
 
-    return [expr $num_absences * $hours_per_absence]
+    return [expr {$num_absences * $hours_per_absence}]
 }
 
 
@@ -318,7 +318,7 @@ ad_proc im_absence_new_page_wf_perm_edit_button {
     ]
 
     ns_log Notice "im_absence_new_page_wf_perm_edit_button absence_id=$absence_id => $perm_set"
-    return [expr [lsearch $perm_set "w"] > -1]
+    return [expr {[lsearch $perm_set "w"] > -1}]
 }
 
 ad_proc im_absence_new_page_wf_perm_delete_button {
@@ -339,7 +339,7 @@ ad_proc im_absence_new_page_wf_perm_delete_button {
 
 
     ns_log Notice "im_absence_new_page_wf_perm_delete_button absence_id=$absence_id => $perm_set"
-    return [expr [lsearch $perm_set "d"] > -1]
+    return [expr {[lsearch $perm_set "d"] > -1}]
 }
 
 
@@ -455,18 +455,18 @@ ad_proc im_absence_mix_colors {
     }
     
     # Calculate the median
-    set r [expr $r / $len]
-    set g [expr $g / $len]
-    set b [expr $b / $len]
+    set r [expr {$r / $len}]
+    set g [expr {$g / $len}]
+    set b [expr {$b / $len}]
 
     # Convert the RGB values back into a hex color string
     set color ""
-    append color [lindex $hex_list [expr $r / 16]]
-    append color [lindex $hex_list [expr $r % 16]]
-    append color [lindex $hex_list [expr $g / 16]]
-    append color [lindex $hex_list [expr $g % 16]]
-    append color [lindex $hex_list [expr $b / 16]]
-    append color [lindex $hex_list [expr $b % 16]]
+    append color [lindex $hex_list [expr {$r / 16}]]
+    append color [lindex $hex_list [expr {$r % 16}]]
+    append color [lindex $hex_list [expr {$g / 16}]]
+    append color [lindex $hex_list [expr {$g % 16}]]
+    append color [lindex $hex_list [expr {$b / 16}]]
+    append color [lindex $hex_list [expr {$b % 16}]]
 
     return $color
 }
@@ -604,7 +604,7 @@ ad_proc im_absence_cube {
 	}
     }
     set where_clause [join $criteria " and\n            "]
-    if {![empty_string_p $where_clause]} {
+    if {$where_clause ne ""} {
 	set where_clause " and $where_clause"
     }
 
@@ -629,7 +629,7 @@ ad_proc im_absence_cube {
 
 	set date_month [lang::message::lookup "" intranet-timesheet2.$date_month $date_month]
 
-	if {$date_weekday == "Sat" || $date_weekday == "Sun"} { set holiday_hash($date_date) 5 }
+	if {$date_weekday eq "Sat" || $date_weekday eq "Sun"} { set holiday_hash($date_date) 5 }
 	lappend day_list [list $date_date $date_day_of_month $date_month $date_year]
     }
 
@@ -749,7 +749,7 @@ ad_proc im_absence_cube {
     set row_ctr 0
     set table_body ""
     foreach user_tuple $user_list {
-	append table_body "<tr $bgcolor([expr $row_ctr % 2])>\n"
+	append table_body "<tr $bgcolor([expr {$row_ctr % 2}])>\n"
 	set user_id [lindex $user_tuple 0]
 	set user_name [lindex $user_tuple 1]
 	append table_body "<td><nobr><a href='[export_vars -base $user_url {user_id}]'>$user_name</a></td></nobr>\n"

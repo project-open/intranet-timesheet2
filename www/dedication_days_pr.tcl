@@ -26,27 +26,27 @@ ad_page_contract {
     { report_pr_p "" }
 }
 # user_id already validated by /intranet filters
-set user_id [ad_verify_and_get_user_id]
+set user_id [ad_conn user_id]
 set user_admin_p [im_is_user_site_wide_or_intranet_admin $user_id]
 
 set date_format "YYYY-MM-DD"
 
 set form [ns_conn form]
-if {[empty_string_p $form]} {
+if {$form eq ""} {
     set form [ns_set new]
 }
 set start [validate_ad_dateentrywidget from_date from_date $form allownull]
-if { [empty_string_p $start] } {
+if { $start eq "" } {
     set start "2000-01-01"
 }
 set end [validate_ad_dateentrywidget to_date to_date $form allownull]
-if { [empty_string_p $end] } {
+if { $end eq "" } {
     set end [db_string sysdate \
             "select to_char(sysdate,'YYYY-MM-DD') from dual"]
 }
 
 # Default status is OPEN - with the id '77'
-if { $report_pr_p == "y" } {
+if { $report_pr_p eq "y" } {
     set sql_filters "  and pr.project_status_id = '77' \
 	                  and pr.requires_report_p = 't'"
     set check "checked"
@@ -99,7 +99,7 @@ $pr_filter <br>
 
 db_release_unused_handles
 
-if { ![empty_string_p $project] } {
+if { $project ne "" } {
     set sql_filters " and pr.group_id=:project"
     set project_id $project
 }
@@ -128,10 +128,10 @@ db_foreach projects $sql_projects {
 
     db_foreach get_user_projects $sql_query {
         append page_body "<tr>"
-        if { $rownum == "1" } {
-            append page_body "<td class=row[expr $rownum%2]><b>$project_name</b></td>"
+        if { $rownum == 1 } {
+            append page_body "<td class=row[expr {$rownum%2}]><b>$project_name</b></td>"
         } else {
-            append page_body "<td class=row[expr $rownum%2]>&nbsp;</td>"
+            append page_body "<td class=row[expr {$rownum%2}]>&nbsp;</td>"
         }
 
         set days [db_string g_days "select TO_CHAR(NVL(field_value,0),'999990D9') \
@@ -151,10 +151,10 @@ db_foreach projects $sql_projects {
                                            and day between to_date('$start',:date_format)
                                                        and to_date('$end',:date_format)" -default "0.0"]
 
-        set days_diff [expr $days - $real_days]
-        set cost [format "%0.0f" [expr $days * $day_cost]]
-        set real_cost [format "%0.0f" [expr $real_days * $day_cost]]
-        set cost_diff [format "%0.0f" [expr $cost - $real_cost]]
+        set days_diff [expr {$days - $real_days}]
+        set cost [format "%0.0f" [expr {$days * $day_cost}]]
+        set real_cost [format "%0.0f" [expr {$real_days * $day_cost}]]
+        set cost_diff [format "%0.0f" [expr {$cost - $real_cost}]]
 
         if { $days_diff < 0 } {
             set days_diff_color " style=\"color:red\" "
@@ -166,38 +166,38 @@ db_foreach projects $sql_projects {
         } else {
             set cost_diff_color " style=\"color:blue\" "
         }
-        if { $days == "0" } {
+        if { $days == 0 } {
             set per_days "NaN"
         } else {
-            set per_days [format "%0.2f" [expr [expr $days_diff / $days] * 100]]%
+            set per_days [format "%0.2f" [expr {[expr {$days_diff / $days}] * 100}]]%
         }
-        if { $cost == "0" } {
+        if { $cost == 0 } {
             set per_cost "NaN"
         } else {
-            set per_cost [format "%0.2f" [expr [expr $cost_diff.0 / $cost] * 100]]%
+            set per_cost [format "%0.2f" [expr {[expr {$cost_diff.0 / $cost}] * 100}]]%
         }
 
 	append page_body "
-        <td class=row[expr $rownum%2]>$emp_name</td>
-        <td class=row[expr $rownum%2] align=right>$days</td>
-        <td class=row[expr $rownum%2] align=right>$real_days</td>
-        <td class=row[expr $rownum%2] align=right $days_diff_color>$days_diff</td>
-        <td class=row[expr $rownum%2] align=right $days_diff_color>$per_days</td>
-        <td class=row[expr $rownum%2]>&nbsp;</td>
-        <td class=row[expr $rownum%2] align=right>$cost</td>
-        <td class=row[expr $rownum%2] align=right>$real_cost</td>
-        <td class=row[expr $rownum%2] align=right $cost_diff_color>$cost_diff</td>
-        <td class=row[expr $rownum%2] align=right $cost_diff_color>$per_cost</td>
+        <td class=row[expr {$rownum%2}]>$emp_name</td>
+        <td class=row[expr {$rownum%2}] align=right>$days</td>
+        <td class=row[expr {$rownum%2}] align=right>$real_days</td>
+        <td class=row[expr {$rownum%2}] align=right $days_diff_color>$days_diff</td>
+        <td class=row[expr {$rownum%2}] align=right $days_diff_color>$per_days</td>
+        <td class=row[expr {$rownum%2}]>&nbsp;</td>
+        <td class=row[expr {$rownum%2}] align=right>$cost</td>
+        <td class=row[expr {$rownum%2}] align=right>$real_cost</td>
+        <td class=row[expr {$rownum%2}] align=right $cost_diff_color>$cost_diff</td>
+        <td class=row[expr {$rownum%2}] align=right $cost_diff_color>$per_cost</td>
         </tr>"
 	
-        set sum_days [expr $sum_days + $days]
-        set sum_cost [expr $sum_cost + $cost]
-        set sum_real_days [expr $sum_real_days + $real_days]
-        set sum_real_cost [expr $sum_real_cost + $real_cost]
+        set sum_days [expr {$sum_days + $days}]
+        set sum_cost [expr {$sum_cost + $cost}]
+        set sum_real_days [expr {$sum_real_days + $real_days}]
+        set sum_real_cost [expr {$sum_real_cost + $real_cost}]
     }
 
-    set sum_days_diff [expr $sum_days - $sum_real_days]
-    set sum_cost_diff [expr $sum_cost - $sum_real_cost]
+    set sum_days_diff [expr {$sum_days - $sum_real_days}]
+    set sum_cost_diff [expr {$sum_cost - $sum_real_cost}]
     if { $sum_days_diff < 0 } {
             set sum_days_color " style=\"color:red\" "
     } else {
@@ -208,15 +208,15 @@ db_foreach projects $sql_projects {
     } else {
             set sum_cost_color ""
     }
-    if { $sum_days == "0" } {
+    if { $sum_days == 0 } {
             set per_sum_days "NaN"
     } else {
-            set per_sum_days [format "%0.2f" [expr [expr $sum_days_diff / $sum_days] * 100]]%
+            set per_sum_days [format "%0.2f" [expr {[expr {$sum_days_diff / $sum_days}] * 100}]]%
     }
-    if { $sum_cost == "0" } {
+    if { $sum_cost == 0 } {
             set per_sum_cost "NaN"
     } else {
-            set per_sum_cost [format "%0.2f" [expr [expr $sum_cost_diff.0 / $sum_cost] * 100]]%
+            set per_sum_cost [format "%0.2f" [expr {[expr {$sum_cost_diff.0 / $sum_cost}] * 100}]]%
     }
 
     append page_body "    

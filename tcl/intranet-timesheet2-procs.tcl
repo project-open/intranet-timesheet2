@@ -211,7 +211,7 @@ ad_proc -public im_timesheet_home_component {user_id} {
     set expected_hours [parameter::get -package_id [im_package_timesheet2_id] -parameter "TimesheetRedirectNumHoursInDays" -default 32]
     set available_perc [util_memoize [list db_string percent_available "select availability from im_employees where employee_id = $user_id" -default 100] 60]
     if {"" == $available_perc} { set available_perc 100 }
-    set expected_hours [expr $expected_hours * $available_perc / 100]
+    set expected_hours [expr {$expected_hours * $available_perc / 100}]
 
     set hours_html ""
     set log_them_now_link "<a href=/intranet-timesheet2/hours/index>"
@@ -225,7 +225,7 @@ ad_proc -public im_timesheet_home_component {user_id} {
     }
 
     set absences_hours_message ""
-    if { [expr $num_hours + $absences_hours] < $expected_hours && $add_hours } {
+    if { [expr {$num_hours + $absences_hours}] < $expected_hours && $add_hours } {
 
 	if {$absences_hours > 0} { 
 	    set absences_hours_message [lang::message::lookup "" \
@@ -249,11 +249,11 @@ ad_proc -public im_timesheet_home_component {user_id} {
     if {[im_permission $user_id view_hours_all]} {
         append hours_html "
 	    <ul>
-	    <li><a href=/intranet-timesheet2/hours/projects?[export_vars -url {user_id}]>
+	    <li><a href=/intranet-timesheet2/hours/[export_vars -base projects {user_id}]>
 		[_ intranet-timesheet2.lt_View_your_hours_on_al]</a>
-	    <li><a href=/intranet-timesheet2/hours/total?[export_vars -url {}]>
+	    <li><a href=/intranet-timesheet2/hours/[export_vars -base total {}]>
 		[_ intranet-timesheet2.lt_View_time_spent_on_al]</a>
-	    <li><a href=/intranet-timesheet2/hours/projects?[export_vars -url {}]>
+	    <li><a href=/intranet-timesheet2/hours/[export_vars -base projects {}]>
 		[_ intranet-timesheet2.lt_View_the_hours_logged]</a>
 	    <li><a href=\"/intranet-timesheet2/weekly_report\">
 		[_ intranet-timesheet2.lt_View_hours_logged_dur]</a>
@@ -347,7 +347,7 @@ ad_proc -public im_timesheet_project_component {user_id project_id} {
 	set expected_hours [parameter::get -package_id [im_package_timesheet2_id] -parameter "TimesheetRedirectNumHoursInDays" -default 32]
 	set available_perc [util_memoize [list db_string percent_available "select availability from im_employees where employee_id = $user_id" -default 100]]
 	if {"" == $available_perc} { set available_perc 100 }
-	set expected_hours [expr $expected_hours * $available_perc / 100]
+	set expected_hours [expr {$expected_hours * $available_perc / 100}]
         set num_hours [im_timesheet_hours_sum -user_id $user_id -number_days $num_days]
 	if { $redirect_p && $num_hours < $expected_hours && $add_hours } {
 
@@ -380,7 +380,7 @@ ad_proc -public im_timesheet_project_component {user_id project_id} {
 
     }
 
-    if {![string equal "" $hours_logged]} {
+    if {$hours_logged ne ""} {
         append hours_logged "</ul>\n"
     }
     append info_html "$hours_logged</ul>"
@@ -530,7 +530,7 @@ ad_proc im_force_user_to_log_hours { conn args why } {
     intranet. Sets state in session so user is only asked once 
     per session.
 } {
-    set user_id [ad_maybe_redirect_for_registration]
+    set user_id [auth::require_login]
 
     if { ![im_enabled_p] || ![im_parameter TrackHours "" 0] } {
 	# intranet or hours-logging not turned on. Do nothing
@@ -544,8 +544,8 @@ ad_proc im_force_user_to_log_hours { conn args why } {
     
     set last_prompted_time [ad_get_client_property intranet user_asked_to_log_hours_p]
 
-    if { ![empty_string_p $last_prompted_time] && \
-	   $last_prompted_time > [expr [ns_time] - 60*60*24] } {
+    if { $last_prompted_time ne "" && \
+	   $last_prompted_time > [expr {[ns_time] - 60*60*24}] } {
 	# We have already asked the user in this session, within the last 24 hours, 
 	# to log their hours
 	return filter_ok
@@ -584,7 +584,7 @@ ad_proc im_force_user_to_log_hours { conn args why } {
 
     # Pull up the screen to log hours for yesterday
     set return_url [im_url_with_query]
-    ad_returnredirect "/intranet-timesheet2/hours/new?[export_vars -url {return_url julian_date}]"
+    ad_returnredirect [export_vars -base /intranet-timesheet2/hours/new {return_url julian_date}]
     return filter_return
 }
 
@@ -633,7 +633,7 @@ ad_proc im_hours_for_user { user_id { html_p t } { number_days 7 } } {
 	}
 	append html_string "   <li>$nice_day ($hours hours): &nbsp; <i>$note</i>\n"
 	append text_string "  * $nice_day ($hours hours): $note\n"
-	set num_hours [expr $num_hours + $hours]
+	set num_hours [expr {$num_hours + $hours}]
     }
 
     # Let's get the punctuation right on days
@@ -654,7 +654,7 @@ $text_string"
     }
 
     set ret $text_string
-    if {[string equal $html_p t]} { set ret $html_string }
+    if {$html_p == "t"} { set ret $html_string }
     return $ret
 }
 
@@ -666,8 +666,8 @@ ad_proc -public im_hours_verify_user_id { { user_id "" } } {
 } {
 
     # Let's make sure the 
-    set caller_id [ad_verify_and_get_user_id]
-    if { [empty_string_p $user_id] || $caller_id == $user_id } {
+    set caller_id [ad_conn user_id]
+    if { $user_id eq "" || $caller_id == $user_id } {
 	return $caller_id
     } 
     # Only administrators can edit someone else's hours
@@ -700,9 +700,9 @@ ad_proc -public calculate_absence_days {
     if { ![string is double -strict $number_quarters]  && ![string is integer -strict $number_quarters] } \
         {ad_return_complaint 1 [lang::message::lookup "" intranet-timesheet2.numeric-validate_numeric_minutes "Invalid numeric value: Minutes"]}
 
-    set minutes_in_days [expr $number_quarters / ($hours_per_day*4.0) ]
+    set minutes_in_days [expr {$number_quarters / ($hours_per_day*4.0) }]
     set hours_in_days [expr ($hours+0.0)/($hours_per_day+0.0)]
-    return [expr $days + $hours_in_days + $minutes_in_days]
+    return [expr {$days + $hours_in_days + $minutes_in_days}]
 }
 
 
@@ -717,9 +717,9 @@ ad_proc -public calculate_dd_hh_mm_from_day {
     if { ![string is double -strict $hours_per_day] && ![string is integer -strict $hours_per_day] } \
         {ad_return_complaint 1 [lang::message::lookup "" intranet-timesheet2.numeric-validate_numeric_hours "Invalid numeric value: Hours"]}
 
-    set number_days [expr int ($days)]
+    set number_days [expr {int ($days)}]
     set number_hours [expr int ([expr ($days-$number_days+0.0)/(1.0/$hours_per_day)])]
-    set number_quarters [expr int ([expr [expr $days-$number_days-((1.0/$hours_per_day+0.0)*$number_hours)]/(1.0/($hours_per_day*4.0))])]
+    set number_quarters [expr int ([expr {[expr {$days-$number_days-((1.0/$hours_per_day+0.0)*$number_hours)}]/(1.0/($hours_per_day*4.0))}])]
 
     set return_list [list]
     lappend return_list $number_days

@@ -34,7 +34,7 @@ ad_page_contract {
 # Label: Provides the security context for this report
 # because it identifies unquely the report's Menu and
 # its permissions.
-set current_user_id [ad_maybe_redirect_for_registration]
+set current_user_id [auth::require_login]
 set menu_label "capacity-planning"
 
 set read_p [db_string report_perms "
@@ -43,7 +43,7 @@ set read_p [db_string report_perms "
         where   m.label = :menu_label
 " -default 'f']
 
-if {![string equal "t" $read_p]} {
+if {"t" ne $read_p } {
     ad_return_complaint 1 "<li>
 [lang::message::lookup "" intranet-reporting.You_dont_have_permissions "You don't have the necessary permissions to view this page"]"
     return
@@ -51,13 +51,13 @@ if {![string equal "t" $read_p]} {
 
 
 proc round_down {val rounder} {
-       set nval [expr floor($val*$rounder) /$rounder]
+       set nval [expr {floor($val*$rounder) /$rounder}]
        return $nval
        }
 
 # General settings
 set show_context_help_p 1
-set user_id [ad_maybe_redirect_for_registration]
+set user_id [auth::require_login]
 set page_title "Capacity Planning"
 set context [list "Permissions"]
 set subsite_id [ad_conn subsite_id]
@@ -81,9 +81,9 @@ from dual
 if { "" == $cap_month } {
     if { 12 == $todays_month} {
         set cap_month 1
-        set todays_year [expr $todays_year + 1]
+        set todays_year [expr {$todays_year + 1}]
     } else {
-        set cap_month "[lindex [split [expr $todays_month$floating_point_helper + 1] "." ] 0 ]"
+        set cap_month "[lindex [split [expr {$todays_month$floating_point_helper + 1}] "." ] 0 ]"
     }
 }
 
@@ -276,9 +276,9 @@ append table_main_html "</tbody></table></td>"
 
 db_foreach projects_info_query $title_sql  {
 	
-    	if { ![empty_string_p $workload] } {
-		set workload_formatted [expr [round_down [expr $workload / [concat $work_days$floating_point_helper]] 100 ] * 100]
-	    	set workload_formatted [string range $workload_formatted 0 [expr [string length $workload_formatted] - 3 ] ]
+    	if { $workload ne "" } {
+		set workload_formatted [expr [round_down [expr {$workload / [concat $work_days$floating_point_helper]}] 100 ] * 100]
+	    	set workload_formatted [string range $workload_formatted 0 [string length $workload_formatted]-3]
 	} else {
                 set workload_formatted 0
 		set workload 0
@@ -289,10 +289,10 @@ db_foreach projects_info_query $title_sql  {
 		set workload_formatted "$workload_formatted%"
 	}
 	
-        if { [expr $work_days-$workload] < 0} {
-                set capacity_formatted "<span style='color:red;font-weight:bold'>[expr $work_days-$workload]</span>"
+        if { [expr {$work_days-$workload}] < 0} {
+                set capacity_formatted "<span style='color:red;font-weight:bold'>[expr {$work_days-$workload}]</span>"
         } else {
-                set capacity_formatted [expr $work_days-$workload]
+                set capacity_formatted [expr {$work_days-$workload}]
 	}
 
 	append table_main_html "<td valign='top'><table border=0 style='margin:3px' class='table_fixed_height'><tbody>\n"
@@ -302,25 +302,25 @@ db_foreach projects_info_query $title_sql  {
 	append table_main_html "<tr><td>$work_days</td></tr>\n"
 	append table_main_html "<tr><td>$vacation_days</td></tr>\n"
         append table_main_html "<tr><td>$training_days</td></tr>\n"
-        append table_main_html "<tr><td>[expr $travel_days+$sick_days + $personal_days]</td></tr>\n"
-        append table_main_html "<tr><td><b>[expr $travel_days+$sick_days + $personal_days + $vacation_days + $training_days]</b></td></tr>\n"
+        append table_main_html "<tr><td>[expr {$travel_days+$sick_days + $personal_days}]</td></tr>\n"
+        append table_main_html "<tr><td><b>[expr {$travel_days+$sick_days + $personal_days + $vacation_days + $training_days}]</b></td></tr>\n"
         append table_main_html "<tr><td>$workload</td></tr>\n"
         append table_main_html "<tr><td><b>$capacity_formatted</b></td></tr>\n"
 	append table_main_html "<tbody></table></td>\n"
 	set employee_array($ctr_employees) $person_id
 
 	incr ctr_employees
-	set sum_workdays [expr $sum_workdays + $work_days ]
-        set sum_workload [expr $sum_workload + $workload ]
+	set sum_workdays [expr {$sum_workdays + $work_days }]
+        set sum_workload [expr {$sum_workload + $workload }]
 }
 
 
 append table_main_html "</tr>"
 
 
-if { ![empty_string_p $sum_workload] && "0" != $sum_workdays } {
-    set sum_workload_ratio [expr [round_down [expr $sum_workload / [concat $sum_workdays$floating_point_helper]] 100 ] * 100]
-    set sum_workload_ratio [string range $sum_workload_ratio 0 [expr [string length $sum_workload_ratio] - 3 ] ]
+if { $sum_workload ne "" && "0" != $sum_workdays } {
+    set sum_workload_ratio [expr [round_down [expr {$sum_workload / [concat $sum_workdays$floating_point_helper]}] 100 ] * 100]
+    set sum_workload_ratio [string range $sum_workload_ratio 0 [string length $sum_workload_ratio]-3]
 } else {
     set sum_workload_ratio 0
 }
@@ -492,9 +492,9 @@ set list_sort_order [parameter::get_from_package_key -package_key "intranet-time
     set days_current_month [db_string days_current_month "SELECT date_part('day', '$cap_year-$cap_month-01' ::date + '1 month'::interval - '1 day'::interval)" -default 0]
     if { "1" == $cap_month  } {
 	set cap_month  12
-	set cap_year [expr $cap_year-1]
+	set cap_year [expr {$cap_year-1}]
     } else {
-	set cap_month [expr $cap_month-1]
+	set cap_month [expr {$cap_month-1}]
     }
 
     set first_day_of_month ""
@@ -508,7 +508,7 @@ set list_sort_order [parameter::get_from_package_key -package_key "intranet-time
     # Compose the SQL
 
     set where_clause [join $p_criteria " and\n\t\t\t\t\t"]
-    if { ![empty_string_p $where_clause] } {
+    if { $where_clause ne "" } {
         set where_clause " and $where_clause"
     }
 
@@ -594,18 +594,18 @@ set list_sort_order [parameter::get_from_package_key -package_key "intranet-time
     append table_body_html "<td colspan='1000'>&nbsp;</td></tr>\n"
 
 	db_foreach project_name $sql {
-	append table_body_html "<tr$bgcolor([expr $ctr % 2])>\n"
+	append table_body_html "<tr$bgcolor([expr {$ctr % 2}])>\n"
 	append table_body_html "<td><a href='$project_url$project_id'>$project_name_shortened</a></td>\n"
     append table_body_html "<td>$lead_name</td>\n"
 	append table_body_html "<td>$start_date</td>\n"	
 	append table_body_html "<td>$end_date</td>\n"	
 
-	if { [empty_string_p $sum_planned_units] } { set sum_planned_units 0}
-    if { [empty_string_p $sum_logged_units] } { set sum_logged_units 0}
-	append table_body_html "<td align='center'>[format "%.2f" [expr {double(round(100*[expr $sum_planned_units - $sum_logged_units]))/100}]]</td>\n"
+	if { $sum_planned_units eq "" } { set sum_planned_units 0}
+    if { $sum_logged_units eq "" } { set sum_logged_units 0}
+	append table_body_html "<td align='center'>[format "%.2f" [expr {double(round(100*[expr {$sum_planned_units - $sum_logged_units}]))/100}]]</td>\n"
 
 	for { set i 1 } { $i <= $ctr_employees } { incr i } {
-		set cap_array_index [concat $employee_array([expr $i-1]).$project_id]		
+		set cap_array_index [concat $employee_array([expr {$i-1}]).$project_id]		
 		if { [info exists cap_array($cap_array_index)] } {
 			set cap_textbox_value $cap_array($cap_array_index) 	
 		} else {

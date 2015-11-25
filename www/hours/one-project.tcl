@@ -28,7 +28,7 @@ ad_page_contract {
 }
 
 
-set current_user_id [ad_maybe_redirect_for_registration]
+set current_user_id [auth::require_login]
 set view_ours_all_p [im_permission $current_user_id "view_hours_all"]
 if {!$view_ours_all_p} { 
     ad_return_complaint 1 "<li>[_ intranet-core.lt_You_have_insufficient_6]"
@@ -39,7 +39,7 @@ if {!$view_ours_all_p} {
 set show_notes_p 1
 
 set page_title "[_ intranet-timesheet2.Units]"
-if { ![empty_string_p $item] } {
+if { $item ne "" } {
 	append page_title " on $item"
 }
 set context_bar [im_context_bar [list total "[_ intranet-timesheet2.Project_units]"] "[_ intranet-timesheet2.Units_on_one_project]"]
@@ -86,7 +86,7 @@ set sql "
 db_foreach hours_on_one_projects $sql {
     set first_day_str "[util_AnsiDatetoPrettyDate $first_day]"
     set last_day_str "[util_AnsiDatetoPrettyDate $last_day]"
-    append page_body "<li><a href='/intranet/users/view?user_id=$user_id'>$user_name</a>,<a href=full?[export_vars -url {project_id user_id}]&date=$last_day>[_ intranet-timesheet2.lt_total_hours_units_bet]</a>\n"
+    append page_body "<li><a href='/intranet/users/view?user_id=$user_id'>$user_name</a>,<a href=[export_vars -base full {project_id user_id}]&date=$last_day>[_ intranet-timesheet2.lt_total_hours_units_bet]</a>\n"
 } if_no_rows {
 	append page_body "<li>[_ intranet-timesheet2.lt_No_units_have_been_lo]\n"
 }

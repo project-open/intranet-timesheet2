@@ -32,7 +32,7 @@ ad_page_contract {
 # Security & Defaults
 # ---------------------------------------------------------------
 
-set current_user_id [ad_maybe_redirect_for_registration]
+set current_user_id [auth::require_login]
 if {![im_permission $current_user_id "view_hours_all"]} {
     ad_return_complaint 1 [lang::message::lookup "" intranet-timesheet2.Not_Allowed_to_see_hours "
     You are not allowed to see all timesheet hours in the system"]
@@ -44,7 +44,7 @@ if {![im_permission $current_user_id "view_hours_all"]} {
 # ---------------------------------------------------------------
 
 
-if { [empty_string_p $user_id] } {
+if { $user_id eq "" } {
     # send them a list of users
     set page_title "[_ intranet-timesheet2.View_employees_hours]"
     set context_bar [im_context_bar "[_ intranet-timesheet2.View_employees_hours]"]
@@ -63,7 +63,7 @@ if { [empty_string_p $user_id] } {
     "
 
     db_foreach users_who_logged_hours $sql {
-        append page_body "<li><a href=projects?[export_vars -url {user_id}]>$user_name</a>\n"
+        append page_body "<li><a href=[export_vars -base projects {user_id}]>$user_name</a>\n"
     } if_no_rows {
         append page_body "<em>[_ intranet-timesheet2.No_users_found]</em>"
     }
@@ -104,7 +104,7 @@ if { [empty_string_p $user_id] } {
     db_foreach hours_on_project $sql {
 	set first_day_str "[util_AnsiDatetoPrettyDate $first_day]"
 	set last_day_str "[util_AnsiDatetoPrettyDate $last_day]"
-        append page_body "<li><a href=full?project_id=$project_id&[export_vars -url {user_id}]&date=$last_day&item=[ad_urlencode $project_name]>$project_name</a>, [_ intranet-timesheet2.lt_total_hours_hours_bet]</em>"
+        append page_body "<li><a href=full?project_id=$project_id&[export_vars {user_id}]&date=$last_day&item=[ad_urlencode $project_name]>$project_name</a>, [_ intranet-timesheet2.lt_total_hours_hours_bet]</em>"
     } if_no_rows {
         append page_body "<em>[_ intranet-timesheet2.lt_No_time_logged_on_any]</em>"
     }
