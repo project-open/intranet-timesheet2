@@ -11,17 +11,9 @@ ad_page_contract {
     @author Klaus Hofeditz (klaus.hofeditz@project-open.com)
 
 } {
-    { order_by "Project nr" }
-    { include_subprojects_p 0 }
-    { project_status_id 0 }
-    { project_type_id:integer 0 }
-    { letter:trim "" }
+    { project_type_id "" }
     { cap_month:integer "" }
     { cap_year:integer "" }
-    { start_idx:integer 0 }
-    { how_many "" }
-    { view_name "project_list" }
-    { filter_advanced_p:integer 0 }
     { user_id_from_search:multiple 0 }
     { project_lead_id_from_search:multiple 0 }
     { project_type_id_from_search:multiple 0 }
@@ -83,7 +75,7 @@ if { "" == $cap_month } {
         set cap_month 1
         set todays_year [expr {$todays_year + 1}]
     } else {
-        set cap_month "[lindex [split [expr {$todays_month$floating_point_helper + 1}] "." ] 0 ]"
+        set cap_month "[lindex [split [expr $todays_month$floating_point_helper + 1] "." ] 0 ]"
     }
 }
 
