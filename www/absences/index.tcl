@@ -64,6 +64,10 @@ set show_context_help_p 1
 set name_order [parameter::get -package_id [apm_package_id_from_key intranet-core] -parameter "NameOrder" -default 1]
 set today [db_string today "select now()::date"]
 
+if {$how_many eq "" || $how_many < 1} {
+    set how_many [im_parameter -package_id [im_package_core_id] NumberResultsPerPage  "" 50]
+}
+
 set all_user_options [im_user_options -include_empty_p 0 -group_name "Employees"]
 set direct_reports_options [im_user_direct_reports_options -user_id $current_user_id]
 set direct_report_ids [im_user_direct_reports_ids -user_id $current_user_id]
