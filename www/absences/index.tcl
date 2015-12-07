@@ -63,7 +63,6 @@ set org_absence_type_id $absence_type_id
 set show_context_help_p 1
 set name_order [parameter::get -package_id [apm_package_id_from_key intranet-core] -parameter "NameOrder" -default 1]
 set today [db_string today "select now()::date"]
-
 if {$how_many eq "" || $how_many < 1} {
     set how_many [im_parameter -package_id [im_package_core_id] NumberResultsPerPage  "" 50]
 }
@@ -78,6 +77,8 @@ if {![im_permission $user_id "view_absences"] && !$view_absences_all_p && !$view
     ad_return_complaint 1 "You don't have permissions to see absences"
     ad_script_abort
 }
+
+
 
 
 # ---------------------------------------------------------------
