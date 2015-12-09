@@ -8,7 +8,7 @@
 <%= [im_box_header $page_title] %>
 
 <form name=timesheet method=POST action=new-2>
-@export_form_vars;noquote@
+@export_vars;noquote@
 
 <table>
 	  <if @edit_hours_p@ eq "f">
