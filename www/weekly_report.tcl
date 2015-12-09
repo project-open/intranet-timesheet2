@@ -677,8 +677,7 @@ set navig_sql "
     	dual"
 db_1row get_navig_dates $navig_sql
 
-set switch_link_html "<a href=\[export_vars -base weekly_report {owner_id project_id duration display}]
-
+set switch_link_html "<a href=\"[export_vars -base weekly_report {owner_id project_id duration display}]"
 set switch_past_html "$switch_link_html&start_at=$past_date&cost_center_id=$cost_center_id&department_id=$department_id&workflow_key=$workflow_key\">&laquo;</a>"
 set switch_future_html "$switch_link_html&start_at=$future_date&cost_center_id=$cost_center_id&department_id=$department_id&workflow_key=$workflow_key\">&raquo;"
 
