@@ -619,7 +619,7 @@ append table_footer_html "</tbody><tr><td>&nbsp;</td></tr><tr><td colspan='100' 
 set left_navbar_html "
         <div class='filter-block'>
                 <div class='filter-title'>
-                   #intranet-core.Filter_Projects#
+                   [_ intranet-core.Filter_Projects]
                 </div>
                 $filter_html
         </div>
@@ -629,7 +629,7 @@ set left_navbar_html "
 append left_navbar_html "
         <div class='filter-block'>
         <div class='filter-title'>
-            #intranet-core.Admin_Projects#
+            [_ intranet-core.Admin_Projects]
         </div>
         </div>
 "

@@ -1258,12 +1258,12 @@ append left_navbar_html "
 append left_navbar_html "
       <div class='filter-block'>
 	 <div class='filter-title'>
-	    #intranet-timesheet2.Other_Options#
+	    [_ intranet-timesheet2.Other_Options]
 	 </div>
 	 <ul>
 	    <li>
 	      <a href='$different_date_url'>
-		#intranet-timesheet2.lt_Log_hours_for_a_diffe#
+		[_ intranet-timesheet2.lt_Log_hours_for_a_diffe]
 	      </a>
 	    </li>
 "
@@ -1276,12 +1276,12 @@ if {$current_user_id == $user_id_from_search && $add_absences_p} {
 
 if {[im_permission $current_user_id view_projects_all]} {
     append left_navbar_html "
-	    <li><a href='$different_project_url'>#intranet-timesheet2.lt_Add_hours_on_other_pr#</A></li>
+	    <li><a href='$different_project_url'>[_ intranet-timesheet2.lt_Add_hours_on_other_pr]</A></li>
     "
 }
 if {$return_url ne ""} {
     append left_navbar_html "
-	    <li><a href='$return_url'>#intranet-timesheet2.lt_Return_to_previous_pa#</a></li>
+	    <li><a href='$return_url'>[_ intranet-timesheet2.lt_Return_to_previous_pa]</a></li>
     "
 }
 

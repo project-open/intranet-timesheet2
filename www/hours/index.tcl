@@ -451,7 +451,7 @@ append left_navbar_html "
 append left_navbar_html "
       <div class='filter-block'>
          <div class='filter-title'>
-            #intranet-timesheet2.Other_Options#
+            [_ intranet-timesheet2.Other_Options]
          </div>
 	 <ul>
 "
@@ -477,7 +477,7 @@ if {$add_absences_p} {
 
 if {$return_url ne "" && ![regexp {^/intranet-timesheet2/hours/index} $return_url]} {
     append left_navbar_html "
-	    <li><a href='$return_url'>#intranet-timesheet2.lt_Return_to_previous_pa#</a></li>
+	    <li><a href='$return_url'>[_ intranet-timesheet2.lt_Return_to_previous_pa]</a></li>
     "
 }
 
