@@ -11,7 +11,7 @@
 @export_vars;noquote@
 
 <table>
-	  <if @edit_hours_p@ eq "f">
+	<if @edit_hours_p@ eq "f">
 	  <tr>
 		<td colspan="7">
 		<font color=red>
@@ -19,30 +19,27 @@
 		</font>
 		</td>
 	  </tr>
-	  </if>
+	</if>
+ 	@forward_backward_buttons;noquote@
 
-	  @forward_backward_buttons;noquote@
-
-<if @ctr@>
-
-	    <tr class=rowtitle>
-		<th>#intranet-timesheet2.Project_name#</th>
-		<th></th>
-
-		<if @show_week_p@ eq 0>
+<if @ctr@ gt 0>
+    <tr class=rowtitle>
+    	<th>#intranet-timesheet2.Project_name#</th>
+	<th></th>
+	<if @show_week_p@ eq 0>
 		<th>#intranet-timesheet2.Hours#	</th>
 		<th>#intranet-timesheet2.Work_done#</th>
-<if @internal_note_exists_p@>
-		<th><%= [lang::message::lookup "" intranet-timesheet2.Internal_Comment "Internal Comment"] %></th>
-</if>
-<if @materials_p@>
-		<th><%= [lang::message::lookup "" intranet-timesheet2.Service_Type "Service Type"] %></th>
-</if>
+		<if @internal_note_exists_p@>
+		    <th><%= [lang::message::lookup "" intranet-timesheet2.Internal_Comment "Internal Comment"] %></th>
 		</if>
-		<else>
+		<if @materials_p@>
+		    <th><%= [lang::message::lookup "" intranet-timesheet2.Service_Type "Service Type"] %></th>
+		</if>
+	</if>
+	<else>
 		@week_header_html;noquote@
-		</else>
-	    </tr> 
+	</else>
+    </tr> 
 	    @results;noquote@
 	    <tr>
 		<td></td>
@@ -52,7 +49,6 @@
 		</if>
 		</td>
 	    </tr>
-
 </if>
 <else>
 	<tr>
