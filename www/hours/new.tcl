@@ -109,6 +109,14 @@ set workflow_installed_p [util_memoize [list db_string timesheet_wf "select coun
 # Should entry form show or hide elements?
 set default_is_fold_in_p [parameter::get -package_id [apm_package_id_from_key intranet-timesheet2] -parameter "EntryFormDefaultIsFoldIn" -default 0]
 
+# Evaluate max. julian date a TS entry can be made for  
+set hours_allowed_to_register_time_into_future [parameter::get -package_id [apm_package_id_from_key intranet-timesheet2] -parameter "HoursAllowedToRegisterTimeIntoFuture" -default 0]
+if { 0 == $hours_allowed_to_register_time_into_future } {
+    set max_julian_date [dt_ansi_to_julian_single_arg "2099-12-31"]
+} else {
+    set max_julian_date [clock format [expr { [clock seconds] + ($hours_allowed_to_register_time_into_future * 3600) } ] -format {%J}]
+}
+
 # ---------------------------------------------------------
 # Calculate the start and end of the week.
 # ---------------------------------------------------------
@@ -993,9 +1001,10 @@ template::multirow foreach hours_multirow {
 	append table_rows "<tr $tr_class([expr {$ctr % 2}]) id=\"${project_id}\" hidden_by=\"@@hidden_by@@\" fold_status=\"@@fold_status@@\" >\n<td><nobr>$indent @@fold-icon-class@@ <a href=\"$project_url\">$ptitle</a></nobr></td>\n" 
     }
 
-    # ------------------------------------------------------------------------------
-    # Create help texts to explain the user why certain projects aren't shown
-    # ------------------------------------------------------------------------------
+
+    # ------------------------------------------------------------------------------------------
+    # Create help texts to explain the user can't log hours for certain project/day combinations
+    # ------------------------------------------------------------------------------------------
     set help_text ""
     if {$closed_p && (!$user_is_project_member_p && $project_is_task_p)} { 
 	append help_text [lang::message::lookup "" intranet-timesheet2.Nolog_closed_p "The project or one of its parents has been closed or requires membership. "] 
@@ -1052,6 +1061,7 @@ template::multirow foreach hours_multirow {
 
     set i 0 
     foreach j $weekly_logging_days {
+
 	set julian_day_offset [expr {$julian_date + $i}]
 	set hours ""
 	set note ""
@@ -1067,6 +1077,14 @@ template::multirow foreach hours_multirow {
 	if {[info exists hours_material_id($key)]} { set material_id $hours_material_id($key) }
 	if {[info exists hours_material($key)]} { set material $hours_material($key) }
 	if {[info exists hours_conf_status_id($key)]} { set conf_status_id $hours_conf_status_id($key) }
+
+	# Check is users are allowed to log hours based on "HoursAllowedToRegisterTimeIntoFuture"
+	set max_julian_date_exceed_p 0  
+	set blocked_max_julian_date_exceed_help_text "" 
+	if { $max_julian_date < $julian_date } { 
+	    set max_julian_date_exceed_p 1 
+	    set blocked_max_julian_date_exceed_help_text [lang::message::lookup "" intranet-timesheet2.NoFutureTSEntriesAllowed "No future timesheet entries allowed"]
+	}
 	
 	# Determine whether the hours have already been included in a timesheet invoice
 	set invoice_id 0
@@ -1081,9 +1099,7 @@ template::multirow foreach hours_multirow {
 	    set blocked_by_wf_help [im_gif -translate_p 0 help [lang::message::lookup "" intranet-timesheet2.BlockedbyWF "Blocked by TS Approval Workflow"]]
 	}
 	
-	ns_log Notice "xxx: $conf_status_id"
-
-	if { "t" == $edit_hours_p && $log_on_parent_p && !$invoice_id && !$solitary_main_project_p && !$closed_p && !$filter_surpress_output_p && !$blocked_by_wf_p } {
+	if { "t" == $edit_hours_p && $log_on_parent_p && !$invoice_id && !$solitary_main_project_p && !$closed_p && !$filter_surpress_output_p && !$blocked_by_wf_p && !$max_julian_date_exceed_p } {
 	    # Write editable entries.
 	    append table_rows "<td><input name=hours${i}.$project_id size=5 MAXLENGTH=5 value=\"$hours\"></td>\n"
 	    if {!$show_week_p} {
@@ -1104,7 +1120,7 @@ template::multirow foreach hours_multirow {
 		}   
 	    } else {
 		# Write Disabled because we can't log hours on this one
-		append table_rows "<td>$hours $blocked_by_wf_help <input type=hidden name=hours${i}.$project_id value=\"$hours\"></td>\n"
+		append table_rows "<td>$hours $blocked_by_wf_help $blocked_max_julian_date_exceed_help_text <input type=hidden name=hours${i}.$project_id value=\"$hours\"></td>\n"
 		if {!$show_week_p} {
 		    append table_rows "<td>[ns_quotehtml [value_if_exists note]] <input type=hidden name=notes0.$project_id value=\"[ns_quotehtml [value_if_exists note]]\"></td>\n"
 		    if {$internal_note_exists_p} { 
