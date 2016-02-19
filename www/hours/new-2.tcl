@@ -33,13 +33,13 @@ ad_page_contract {
     @author klaus.hofeditz@project-open.com
 
 } {
-    hours0:array,optional
-    hours1:array,optional
-    hours2:array,optional
-    hours3:array,optional
-    hours4:array,optional
-    hours5:array,optional
-    hours6:array,optional
+    hours0:array,optional,float
+    hours1:array,optional,float
+    hours2:array,optional,float
+    hours3:array,optional,float
+    hours4:array,optional,float
+    hours5:array,optional,float
+    hours6:array,optional,float
     notes0:array,optional
     internal_notes0:array,optional
     materials0:array,optional
