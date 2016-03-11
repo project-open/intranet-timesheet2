@@ -491,6 +491,7 @@ ad_proc im_absence_cube {
     {-num_days 21}
     {-absence_status_id "" }
     {-absence_type_id "" }
+    {-user_department_id "" }
     {-user_selection "" }
     {-report_start_date "" }
     {-report_end_date "" }
@@ -603,6 +604,22 @@ ad_proc im_absence_cube {
 	    }
 	}
     }
+
+    if {"" != $user_department_id} { 
+	set user_department_code [db_string dept_code "select im_cost_center_code_from_id(:user_department_id)"]
+	set user_department_code_len [string length $user_department_code]
+	lappend criteria "a.owner_id in (
+	select	e.employee_id
+	from	acs_objects o,
+		im_cost_centers cc,
+		im_employees e
+	where	e.department_id = cc.cost_center_id and
+		cc.cost_center_id = o.object_id and
+		substring(cc.cost_center_code for :user_department_code_len) = :user_department_code
+	)
+       "
+    }
+
     set where_clause [join $criteria " and\n            "]
     if {$where_clause ne ""} {
 	set where_clause " and $where_clause"

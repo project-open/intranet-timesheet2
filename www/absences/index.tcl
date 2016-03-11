@@ -43,6 +43,7 @@ ad_page_contract {
     { start_date "" }
     { end_date "" }
     { user_id_from_search "" }
+    { user_department_id:integer ""}
 }
 
 # ---------------------------------------------------------------
@@ -154,13 +155,20 @@ set timescale_types [list \
 			 "last_3w" [lang::message::lookup "" intranet-timesheet2.Last_3_Weeks "Last 3 Weeks"] \
 ]
 
+set user_department_options [im_cost_center_options \
+			    -include_empty 1 \
+			    -include_empty_name [lang::message::lookup "" intranet-timesheet2.All "All"] \
+			    -department_only_p 1 \
+	   ]
+
+
 foreach { value text } $timescale_types {
     lappend timescale_type_list [list $text $value]
 }
 
 if { (![info exists absence_type_id] || $absence_type_id eq "") } {
     # Default type is "all" == -1 - select the id once and memoize it
-    set absence_type_id -1;
+    set absence_type_id -1
 }
 
 set end_idx [expr {$start_idx + $how_many - 1}]
@@ -335,6 +343,22 @@ set org_end_date $end_date
 # Limit to start-date and end-date
 if {"" != $start_date} { lappend criteria "a.end_date::date >= :start_date" }
 if {"" != $end_date} { lappend criteria "a.start_date::date <= :end_date" }
+if {"" != $user_department_id} { 
+    set user_department_code [db_string dept_code "select im_cost_center_code_from_id(:user_department_id)"]
+    set user_department_code_len [string length $user_department_code]
+    lappend criteria "a.owner_id in (
+	select	e.employee_id
+	from	acs_objects o,
+		im_cost_centers cc,
+		im_employees e
+	where	e.department_id = cc.cost_center_id and
+		cc.cost_center_id = o.object_id and
+		substring(cc.cost_center_code for :user_department_code_len) = :user_department_code
+	)
+"
+}
+
+
 
 set order_by_clause ""
 switch $order_by {
@@ -423,6 +447,7 @@ ad_form \
     -form {
 	{absence_type_id:text(select),optional {label "[_ intranet-timesheet2.Absence_Type]"} {options $absence_type_list }}
 	{user_selection:text(select),optional {label "[_ intranet-timesheet2.Show_Users]"} {options $user_selection_options }}
+	{user_department_id:text(select),optional {label "[_ intranet-core.Department]"} { options $user_department_options}}
 	{timescale:text(select),optional {label "[_ intranet-timesheet2.Timescale]"} {options $timescale_type_list }}
 	{start_date:text(text) {label "[_ intranet-timesheet2.Start_Date]"} {html {size 10}} {value "$start_date"} {after_html {<input type="button" style="height:23px; width:23px; background: url('/resources/acs-templating/calendar.gif');" onclick ="return showCalendar('start_date', 'y-m-d');" >}}}
 	{end_date:text(text) {label "[_ intranet-timesheet2.End_Date]"} {html {size 10}} {value "$end_date"} {after_html {<input type="button" style="height:23px; width:23px; background: url('/resources/acs-templating/calendar.gif');" onclick ="return showCalendar('end_date', 'y-m-d');" >}}}
@@ -682,6 +707,7 @@ switch $timescale {
 	set absence_cube_html [im_absence_cube \
 				   -absence_status_id $status_id \
 				   -absence_type_id $org_absence_type_id \
+				   -user_department_id $user_department_id \
 				   -user_selection $user_selection \
 				   -report_start_date $org_start_date \
 				   -report_end_date $org_end_date \
