@@ -970,3 +970,27 @@ ad_proc -public im_absence_vacation_balance_component_xhtml {
     ns_log Notice "Deprecated proc im_absence_vacation_balance_component_xhtml used, please use im_absence_vacation_balance_component_ajax"
     return [im_absence_vacation_balance_component_ajax -user_id_from_search $user_id_from_search]
 }
+
+
+
+ad_proc -public im_menu_absences_admin_links {
+
+} {
+    Return a list of admin links to be added to the "absences" menu
+} {
+    set result_list {}
+    set current_user_id [ad_conn user_id]
+    set return_url [im_url_with_query]
+
+    # Append user-defined menus
+    set bind_vars [list return_url $return_url]
+#    set links [im_menu_ul_list -no_uls 1 -list_of_links 1 "timesheet2_absences" $bind_vars]
+#    foreach link $links { lappend result_list $link }
+
+    if { [im_is_user_site_wide_or_intranet_admin $current_user_id] } {
+	lappend result_list [list [lang::message::lookup "" intranet-timesheet2.Export_Absences_to_CSV "Export Absences to CSV"] [export_vars -base "/intranet-dw-light/absence.csv" {return_url}]]
+	lappend result_list [list [lang::message::lookup "" intranet-timesheet2.Import_Absences_from_CSV "Import Absences from CSV"] [export_vars -base "/intranet-csv-import/index" {{object_type im_user_absence} return_url}]]
+    }
+
+    return $result_list
+}

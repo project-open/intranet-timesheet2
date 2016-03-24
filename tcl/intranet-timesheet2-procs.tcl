@@ -807,8 +807,8 @@ ad_proc -public im_menu_timesheet_admin_links {
     foreach link $links { lappend result_list $link }
 
     if { [im_is_user_site_wide_or_intranet_admin $current_user_id] } {
-	lappend result_list [list [lang::message::lookup "" intranet-timesheets.Export_Hours_to_CSV "Export Hours to CSV"] [export_vars -base "/intranet-dw-light/timesheet.csv" {return_url}]]
-	lappend result_list [list [lang::message::lookup "" intranet-timesheets.Import_Hours_from_CSV "Import Hours from CSV"] [export_vars -base "/intranet-csv-import/index" {{object_type im_hour} return_url}]]
+	lappend result_list [list [lang::message::lookup "" intranet-timesheet2.Export_Hours_to_CSV "Export Hours to CSV"] [export_vars -base "/intranet-dw-light/timesheet.csv" {return_url}]]
+	lappend result_list [list [lang::message::lookup "" intranet-timesheet2.Import_Hours_from_CSV "Import Hours from CSV"] [export_vars -base "/intranet-csv-import/index" {{object_type im_hour} return_url}]]
     }
 
     return $result_list
