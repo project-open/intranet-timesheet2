@@ -269,10 +269,9 @@ set site_url "/intranet-timesheet2"
 set return_url "$site_url/weekly_report"
 set date_format "YYYYMMDD"
  
-if { $owner_id != $user_id && ![im_permission $user_id "view_hours_all"] } {
+if { "" ne $owner_id && $owner_id != $user_id && ![im_permission $user_id "view_hours_all"] } {
     ad_return_complaint 1 "<li>[_ intranet-timesheet2.lt_You_have_no_rights_to]"
-    return
-
+    ad_script_abort
 }
 
 if { $start_at eq "" && $project_id != 0 } {
