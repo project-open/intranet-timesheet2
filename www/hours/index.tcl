@@ -40,6 +40,12 @@ ad_page_contract {
     { user_id_from_search "" }
 }
 
+# Decision FB on 160624: Disregard for now:
+# 	Clean up data in case WF cases have been OCdeleted in WF Admin Panel. 
+# 	conf_object will not be removed and hours are shown as 'to be confirmed'.
+# 	db_dml sql "update im_hours set conf_object_id = null where conf_object_id not in (select object_id from wf_cases)"
+# 	db_dml sql "delete from im_timesheet_conf_objects where conf_id not in (select object_id from wf_cases)"
+
 # ---------------------------------------------------------------
 # Security & Defaults
 # ---------------------------------------------------------------
@@ -47,7 +53,7 @@ ad_page_contract {
 set current_user_id [auth::require_login]
 set add_hours_all_p [im_permission $current_user_id "add_hours_all"]
 set add_hours_direct_reports_p [im_permission $current_user_id "add_hours_direct_reports"]
-
+set base_url_confirm_wf "/intranet-timesheet2-workflow/conf-objects/new-timesheet-workflow"
 
 switch $user_id_from_search {
     "" - all - mine - direct_reports - employees - customers - providers { 
@@ -132,6 +138,7 @@ ns_log Notice "/intranet-timesheet2/index: date=$date, julian_date=$julian_date"
 
 # Set last day of month: 
 set last_day_of_month_ansi [db_string get_last_day_month "select date_trunc('month',add_months(:date,1))::date - 1" -default 0]
+set first_day_of_month_ansi [db_string get_first_day_month "select date_trunc('month', '$date'::DATE)::date" -default 0]
 
 set project_id_for_default [lindex $project_id 0]
 set show_left_functional_menu_p [parameter::get_from_package_key -package_key "intranet-core" -parameter "ShowLeftFunctionalMenupP" -default 0]
@@ -251,10 +258,10 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
 	}	
     }
 
-    # Sum up unconfirmed_hours
     if {![info exists unconfirmed_hours($current_date)]} { set unconfirmed_hours($current_date) "" }
     if {"" == $unconfirmed_hours($current_date)} { set unconfirmed_hours($current_date) 0 }
 
+    # Sum up unconfirmed_hours - KH: 160624: This might be broken and it seems that vars are not being used.  
     set unconfirmed_hours_for_this_week [expr {$unconfirmed_hours_for_this_week + $unconfirmed_hours($current_date)}]
     set unconfirmed_hours_for_this_month [expr {$unconfirmed_hours_for_this_month + $unconfirmed_hours($current_date)}]
 
@@ -283,7 +290,6 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
 	if { [info exists unconfirmed_hours($current_date)] && $confirm_timesheet_hours_p } {
 	    set no_unconfirmed_hours [get_unconfirmed_hours_for_period $user_id_from_search $current_date $current_date]  
 	    if {0 == $no_unconfirmed_hours || "" == $no_unconfirmed_hours} {
-		# ns_log notice "There are no unconfirmed hours: [info exists hash_conf_object_id($julian_date)]"
 		set wf_actice_case_sql "
                                 select count(*)
                                 from im_hours h, wf_cases c
@@ -313,6 +319,7 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
 	set html "${hours}${curr_absence}$log_hours_for_the_week_html"
     }
 
+    # ds_comment "$column_ctr, current_date_ansi: $current_date_ansi, last_day_of_month_ansi: $last_day_of_month_ansi, show_last_confirm_button_p: $show_last_confirm_button_p"
 
     # Render 
     if {($column_ctr == 7 || $current_date_ansi == $last_day_of_month_ansi) && $show_last_confirm_button_p } {
@@ -338,14 +345,21 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
 	    set no_unconfirmed_hours [get_unconfirmed_hours_for_period $user_id_from_search $start_date_julian_wf $end_date_julian_wf]
 
 	    # ns_log Notice "Create weekly CONFIRM button: start: $start_date_julian_wf, end: $start_date_julian_wf, No. unconfirmed Hours $no_unconfirmed_hours, confirm: $confirm_timesheet_hours_p" 
-	    if {$confirm_timesheet_hours_p && (0 < $no_unconfirmed_hours || "" != $no_unconfirmed_hours) } {
-		set base_url_confirm_wf "/intranet-timesheet2-workflow/conf-objects/new-timesheet-workflow"  
+	    if {$confirm_timesheet_hours_p && (0 < $no_unconfirmed_hours || "" != $no_unconfirmed_hours) && $confirmation_period == "weekly" } {
 		set conf_url [export_vars -base $base_url_confirm_wf { {user_id $user_id_from_search} {start_date_julian $start_date_julian_wf} {end_date_julian $end_date_julian_wf } return_url}]
 		set button_txt [lang::message::lookup "" intranet-timesheet2.Confirm_weekly_hours "Confirm hours for this week"]
 		append html "<p>&nbsp;</p><a href='$conf_url' class=button>$button_txt</a>"
 	    }
         }
     }
+
+    if { $current_date_ansi == $last_day_of_month_ansi && $confirmation_period == "monthly" } {
+	set start_date_month_julian [dt_ansi_to_julian_single_arg $first_day_of_month_ansi]
+	set end_date_month_julian [dt_ansi_to_julian_single_arg $last_day_of_month_ansi]
+	set conf_url [export_vars -base $base_url_confirm_wf { {user_id $user_id_from_search} {start_date_julian $start_date_month_julian } {end_date_julian $end_date_month_julian}  return_url } ]
+	set button_txt [lang::message::lookup "" intranet-timesheet2.Confirm_monthly_hours "Confirm hours for this month"]
+	append html "<p>&nbsp;</p><a href='$conf_url' class=button>$button_txt</a>"
+    } 
 
     ns_set put $calendar_details $current_date "$html<br>&nbsp;"
     
@@ -524,3 +538,4 @@ if {"" ne $admin_html} {
       </div>
     "
 }
+
