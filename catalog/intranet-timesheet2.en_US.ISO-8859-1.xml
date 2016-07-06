@@ -67,6 +67,7 @@
   <msg key="Country">Country:</msg>
   <msg key="Currency">Currency:</msg>
   <msg key="Customers">Customers</msg>
+  <msg key="CustomTimescale">Start / End Date</msg>
   <msg key="D">D</msg>
   <msg key="Daily_project_notes">Daily project notes</msg>
   <msg key="Date">Date</msg>
@@ -107,6 +108,9 @@
   <msg key="Excel_hour_report">Excel hour report</msg>
   <msg key="Expense_Code">Expense Code</msg>
   <msg key="Expense_Dedication">Expense Dedication</msg>
+  <msg key="Export_Absences_to_CSV">Export Absences to CSV</msg>
+  <msg key="Export_Financial_Items_to_CSV">Export Financial Items to CSV</msg>
+  <msg key="Export_Hours_to_CSV">Export Hours to CSV</msg>
   <msg key="F">F</msg>
   <msg key="February">February</msg>
   <msg key="Filter">Filter</msg>
@@ -134,6 +138,9 @@
   <msg key="Hours_Summary">Hours Summary</msg>
   <msg key="hours_units">%hours% units</msg>
   <msg key="I">I</msg>
+  <msg key="Import_Absences_from_CSV">Import Absences from CSV</msg>
+  <msg key="Import_Financial_Items_from_CSV">Import Financial Items from CSV</msg>
+  <msg key="Import_Hours_from_CSV">Import Hours from CSV</msg>
   <msg key="Internal_Comment">Internal Comment</msg>
   <msg key="J">J</msg>
   <msg key="January">January</msg>
@@ -148,6 +155,7 @@
   <msg key="Last_3_Weeks">Last 3 weeks</msg>
   <msg key="Local">Local</msg>
   <msg key="Log_Absences">Log Absences</msg>
+  <msg key="Log_Absences_for_user_name">Log Absences for %user_name%</msg>
   <msg key="log_dedication">log dedication</msg>
   <msg key="Log_Hours">Log Hours</msg>
   <msg key="log_hours">log hours</msg>
@@ -162,7 +170,7 @@
   <msg key="lt_based_select_hours_pe">%based_select% hours per week</msg>
   <msg key="lt_Choose_an_employee_to">Choose an employee to see their hours</msg>
   <msg key="lt_Click_me_for_download">Click me for download the report.csv file.</msg>
-  <msg key="lt_Click_on_a_persons_na">Click on a person's name to see a detailed log of their units.</msg>
+  <msg key="lt_Click_on_a_persons_na">Click on a person&#39;s name to see a detailed log of their units.</msg>
   <msg key="lt_Click_on_a_project_na">Click on a project name to see the breakdown of units per person.</msg>
   <msg key="lt_Dedication_days_repor">Dedication days report</msg>
   <msg key="lt_Dedication_Logging__C">Dedication Logging &amp; Casex by %user_name%</msg>
@@ -171,11 +179,11 @@
   <msg key="lt_Description_field_is_">Description field is mandatory.</msg>
   <msg key="lt_Description_is_mandat">Description is mandatory. Please describe the purpose of the 
 
-expense. In the case of &quot;km's with own car&quot;, write also the 
+expense. In the case of &#34;km&#39;s with own car&#34;, write also the 
 
-number of kilometers. Amount can be entered with either &lt;B&gt;&quot;.&quot;&lt;/B&gt;
+number of kilometers. Amount can be entered with either &lt;B&gt;&#34;.&#34;&lt;/B&gt;
 
-(American) or &lt;B&gt;&quot;,&quot;&lt;/B&gt; (European) for the decimal point</msg>
+(American) or &lt;B&gt;&#34;,&#34;&lt;/B&gt; (European) for the decimal point</msg>
   <msg key="lt_Display_all_hours_on_">Display all hours on all projects</msg>
   <msg key="lt_Error_in_project_entr">Error in project entry</msg>
   <msg key="lt_For_Vacation_Sickness">For Vacation, Sickness and Training, select the Task Human resources.</msg>
@@ -185,7 +193,7 @@ number of kilometers. Amount can be entered with either &lt;B&gt;&quot;.&quot;&l
   <msg key="lt_Hour_logging__Casex_b">Hour logging &amp; Casex by %user_name%</msg>
   <msg key="lt_Hours_for_pretty_date">Hours for %pretty_date%</msg>
   <msg key="lt_Hours_for_user_name_W">Hours for $user_name (Week starting %date_value%)</msg>
-  <msg key="lt_hours_spend_on_projec">hours spend on project &quot;%project_name%&quot;</msg>
+  <msg key="lt_hours_spend_on_projec">hours spend on project &#34;%project_name%&#34;</msg>
   <msg key="lt_hours_varof_those_uni">%hours_var%
 of those units were billed hourly, for a total amount of</msg>
   <msg key="lt_Insufficient_Privileg">Insufficient Privileges</msg>
@@ -193,7 +201,7 @@ of those units were billed hourly, for a total amount of</msg>
   <msg key="lt_Intranet_Absence_Type">Intranet Absence Type</msg>
   <msg key="lt_is_required_Describe_">is required. Describe purpose of the 
     expense and, in case of use of own car, the number of kilometers.</msg>
-  <msg key="lt_It_looks_like_youre_t">It looks like you're trying to edit someone else's hours. Unforunately, you're not authorized to do so. You can edit your %own_hours_link% if you like</msg>
+  <msg key="lt_It_looks_like_youre_t">It looks like you&#39;re trying to edit someone else&#39;s hours. Unforunately, you&#39;re not authorized to do so. You can edit your %own_hours_link% if you like</msg>
   <msg key="lt_Log_hours_for_a_diffe">Log hours for a different day</msg>
   <msg key="lt_Log_hours_for_a_diffe_1">Log hours for a different week</msg>
   <msg key="lt_Log_hours_on_selected">Log hours on selected projects</msg>
@@ -223,8 +231,8 @@ of those units were billed hourly, for a total amount of</msg>
   <msg key="lt_There_was_an_unexpect">There was an unexpected error in the Casex Database</msg>
   <msg key="lt_Timeline_for_project_">Timeline for %project_name%</msg>
   <msg key="lt_To_send_proyect_infor">To send proyect information by email, click</msg>
-  <msg key="lt_To_send_this_informat">To send this information by email, please go to the Microsoft Internet Explorer menu bar and click on 'File -&gt; Send -&gt; Page by E-mail...' (this option ignores the values that you have select in the filters)</msg>
-  <msg key="lt_Today_you_didnt_log_y">Today, you didn't log your units yet!</msg>
+  <msg key="lt_To_send_this_informat">To send this information by email, please go to the Microsoft Internet Explorer menu bar and click on &#39;File -&gt; Send -&gt; Page by E-mail...&#39; (this option ignores the values that you have select in the filters)</msg>
+  <msg key="lt_Today_you_didnt_log_y">Today, you didn&#39;t log your units yet!</msg>
   <msg key="lt_Total_Company_visa_Eu">Total (Company visa) Euros:</msg>
   <msg key="lt_total_hours_hours_bet">%total_hours% hours between %first_day_str% and %last_day_str%</msg>
   <msg key="lt_total_hours_units_bet">%total_hours% units between %first_day_str% and %last_day_str%</msg>
@@ -232,7 +240,7 @@ of those units were billed hourly, for a total amount of</msg>
   <msg key="lt_Total_not_company_vis">Total (not company visa) Euros:</msg>
   <msg key="lt_Unexpected_Database_E">Unexpected Database Error</msg>
   <msg key="lt_Units_on_all_projects">Units on all projects</msg>
-  <msg key="lt_Units_on_item_by_user">Units on &quot;%item%&quot; by %user_name%</msg>
+  <msg key="lt_Units_on_item_by_user">Units on &#34;%item%&#34; by %user_name%</msg>
   <msg key="lt_User_user_id_does_not">User %user_id% does not exist</msg>
   <msg key="lt_User_user_id_does_not_1">User #%user_id% does not exist. Please back up and try again</msg>
   <msg key="lt_View_hours_logged_by_">View hours logged by team members</msg>
@@ -240,19 +248,19 @@ of those units were billed hourly, for a total amount of</msg>
   <msg key="lt_View_the_hours_logged">View the hours logged by someone else</msg>
   <msg key="lt_View_time_spent_on_al">View time spent on all projects by everyone</msg>
   <msg key="lt_View_your_hours_on_al">View your hours on all projects</msg>
-  <msg key="lt_We_couldnt_find_absen">We couldn't find absence #%absence_id%; Hmm... there must be something wrong with our page!</msg>
-  <msg key="lt_We_couldnt_find_the_u">We couldn't find the user #%user_id% in the database. Please back up, reload, and try again.</msg>
+  <msg key="lt_We_couldnt_find_absen">We couldn&#39;t find absence #%absence_id%; Hmm... there must be something wrong with our page!</msg>
+  <msg key="lt_We_couldnt_find_the_u">We couldn&#39;t find the user #%user_id% in the database. Please back up, reload, and try again.</msg>
   <msg key="lt_We_got_an_error_delet">We got an error deleting this transaction</msg>
   <msg key="lt_We_got_an_error_delet_1">We got an error deleting this record</msg>
   <msg key="lt_We_got_an_error_inser">We got an error inserting this transaction</msg>
   <msg key="lt_Weekly_total_by_user_">Weekly total by %user_name%</msg>
-  <msg key="lt_You_cant_edit_someone">You can't edit someone else's hours</msg>
-  <msg key="lt_You_dont_have_suffici">You don't have sufficient privileges to see absences.</msg>
-  <msg key="lt_You_dont_have_suffici_1">You don't have sufficient privileges to modify this absence.</msg>
+  <msg key="lt_You_cant_edit_someone">You can&#39;t edit someone else&#39;s hours</msg>
+  <msg key="lt_You_dont_have_suffici">You don&#39;t have sufficient privileges to see absences.</msg>
+  <msg key="lt_You_dont_have_suffici_1">You don&#39;t have sufficient privileges to modify this absence.</msg>
   <msg key="lt_You_have_loged_total_">You have loged %total_hours_str% units on this project</msg>
   <msg key="lt_You_have_logged_total_">You have logged %total_hours_str% units on this project</msg>
   <msg key="lt_You_have_no_rights_to">You have no rights to see this page</msg>
-  <msg key="lt_You_havent_logged_you">You haven't logged your hours in the last week,
+  <msg key="lt_You_havent_logged_you">You haven&#39;t logged your hours in the last week,
         please %log_them_now_link% log them now</msg>
   <msg key="lt_You_logged_num_hours_">You logged %num_hours% hour(s) in the last 7 days.</msg>
   <msg key="M">M</msg>
@@ -304,6 +312,14 @@ of those units were billed hourly, for a total amount of</msg>
   <msg key="Past">Past</msg>
   <msg key="Percentage">Percentage</msg>
   <msg key="Printer_Friendly">Printer-friendly version</msg>
+  <msg key="Profile_Accounting">Accounting</msg>
+  <msg key="Profile_Employees">Employees</msg>
+  <msg key="Profile_Helpdesk">Helpdesk</msg>
+  <msg key="Profile_Project_Managers">Project Managers</msg>
+  <msg key="Profile_Registered_Users">Registered Users</msg>
+  <msg key="Profile_Sales">Sales</msg>
+  <msg key="Profile_Senior_Managers">Senior Managers</msg>
+  <msg key="Profile_Skill_Profile">Skill Profile</msg>
   <msg key="Project">Project</msg>
   <msg key="Project_br_Name">Project&lt;br&gt;Name</msg>
   <msg key="Project_History">Project History</msg>
@@ -388,8 +404,8 @@ of those units were billed hourly, for a total amount of</msg>
   <msg key="View">View</msg>
   <msg key="View_Absence">View Absence</msg>
   <msg key="View_all_Absences">View all Absences</msg>
-  <msg key="View_employees_hours">View employee's hours</msg>
-  <msg key="View_employees_units">View employee's units</msg>
+  <msg key="View_employees_hours">View employee&#39;s hours</msg>
+  <msg key="View_employees_units">View employee&#39;s units</msg>
   <msg key="View_History">View History</msg>
   <msg key="Visa_Amount">Visa Amount</msg>
   <msg key="W">W</msg>
