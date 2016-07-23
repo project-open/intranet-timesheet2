@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
 <message_catalog package_key="intranet-timesheet2" locale="en_US" charset="ISO-8859-1">
+
   <msg key="1_Euro_equals">1 Euro equals:</msg>
   <msg key="_user_id">and project_id can be provided. But there was some problem with them...</msg>
   <msg key="A">A</msg>
   <msg key="Absence">Absence</msg>
   <msg key="Absence_absence_type">Absence Type</msg>
-  <msg key="Absence_Duplicate_Start">There is already an absence with exactly the same owner, type and start date.</msg>
+  <msg key="Absence_Duplicate_Start">Duplicate Start</msg>
   <msg key="Absence_Name">Name</msg>
   <msg key="Absence_status_3letter_Req">Req</msg>
   <msg key="Absence_Type">Absence Type:</msg>
@@ -140,6 +141,7 @@
   <msg key="Import_Absences_from_CSV">Import Absences from CSV</msg>
   <msg key="Import_Financial_Items_from_CSV">Import Financial Items from CSV</msg>
   <msg key="Import_Hours_from_CSV">Import Hours from CSV</msg>
+  <msg key="Import_Risk_CSV">Import Risk CSV</msg>
   <msg key="Internal_Comment">Internal Comment</msg>
   <msg key="J">J</msg>
   <msg key="January">January</msg>

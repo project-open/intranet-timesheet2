@@ -22,9 +22,9 @@
   <msg key="Add_hours">Stunden erfassen</msg>
   <msg key="Add_lines">Neue Zeilen</msg>
   <msg key="Add_more_lines">Weitere Zeilen hinzufügen</msg>
-  <msg key="Admin">Administration</msg>
+  <msg key="Admin">Admin</msg>
   <msg key="Admin_Absences">Abwesenheiten verwalten</msg>
-  <msg key="Administration">Administration</msg>
+  <msg key="Administration">Admin</msg>
   <msg key="All">Alle</msg>
   <msg key="All_dates">Alle Tage</msg>
   <msg key="All_projects">Alle Projekte</msg>
@@ -141,6 +141,7 @@
   <msg key="Import_Absences_from_CSV">Absenzen von CSV importieren</msg>
   <msg key="Import_Financial_Items_from_CSV">Finanzen von CSV importieren</msg>
   <msg key="Import_Hours_from_CSV">Geloggte Stunden von CSV importieren</msg>
+  <msg key="Import_Risk_CSV">Risiko CSV importieren</msg>
   <msg key="Internal_Comment">Interner Kommentar</msg>
   <msg key="J">J</msg>
   <msg key="January">Januar</msg>
