@@ -354,53 +354,45 @@ ad_proc im_absence_cube_color_list { } {
     return [util_memoize im_absence_cube_color_list_helper]
 }
 
-ad_proc im_absence_cube_color_list_helper { } {
+ad_proc im_absence_cube_color_list_helper {
+    {-default_color "CCCCC9"}
+} {
     Returns the list of colors for the various types of absences
 } {
-    # define default color set 
+    # Define default color set
+    # The last color acts as a default value for additional colors.
+    # Please use the aux_string2 field in im_categories to set custom colors!
     set color_list {
         EC9559
         E2849B
         53A7D8
         A185CB
         FFF956
-        CCCCC9
-        CCCCC9
-        CCCCC9
-        CCCCC9
-        CCCCC9
-        CCCCC9
-        CCCCC9
-        CCCCC9
-        CCCCC9
-        CCCCC9
-        CCCCC9
-        CCCCC9
-        CCCCC9
-        CCCCC9
-        CCCCC9
     }
 
-    # Overwrite in case there's a custom color defined 
+    # Overwrite in case there's a custom color defined
     set col_sql "
         select  category_id, category, enabled_p, aux_string2
         from    im_categories
-        where
-                category_type = 'Intranet Absence Type'
+        where   category_type = 'Intranet Absence Type'
         order by category_id
      "
 
-    set ctr 0 
+    set ctr 0
     db_foreach cols $col_sql {
-	if { "" == $aux_string2 } {
-	    lset color_list $ctr [lindex $color_list $ctr]
-	} else {
-	    lset color_list $ctr $aux_string2
-	}
-	incr ctr
+        set color $default_color
+        if {"" ne $aux_string2} {
+            set color $aux_string2
+        }
+
+        if {$ctr < [llength $color_list]} {
+            lset color_list $ctr $color
+        } else {
+            lappend color_list $color
+        }
+        incr ctr
     }
     return $color_list
-
 }
 
 
