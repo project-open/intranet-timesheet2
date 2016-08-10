@@ -79,6 +79,12 @@ if {![im_permission $user_id "view_absences"] && !$view_absences_all_p && !$view
     ad_script_abort
 }
 
+# Custom redirect? You should change all links to this
+# page to the new URL, but sometimes you miss links...
+set redirect_package_url [parameter::get_from_package_key -package_key "intranet-timesheet2" -parameter "AbsenceRedirectPackageUrl" -default ""]
+if {"" != $redirect_package_url} {
+    ad_returnredirect "$redirect_package_url/index"
+}
 
 
 

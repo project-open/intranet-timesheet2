@@ -41,6 +41,16 @@ set date_format "YYYY-MM-DD"
 set date_time_format "YYYY MM DD"
 set absence_type "Absence"
 
+
+# Custom redirect? You should change all links to this
+# page to the new URL, but sometimes you miss links...
+set redirect_package_url [parameter::get_from_package_key -package_key "intranet-timesheet2" -parameter "AbsenceRedirectPackageUrl" -default ""]
+if {"" != $redirect_package_url} {
+    ad_returnredirect "$redirect_package_url/new"
+}
+
+
+
 set absence_under_wf_control_p 0
 if {[info exists absence_id]} { 
     # absence_owner_id determines the list of projects per absence and other DynField widgets
