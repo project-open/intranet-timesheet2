@@ -190,7 +190,7 @@ ad_proc absence_list_for_user_and_time_period {user_id first_julian_date last_ju
 
     # Process vacation periods and modify array accordingly.
     db_foreach vacation_period $sql {
-    
+
 	set absence_status_3letter [string range $absence_status 0 2]
         set absence_status_3letter_l10n [lang::message::lookup "" intranet-timesheet2.Absence_status_3letter_$absence_status_3letter $absence_status_3letter]
 	set absent_status_3letter_l10n $absence_status_3letter_l10n
@@ -347,10 +347,55 @@ ad_proc im_absence_new_page_wf_perm_delete_button {
 # Absence Cube
 # ---------------------------------------------------------------------
 
+ad_proc -public im_absence_type_color { 
+    {-absence_id ""}
+    {-absence_type_id ""}
+} {
+    Returns the color for an absence or an absence_type_id.
+    Calling this function with an absence_id is slow, please
+    use the absence_type_id for more than just a few calls.
+} {
+    if {"" ne $absence_id} {
+	set breach_p [im_security_alert_check_integer -location "im_absence_type_color" -value $absence_id]
+	if {$breach_p} { return "" }
+	set absence_type_id [util_memoize [list db_string absence "select absence_type_id from im_user_absences where absence_id = $absence_id" -default ""]]
+    }
+
+    return [util_memoize [list im_absence_type_color_helper -absence_type_id $absence_type_id] 3600]
+}
+
+ad_proc im_absence_type_color_helper { 
+    {-absence_type_id ""}
+} {
+    Returns the color for an absence or an absence_type_id.
+    Calling this function with an absence_id is slow, please
+    use the absence_type_id for more than just a few calls.
+} {
+    # Check if color was explicitely set
+    set color_list [util_memoize [list db_list_of_lists collist "select category_id, aux_string2 from im_categories where category_type = 'Intranet Absence Type'"]]
+    foreach catid_col $color_list { set color_hash([lindex $catid_col 0]) [lindex $catid_col 1] }
+    if {[info exists color_hash($absence_type_id)]} {
+	set color $color_hash($absence_type_id)
+	if {"" ne $color} { return $color }
+    }
+
+    # Just take the Nth element from the color list
+    set color_list [im_absence_cube_color_list]
+    set category_list [util_memoize [list db_list absence_category_list "select category_id from im_categories where category_type = 'Intranet Absence Type' and (enabled_p is null or enabled_p = 't') order by category_id"]]
+    set idx [lsearch $category_list $absence_type_id]
+    if {$idx < 0} {
+	ns_log Error "im_absence_type_color: Didn't find absence_type_id=$absence_type_id in the list of absence types"
+	return "CCCCC9"
+    }
+
+    set result [lindex $color_list $idx]
+    if {"" eq $result} { return "CCCCC9" }
+    return $result
+}
+
 ad_proc im_absence_cube_color_list { } {
     Returns the list of colors for the various types of absences
 } {
-    # ad_return_complaint 1 [util_memoize im_absence_cube_color_list_helper]
     return [util_memoize im_absence_cube_color_list_helper]
 }
 
@@ -368,73 +413,42 @@ ad_proc im_absence_cube_color_list_helper {
         53A7D8
         A185CB
         FFF956
+	FF7F00
+	00FF7F 
+	00FFFF 
+	007FFF 
+	7F00FF 
+	FF00FF 
+	FF007F 
     }
 
-    # Overwrite in case there's a custom color defined
-    set col_sql "
-        select  category_id, category, enabled_p, aux_string2
-        from    im_categories
-        where   category_type = 'Intranet Absence Type'
-        order by category_id
-     "
-
-    set ctr 0
-    db_foreach cols $col_sql {
-        set color $default_color
-        if {"" ne $aux_string2} {
-            set color $aux_string2
-        }
-
-        if {$ctr < [llength $color_list]} {
-            lset color_list $ctr $color
-        } else {
-            lappend color_list $color
-        }
-        incr ctr
+    set absence_type_count [db_string atc "select count(*) from im_categories where category_type = 'Intranet Absence Type' and (enabled_p is null or enabled_p = 't')"]
+    while {[llength $color_list] < $absence_type_count} {
+	lappend color_list "CCCCC9"
     }
     return $color_list
 }
 
 
 ad_proc im_absence_mix_colors {
-    value
+    absence_type_ids
 } {
-    Renders a single report cell, depending on value.
-    Value consists of a string of 0..5 representing the last digit
-    of the absence_type:
-            5000 | Vacation	- Red
-            5001 | Personal	- Orange
-            5002 | Sick		- Blue
-            5003 | Travel	- Purple
-            5004 | Training	- Yellow
-            5005 | Bank Holiday	- Grey
-    " " indentifies an "empty vacation", which is represented with
-    color white. This is necessary to represent weekly absences,
-    where less then 5 days are taken as absence.
-    Value contains a string of last digits of the absence types.
-    Multiple values are possible for example "05", meaning that
-    a Vacation and a holiday meet. 
+    Renders a single report cell. absence_type_ids may consist of
+    multiple absences overlapping
 } {
-    # Show empty cells according to even/odd row formatting
-    if {"" == $value} { return "" }
-    set value [string toupper $value]
-
-    # Define a list of colours to pick from
-    set color_list [im_absence_cube_color_list]
-
+    if {"" == $absence_type_ids} { return "" }
     set hex_list {0 1 2 3 4 5 6 7 8 9 A B C D E F}
-
-    set len [string length $value]
+    set len [llength $absence_type_ids]
     set r 0
     set g 0
     set b 0
-    
-    # Mix the colors for each of the characters in "value"
-    for {set i 0} {$i < $len} {incr i} {
-	set v [string range $value $i $i]
 
-	set col "FFFFFF"
-	if {" " != $v} { set col [lindex $color_list $v] }
+    # Mix the colors for each entry in "absence_type_ids"
+    for {set i 0} {$i < $len} {incr i} {
+	set v [lindex $absence_type_ids $i]
+
+	# set col "FFFFFF"
+	set col [im_absence_type_color -absence_type_id $v] 
 
 	set r [expr $r + [lsearch $hex_list [string range $col 0 0]] * 16]
 	set r [expr $r + [lsearch $hex_list [string range $col 1 1]]]
@@ -445,7 +459,7 @@ ad_proc im_absence_mix_colors {
 	set b [expr $b + [lsearch $hex_list [string range $col 4 4]] * 16]
 	set b [expr $b + [lsearch $hex_list [string range $col 5 5]]]
     }
-    
+
     # Calculate the median
     set r [expr {$r / $len}]
     set g [expr {$g / $len}]
@@ -460,18 +474,19 @@ ad_proc im_absence_mix_colors {
     append color [lindex $hex_list [expr {$b / 16}]]
     append color [lindex $hex_list [expr {$b % 16}]]
 
+    ns_log Notice "im_absence_mix_colors: absence_type_ids=$absence_type_ids, color=$color"
     return $color
 }
 
 
 
 ad_proc im_absence_cube_render_cell {
-    value
+    absence_type_ids
 } {
-    Renders a single report cell, depending on value.
-    Takes the color from absences color lookup.
+    Renders a single report cell, which might contain an 
+    intersection of multiple type of absences.
 } {
-    set color [im_absence_mix_colors $value]
+    set color [im_absence_mix_colors $absence_type_ids]
     if {"" != $color} {
 	return "<td bgcolor=\#$color>&nbsp;</td>\n"
     } else {
@@ -550,7 +565,7 @@ ad_proc im_absence_cube {
 		from	group_approved_member_map m
 		where	m.group_id = [im_employee_group_id]
 	    )"
-	    
+	
 	}
 	"providers" {
 	    lappend criteria "u.user_id IN (
@@ -620,11 +635,11 @@ ad_proc im_absence_cube {
     # ---------------------------------------------------------------
     # Determine Top Dimension
     # ---------------------------------------------------------------
-    
+
     # Initialize the hash for holidays.
     array set holiday_hash {}
     set day_list [list]
-    
+
     for {set i 0} {$i < $num_days} {incr i} {
 	db_1row date_info "
 	    select 
@@ -638,14 +653,14 @@ ad_proc im_absence_cube {
 
 	set date_month [lang::message::lookup "" intranet-timesheet2.$date_month $date_month]
 
-	if {$date_weekday eq "Sat" || $date_weekday eq "Sun"} { set holiday_hash($date_date) 5 }
+	if {$date_weekday eq "Sat" || $date_weekday eq "Sun"} { set holiday_hash($date_date) [im_user_absence_type_bank_holiday] } 
 	lappend day_list [list $date_date $date_day_of_month $date_month $date_year]
     }
 
     # ---------------------------------------------------------------
     # Determine Left Dimension
     # ---------------------------------------------------------------
-    
+
     set user_list [db_list_of_lists user_list "
 	select	u.user_id as user_id,
 		im_name_from_user_id(u.user_id, $name_order) as user_name
@@ -679,16 +694,13 @@ ad_proc im_absence_cube {
     "]
 
 
-    # Get list of categeory_ids to determine index 
-    # needed for color codes
-
+    # Get list of categeory_ids to determine index - needed for color codes !!!
     set sql "
         select  category_id
         from    im_categories
         where   category_type = 'Intranet Absence Type'
         order by category_id
-     "
-
+    "
     set category_list [list]
     db_foreach category_id $sql {
 	lappend category_list [list $category_id]
@@ -697,7 +709,7 @@ ad_proc im_absence_cube {
     # ---------------------------------------------------------------
     # Get individual absences
     # ---------------------------------------------------------------
-    
+
     array set absence_hash {}
     set absence_sql "
 	-- Individual Absences per user
@@ -731,19 +743,18 @@ ad_proc im_absence_cube {
 		mm.group_id = a.group_id
 		$where_clause
     "
-
     # ToDo: re-factor so that color codes also work in case of more than 10 absence types
     db_foreach absences $absence_sql {
 	set key "$owner_id-$d"
-	set value ""
+	set value {}
 	if {[info exists absence_hash($key)]} { set value $absence_hash($key) }
-	set absence_hash($key) [append value [lsearch $category_list $absence_type_id]]
+	set absence_hash($key) [lappend value $absence_type_id]
     }
 
     # ---------------------------------------------------------------
     # Render the table
     # ---------------------------------------------------------------
-    
+
     set table_header "<tr class=rowtitle>\n"
     append table_header "<td class=rowtitle>[_ intranet-core.User]</td>\n"
     foreach day $day_list {
@@ -753,7 +764,7 @@ ad_proc im_absence_cube {
 	set date_year [lindex $day 3]
 	append table_header "<td class=rowtitle>$date_month_of_year<br>$date_day_of_month</td>\n"
     }
-    
+
     append table_header "</tr>\n"
     set row_ctr 0
     set table_body ""
@@ -765,9 +776,10 @@ ad_proc im_absence_cube {
 	foreach day $day_list {
 	    set date_date [lindex $day 0]
 	    set key "$user_id-$date_date"
-	    set value ""
+	    set value {}
 	    if {[info exists absence_hash($key)]} { set value $absence_hash($key) }
 	    if {[info exists holiday_hash($date_date)]} { append value $holiday_hash($date_date) }
+
 	    append table_body [im_absence_cube_render_cell $value]
 	    ns_log Notice "intranet-absences-procs::im_absence_cube_render_cell: $value"
 	}
@@ -828,9 +840,7 @@ ad_proc -public im_absence_vacation_balance_component_ajax {
 } {
     Returns a HTML component for vacation management. 
     Allows viewing vacations for current, last and next year 
-    
 } {
-
     # User needs to be Employee or Freelancer 
     if { ![im_user_is_employee_p $user_id_from_search] } { 
 	if { [im_profile::member_p -profile_id [im_freelance_group_id] -user_id $user_id_from_search] } {

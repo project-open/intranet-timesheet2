@@ -495,56 +495,23 @@ set admin_html [im_menu_ul_list "timesheet2_absences" [list user_id_from_search 
 # Set color scheme 
 # ----------------------------------------------------------
 
-set color_list [im_absence_cube_color_list]
-set col_sql "
-	select	category_id, category, enabled_p, aux_string2
-	from	im_categories
-	where	
-			category_type = 'Intranet Absence Type'
-	order by category_id
-"
-
 append admin_html "<div class=filter-title>[lang::message::lookup "" intranet-timesheet2.Color_codes "Color Codes"]</div>\n"
 append admin_html "<table cellpadding='5' cellspacing='5'>\n"
 
-# Marc Fleischer: A question of color
+set col_sql "
+	select	*
+	from	im_categories
+	where	category_type = 'Intranet Absence Type' and
+		(enabled_p is null or enabled_p = 't')
+	order by category_id
+"
 set index 0
 db_foreach cols $col_sql {
-    if { "" == $aux_string2 } {
-	# set index [expr {$category_id - 5000}]
-	set col [lindex $color_list $index]
-	incr index
-    } else {
-	set col $aux_string2
-    }
-
-    if { "t" == $enabled_p } {
-	regsub -all " " $category "_" category_key
-	set category_l10n [lang::message::lookup "" intranet-core.$category_key $category]
-	if { [string length $col] == 6} {
-	    # Transform RGB Hex-Values (e.g. #a3b2c4) into Dec-Values
-	    set r_bg [expr 0x[string range $col 0 1]]
-	    set g_bg [expr 0x[string range $col 2 3]]
-	    set b_bg [expr 0x[string range $col 4 5]]
-	} elseif { [string length $col] == 3 } {
-	    # Transform RGB Hex-Values (e.g. #a3b) into Dec-Values
-	    set r_bg [expr 0x[string range $col 0 0]]
-	    set g_bg [expr 0x[string range $col 1 1]]
-	    set b_bg [expr 0x[string range $col 2 2]]
-	} else {
-		# color codes can't be parsed -> set a middle value
-		set r_bg 127
-		set g_bg 127
-		set b_bg 127
-	}
-	# calculate a brightness-value for the color
-	# if brightness > 127 the foreground color is black, if < 127 the foreground color is white
-	set brightness [expr {$r_bg * 0.2126 + $g_bg * 0.7152 + $b_bg * 0.0722}]
-	set col_fg "fff"
-	if {$brightness >= 127} {set col_fg "000"}
-	set category_l10n [lang::message::lookup "" intranet-core.$category_key $category]
-	append admin_html "<tr><td style='padding:3px; background-color:\#$col; color:\#$col_fg'>$category_l10n</td></tr>\n"
-   }
+    set col [im_absence_type_color -absence_type_id $category_id]
+    regsub -all " " $category "_" category_key
+    set category_l10n [lang::message::lookup "" intranet-core.$category_key $category]
+    append admin_html "<tr><td bgcolor=\#$col>$category_l10n</td></tr>\n"
+    incr index
 }
 
 append admin_html "</table>\n"
