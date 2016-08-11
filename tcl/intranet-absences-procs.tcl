@@ -343,9 +343,37 @@ ad_proc im_absence_new_page_wf_perm_delete_button {
 }
 
 
-# ---------------------------------------------------------------------
-# Absence Cube
-# ---------------------------------------------------------------------
+# ----------------------------------------------------------
+# Set color scheme 
+# ----------------------------------------------------------
+
+
+ad_proc -public im_absence_color_table { } {
+    Returns some HTML with a table with the colors of absences
+} {
+    set html "<div class=filter-title>[lang::message::lookup "" intranet-timesheet2.Absences_Color_Codes "Absences Color Codes"]</div>\n"
+    append html "<table cellpadding='5' cellspacing='5'>\n"
+    set col_sql "
+	select	*
+	from	im_categories
+	where	category_type = 'Intranet Absence Type' and
+		(enabled_p is null or enabled_p = 't')
+	order by category_id
+    "
+    set index 0
+    db_foreach cols $col_sql {
+	set col [im_absence_type_color -absence_type_id $category_id]
+	regsub -all " " $category "_" category_key
+	set category_l10n [lang::message::lookup "" intranet-core.$category_key $category]
+	append html "<tr><td bgcolor=\#$col>$category_l10n</td></tr>\n"
+	incr index
+    }
+
+    append html "</table>\n"
+    return $html
+}
+
+
 
 ad_proc -public im_absence_type_color { 
     {-absence_id ""}

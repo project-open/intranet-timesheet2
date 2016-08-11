@@ -495,26 +495,7 @@ set admin_html [im_menu_ul_list "timesheet2_absences" [list user_id_from_search 
 # Set color scheme 
 # ----------------------------------------------------------
 
-append admin_html "<div class=filter-title>[lang::message::lookup "" intranet-timesheet2.Color_codes "Color Codes"]</div>\n"
-append admin_html "<table cellpadding='5' cellspacing='5'>\n"
-
-set col_sql "
-	select	*
-	from	im_categories
-	where	category_type = 'Intranet Absence Type' and
-		(enabled_p is null or enabled_p = 't')
-	order by category_id
-"
-set index 0
-db_foreach cols $col_sql {
-    set col [im_absence_type_color -absence_type_id $category_id]
-    regsub -all " " $category "_" category_key
-    set category_l10n [lang::message::lookup "" intranet-core.$category_key $category]
-    append admin_html "<tr><td bgcolor=\#$col>$category_l10n</td></tr>\n"
-    incr index
-}
-
-append admin_html "</table>\n"
+append admin_html [im_absence_color_table]
 
 # ---------------------------------------------------------------
 # 7. Format the List Table Header
