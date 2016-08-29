@@ -1235,9 +1235,7 @@ foreach j $weekly_logging_days {
 
 set left_navbar_html "
       <div class='filter-block'>
-	<div class='filter-title'>
-	    Timesheet Filters
-	</div>
+	<div class='filter-title'>[lang::message::lookup "" intranet-timesheet2.Timesheet_Filters "Timesheet Filters"]</div>
 
 	<form action=new method=GET>
 	<!-- don't include return_url in the export_vars, as it includes the old user -->
@@ -1273,16 +1271,9 @@ append left_navbar_html "
 
 append left_navbar_html "
       <div class='filter-block'>
-	 <div class='filter-title'>
-	    [_ intranet-timesheet2.Other_Options]
-	 </div>
+	 <div class='filter-title'>[_ intranet-timesheet2.Other_Options]</div>
 	 <ul>
-	    <li>
-	      <a href='$different_date_url'>
-		[_ intranet-timesheet2.lt_Log_hours_for_a_diffe]
-	      </a>
-	    </li>
-"
+	    <li><a href='$different_date_url'>[_ intranet-timesheet2.lt_Log_hours_for_a_diffe]</a></li>"
 
 if {$current_user_id == $user_id_from_search && $add_absences_p} {
     append left_navbar_html "
