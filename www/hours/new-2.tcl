@@ -329,9 +329,10 @@ foreach j $weekly_logging_days {
     }
 
     if {$total_screen_hours > $max_hours_per_day} {
+	set day_ansi_err_msg [dt_julian_to_ansi $day_julian]
 	ad_return_complaint 1 "<b>[lang::message::lookup "" intranet-timesheet2.Number_too_big_for_param "Number is larger then allowed"]</b>:<br>
             [lang::message::lookup "" intranet-timesheet2.Number_too_big_help "
-                   You have logged more hours (%total_screen_hours%) then allowed.<br>
+                   On %day_ansi_err_msg% you have logged more hours (%total_screen_hours%) then allowed.<br>
                    Please log no more than '%max_hours_per_day%' hours for one day.
 	    "]"
             ad_script_abort
