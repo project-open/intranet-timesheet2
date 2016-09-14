@@ -502,7 +502,7 @@ if {$return_url ne "" && ![regexp {^/intranet-timesheet2/hours/index} $return_ur
 # Do we have to show administration links?
 # ---------------------------------------------------------------
 
-set admin_html "<ul>"
+set admin_html ""
 set links [im_menu_timesheet_admin_links]
 foreach link_entry $links {
     set html ""
@@ -513,10 +513,6 @@ foreach link_entry $links {
     }
     append admin_html "<li>$html</li>\n"
 }
-
-append admin_html "</ul>"
-
-
 
 # Append user-defined menus
 eval "set ul_links \[im_menu_ul_list -no_uls 1 \"timesheet2_timesheet\" \{user_id $current_user_id start_date_julian $first_julian_date end_date_julian $last_julian_date return_url \/intranet-timesheet2\/hours\/index\} \]"
@@ -533,9 +529,7 @@ if {"" ne $admin_html} {
       <div class='filter-block'>
          <div class='filter-title'>
             [lang::message::lookup "" intranet-core.Admin_Timesheet "Admin Timesheet"]
-         </div>
-         $admin_html
-      </div>
+         </div><ul>$admin_html</ul></div>
     "
 }
 
