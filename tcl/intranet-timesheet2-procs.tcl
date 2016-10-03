@@ -39,6 +39,75 @@ ad_proc -private im_package_timesheet2_id_helper {} {
 
 
 
+# ----------------------------------------------------------------------
+# Permissions
+#
+# im_hour is a "fake" object, but these permissions are still
+# useful for the REST interface etc.
+# ---------------------------------------------------------------------
+
+ad_proc -public im_hour_permissions {
+    user_id 
+    hour_id 
+    view_var 
+    read_var 
+    write_var 
+    admin_var
+} {
+    Fill the by-reference variables read, write and admin
+    with the permissions of $user_id on $hour_id
+} {
+    upvar $view_var view
+    upvar $read_var read
+    upvar $write_var write
+    upvar $admin_var admin
+
+    set current_user_id $user_id
+    set current_hour_id $hour_id
+
+    set view 0
+    set read 0
+    set write 0
+    set admin 0
+
+    set add_hours_p [im_permission $user_id add_hours]
+    set add_hours_all_p [im_permission $user_id add_hours_all]
+    set add_hours_direct_reports_p [im_permission $user_id add_hours_direct_reports]
+
+    if {![db_0or1row hour_info "
+	select	h.*,
+		(select supervisor_id from im_employees where employee_id = h.user_id) as supervisor_id
+	from	im_hours h
+	where	h.hour_id = :current_hour_id
+    "]} {
+	# Didn't find hour - just return with permissions set to 0...
+	return 0
+    }
+
+    ns_log Notice "im_hour_permissions: user_id=$current_user_id, hour_id=$current_hour_id, conf_object_id=$conf_object_id, add_hours_p=$add_hours_p, add_hours_all_p=$add_hours_all_p, add_hours_direct_reports_p=$add_hours_direct_reports_p, supervisor_id=$supervisor_id"
+
+    # Check direct_reports permission
+    if {!$add_hours_direct_reports_p} { set supervisor_id "" }
+
+    # Are the hours blocked because a confirmation workflow has been started?
+    # Also, the missing general permission will prevent any views
+    if {"" ne $conf_object_id} { 
+	return 
+    }
+
+    # It's OK to modify hours for the user himself, for his reportees or if hes an admin.
+    if {$user_id eq $current_user_id || $supervisor_id eq $current_user_id || $add_hours_all_p} { 
+	set admin 1
+	set write 1
+	set read 1
+	set view 1
+	return 
+    }
+
+}
+
+
+
 # ---------------------------------------------------------------------
 # Create Cost Items for timesheet hours
 # ---------------------------------------------------------------------
