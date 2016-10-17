@@ -314,10 +314,10 @@ ad_proc -public im_timesheet_home_component {user_id} {
     }
 
     append hours_html $message
+    append hours_html "<ul>"
 
     if {[im_permission $user_id view_hours_all]} {
         append hours_html "
-	    <ul>
 	    <li><a href=/intranet-timesheet2/hours/[export_vars -base projects {user_id}]>
 		[_ intranet-timesheet2.lt_View_your_hours_on_al]</a>
 	    <li><a href=/intranet-timesheet2/hours/[export_vars -base total {}]>
