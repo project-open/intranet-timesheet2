@@ -83,7 +83,9 @@ create table im_hours (
 				constraint im_hours_billing_currency_fk
 				references currency_codes(iso),
 	note			text,
-	internal_note		text
+	internal_note		text,
+	creation_date		timestamptz 
+				default now()
 );
 	
 alter table im_hours add primary key (user_id, project_id, day);
