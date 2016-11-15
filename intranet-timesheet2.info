@@ -12,6 +12,7 @@
         <owner url="mailto:frank.bergmann@project-open.com">Frank Bergmann</owner>
         <release-date>2004-02-07</release-date>
         <vendor url="http://www.project-open.com/">]project-open[</vendor>
+        <release-date>2016-11-15</release-date>
 
         <provides url="intranet-timesheet2" version="3.4.0.8.5"/>
         <requires url="intranet-core" version="3.4.0.0.0"/>
