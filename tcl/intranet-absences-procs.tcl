@@ -685,6 +685,7 @@ ad_proc im_absence_cube {
 	lappend day_list [list $date_date $date_day_of_month $date_month $date_year]
     }
 
+
     # ---------------------------------------------------------------
     # Determine Left Dimension
     # ---------------------------------------------------------------
@@ -739,6 +740,10 @@ ad_proc im_absence_cube {
     # ---------------------------------------------------------------
 
     array set absence_hash {}
+    
+    # im_day_enumerator exludes end_date! 
+    set report_end_date_enum [clock format [clock scan {+1 day} -base [clock scan $report_end_date] ] -format %Y-%m-%d]
+
     set absence_sql "
 	-- Individual Absences per user
 	select	a.absence_type_id,
@@ -746,7 +751,7 @@ ad_proc im_absence_cube {
 		d.d
 	from	im_user_absences a,
 		users u,
-		(select im_day_enumerator as d from im_day_enumerator(:report_start_date, :report_end_date)) d,
+		(select im_day_enumerator as d from im_day_enumerator(:report_start_date, :report_end_date_enum)) d,
 		cc_users cc
 	where	a.owner_id = u.user_id and
 		cc.user_id = u.user_id and 
@@ -763,7 +768,7 @@ ad_proc im_absence_cube {
 	from	im_user_absences a,
 		users u,
 		group_distinct_member_map mm,
-		(select im_day_enumerator as d from im_day_enumerator(:report_start_date, :report_end_date)) d
+		(select im_day_enumerator as d from im_day_enumerator(:report_start_date, :report_end_date_enum)) d
 	where	mm.member_id = u.user_id and
 		a.start_date <= :report_end_date::date and
 		a.end_date >= :report_start_date::date and
@@ -805,6 +810,10 @@ ad_proc im_absence_cube {
 	    set date_date [lindex $day 0]
 	    set key "$user_id-$date_date"
 	    set value {}
+
+	    # ad_return_complaint xx [array get absence_hash]
+	    # ad_return_complaint xx [array get holiday_hash]
+
 	    if {[info exists absence_hash($key)]} { set value $absence_hash($key) }
 	    if {[info exists holiday_hash($date_date)]} { append value $holiday_hash($date_date) }
 
