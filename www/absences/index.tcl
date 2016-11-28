@@ -364,7 +364,8 @@ if {"" != $user_department_id} {
 "
 }
 
-
+# Limit to status_id 
+if { "" ne $status_id } { lappend criteria "a.absence_status_id = :status_id" }
 
 set order_by_clause ""
 switch $order_by {
@@ -442,6 +443,7 @@ set form_id "absence_filter"
 set object_type "im_absence"
 set action_url "/intranet-timesheet2/absences/"
 set form_mode "edit"
+set l10n_all [lang::message::lookup "" intranet-core.All "All"] 
 
 ad_form \
     -name $form_id \
@@ -455,8 +457,20 @@ ad_form \
 	{user_selection:text(select),optional {label "[_ intranet-timesheet2.Show_Users]"} {options $user_selection_options }}
 	{user_department_id:text(select),optional {label "[_ intranet-core.Department]"} { options $user_department_options}}
 	{timescale:text(select),optional {label "[_ intranet-timesheet2.Timescale]"} {options $timescale_type_list }}
-	{start_date:text(text) {label "[_ intranet-timesheet2.Start_Date]"} {html {size 10}} {value "$start_date"} {after_html {<input type="button" style="height:23px; width:23px; background: url('/resources/acs-templating/calendar.gif');" onclick ="return showCalendar('start_date', 'y-m-d');" >}}}
-	{end_date:text(text) {label "[_ intranet-timesheet2.End_Date]"} {html {size 10}} {value "$end_date"} {after_html {<input type="button" style="height:23px; width:23px; background: url('/resources/acs-templating/calendar.gif');" onclick ="return showCalendar('end_date', 'y-m-d');" >}}}
+	{start_date:text(text) \
+		{label "[_ intranet-timesheet2.Start_Date]"} \
+		{html {size 10}} {value "$start_date"} \
+		{after_html {<input type="button" style="height:23px; width:23px; background: url('/resources/acs-templating/calendar.gif');" onclick ="return showCalendar('start_date', 'y-m-d');" >}} \
+	}
+	{end_date:text(text) \
+		{label "[_ intranet-timesheet2.End_Date]"} \ 
+		{html {size 10}} {value "$end_date"} \
+		{after_html {<input type="button" style="height:23px; width:23px; background: url('/resources/acs-templating/calendar.gif');" onclick ="return showCalendar('end_date', 'y-m-d');" >}} \
+	}
+	{status_id:text(im_category_tree) \
+		optional {label #intranet-core.Status#} {value $status_id} \
+		{custom {category_type "Intranet Absence Status" translate_p 1 include_empty_name $l10n_all}} \
+	}
     }
 
 template::element::set_value $form_id start_date $start_date
