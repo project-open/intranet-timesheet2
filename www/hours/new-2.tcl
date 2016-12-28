@@ -33,13 +33,13 @@ ad_page_contract {
     @author klaus.hofeditz@project-open.com
 
 } {
-    hours0:array,optional,float
-    hours1:array,optional,float
-    hours2:array,optional,float
-    hours3:array,optional,float
-    hours4:array,optional,float
-    hours5:array,optional,float
-    hours6:array,optional,float
+    hours0:array,optional
+    hours1:array,optional
+    hours2:array,optional
+    hours3:array,optional
+    hours4:array,optional
+    hours5:array,optional
+    hours6:array,optional
     notes0:array,optional
     internal_notes0:array,optional
     materials0:array,optional
@@ -92,7 +92,7 @@ set max_hours_per_day [parameter::get_from_package_key -package_key intranet-tim
 
 # Conversion factor to calculate days from hours. Make sure it's a float number.
 set hours_per_day [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter TimesheetHoursPerDay -default 10]
-set hours_per_day [expr {$hours_per_day * 1.0}]
+set hours_per_day [expr $hours_per_day * 1.0]
 
 # Other
 set limit_to_one_day_per_main_project_p [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter TimesheetLimitToOneDayPerUserAndMainProjectP -default 1]
@@ -198,7 +198,7 @@ if {!$show_week_p} { set weekly_logging_days [list 0]}
 set i 0 
 foreach j $weekly_logging_days {
 
-    set day_julian [expr {$julian_date+$i}]
+    set day_julian [expr $julian_date + $i]
     ns_log Notice "hours/new2: day=$i: ----------- day_julian=$day_julian -----------"
 
     array unset database_hours_hash
@@ -268,6 +268,16 @@ foreach j $weekly_logging_days {
     set screen_materials_elements [array get materials$i]
     array set screen_materials_hash $screen_materials_elements
 
+    # Check for HH:MI notation of hours and transform
+    foreach key [array names screen_hours_hash] {
+	set value [string trim $screen_hours_hash($key)]
+	if {[regexp {([0-9]+)\:([0-9]+)} $value match hh mi] } {
+	    set value [expr 1.0 * $hh + ($mi / 60.0)]
+	    set screen_hours_hash($key) $value
+	}
+    }
+
+
     # Get the list of the union of key in both array
     set all_project_ids [set_union [array names screen_hours_hash] [array names database_hours_hash]]
     
@@ -307,7 +317,7 @@ foreach j $weekly_logging_days {
 	         "]"
 		ad_script_abort
 	    }
-	    set total_screen_hours [expr {$total_screen_hours + $screen_hours}]
+	    set total_screen_hours [expr $total_screen_hours + $screen_hours]
 	}
 
 	# Determine the action to take on the database items from comparing database vs. screen
@@ -396,7 +406,7 @@ foreach j $weekly_logging_days {
 	# Calculate worked days based on worked hours
 	set days_worked ""
 	if {"" != $hours_worked} {
-	    set days_worked [expr {$hours_worked / $hours_per_day}]
+	    set days_worked [expr $hours_worked / $hours_per_day]
 	}
 
 	set action $action_hash($project_id)
@@ -502,7 +512,7 @@ foreach j $weekly_logging_days {
 	    # We now need to cut all logged _days_ (not hours...) by
 	    # the factor sum(hour)/$hours_per_day so that at the end we
 	    # will get exactly one day logged to the main project.
-	    set correction_factor [expr {$hours_per_day/$correction_hours}]
+	    set correction_factor [expr $hours_per_day / $correction_hours]
 
 	    db_dml appy_correction_factor "
 		update im_hours set days = days * :correction_factor
