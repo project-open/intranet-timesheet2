@@ -58,6 +58,8 @@
 	    <parameter datatype="number"  min_n_values="1"  max_n_values="1"  name="DirectReportsIncludeCostCenterMembersP" default="1" description="Should we include the members of cost centers as 'direct reports' of the cost center's managers? Default is '1'."/>
 	    <parameter datatype="number"  min_n_values="1"  max_n_values="1"  name="DirectReportsIncludeEmployeeDirectReportsP" default="1" description="Should we include employees with a set im_employees.supervisor_id as 'direct reports' of their supervisor? Default is '1'"/>
 	    <parameter datatype="number"  min_n_values="1"  max_n_values="1"  name="AllowAbsencesForFreelancersP" default="0" description="Allow logging absences for Freelancer?"/>
+            <parameter datatype="number"  min_n_values="1"  max_n_values="1"  name="ShowAllTasksForSpecificProjectP" default="0" description="Used together with the privilege 'log_hours_all', so that users logging hours on non-member projects can see all tasks. Default is 0, because it somehow breaks permissions."/>
+
 	</parameters>
 
     </version>

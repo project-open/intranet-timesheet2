@@ -44,8 +44,14 @@ set show_context_help_p 1
 # Should we show debugging information for each project?
 set debug 0
 set current_user_id [auth::require_login]
+
+# Is the user in general allowed to log hours?
 set add_hours_p [im_permission $current_user_id "add_hours"]
+
+# Can the current user log hours for other users?
 set add_hours_all_p [im_permission $current_user_id "add_hours_all"]
+
+
 set add_hours_direct_reports_p [im_permission $current_user_id "add_hours_direct_reports"]
 
 if {!$add_hours_p} {
@@ -93,7 +99,7 @@ if { !$show_week_p && [string first [expr {[db_string dow "select to_char(to_dat
 }
 
 # Should we show all the tasks of a project if the user has chosen this project specificly?
-# I believe this was used in the past for a single customer...
+# This is used if users need to log hours from time to time to projects which are not "theirs"
 set show_all_tasks_for_specific_project_p [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter ShowAllTasksForSpecificProjectP -default "0"]
 
 # To store fold-in/fold-out info 
@@ -182,6 +188,11 @@ set menu_links_html [im_menu_ul_list -no_uls 1 "timesheet_hours_new_admin" $bind
 
 set different_project_url [export_vars -base other-projects {julian_date user_id_from_search}]
 
+# fraber 170114: Alternative option to select the "long on a different project"
+# set different_project_url [export_vars -base "/intranet/projects/index" { {view_name project_timesheet_log_select} julian_date}]
+
+
+
 # Log Absences
 set add_absences_p [im_permission $current_user_id add_absences]
 set absences_url [export_vars -base "/intranet-timesheet2/absences/new" {return_url user_id_from_search}]
@@ -247,6 +258,8 @@ if {$show_week_p} {
 
 set context_bar [im_context_bar [list index "[_ intranet-timesheet2.Hours]"] "[_ intranet-timesheet2.Add_hours]"]
 
+set permissive_logging [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter PermissiveHourLogging -default "permissive"]
+
 set log_hours_on_potential_project_p [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter TimesheetLogHoursOnPotentialProjectsP -default 1]
 
 set list_sort_order [parameter::get_from_package_key -package_key "intranet-timesheet2" -parameter TimesheetAddHoursSortOrder -default "order"]
@@ -268,9 +281,6 @@ set log_hours_on_solitary_projects_p [parameter::get_from_package_key -package_k
 #	- task: Each task has its own space - the user needs to be member of all tasks to log hours.
 # Fix #1835325 from Koen van Winckel
 set task_visibility_scope [parameter::get_from_package_key -package_key "intranet-timesheet2" -parameter TimesheetTaskVisibilityScope -default "sub_project"]
-
-# Can the current user log hours for other users?
-set add_hours_all_p [im_permission $current_user_id "add_hours_all"]
 
 # What is a closed status?
 set closed_stati_select "select * from im_sub_categories([im_project_status_closed])"
