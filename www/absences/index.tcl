@@ -352,7 +352,7 @@ if {"" != $end_date} { lappend criteria "a.start_date::date <= :end_date" }
 if {"" != $user_department_id} { 
     set user_department_code [db_string dept_code "select im_cost_center_code_from_id(:user_department_id)"]
     set user_department_code_len [string length $user_department_code]
-    lappend criteria "a.owner_id in (
+    lappend criteria "(a.owner_id in (
 	select	e.employee_id
 	from	acs_objects o,
 		im_cost_centers cc,
@@ -360,6 +360,8 @@ if {"" != $user_department_id} {
 	where	e.department_id = cc.cost_center_id and
 		cc.cost_center_id = o.object_id and
 		substring(cc.cost_center_code for :user_department_code_len) = :user_department_code
+	) OR
+	a.group_id is not null
 	)
 "
 }
@@ -416,10 +418,6 @@ set sql "
 # 5a. Limit the SQL query to MAX rows and provide << and >>
 # ---------------------------------------------------------------
 
-# Limit the search results to N data sets only
-# to be able to manage large sites
-
-set limited_query [im_select_row_range $sql $start_idx $end_idx]
 # We can't get around counting in advance if we want to be able to
 # sort inside the table on the page for only those users in the
 # query results

@@ -640,21 +640,6 @@ ad_proc im_absence_cube {
 	}
     }
 
-    if {"" != $user_department_id} { 
-	set user_department_code [db_string dept_code "select im_cost_center_code_from_id(:user_department_id)"]
-	set user_department_code_len [string length $user_department_code]
-	lappend criteria "a.owner_id in (
-	select	e.employee_id
-	from	acs_objects o,
-		im_cost_centers cc,
-		im_employees e
-	where	e.department_id = cc.cost_center_id and
-		cc.cost_center_id = o.object_id and
-		substring(cc.cost_center_code for :user_department_code_len) = :user_department_code
-	)
-       "
-    }
-
     set where_clause [join $criteria " and\n            "]
     if {$where_clause ne ""} {
 	set where_clause " and $where_clause"
@@ -690,6 +675,22 @@ ad_proc im_absence_cube {
     # Determine Left Dimension
     # ---------------------------------------------------------------
 
+    set user_department_where ""
+    if {"" != $user_department_id} { 
+	set user_department_code [db_string dept_code "select im_cost_center_code_from_id(:user_department_id)" -default ""]
+	set user_department_code_len [string length $user_department_code]
+	set user_department_where "and u.user_id in (
+	select	e.employee_id
+	from	acs_objects o,
+		im_cost_centers cc,
+		im_employees e
+	where	e.department_id = cc.cost_center_id and
+		cc.cost_center_id = o.object_id and
+		substring(cc.cost_center_code for :user_department_code_len) = :user_department_code
+	)
+       "
+    }
+
     set user_list [db_list_of_lists user_list "
 	select	u.user_id as user_id,
 		im_name_from_user_id(u.user_id, $name_order) as user_name
@@ -718,10 +719,10 @@ ad_proc im_absence_cube {
 		)
 		and cc.member_state = 'approved'
 		and cc.user_id = u.user_id
+		$user_department_where
 	order by
 		lower(im_name_from_user_id(u.user_id, $name_order))
     "]
-
 
     # Get list of categeory_ids to determine index - needed for color codes !!!
     set sql "
