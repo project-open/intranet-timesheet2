@@ -186,12 +186,9 @@ if {$internal_note_exists_p} {
 set bind_vars [list user_id $current_user_id user_id_from_search $user_id_from_search julian_date $julian_date return_url $return_url show_week_p $show_week_p]
 set menu_links_html [im_menu_ul_list -no_uls 1 "timesheet_hours_new_admin" $bind_vars]
 
-set different_project_url [export_vars -base other-projects {julian_date user_id_from_search}]
-
+# set different_project_url [export_vars -base other-projects {julian_date user_id_from_search}]
 # fraber 170114: Alternative option to select the "long on a different project"
-# set different_project_url [export_vars -base "/intranet/projects/index" { {view_name project_timesheet_log_select} julian_date}]
-
-
+set different_project_url [export_vars -base "/intranet/projects/index" {{view_name "project_timesheet_log_select"} julian_date}]
 
 # Log Absences
 set add_absences_p [im_permission $current_user_id add_absences]
