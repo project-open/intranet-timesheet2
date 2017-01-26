@@ -580,6 +580,16 @@ ad_proc im_absence_cube {
 	lappend criteria "a.absence_status_id = '$absence_status_id'"
     }
 
+    # Compatibility fix:
+    # Groups are passed on from /intranet-timesheet2/www/absences/index as integers 
+    if { $user_selection eq [im_employee_group_id] } {
+	set user_selection "employees"
+    } elseif { $user_selection eq [im_freelance_group_id] } {
+        set user_selection "providers"
+    } elseif  { $user_selection eq [im_customer_group_id] } {
+        set user_selection "customers"
+    }
+
     switch $user_selection {
 	"all" {
 	    # Nothing.
