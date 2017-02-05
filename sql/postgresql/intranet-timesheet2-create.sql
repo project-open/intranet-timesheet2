@@ -103,32 +103,26 @@ create index im_hours_day_idx on im_hours(day);
 select acs_privilege__create_privilege('add_hours','Add Hours','Add Hours');
 select acs_privilege__add_child('admin', 'add_hours');
 	
--- Everybody is able to see his own hours, so view_hours doesnt
--- make much sense...
+-- Admin guys can see and change everything...
 select acs_privilege__create_privilege('view_hours_all','View Hours All','View Hours All');
 select acs_privilege__add_child('admin', 'view_hours_all');
-	
--- New Privilege to allow accounting guys to change hours
 select acs_privilege__create_privilege('add_hours_all','Edit Hours All','Edit Hours All');
 select acs_privilege__add_child('admin', 'add_hours_all');
-	
-select im_priv_create('add_hours', 'Accounting');
+
+-- Add privilege to add absences for direct_reports
+select acs_privilege__create_privilege('add_hours_direct_reports','Add hours for direct reports','Add hours for direct reports');
+select acs_privilege__add_child('admin', 'add_hours_direct_reports');
+
+
 select im_priv_create('add_hours', 'Employees');
-select im_priv_create('add_hours', 'P/O Admins');
-select im_priv_create('add_hours', 'Project Managers');
-select im_priv_create('add_hours', 'Sales');
-select im_priv_create('add_hours', 'Senior Managers');
 
 select im_priv_create('view_hours_all', 'Accounting');
-select im_priv_create('view_hours_all', 'P/O Admins');
 select im_priv_create('view_hours_all', 'Project Managers');
 select im_priv_create('view_hours_all', 'Sales');
 select im_priv_create('view_hours_all', 'Senior Managers');
 
 select im_priv_create('add_hours_all', 'Accounting');
-select im_priv_create('add_hours_all', 'P/O Admins');
 select im_priv_create('add_hours_all', 'Senior Managers');
-
 
 
 
@@ -430,4 +424,62 @@ update im_menus set url='/intranet-timesheet2/absences/index' where label = 'tim
 
 
 
+
+
+
+
+---------------------------------------------------------
+-- im_get_hours_logged  
+-- gets hours logged for user/project on particular day
+-- 
+drop FUNCTION im_get_hours_logged(integer,  integer,  varchar);
+CREATE OR REPLACE FUNCTION im_get_hours_logged( int4,  int4,  varchar) RETURNS numeric AS '
+declare
+	v_user_id	ALIAS FOR $1;
+        v_project_id    ALIAS FOR $2;
+        v_day_substring ALIAS FOR $3;
+	v_hours        	NUMERIC (5,2);
+BEGIN
+	select	hours 
+	into	v_hours
+	from	im_hours
+	where	user_id = v_user_id and 
+		project_id = v_project_id and 
+		substring (day::varchar from 1 for 10) = v_day_substring; 
+    return v_hours;
+END;'
+LANGUAGE 'plpgsql';
+
+
+---------------------------------------------------------
+-- im_get_hours_percentage  
+-- gets % of hours logged for user/project on particular day based on hours spend the month
+-- 
+drop function if exists im_get_hours_percentage(int4, int4, varchar);
+CREATE OR REPLACE FUNCTION im_get_hours_percentage(int4, int4, varchar)
+RETURNS "numeric" AS '
+    declare
+        v_user_id	ALIAS FOR $1;
+        v_project_id    ALIAS FOR $2;
+        v_day_substring ALIAS FOR $3;
+        v_hours_project NUMERIC (10,2);
+        v_hours_total   NUMERIC (10,2);
+        v_result   	NUMERIC (10,2);
+    BEGIN
+	select	sum(hours) into v_hours_project
+	from	im_hours
+	where	user_id = v_user_id and 
+		project_id = v_project_id and 
+		substring (day::varchar from 1 for 7) = v_day_substring; 
+
+	select	sum(hours) into v_hours_total
+	from	im_hours 
+	where	user_id = v_user_id and 
+		substring (day::varchar from 1 for 7) = v_day_substring; 
+
+        v_result := v_hours_project * 100 / v_hours_total;
+ 
+       return v_result;
+    END;'
+LANGUAGE 'plpgsql';
 
