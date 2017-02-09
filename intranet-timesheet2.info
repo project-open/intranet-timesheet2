@@ -16,6 +16,7 @@
 
         <provides url="intranet-timesheet2" version="5.0.2.0.0"/>
         <requires url="intranet-core" version="5.0.0.0.0"/>
+        <requires url="intranet-cost" version="5.0.0.0.0"/>
         <requires url="intranet-dynfield" version="5.0.0.0.0"/>
         <requires url="intranet-cost" version="5.0.0.0.0"/>
         <requires url="intranet-material" version="5.0.0.0.0"/>
