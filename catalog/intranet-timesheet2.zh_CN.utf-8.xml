@@ -145,7 +145,7 @@
   <msg key="lt_Dedication_Logging__C_1">专门记录 &amp; Casex </msg>
   <msg key="lt_Dedication_logging_fo">专门记录</msg>
   <msg key="lt_Description_field_is_">描述字段是强制性的.</msg>
-  <msg key="lt_Description_is_mandat">描述字段是强制性的.请描述费用目的. 例如 '车程',也要写下公里数. 金额分割符可以输入为&lt;B&gt;&quot;.&quot;&lt;/B&gt;(美式)或者&lt;B&gt;&quot;,&quot;&lt;/B&gt;(欧式)</msg>
+  <msg key="lt_Description_is_mandat">描述字段是强制性的.请描述费用目的. 例如 &#39;车程&#39;,也要写下公里数. 金额分割符可以输入为&lt;B&gt;&#34;.&#34;&lt;/B&gt;(美式)或者&lt;B&gt;&#34;,&#34;&lt;/B&gt;(欧式)</msg>
   <msg key="lt_Display_all_hours_on_">显示所有项目的所有时间</msg>
   <msg key="lt_Error_in_project_entr">项目条目中错误</msg>
   <msg key="lt_For_Vacation_Sickness">在休假,病假和培训中,选择人力资源任务</msg>
@@ -155,7 +155,7 @@
   <msg key="lt_Hour_logging__Casex_b">%user_name% 的小时日志&amp;Casex</msg>
   <msg key="lt_Hours_for_pretty_date">%pretty_date% 的工时</msg>
   <msg key="lt_Hours_for_user_name_W">$user_name 花费的工时(周开始于 %date_value%)</msg>
-  <msg key="lt_hours_spend_on_projec">工时花费在项目 &quot;%project_name%&quot; 上</msg>
+  <msg key="lt_hours_spend_on_projec">工时花费在项目 &#34;%project_name%&#34; 上</msg>
   <msg key="lt_hours_varof_those_uni">%hours_var% 个单位被按小时支付,合计金额为</msg>
   <msg key="lt_Insufficient_Privileg">权限不够</msg>
   <msg key="lt_interval_select_per_c">%interval_select% 每栏</msg>
@@ -191,7 +191,7 @@
   <msg key="lt_There_was_an_unexpect">在Casex数据库里发生了一个预料外的错误.</msg>
   <msg key="lt_Timeline_for_project_">%project_name% 的时间轴</msg>
   <msg key="lt_To_send_proyect_infor">要通过电子邮件发送 proyect 信息,点击</msg>
-  <msg key="lt_To_send_this_informat">要通过电子邮件发送信息,请到 Microsoft Internet Explorer 菜单里点击 '文件-&gt;发送-&gt;电子邮件页面' (这个选项将会忽略您已选筛选器的值)</msg>
+  <msg key="lt_To_send_this_informat">要通过电子邮件发送信息,请到 Microsoft Internet Explorer 菜单里点击 &#39;文件-&gt;发送-&gt;电子邮件页面&#39; (这个选项将会忽略您已选筛选器的值)</msg>
   <msg key="lt_Today_you_didnt_log_y">今天,您还没有记录自己的单位!</msg>
   <msg key="lt_Total_Company_visa_Eu">合计(公司签证) 欧元:</msg>
   <msg key="lt_total_hours_hours_bet">%total_hours% 小时在 %first_day_str% 和 %last_day_str% 之间</msg>
@@ -200,7 +200,7 @@
   <msg key="lt_Total_not_company_vis">合计(非公司签证) 欧元:</msg>
   <msg key="lt_Unexpected_Database_E">未预料到的数据库错误</msg>
   <msg key="lt_Units_on_all_projects">所有项目的单位</msg>
-  <msg key="lt_Units_on_item_by_user">关于 &quot;%item%&quot; , %user_name% 的单位</msg>
+  <msg key="lt_Units_on_item_by_user">关于 &#34;%item%&#34; , %user_name% 的单位</msg>
   <msg key="lt_User_user_id_does_not">用户 %user_id% 不存在</msg>
   <msg key="lt_User_user_id_does_not_1">用户 #%user_id% 不存在.请备份并再试一次</msg>
   <msg key="lt_View_hours_logged_by_">按照团队成员查看工时记录</msg>

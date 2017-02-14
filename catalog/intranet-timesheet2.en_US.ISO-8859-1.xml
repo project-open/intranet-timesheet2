@@ -13,7 +13,9 @@
   <msg key="Absence_Type_1">Absence Type</msg>
   <msg key="Absences">Absences</msg>
   <msg key="absences">absences</msg>
+  <msg key="Absences_Dashboard">Absences Dashboard</msg>
   <msg key="Absences_for_user">Absences for %user_name%</msg>
+  <msg key="Absences_List">Absences List</msg>
   <msg key="Absences_Next_Year"></msg>
   <msg key="Absences_This_Year"></msg>
   <msg key="Absent">Absent</msg>
@@ -93,7 +95,7 @@
   <msg key="Display">Display:</msg>
   <msg key="Display_Users">Display Users:</msg>
   <msg key="Duration_days">Duration Days</msg>
-  <msg key="Duration_days_help">Duration Days</msg>
+  <msg key="Duration_days_help">Please specify the absence duration in days. &lt;br&gt;Examples: &#39;1&#39;=one day, &#39;0.5&#39;=half a day</msg>
   <msg key="E">E</msg>
   <msg key="Edit">Edit</msg>
   <msg key="Edit_Absence">Edit Absence</msg>

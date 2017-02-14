@@ -127,7 +127,7 @@
   <msg key="lt_A_total_of_total_hour">Итого на этот проект потрачено %total_hours_str% часов.</msg>
   <msg key="lt_Add_hours_on_other_pr">Добавить часы на другие проекты</msg>
   <msg key="lt_All_the_fields_should">Прежде чем отправлять, заполните все поля.</msg>
-  <msg key="lt_All_the_fields_should_1">Прежде чем выполнять действие &quot;%action%&quot;, заполните все поля.</msg>
+  <msg key="lt_All_the_fields_should_1">Прежде чем выполнять действие &#34;%action%&#34;, заполните все поля.</msg>
   <msg key="lt_based_select_hours_pe">%based_select% часов в неделю</msg>
   <msg key="lt_Choose_an_employee_to">Выберите сотрудника, чтобы просмотреть его часы</msg>
   <msg key="lt_Click_me_for_download">Щелкните здесь, чтобы загрузить файл report.csv.</msg>
@@ -140,11 +140,11 @@
   <msg key="lt_Description_field_is_">Поле описания необходимо заполнить.</msg>
   <msg key="lt_Description_is_mandat">Необходимо дать описание. Пожалуйста, опишите назначение 
 
-этих расходов. В случае &quot;км на личном автомобиле&quot; также укажите 
+этих расходов. В случае &#34;км на личном автомобиле&#34; также укажите 
 
-кол-во километров. В поле количества в качестве разделителя целой и дробной частей можно использовать как &lt;B&gt;&quot;.&quot;&lt;/B&gt;
+кол-во километров. В поле количества в качестве разделителя целой и дробной частей можно использовать как &lt;B&gt;&#34;.&#34;&lt;/B&gt;
 
-(амер.), так и &lt;B&gt;&quot;,&quot;&lt;/B&gt; (евр.)</msg>
+(амер.), так и &lt;B&gt;&#34;,&#34;&lt;/B&gt; (евр.)</msg>
   <msg key="lt_Display_all_hours_on_">Показать все часы на всех проектах</msg>
   <msg key="lt_Error_in_project_entr">Ошибка при вводе проекта</msg>
   <msg key="lt_For_Vacation_Sickness">В случае отпуска, болезни или обучения выберите задачу для персонала.</msg>
@@ -154,7 +154,7 @@
   <msg key="lt_Hour_logging__Casex_b">Отслеживание часов и Casex по %user_name%</msg>
   <msg key="lt_Hours_for_pretty_date">Часы за %pretty_date%</msg>
   <msg key="lt_Hours_for_user_name_W">Часы, потраченные $user_name (начало недели: %date_value%)</msg>
-  <msg key="lt_hours_spend_on_projec">часов потрачено на проект &quot;%project_name%&quot;</msg>
+  <msg key="lt_hours_spend_on_projec">часов потрачено на проект &#34;%project_name%&#34;</msg>
   <msg key="lt_hours_varof_those_uni">%hours_var% из этих затрат оплачены по часам, итого</msg>
   <msg key="lt_Insufficient_Privileg">Недостаточно разрешений</msg>
   <msg key="lt_interval_select_per_c">%interval_select% на столбец</msg>
@@ -190,7 +190,7 @@
   <msg key="lt_There_was_an_unexpect">Непредвиденная ошибка в базе данных Casex</msg>
   <msg key="lt_Timeline_for_project_">Временная шкала проекта %project_name%</msg>
   <msg key="lt_To_send_proyect_infor">Чтобы отправить сведения о проекте по почте, щелкните</msg>
-  <msg key="lt_To_send_this_informat">Чтобы отправить эти сведения по эл.почте, в Microsoft Internet Explorer выберите команду &quot;Файл -&gt; Отправить -&gt; Страницу по электронной почте...&quot; (в этом случае значения, заданные в фильтре, не применяются)</msg>
+  <msg key="lt_To_send_this_informat">Чтобы отправить эти сведения по эл.почте, в Microsoft Internet Explorer выберите команду &#34;Файл -&gt; Отправить -&gt; Страницу по электронной почте...&#34; (в этом случае значения, заданные в фильтре, не применяются)</msg>
   <msg key="lt_Today_you_didnt_log_y">Сегодня вы еще не занесли свои затраты!</msg>
   <msg key="lt_Total_Company_visa_Eu">Итого (карта компании), евро:</msg>
   <msg key="lt_total_hours_hours_bet">%total_hours% часов в диапазоне дат %first_day_str% - %last_day_str%</msg>
@@ -199,7 +199,7 @@
   <msg key="lt_Total_not_company_vis">Итого (карта не компании), евро:</msg>
   <msg key="lt_Unexpected_Database_E">Непредвиденная ошибка базы данных</msg>
   <msg key="lt_Units_on_all_projects">Единиц на всех проектах</msg>
-  <msg key="lt_Units_on_item_by_user">Единиц по &quot;%item%&quot; потрачено пользователем %user_name%</msg>
+  <msg key="lt_Units_on_item_by_user">Единиц по &#34;%item%&#34; потрачено пользователем %user_name%</msg>
   <msg key="lt_User_user_id_does_not">Пользователь %user_id% не существует</msg>
   <msg key="lt_User_user_id_does_not_1">Пользователь № %user_id% не существует Создайте резервную копию и повторите попытку</msg>
   <msg key="lt_View_hours_logged_by_">Просмотреть часы, занесенные всеми участниками команды</msg>

@@ -145,7 +145,7 @@
   <msg key="lt_Dedication_Logging__C_1"> Dedication Logging &amp; Casex  </msg>
   <msg key="lt_Dedication_logging_fo">Registro de dedicación para</msg>
   <msg key="lt_Description_field_is_">El campo descripción es obligatorio.</msg>
-  <msg key="lt_Description_is_mandat">La descripción es obligatoria. Por favor describa el gasto. En caso de &quot;Km con vehículo propio&quot;, escriba también el número de kilómetros. El importe puede ser introducido con &lt;B&gt;&quot;.&quot;&lt;/B&gt; (formato mericano) o &lt;B&gt;&quot;,&quot;&lt;/B&gt; (europeo) como separador decimal</msg>
+  <msg key="lt_Description_is_mandat">La descripción es obligatoria. Por favor describa el gasto. En caso de &#34;Km con vehículo propio&#34;, escriba también el número de kilómetros. El importe puede ser introducido con &lt;B&gt;&#34;.&#34;&lt;/B&gt; (formato mericano) o &lt;B&gt;&#34;,&#34;&lt;/B&gt; (europeo) como separador decimal</msg>
   <msg key="lt_Display_all_hours_on_">Mostrar todas las horas en todos los proyectos</msg>
   <msg key="lt_Error_in_project_entr">Error en entrada de proyecto</msg>
   <msg key="lt_For_Vacation_Sickness">Para vacaciones, enfermedad y formación, seleccione los recursos humanos</msg>
@@ -155,7 +155,7 @@
   <msg key="lt_Hour_logging__Casex_b">Registro de horas &amp; Casex por %user_name%</msg>
   <msg key="lt_Hours_for_pretty_date">Horas para %pretty_date%</msg>
   <msg key="lt_Hours_for_user_name_W">Horas para $user_name (para la semana que comienza el %date_value%)</msg>
-  <msg key="lt_hours_spend_on_projec">horas empleadas en el proyecto &quot;%project_name%&quot;</msg>
+  <msg key="lt_hours_spend_on_projec">horas empleadas en el proyecto &#34;%project_name%&#34;</msg>
   <msg key="lt_hours_varof_those_uni">%hours_var% de estas unidades fueron facturadas por hora, por un importe total de</msg>
   <msg key="lt_Insufficient_Privileg">Permisos insuficientes</msg>
   <msg key="lt_interval_select_per_c">%interval_select% por columna</msg>
@@ -191,7 +191,7 @@
   <msg key="lt_There_was_an_unexpect">Ha habido un error inesperado en la base de datos Casex</msg>
   <msg key="lt_Timeline_for_project_">Calendario para %project_name%</msg>
   <msg key="lt_To_send_proyect_infor">Clic para enviar información del proyecto por correo-e</msg>
-  <msg key="lt_To_send_this_informat">Para enviar esta información por correo-e, por favor seleccione en su navegador &quot;Archivo-&gt;Enviar...&quot; (Mozilla Firefox) o &quot;Archivo-&gt;Enviar-&gt;Página por correo electrónico...&quot; (Internet Explorer) (este comando ignora los valores que haya seleccionado en los filtros)</msg>
+  <msg key="lt_To_send_this_informat">Para enviar esta información por correo-e, por favor seleccione en su navegador &#34;Archivo-&gt;Enviar...&#34; (Mozilla Firefox) o &#34;Archivo-&gt;Enviar-&gt;Página por correo electrónico...&#34; (Internet Explorer) (este comando ignora los valores que haya seleccionado en los filtros)</msg>
   <msg key="lt_Today_you_didnt_log_y">¡Todavía no ha registrado sus horas de hoy!</msg>
   <msg key="lt_Total_Company_visa_Eu">Total (Company visa) Euros:</msg>
   <msg key="lt_total_hours_hours_bet">%total_hours% horas entre %first_day_str% y %last_day_str%</msg>
@@ -200,7 +200,7 @@
   <msg key="lt_Total_not_company_vis">Total (not company visa) Euros:</msg>
   <msg key="lt_Unexpected_Database_E">Error de base de datos inesperado</msg>
   <msg key="lt_Units_on_all_projects">Unidades en todos los proyectos</msg>
-  <msg key="lt_Units_on_item_by_user">Units on &quot;%item%&quot; by %user_name%</msg>
+  <msg key="lt_Units_on_item_by_user">Units on &#34;%item%&#34; by %user_name%</msg>
   <msg key="lt_User_user_id_does_not">El usuario %user_id% no existe</msg>
   <msg key="lt_User_user_id_does_not_1">El usuario #%user_id% no existe. Por favor, realice una copia de seguridad e inténtelo de nuevo</msg>
   <msg key="lt_View_hours_logged_by_">Ver horas registradas por los miembros del equipo</msg>
