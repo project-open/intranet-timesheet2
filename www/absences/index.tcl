@@ -226,15 +226,14 @@ db_foreach column_list_sql $column_sql {
 # ---------------------------------------------------------------
 
 # absences_types
-set absences_types [im_memoize_list select_absences_types "select absence_type_id, absence_type from im_user_absence_types order by lower(absence_type)"]
-set absences_types [linsert $absences_types 0 [lang::message::lookup "" intranet-timesheet2.All "All"]]
-set absences_types [linsert $absences_types 0 -1]
-set absence_type_list [list]
-foreach { value text } $absences_types {
-    regsub -all " " $text "_" category_key
-    set text [lang::message::lookup "" intranet-core.$category_key $text]
-    lappend absence_type_list [list $text $value]
+set absences_type_sql "select absence_type_id, absence_type from im_user_absence_types order by lower(absence_type)"
+set absence_type_list [list [lang::message::lookup "" intranet-timesheet2.All "All"] ]
+db_foreach select_absences_types $absences_type_sql {
+    regsub -all " " $absence_type "_" absence_type_key
+    set text [lang::message::lookup "" intranet-core.$absence_type_key $absence_type]
+    lappend absence_type_list [list $text $absence_type_id]
 }
+
 
 # ---------------------------------------------------------------
 # 5. Generate SQL Query
