@@ -43,6 +43,7 @@ ad_page_contract {
     notes0:array,optional
     internal_notes0:array,optional
     materials0:array,optional
+    etc:array,optional
     julian_date:integer
     { return_url "" }
     { show_week_p 1}
@@ -57,6 +58,9 @@ set current_user_id [auth::require_login]
 set add_hours_p [im_permission $current_user_id "add_hours"]
 set add_hours_all_p [im_permission $current_user_id "add_hours_all"]
 set add_hours_direct_reports_p [im_permission $current_user_id "add_hours_direct_reports"]
+
+# Estimate to complete?
+set show_etc_p [im_table_exists im_estimate_to_completes]
 
 if {!$add_hours_p} {
     ad_return_complaint 1 [lang::message::lookup "" intranet-timesheet2.Not_allowed_to_log_hours "You are not allowed to log hours."]
@@ -126,7 +130,7 @@ if { "" != $cust_validation_function } {
 			{[array get hours6]} \
 			{[array get notes0]} \
 			{[array get internal_notes0]} \
-			{[array get materials_0]} \
+			{[array get materials0]} \
 			$julian_date \
 			$return_url \
 			$show_week_p \
@@ -532,7 +536,29 @@ foreach j $weekly_logging_days {
 
 	}
     }
+
     incr i
+}
+
+
+# Save ETC Estmate To Complete
+if {$show_etc_p} {
+    # Delete all ETCs for this user. Audit remains...
+    db_list del_etc "
+	select	   im_timesheet_etc__delete(etc_id)
+	from	   im_timesheet_etcs te
+	where	   te.etc_user_id = :current_user_id
+    "
+
+    foreach project_id [array names etc] {
+	set etc_hours $etc($project_id)
+	if {"" ne $etc_hours} {
+	    set etc_id [db_string new_etc "select im_timesheet_etc_new(:current_user_id, :project_id, :etc_hours)"]
+
+	    # Write Audit Trail
+	    im_audit -object_id $etc_id -action after_create
+	}
+    }
 }
 
 

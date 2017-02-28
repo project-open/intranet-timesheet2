@@ -37,6 +37,9 @@
 		<if @materials_p@>
 		    <th><%= [lang::message::lookup "" intranet-timesheet2.Service_Type "Service Type"] %></th>
 		</if>
+		<if @show_etc_p@>
+		    <th><%= [lang::message::lookup "" intranet-timesheet2.Estimate_to_Complete "<nobr>Estimate<br>to Complete</nobr>"] %></th>
+		</if>
 	</if>
 	<else>
 		@week_header_html;noquote@

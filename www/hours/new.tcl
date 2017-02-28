@@ -123,6 +123,10 @@ if { 0 == $hours_allowed_to_register_time_into_future } {
     set max_julian_date [clock format [expr { [clock seconds] + ($hours_allowed_to_register_time_into_future * 3600) } ] -format {%J}]
 }
 
+# Estimate to complete?
+set show_etc_p [im_table_exists im_estimate_to_completes]
+
+
 # ---------------------------------------------------------
 # Calculate the start and end of the week.
 # ---------------------------------------------------------
@@ -579,6 +583,27 @@ if {[db_table_exists im_tickets]} {
     "
 }
 
+# Extract a few additional columns if we want to enter Estimate to Complete
+set etc_sql ""
+if {$show_etc_p} {
+    set etc_sql "
+		t.planned_units as etc_planned_hours_task,
+		bom.percentage as etc_assigned_percentage_user,
+		(	select	sum(pbom.percentage)
+			from	acs_rels pr,
+				im_biz_object_members pbom
+			where	pr.rel_id = pbom.rel_id and
+				pr.object_id_one = children.project_id
+		) as etc_assigned_percentage_task,
+		(	select	round(sum(h.hours))
+			from	im_hours h
+			where	h.project_id = children.project_id and
+				h.user_id = :current_user_id
+		) as etc_logged_hours_user,
+    "
+}
+
+
 set sql "
 	select
 		parent.project_id as top_project_id,
@@ -590,6 +615,7 @@ set sql "
 		children.project_name as project_name,
 		children.project_status_id as project_status_id,
 		children.project_type_id as project_type_id,
+		children.percent_completed,
 		im_category_from_id(children.project_status_id) as project_status,
 		parent.project_id as parent_project_id,
 		parent.project_nr as parent_project_nr,
@@ -597,10 +623,14 @@ set sql "
 		tree_level(children.tree_sortkey) -1 as subproject_level,
 		substring(parent.tree_sortkey from 17) as parent_tree_sortkey,
 		substring(children.tree_sortkey from 17) as child_tree_sortkey,
+		$etc_sql
 		$sort_order as sort_order
 	from
 		im_projects parent,
 		im_projects children
+		LEFT OUTER JOIN im_timesheet_tasks t ON (children.project_id = t.task_id)
+		LEFT OUTER JOIN acs_rels r ON (children.project_id = r.object_id_one and r.object_id_two = :current_user_id)
+		LEFT OUTER JOIN im_biz_object_members bom ON (bom.rel_id = r.rel_id)
 	where
 		parent.parent_id is null
 		and children.tree_sortkey between 
@@ -1110,9 +1140,18 @@ template::multirow foreach hours_multirow {
 	    # Write editable entries.
 	    append table_rows "<td><input name=hours${i}.$project_id size=5 MAXLENGTH=5 value=\"$hours\"></td>\n"
 	    if {!$show_week_p} {
+		
+		# Normal display - no Estimate to Complete
 		append table_rows "<td><input name=notes0.$project_id size=$external_comment_size value=\"[ns_quotehtml [value_if_exists note]]\"></td>\n"
 		if {$internal_note_exists_p} { append table_rows "<td><input name=internal_notes0.$project_id size=$internal_comment_size value=\"[ns_quotehtml [value_if_exists internal_note]]\"></td>\n" }
 		if {$materials_p} { append table_rows "<td>[im_select -translate_p 0 -ad_form_option_list_style_p 1 materials0.$project_id $material_options $material_id]</td>\n" }
+
+		# Estimate to complete column - if supported...
+		if {$show_etc_p && "" ne $etc_planned_hours_task && "" ne $etc_assigned_percentage_user && $etc_assigned_percentage_user > 0.0} {
+		    # ETC based on remainting percent_completed
+		    set etc_planned_hours_user [expr round($etc_planned_hours_task * (100.0 - $percent_completed) * 0.1* $etc_assigned_percentage_user / $etc_assigned_percentage_task) / 10.0]
+		    append table_rows "<td width=20><nobr><input name=etc.$project_id size=1 value=$etc_planned_hours_user> [_ intranet-timesheet2.Hours]</nobr></td>\n"
+		}
 	    }
 	} else {
 	    if { $filter_surpress_output_p } {
