@@ -545,15 +545,15 @@ foreach j $weekly_logging_days {
 if {$show_etc_p} {
     # Delete all ETCs for this user. Audit remains...
     db_list del_etc "
-	select	   im_timesheet_etc__delete(etc_id)
-	from	   im_timesheet_etcs te
+	select	   im_estimate_to_complete__delete(etc_id)
+	from	   im_estimate_to_completes te
 	where	   te.etc_user_id = :current_user_id
     "
 
     foreach project_id [array names etc] {
 	set etc_hours $etc($project_id)
 	if {"" ne $etc_hours} {
-	    set etc_id [db_string new_etc "select im_timesheet_etc_new(:current_user_id, :project_id, :etc_hours)"]
+	    set etc_id [db_string new_etc "select im_estimate_to_complete_new(:current_user_id, :project_id, :etc_hours)"]
 
 	    # Write Audit Trail
 	    im_audit -object_id $etc_id -action after_create
