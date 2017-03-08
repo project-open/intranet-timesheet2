@@ -615,7 +615,7 @@ set sql "
 		children.project_name as project_name,
 		children.project_status_id as project_status_id,
 		children.project_type_id as project_type_id,
-		children.percent_completed,
+		coalesce(children.percent_completed, 0.0) as percent_completed,
 		im_category_from_id(children.project_status_id) as project_status,
 		parent.project_id as parent_project_id,
 		parent.project_nr as parent_project_nr,
