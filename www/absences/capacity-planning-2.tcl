@@ -24,7 +24,7 @@ ad_page_contract {
 set floating_point_helper ".0"
 
 # Check Start & End-Date for correct format
-if { ("" != $cap_month && ![regexp {^[0-9][0-9]$} $cap_month] && ![regexp {^[0-9]$} $cap_month]) || ("" != $cap_month && [lindex [split [expr {$cap_month$floating_point_helper}] "." ] 0 ] > 12) } {
+if { ("" != $cap_month && ![regexp {^[0-9][0-9]$} $cap_month] && ![regexp {^[0-9]$} $cap_month]) || ("" != $cap_month && [lindex [split [expr ${cap_month}${floating_point_helper}] "." ] 0 ] > 12) } {
     ad_return_complaint 1 "Month doesn't have the right format.<br>
     Current value: '$cap_month'<br>
     Expected format: 'MM'"
