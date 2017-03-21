@@ -444,73 +444,71 @@ set max_project_name_len 50
 
 set list_sort_order [parameter::get_from_package_key -package_key "intranet-timesheet2" -parameter TimesheetAddHoursSortOrder -default "name"]
 
+# ---------------------------------------------------------
+# Compile "criteria"
 
+set p_criteria [list]
 
-    # ---------------------------------------------------------
-    # Compile "criteria"
+if {$exclude_subprojects_p} {
+    lappend p_criteria "p.parent_id is null"
+}
 
-    set p_criteria [list]
+if {0 != $exclude_status_id && "" != $exclude_status_id} {
+    lappend p_criteria "p.project_status_id not in ([join $exclude_status_id ","])"
+}
 
-    if {$exclude_subprojects_p} {
-        lappend p_criteria "p.parent_id is null"
-    }
+if {0 != $exclude_type_id && "" != $exclude_type_id} {
+    lappend p_criteria "p.project_type_id not in ([join [im_sub_categories $exclude_type_id] ","])"
+    # No restriction of type on parent project!
+}
 
-    if {0 != $exclude_status_id && "" != $exclude_status_id} {
-        lappend p_criteria "p.project_status_id not in ([join $exclude_status_id ","])"
-    }
+if {$exclude_tasks_p} {
+    lappend p_criteria "p.project_type_id not in ([join [im_sub_categories [im_project_type_task]] ","])"
+}
 
-    if {0 != $exclude_type_id && "" != $exclude_type_id} {
-        lappend p_criteria "p.project_type_id not in ([join [im_sub_categories $exclude_type_id] ","])"
-        # No restriction of type on parent project!
-    }
+if {0 != $project_type_id && "" != $project_type_id} {
+    lappend p_criteria "p.project_type_id in ([join [im_sub_categories $project_type_id] ","])"
+    # No restriction on parent's project type!
+}
 
-    if {$exclude_tasks_p} {
-        lappend p_criteria "p.project_type_id not in ([join [im_sub_categories [im_project_type_task]] ","])"
-    }
+if {0 != $project_lead_id_from_search && "" != $project_lead_id_from_search} {
+    lappend p_criteria "p.project_lead_id in ([join $project_lead_id_from_search ","])"
+}
 
-    if {0 != $project_type_id && "" != $project_type_id} {
-        lappend p_criteria "p.project_type_id in ([join [im_sub_categories $project_type_id] ","])"
-        # No restriction on parent's project type!
-    }
+if {0 != $project_type_id_from_search && "" != $project_type_id_from_search} {
+    lappend p_criteria "p.project_type_id in ([join $project_type_id_from_search ","])"
+}
 
-    if {0 != $project_lead_id_from_search && "" != $project_lead_id_from_search} {
-        lappend p_criteria "p.project_lead_id in ([join $project_lead_id_from_search ","])"
-    }
+set days_current_month [db_string days_current_month "SELECT date_part('day', '$cap_year-$cap_month-01' ::date + '1 month'::interval - '1 day'::interval)" -default 0]
+if { "1" == $cap_month  } {
+    set cap_month  12
+    set cap_year [expr {$cap_year-1}]
+} else {
+    set cap_month [expr {$cap_month-1}]
+}
 
-    if {0 != $project_type_id_from_search && "" != $project_type_id_from_search} {
-        lappend p_criteria "p.project_type_id in ([join $project_type_id_from_search ","])"
-    }
-	
-    set days_current_month [db_string days_current_month "SELECT date_part('day', '$cap_year-$cap_month-01' ::date + '1 month'::interval - '1 day'::interval)" -default 0]
-    if { "1" == $cap_month  } {
-	set cap_month  12
-	set cap_year [expr {$cap_year-1}]
-    } else {
-	set cap_month [expr {$cap_month-1}]
-    }
+set first_day_of_month ""
+set number_days_month ""
 
-    set first_day_of_month ""
-    set number_days_month ""
+append first_day_of_month $cap_year "-" $cap_month "-01"
+set number_days_month [db_string get_number_days_month "SELECT date_part('day','$first_day_of_month'::date + '1 month'::interval - '1 day'::interval)" -default 0]
+lappend p_criteria "p.end_date :: date >= '$cap_year/$cap_month/$number_days_month' :: date"  
 
-    append first_day_of_month $cap_year "-" $cap_month "-01"
-    set number_days_month [db_string get_number_days_month "SELECT date_part('day','$first_day_of_month'::date + '1 month'::interval - '1 day'::interval)" -default 0]
-    lappend p_criteria "p.end_date :: date >= '$cap_year/$cap_month/$number_days_month' :: date"  
+# -----------------------------------------------------------------
+# Compose the SQL
 
-    # -----------------------------------------------------------------
-    # Compose the SQL
+set where_clause [join $p_criteria " and\n\t\t\t\t\t"]
+if { $where_clause ne "" } {
+    set where_clause " and $where_clause"
+}
 
-    set where_clause [join $p_criteria " and\n\t\t\t\t\t"]
-    if { $where_clause ne "" } {
-        set where_clause " and $where_clause"
-    }
-
-    switch $list_sort_order {
-        name { set sort_order "lower(p.project_name)" }
-        order { set sort_order "p.sort_order" }
-        legacy { set sort_order "p.tree_sortkey" }
-        default { set sort_order "lower(p.project_nr)" }
-    }
-    set sql "
+switch $list_sort_order {
+    name { set sort_order "lower(p.project_name)" }
+    order { set sort_order "p.sort_order" }
+    legacy { set sort_order "p.tree_sortkey" }
+    default { set sort_order "lower(p.project_nr)" }
+}
+set sql "
                 select
                         p.project_id,
                         substring(p.project_name for :max_project_name_len) as project_name_shortened,
@@ -567,47 +565,43 @@ set list_sort_order [parameter::get_from_package_key -package_key "intranet-time
 
                 order by
                         p.project_name
-    "
-
-# ad_return_complaint 1 $sql
-
-
-    set bgcolor(0) " class=roweven "
-    set bgcolor(1) " class=rowodd "
-    set ctr 0
+"
+set bgcolor(0) " class=roweven "
+set bgcolor(1) " class=rowodd "
+set ctr 0
 
 
-    append table_body_html "<tr>\n"
-    append table_body_html "<td style='background-color:#ccc;font-weight:bold'>[lang::message::lookup "" intranet-core.Project_name "Project Name"]</td>\n"
-    append table_body_html "<td style='background-color:\#ccc;font-weight:bold'>[lang::message::lookup "" intranet-core.Project_Manager "Project Manager"]</td>\n"
-    append table_body_html "<td style='background-color:#ccc;font-weight:bold'>[lang::message::lookup "" intranet-core.Start_Date "Start Date"]</td>\n"
-    append table_body_html "<td style='background-color:#ccc;font-weight:bold'>[lang::message::lookup "" intranet-core.End_Date "End Date"]</td>\n"
-    append table_body_html "<td style='background-color:#ccc;font-weight:bold'>[lang::message::lookup "" intranet-core.AvailableDays "Days available"]</td>\n"
-    append table_body_html "<td colspan='1000'>&nbsp;</td></tr>\n"
+append table_body_html "<tr>\n"
+append table_body_html "<td style='background-color:#ccc;font-weight:bold'>[lang::message::lookup "" intranet-core.Project_name "Project Name"]</td>\n"
+append table_body_html "<td style='background-color:\#ccc;font-weight:bold'>[lang::message::lookup "" intranet-core.Project_Manager "Project Manager"]</td>\n"
+append table_body_html "<td style='background-color:#ccc;font-weight:bold'>[lang::message::lookup "" intranet-core.Start_Date "Start Date"]</td>\n"
+append table_body_html "<td style='background-color:#ccc;font-weight:bold'>[lang::message::lookup "" intranet-core.End_Date "End Date"]</td>\n"
+append table_body_html "<td style='background-color:#ccc;font-weight:bold'>[lang::message::lookup "" intranet-core.AvailableDays "Available Days"]</td>\n"
+append table_body_html "<td colspan='1000'>&nbsp;</td></tr>\n"
 
-	db_foreach project_name $sql {
-	append table_body_html "<tr$bgcolor([expr {$ctr % 2}])>\n"
-	append table_body_html "<td><a href='$project_url$project_id'>$project_name_shortened</a></td>\n"
+db_foreach project_name $sql {
+    append table_body_html "<tr$bgcolor([expr {$ctr % 2}])>\n"
+    append table_body_html "<td><a href='$project_url$project_id'>$project_name_shortened</a></td>\n"
     append table_body_html "<td>$lead_name</td>\n"
-	append table_body_html "<td>$start_date</td>\n"	
-	append table_body_html "<td>$end_date</td>\n"	
-
-	if { $sum_planned_units eq "" } { set sum_planned_units 0}
+    append table_body_html "<td>$start_date</td>\n"	
+    append table_body_html "<td>$end_date</td>\n"	
+    
+    if { $sum_planned_units eq "" } { set sum_planned_units 0}
     if { $sum_logged_units eq "" } { set sum_logged_units 0}
-	append table_body_html "<td align='center'>[format "%.2f" [expr {double(round(100*[expr {$sum_planned_units - $sum_logged_units}]))/100}]]</td>\n"
-
-	for { set i 1 } { $i <= $ctr_employees } { incr i } {
-		set cap_array_index [concat $employee_array([expr {$i-1}]).$project_id]		
-		if { [info exists cap_array($cap_array_index)] } {
-			set cap_textbox_value $cap_array($cap_array_index) 	
-		} else {
-			set cap_textbox_value "" 	
-		}
-		append table_body_html "<td><input type='textbox' name='capacity.$cap_array_index' value='$cap_textbox_value' size='3'/></td>\n"
-	}	
-        append table_body_html "</tr>\n"
-	incr ctr
-    }
+    append table_body_html "<td align='center'>[format "%.2f" [expr {double(round(100*[expr {$sum_planned_units - $sum_logged_units}]))/100}]]</td>\n"
+    
+    for { set i 1 } { $i <= $ctr_employees } { incr i } {
+	set cap_array_index [concat $employee_array([expr {$i-1}]).$project_id]		
+	if { [info exists cap_array($cap_array_index)] } {
+	    set cap_textbox_value $cap_array($cap_array_index) 	
+	} else {
+	    set cap_textbox_value "" 	
+	}
+	append table_body_html "<td><input type='textbox' name='capacity.$cap_array_index' value='$cap_textbox_value' size='3'/></td>\n"
+    }	
+    append table_body_html "</tr>\n"
+    incr ctr
+}
 
 # ---------------------------------------------------------------
 # Create table footer
