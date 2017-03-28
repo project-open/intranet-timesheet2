@@ -200,7 +200,7 @@ set different_project_url [export_vars -base "/intranet/projects/index" {{view_n
 
 # Log Absences
 set add_absences_p [im_permission $current_user_id add_absences]
-set absences_url [export_vars -base "$absence_base_url/new" {return_url user_id_from_search}]
+set absences_url [export_vars -base "$absences_base_url/new" {return_url user_id_from_search}]
 set absences_link_text [lang::message::lookup "" intranet-timesheet2.Log_Absences "Log Absences"]
 
 
