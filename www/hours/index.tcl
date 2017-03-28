@@ -97,6 +97,9 @@ set confirmation_period [parameter::get -package_id [apm_package_id_from_key int
 set fill_up_first_last_row_p [parameter::get -package_id [apm_package_id_from_key intranet-timesheet2] -parameter "FillFirstAndLastRowInTSCalendarP" -default 1]
 set start_day [parameter::get -package_id [apm_package_id_from_key intranet-timesheet2] -parameter "WeekStartDay" -default 0]
 set show_link_log_hours_for_week_p [parameter::get -package_id [apm_package_id_from_key intranet-timesheet2] -parameter "ShowLinkToWeeklyTimesheetP" -default 0]
+set hours_base_url [parameter::get -package_id [apm_package_id_from_key intranet-timesheet2] -parameter "HoursURL" -default "/intranet-timesheet2/hours"]
+
+
 
 set header_days_of_week "";
 
@@ -269,7 +272,7 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
     set curr_absence [lindex $absence_list $absence_index]
     if {"" != $curr_absence} { set curr_absence "<br>$curr_absence" }
 
-    set hours_url [export_vars -base "new" {user_id_from_search {julian_date $current_date} show_week_p return_url project_id project_id}]
+    set hours_url [export_vars -base "$hours_base_url/new" {user_id_from_search {julian_date $current_date} show_week_p return_url project_id project_id}]
 
     if { [string first $week_day $weekly_logging_days] != -1 } {
 	set hours "<a href=$hours_url>$hours</a>"
@@ -279,7 +282,7 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
 
     if {$column_ctr == 1 && $show_link_log_hours_for_week_p } {
 	set log_hours_for_the_week_html "<br>
-                <a href=[export_vars -base "new" {user_id_from_search {julian_date $current_date} {show_week_p 1} return_url}]
+                <a href=[export_vars -base "$hours_base_url/new" {user_id_from_search {julian_date $current_date} {show_week_p 1} return_url}]
                 ><span class='log_hours'>[lang::message::lookup "" intranet-timesheet2.Log_hours_for_the_week "Log hours for the week"]</span></a>
  	    "
     } else {

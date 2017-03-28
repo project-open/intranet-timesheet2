@@ -56,7 +56,7 @@
 	    <parameter datatype="number"  min_n_values="1"  max_n_values="1"  name="WeekStartDay" default="0" description="Set first day of week in timesheet monthly view. Currently supported are 0 (Sunday) and 1 (Monday)"/>
 	    <parameter datatype="number"  min_n_values="1"  max_n_values="1"  name="WeeklyReportColorCodeWeekendsP" default="0" description="Set background color for weekends in weekly report? (weekly_report.tcl)"/>
 	    <parameter datatype="string"  min_n_values="1"  max_n_values="1"  name="AbsenceURL" default="/intranet-timesheet2/absences" description="Provide option to fork to different than default page when registering absences."/>
-
+	    <parameter datatype="string"  min_n_values="1"  max_n_values="1"  name="HourURL" default="/intranet-timesheet2/hours" description="Provide option to fork to different than default page when registering hours."/>
 	    <parameter datatype="number"  min_n_values="1"  max_n_values="1"  name="DirectReportsIncludeCostCenterMembersP" default="1" description="Should we include the members of cost centers as 'direct reports' of the cost center's managers? Default is '1'."/>
 	    <parameter datatype="number"  min_n_values="1"  max_n_values="1"  name="DirectReportsIncludeEmployeeDirectReportsP" default="1" description="Should we include employees with a set im_employees.supervisor_id as 'direct reports' of their supervisor? Default is '1'"/>
 	    <parameter datatype="number"  min_n_values="1"  max_n_values="1"  name="AllowAbsencesForFreelancersP" default="0" description="Allow logging absences for Freelancer?"/>
