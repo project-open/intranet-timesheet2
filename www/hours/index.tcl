@@ -97,7 +97,7 @@ set confirmation_period [parameter::get -package_id [apm_package_id_from_key int
 set fill_up_first_last_row_p [parameter::get -package_id [apm_package_id_from_key intranet-timesheet2] -parameter "FillFirstAndLastRowInTSCalendarP" -default 1]
 set start_day [parameter::get -package_id [apm_package_id_from_key intranet-timesheet2] -parameter "WeekStartDay" -default 0]
 set show_link_log_hours_for_week_p [parameter::get -package_id [apm_package_id_from_key intranet-timesheet2] -parameter "ShowLinkToWeeklyTimesheetP" -default 0]
-set hours_base_url [parameter::get -package_id [apm_package_id_from_key intranet-timesheet2] -parameter "HoursURL" -default "/intranet-timesheet2/hours"]
+set hours_base_url [parameter::get -package_id [apm_package_id_from_key intranet-timesheet2] -parameter "HourURL" -default "/intranet-timesheet2/hours"]
 
 
 
@@ -442,7 +442,7 @@ set left_navbar_html "
 	     [lang::message::lookup "" intranet-timesheet2.TimesheetFilters "Timesheet Filters"]
         </div>
 
-	<form action=index method=GET>
+	<form action='$hours_base_url/index' method=GET>
 	[export_vars -form {show_week_p}] 
 	<table border=0 cellpadding=1 cellspacing=1>
 	<tr>

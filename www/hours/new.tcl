@@ -102,8 +102,12 @@ if { !$show_week_p && [string first [expr {[db_string dow "select to_char(to_dat
 # This is used if users need to log hours from time to time to projects which are not "theirs"
 set show_all_tasks_for_specific_project_p [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter ShowAllTasksForSpecificProjectP -default "0"]
 
+# Allow to customize
+set hours_base_url [parameter::get -package_id [apm_package_id_from_key intranet-timesheet2] -parameter "HourURL" -default "/intranet-timesheet2/hours"]
+set absences_base_url [parameter::get -package_id [apm_package_id_from_key intranet-timesheet2] -parameter "AbsenceURL" -default "/intranet-timesheet2/absences"]
+
 # To store fold-in/fold-out info 
-set page_url "/intranet-timesheet2/hours/new"
+set page_url "$hours_base_url/new"
 
 # Get stored collapse information 
 set collapse_sql "select object_id, open_p from im_biz_object_tree_status where user_id = :user_id_from_search and page_url = :page_url"
@@ -196,7 +200,7 @@ set different_project_url [export_vars -base "/intranet/projects/index" {{view_n
 
 # Log Absences
 set add_absences_p [im_permission $current_user_id add_absences]
-set absences_url [export_vars -base "/intranet-timesheet2/absences/new" {return_url user_id_from_search}]
+set absences_url [export_vars -base "$absence_base_url/new" {return_url user_id_from_search}]
 set absences_link_text [lang::message::lookup "" intranet-timesheet2.Log_Absences "Log Absences"]
 
 
