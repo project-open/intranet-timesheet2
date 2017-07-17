@@ -69,7 +69,7 @@
   <msg key="Country">Country:</msg>
   <msg key="Currency">Currency:</msg>
   <msg key="Customers">Customers</msg>
-  <msg key="CustomTimescale">Start / End Date</msg>
+  <msg key="CustomTimescale">Start/End date</msg>
   <msg key="D">D</msg>
   <msg key="Daily_project_notes">Daily project notes</msg>
   <msg key="Date">Date</msg>
@@ -143,7 +143,7 @@
   <msg key="Import_Absences_from_CSV">Import Absences from CSV</msg>
   <msg key="Import_Financial_Items_from_CSV">Import Financial Items from CSV</msg>
   <msg key="Import_Hours_from_CSV">Import Hours from CSV</msg>
-  <msg key="Import_Risk_CSV">Import Risk CSV</msg>
+  <msg key="Import_Risk_CSV">Risiko CSV importieren</msg>
   <msg key="Internal_Comment">Internal Comment</msg>
   <msg key="J">J</msg>
   <msg key="January">January</msg>
@@ -158,7 +158,7 @@
   <msg key="Last_3_Weeks">Last 3 weeks</msg>
   <msg key="Local">Local</msg>
   <msg key="Log_Absences">Log Absences</msg>
-  <msg key="Log_Absences_for_user_name">Log Absences for %user_name%</msg>
+  <msg key="Log_Absences_for_user_name">Log absences for user name</msg>
   <msg key="log_dedication">log dedication</msg>
   <msg key="Log_Hours">Log Hours</msg>
   <msg key="log_hours">log hours</msg>
@@ -279,6 +279,7 @@ of those units were billed hourly, for a total amount of</msg>
   <msg key="New_Absence">New Absence</msg>
   <msg key="New_Absence_Type">New %absence_type%</msg>
   <msg key="New_Bank_Holiday">New Bank Holiday</msg>
+  <msg key="New_Hours">New Hours</msg>
   <msg key="New_Personal_Absence">New Personal Absence</msg>
   <msg key="New_Sick_Leave">New Sick Leave</msg>
   <msg key="New_Travel_Absence">New Travel Absence</msg>
@@ -372,7 +373,7 @@ of those units were billed hourly, for a total amount of</msg>
   <msg key="Timesheet">Timesheet</msg>
   <msg key="Timesheet_for_user_name">Timesheet for %user_name%</msg>
   <msg key="Timesheet_Summary">Timesheet Summary</msg>
-  <msg key="Timesheet_Weekly_Report">Timesheet Weekly Report</msg>
+  <msg key="Timesheet_Weekly_Report">Timesheet - Weekly Report</msg>
   <msg key="TimesheetFilters">Timesheet Filters</msg>
   <msg key="to">to:</msg>
   <msg key="ToConfirm">To confirm</msg>

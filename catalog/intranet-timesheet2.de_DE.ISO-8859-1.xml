@@ -6,9 +6,7 @@
   <msg key="A">A</msg>
   <msg key="Absence">Abwesenheit</msg>
   <msg key="Absence_absence_type">Typ Abwesenheit</msg>
-  <msg key="Absence_Duplicate_Start">Doppeltes Startdatum</msg>
   <msg key="Absence_Name">Name</msg>
-  <msg key="Absence_status_3letter_Req">Req</msg>
   <msg key="Absence_Type">Typ Abwesenheit:</msg>
   <msg key="Absence_Type_1">Typ Abwesenheit</msg>
   <msg key="Absences">Abwesenheiten</msg>
@@ -116,7 +114,6 @@
   <msg key="Filter">Filter</msg>
   <msg key="Filter_Absences">Filter Abwesenheiten</msg>
   <msg key="Filter_Tasks">Aufgaben filtern</msg>
-  <msg key="for_username">für %user_from_search_name%</msg>
   <msg key="For_which_project">Für Projekt</msg>
   <msg key="Friday">Freitag</msg>
   <msg key="From">Von</msg>
@@ -156,7 +153,6 @@
   <msg key="Last_3_Weeks">Letzte 3 Wochen</msg>
   <msg key="Local">Lokal</msg>
   <msg key="Log_Absences">Abwesenheiten melden</msg>
-  <msg key="Log_Absences_for_user_name">Absenzen erfassen für %user_name%</msg>
   <msg key="log_dedication">Stunden erfassen</msg>
   <msg key="Log_Hours">Stunden kontieren</msg>
   <msg key="log_hours">Stunden für den Tag erfassen</msg>
@@ -307,7 +303,6 @@
   <msg key="Profile_Employees">Mitarbeiter</msg>
   <msg key="Profile_Helpdesk">Helpdesk</msg>
   <msg key="Profile_Project_Managers">Projektmanager</msg>
-  <msg key="Profile_Registered_Users">Registrierte Benutzer</msg>
   <msg key="Profile_Sales">Verkauf</msg>
   <msg key="Profile_Senior_Managers">Senior Manager</msg>
   <msg key="Profile_Skill_Profile">Fähigkeitsprofil</msg>
@@ -384,7 +379,6 @@
   <msg key="user_not_logged_in">Benutzer nicht angemeldet</msg>
   <msg key="Users">Benutzer</msg>
   <msg key="V">V</msg>
-  <msg key="Vacation_Balance">Verbleibende Urlaubstage</msg>
   <msg key="Vacation_Balance_From_Last_Year">Resturlaub Vorjahr</msg>
   <msg key="Vacation_Days_per_Year">Urlaubsanspruch</msg>
   <msg key="Vacation_Days_Planned">Urlaub geplant</msg>
