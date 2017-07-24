@@ -6,12 +6,16 @@
   <msg key="A">A</msg>
   <msg key="Absence">Abwesenheit</msg>
   <msg key="Absence_absence_type">Typ Abwesenheit</msg>
+  <msg key="Absence_Duplicate_Start">Doppeltes Startdatum</msg>
   <msg key="Absence_Name">Name</msg>
+  <msg key="Absence_status_3letter_Req">Req</msg>
   <msg key="Absence_Type">Typ Abwesenheit:</msg>
   <msg key="Absence_Type_1">Typ Abwesenheit</msg>
   <msg key="Absences">Abwesenheiten</msg>
   <msg key="absences">Abwesenheiten</msg>
+  <msg key="Absences_Dashboard">Abwesenheiten Dashboard</msg>
   <msg key="Absences_for_user">Abwesenheiten für Benutzer</msg>
+  <msg key="Absences_List">Absenzen Liste</msg>
   <msg key="Absences_Next_Year">Nächstes Jahr</msg>
   <msg key="Absences_This_Year">Dieses Jahr</msg>
   <msg key="Absent">Abwesend</msg>
@@ -114,6 +118,7 @@
   <msg key="Filter">Filter</msg>
   <msg key="Filter_Absences">Filter Abwesenheiten</msg>
   <msg key="Filter_Tasks">Aufgaben filtern</msg>
+  <msg key="for_username">für %user_from_search_name%</msg>
   <msg key="For_which_project">Für Projekt</msg>
   <msg key="Friday">Freitag</msg>
   <msg key="From">Von</msg>
@@ -153,6 +158,7 @@
   <msg key="Last_3_Weeks">Letzte 3 Wochen</msg>
   <msg key="Local">Lokal</msg>
   <msg key="Log_Absences">Abwesenheiten melden</msg>
+  <msg key="Log_Absences_for_user_name">Absenzen erfassen für %user_name%</msg>
   <msg key="log_dedication">Stunden erfassen</msg>
   <msg key="Log_Hours">Stunden kontieren</msg>
   <msg key="log_hours">Stunden für den Tag erfassen</msg>
@@ -246,6 +252,7 @@
   <msg key="lt_You_cant_edit_someone">Sie können nicht die Stunden von jemand anders bearbeiten</msg>
   <msg key="lt_You_dont_have_suffici">Sie haben keine ausreichenden Privielgien um Abwesenheiten zu sehen.</msg>
   <msg key="lt_You_dont_have_suffici_1">Sie verfügen über nicht ausreichende Berechtigungen zum Ändern dieser Abwesenheit.</msg>
+  <msg key="lt_You_have_loged_total_">Sie haben %total_hours_str% Stunden auf diesem Projekt erfasst</msg>
   <msg key="lt_You_have_logged_total_">Sie haben %total_hours_str% Stunden auf dieses Projekt erfasst</msg>
   <msg key="lt_You_have_no_rights_to">Sie haben unzureichende Berechtigungen, um diese Seite zu sehen.</msg>
   <msg key="lt_You_havent_logged_you">Sie haben in der letzen Woche keine Stunden erfaßt, bitte %log_them_now_link% tun Sie das jetzt</msg>
@@ -263,6 +270,7 @@
   <msg key="New_Absence">Neue Abwesenheit</msg>
   <msg key="New_Absence_Type">Neue %absence_type% </msg>
   <msg key="New_Bank_Holiday">Neuer Feiertag</msg>
+  <msg key="New_Hours">Neue Zeiterfassung Stunde</msg>
   <msg key="New_Personal_Absence">Neue Abwesenheit (privat)</msg>
   <msg key="New_Sick_Leave">Neue Abwesenheit (Krankheit)</msg>
   <msg key="New_Travel_Absence">Neue Abwesenheit (Reise)</msg>
@@ -303,6 +311,7 @@
   <msg key="Profile_Employees">Mitarbeiter</msg>
   <msg key="Profile_Helpdesk">Helpdesk</msg>
   <msg key="Profile_Project_Managers">Projektmanager</msg>
+  <msg key="Profile_Registered_Users">Registrierte Benutzer</msg>
   <msg key="Profile_Sales">Verkauf</msg>
   <msg key="Profile_Senior_Managers">Senior Manager</msg>
   <msg key="Profile_Skill_Profile">Fähigkeitsprofil</msg>
@@ -379,6 +388,7 @@
   <msg key="user_not_logged_in">Benutzer nicht angemeldet</msg>
   <msg key="Users">Benutzer</msg>
   <msg key="V">V</msg>
+  <msg key="Vacation_Balance">Verbleibende Urlaubstage</msg>
   <msg key="Vacation_Balance_From_Last_Year">Resturlaub Vorjahr</msg>
   <msg key="Vacation_Days_per_Year">Urlaubsanspruch</msg>
   <msg key="Vacation_Days_Planned">Urlaub geplant</msg>

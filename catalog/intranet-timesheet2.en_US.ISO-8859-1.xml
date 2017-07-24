@@ -158,7 +158,7 @@
   <msg key="Last_3_Weeks">Last 3 weeks</msg>
   <msg key="Local">Local</msg>
   <msg key="Log_Absences">Log Absences</msg>
-  <msg key="Log_Absences_for_user_name">Log absences for user name</msg>
+  <msg key="Log_Absences_for_user_name">Log absences for %user_name%</msg>
   <msg key="log_dedication">log dedication</msg>
   <msg key="Log_Hours">Log Hours</msg>
   <msg key="log_hours">log hours</msg>
