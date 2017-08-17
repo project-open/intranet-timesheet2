@@ -13,6 +13,7 @@
   <msg key="Absence_Type_1">Absence Type</msg>
   <msg key="Absences">Absences</msg>
   <msg key="absences">absences</msg>
+  <msg key="Absences_Color_Codes">Absence Color Codes</msg>
   <msg key="Absences_Dashboard">Absences Dashboard</msg>
   <msg key="Absences_for_user">Absences for %user_name%</msg>
   <msg key="Absences_List">Absences List</msg>
