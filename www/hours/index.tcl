@@ -423,17 +423,25 @@ set end_date [db_string start_date "select to_char(now()::date+31, 'YYYY-MM-01')
 set default_date [db_list date_default "select to_char(:date::date, 'YYYY-MM-01')"]
 
 set month_options_sql "
-	select
-		to_char(im_day_enumerator, 'Mon YYYY') as date_pretty,
+	select	to_char(im_day_enumerator, 'Mon YYYY') as date_pretty,
+		to_char(im_day_enumerator, 'Month') as month_english,
+		to_char(im_day_enumerator, 'MM') as month_of_year,
+		to_char(im_day_enumerator, 'YYYY') as year,
 		to_char(im_day_enumerator, 'YYYY-MM-DD') as date
-	from
-		im_day_enumerator(:start_date::date, :end_date::date)
-	where
-		to_char(im_day_enumerator, 'DD') = '01'
+	from	im_day_enumerator(:start_date::date, :end_date::date)
+	where	to_char(im_day_enumerator, 'DD') = '01'
 	order by
 		im_day_enumerator DESC
 "
-set month_options [db_list_of_lists month_options $month_options_sql]
+set month_options [list]
+set month_list_l10n [lang::message::lookup "" acs-lang.localization-mon]
+regsub -all {[\{\}]} $month_list_l10n "" month_list_l10n
+db_foreach months $month_options_sql {
+    set month_nr [expr [string trimleft $month_of_year 0] - 1]
+    set month_l10n [lindex $month_list_l10n $month_nr]
+    lappend month_options [list "$month_l10n $year" $date]
+}
+# set month_options [db_list_of_lists month_options $month_options_sql]
 
 
 set left_navbar_html "
