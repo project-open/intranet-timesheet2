@@ -7,10 +7,14 @@
   <msg key="Absence">Absence</msg>
   <msg key="Absence_absence_type">Absence Type</msg>
   <msg key="Absence_Duplicate_Start">Duplicate Start</msg>
+  <msg key="Absence_end_date_help">Last days of absence. For a one day absence please enter start date = end date.</msg>
   <msg key="Absence_Name">Name</msg>
   <msg key="Absence_status_3letter_Req">Req</msg>
   <msg key="Absence_Type">Absence Type:</msg>
   <msg key="Absence_Type_1">Absence Type</msg>
+  <msg key="AbsenceCubeNotShownAllAbsences">Graphical view of absences not available for Timescale option &#39;All&#39;. Please choose a different option.</msg>
+  <msg key="AbsenceCubeNotShownGreateOneYear">Graphical view of absences only available for periods less than 1 year</msg>
+  <msg key="AbsenceCubeNotShownPastAbsences">Graphical view of absences not available for Timescale option &#39;Past&#39;. Please choose a different option.</msg>
   <msg key="Absences">Absences</msg>
   <msg key="absences">absences</msg>
   <msg key="Absences_Color_Codes">Absence Color Codes</msg>
@@ -144,7 +148,7 @@
   <msg key="Import_Absences_from_CSV">Import Absences from CSV</msg>
   <msg key="Import_Financial_Items_from_CSV">Import Financial Items from CSV</msg>
   <msg key="Import_Hours_from_CSV">Import Hours from CSV</msg>
-  <msg key="Import_Risk_CSV">Risiko CSV importieren</msg>
+  <msg key="Import_Risk_CSV">Import Risk CSV</msg>
   <msg key="Internal_Comment">Internal Comment</msg>
   <msg key="J">J</msg>
   <msg key="January">January</msg>
@@ -292,6 +296,7 @@ of those units were billed hourly, for a total amount of</msg>
   <msg key="No_hours_logged">No hours logged!</msg>
   <msg key="No_Users_found">No Users found!</msg>
   <msg key="No_users_found">No users found</msg>
+  <msg key="Nolog_closed_p">The project or one of its parents has been closed or requires membership.</msg>
   <msg key="none">none</msg>
   <msg key="Not_member_of_project">You are not a member of this project.</msg>
   <msg key="Not_Member_of_Projects">You are not a member of any open project.</msg>
@@ -372,6 +377,8 @@ of those units were billed hourly, for a total amount of</msg>
   <msg key="Time_Period">Time Period</msg>
   <msg key="Timescale">Timescale:</msg>
   <msg key="Timesheet">Timesheet</msg>
+  <msg key="Timesheet_Dashboard">Timesheet Dashboard</msg>
+  <msg key="Timesheet_Filters">Timesheet Filters</msg>
   <msg key="Timesheet_for_user_name">Timesheet for %user_name%</msg>
   <msg key="Timesheet_Summary">Timesheet Summary</msg>
   <msg key="Timesheet_Weekly_Report">Timesheet - Weekly Report</msg>
