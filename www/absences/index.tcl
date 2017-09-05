@@ -226,12 +226,12 @@ db_foreach column_list_sql $column_sql {
 # ---------------------------------------------------------------
 
 # absences_types
-set absences_type_sql "select absence_type_id, absence_type from im_user_absence_types order by lower(absence_type)"
+set absences_type_sql "select absence_type_id as type_id, absence_type as type from im_user_absence_types order by lower(absence_type)"
 set absence_type_list [list [lang::message::lookup "" intranet-timesheet2.All "All"] ]
 db_foreach select_absences_types $absences_type_sql {
-    regsub -all " " $absence_type "_" absence_type_key
-    set text [lang::message::lookup "" intranet-core.$absence_type_key $absence_type]
-    lappend absence_type_list [list $text $absence_type_id]
+    regsub -all " " $type "_" type_key
+    set text [lang::message::lookup "" intranet-core.$type_key $type]
+    lappend absence_type_list [list $text $type_id]
 }
 
 
@@ -384,6 +384,8 @@ set where_clause [join $criteria " and\n	    "]
 if { $where_clause ne "" } {
     set where_clause " and $where_clause"
 }
+
+# ad_return_complaint 1 "<pre>$where_clause<br>$absence_type_id</pre>"
 
 set sql "
 	select
