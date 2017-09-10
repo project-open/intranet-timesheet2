@@ -9,14 +9,14 @@
   <msg key="Absence_Duplicate_Start">Doppeltes Startdatum</msg>
   <msg key="Absence_Name">Name</msg>
   <msg key="Absence_status_3letter_Req">Req</msg>
-  <msg key="Absence_Type">Typ Abwesenheit:</msg>
+  <msg key="Absence_Type">Abwesenheits-Typ:</msg>
   <msg key="Absence_Type_1">Typ Abwesenheit</msg>
   <msg key="Absences">Abwesenheiten</msg>
   <msg key="absences">Abwesenheiten</msg>
-  <msg key="Absences_Color_Codes">Abwesenheiten Farbcodes</msg>
-  <msg key="Absences_Dashboard">Abwesenheiten Dashboard</msg>
+  <msg key="Absences_Color_Codes">Abwesenheiten - Farbcodes</msg>
+  <msg key="Absences_Dashboard">Abwesenheits-Dashboard</msg>
   <msg key="Absences_for_user">Abwesenheiten für Benutzer</msg>
-  <msg key="Absences_List">Absenzen Liste</msg>
+  <msg key="Absences_List">Abwesenheits-Liste</msg>
   <msg key="Absences_Next_Year">Nächstes Jahr</msg>
   <msg key="Absences_This_Year">Dieses Jahr</msg>
   <msg key="Absent">Abwesend</msg>
@@ -70,7 +70,7 @@
   <msg key="Country">Land</msg>
   <msg key="Currency">Währung</msg>
   <msg key="Customers">Kunden</msg>
-  <msg key="CustomTimescale">Start / Ende Datum</msg>
+  <msg key="CustomTimescale">Start-/Enddatum</msg>
   <msg key="D">D</msg>
   <msg key="Daily_project_notes">Tägliche Projektnotizen</msg>
   <msg key="Date">Datum</msg>
@@ -102,7 +102,7 @@
   <msg key="Edit_Absence">Abwesenheit bearbeiten</msg>
   <msg key="Employee">Mitarbeiter</msg>
   <msg key="Employees">Mitarbeiter</msg>
-  <msg key="End_Date">Endedatum</msg>
+  <msg key="End_Date">Enddatum</msg>
   <msg key="Ending">Ende</msg>
   <msg key="equals">ist gleich</msg>
   <msg key="Euro_Converter">Euro Konverter</msg>
@@ -111,7 +111,7 @@
   <msg key="Excel_hour_report">Excel Stundenbericht</msg>
   <msg key="Expense_Code">Kostencode</msg>
   <msg key="Expense_Dedication">Kostenaufwand</msg>
-  <msg key="Export_Absences_to_CSV">Absenzen nach CSV exportieren</msg>
+  <msg key="Export_Absences_to_CSV">Abwesenheiten nach CSV exportieren</msg>
   <msg key="Export_Financial_Items_to_CSV">Finanzen nach CSV exportieren</msg>
   <msg key="Export_Hours_to_CSV">Geloggte Stunden nach CSV exportieren</msg>
   <msg key="F">F</msg>
@@ -141,7 +141,7 @@
   <msg key="Hours_Summary">Zusammenfassung Stunden</msg>
   <msg key="hours_units">%hours% Stunden</msg>
   <msg key="I">I</msg>
-  <msg key="Import_Absences_from_CSV">Absenzen von CSV importieren</msg>
+  <msg key="Import_Absences_from_CSV">Abwesenheiten von CSV importieren</msg>
   <msg key="Import_Financial_Items_from_CSV">Finanzen von CSV importieren</msg>
   <msg key="Import_Hours_from_CSV">Geloggte Stunden von CSV importieren</msg>
   <msg key="Import_Risk_CSV">Risiko CSV importieren</msg>
@@ -159,7 +159,7 @@
   <msg key="Last_3_Weeks">Letzte 3 Wochen</msg>
   <msg key="Local">Lokal</msg>
   <msg key="Log_Absences">Abwesenheiten melden</msg>
-  <msg key="Log_Absences_for_user_name">Absenzen erfassen für %user_name%</msg>
+  <msg key="Log_Absences_for_user_name">Abwesenheiten erfassen für %user_name%</msg>
   <msg key="log_dedication">Stunden erfassen</msg>
   <msg key="Log_Hours">Stunden kontieren</msg>
   <msg key="log_hours">Stunden für den Tag erfassen</msg>
@@ -201,7 +201,7 @@
   <msg key="lt_Log_hours_for_a_diffe">Stunden erfassen für einen anderen Tag</msg>
   <msg key="lt_Log_hours_for_a_diffe_1">Melde Stunden für eine andere Woche</msg>
   <msg key="lt_Log_hours_on_selected">Melde Stunden in den ausgewählten Projekten</msg>
-  <msg key="lt_Log_your_log_hours_li">Erfassen sie ihre %log_hours_link% Stunden</msg>
+  <msg key="lt_Log_your_log_hours_li">Erfassen Sie Ihre %log_hours_link% Stunden</msg>
   <msg key="lt_Log_your_log_hours_li_1">Erfassen sie ihre %log_hours_link% Stunden</msg>
   <msg key="lt_MOST_COMMON_EXCHANGE_">HÄUFIGSTE WECHSELKURSE</msg>
   <msg key="lt_new_instructions_here">Neue Anweisungen hier.</msg>
@@ -240,9 +240,9 @@
   <msg key="lt_User_user_id_does_not">Benutzer #%user_id% existiert nicht</msg>
   <msg key="lt_User_user_id_does_not_1">Benutzer #%user_id% existiert nicht. Bitte gehen sie zurück und probieren sie noch einmal</msg>
   <msg key="lt_View_hours_logged_by_">Erfaßte Stunden pro Projektmitglied</msg>
-  <msg key="lt_View_hours_logged_dur">Alle erfaßten Stunden der letzen Woche</msg>
-  <msg key="lt_View_the_hours_logged">Erfaßte Stunden einer anderen Person</msg>
-  <msg key="lt_View_time_spent_on_al">Alle erfaßte Stunden in allen Projekten</msg>
+  <msg key="lt_View_hours_logged_dur">Alle erfassten Stunden der letzten Woche</msg>
+  <msg key="lt_View_the_hours_logged">Erfasste Stunden einer anderen Person</msg>
+  <msg key="lt_View_time_spent_on_al">Alle erfassten Stunden in allen Projekten</msg>
   <msg key="lt_View_your_hours_on_al">Ihre Stunden in allen Projekten</msg>
   <msg key="lt_We_couldnt_find_absen">Wir können die Abwesenheitsnummer %absence_id% nicht finden; Ohh... Es kann etwas nicht mit unserer Seite stimmen!</msg>
   <msg key="lt_We_couldnt_find_the_u">Es wurde keine Benutzer Nummer%user_id% in der Datenbank gefunden. Bitte Sicherungskopie erstellen, neu laden und erneut versuchen. </msg>
@@ -256,7 +256,7 @@
   <msg key="lt_You_have_loged_total_">Sie haben %total_hours_str% Stunden auf diesem Projekt erfasst</msg>
   <msg key="lt_You_have_logged_total_">Sie haben %total_hours_str% Stunden auf dieses Projekt erfasst</msg>
   <msg key="lt_You_have_no_rights_to">Sie haben unzureichende Berechtigungen, um diese Seite zu sehen.</msg>
-  <msg key="lt_You_havent_logged_you">Sie haben in der letzen Woche keine Stunden erfaßt, bitte %log_them_now_link% tun Sie das jetzt</msg>
+  <msg key="lt_You_havent_logged_you">Sie haben in der letzten Woche keine Stunden erfasst, bitte %log_them_now_link% tun Sie das jetzt</msg>
   <msg key="lt_You_logged_num_hours_">Sie haben %num_hours% Stunden in den letzten 7 Tagen erfaßt.</msg>
   <msg key="M">M</msg>
   <msg key="Mar">März</msg>
@@ -271,11 +271,11 @@
   <msg key="New_Absence">Neue Abwesenheit</msg>
   <msg key="New_Absence_Type">Neue %absence_type% </msg>
   <msg key="New_Bank_Holiday">Neuer Feiertag</msg>
-  <msg key="New_Hours">Neue Zeiterfassung Stunde</msg>
+  <msg key="New_Hours">Neue Zeiterfassung - Stunde</msg>
   <msg key="New_Personal_Absence">Neue Abwesenheit (privat)</msg>
   <msg key="New_Sick_Leave">Neue Abwesenheit (Krankheit)</msg>
   <msg key="New_Travel_Absence">Neue Abwesenheit (Reise)</msg>
-  <msg key="New_Vacation_Absence">Neu Abwesenheit (Urlaub)</msg>
+  <msg key="New_Vacation_Absence">Neue Abwesenheit (Urlaub)</msg>
   <msg key="Next_3_Month">Nächste 3 Monate</msg>
   <msg key="Next_3_Weeks">Nächste 3 Wochen</msg>
   <msg key="Next_Month">Nächster Monat</msg>
@@ -305,7 +305,7 @@
   <msg key="own_hours">eigene Stunden</msg>
   <msg key="P">P</msg>
   <msg key="Paid_by_Co">Von der Firma bereits bezahlt?</msg>
-  <msg key="Past">Vergangen</msg>
+  <msg key="Past">Vergangenheit</msg>
   <msg key="Percentage">Prozent</msg>
   <msg key="Printer_Friendly">Druckerfreundliche Version</msg>
   <msg key="Profile_Accounting">Buchhaltung</msg>
@@ -317,7 +317,7 @@
   <msg key="Profile_Senior_Managers">Senior Manager</msg>
   <msg key="Profile_Skill_Profile">Fähigkeitsprofil</msg>
   <msg key="Project">Projekt</msg>
-  <msg key="Project_br_Name">Projekt&lt;br&gt;Name</msg>
+  <msg key="Project_br_Name">Projekt-&lt;br&gt;Name</msg>
   <msg key="Project_History">Projekthistorie</msg>
   <msg key="Project_name">Aufgabenname</msg>
   <msg key="Project_Summaries">Projektzusammenfassung</msg>
@@ -365,8 +365,8 @@
   <msg key="Timesheet">Zeiterfassung</msg>
   <msg key="Timesheet_for_user_name">Zeiterfassung für %user_name%</msg>
   <msg key="Timesheet_Summary">Zusammenfassung Stunden</msg>
-  <msg key="Timesheet_Weekly_Report">Zeiterfassung Wöchentlicher Bericht</msg>
-  <msg key="TimesheetFilters">Zeiterfassung Filter</msg>
+  <msg key="Timesheet_Weekly_Report">Zeiterfassung - Wöchentlicher Bericht</msg>
+  <msg key="TimesheetFilters">Zeiterfassung filtern</msg>
   <msg key="to">an</msg>
   <msg key="ToConfirm">Zu bestätigen</msg>
   <msg key="Today">Heute</msg>
@@ -375,7 +375,7 @@
   <msg key="Total_1">Gesamtsumme</msg>
   <msg key="Total_Amount">Gesamtsumme</msg>
   <msg key="Total_Euros">Gesamtsumme EUR</msg>
-  <msg key="TotalAbsences">Gesamt Abwesenheiten</msg>
+  <msg key="TotalAbsences">Abwesenheiten Total</msg>
   <msg key="Training">Schulung</msg>
   <msg key="Tuesday">Dienstag</msg>
   <msg key="Type">Typ</msg>
@@ -408,7 +408,7 @@
   <msg key="Wednesday">Mittwoch</msg>
   <msg key="Week">Woche</msg>
   <msg key="Week_total">Woche total</msg>
-  <msg key="Week_total_1">Woche gesamt</msg>
+  <msg key="Week_total_1">Woche Total</msg>
   <msg key="Weekly_hours">Wöchentliche Stunden</msg>
   <msg key="Work_done">Geleistete Arbeit - Kommentierung</msg>
   <msg key="Workdays">Arbeitstage</msg>
@@ -419,7 +419,7 @@
 
   erfasst von erforderlichen %expected_hours% Stunden in den letzten %num_days% Tagen.
 
-  Bitte aktualisieren Sie ihre Stunden oder setzen Sie sich mit Ihrem Vorgesetzten in Verbindung.
+  Bitte aktualisieren Sie Ihre Stunden oder setzen Sie sich mit Ihrem Vorgesetzten in Verbindung.
 
   </msg>
   <msg key="Your_hours">Ihre Stunden</msg>
