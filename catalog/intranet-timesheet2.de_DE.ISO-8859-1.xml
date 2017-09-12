@@ -7,10 +7,14 @@
   <msg key="Absence">Abwesenheit</msg>
   <msg key="Absence_absence_type">Typ Abwesenheit</msg>
   <msg key="Absence_Duplicate_Start">Doppeltes Startdatum</msg>
+  <msg key="Absence_end_date_help">Der letzte Tag einer Abwesenheit. Für eine eintägige Abwesenheit geben Sie bitte Startdatum = Enddatum ein.</msg>
   <msg key="Absence_Name">Name</msg>
   <msg key="Absence_status_3letter_Req">Req</msg>
   <msg key="Absence_Type">Abwesenheits-Typ:</msg>
   <msg key="Absence_Type_1">Typ Abwesenheit</msg>
+  <msg key="AbsenceCubeNotShownAllAbsences">Die grafische Darstellung von Abwesenheiten ist nicht verfügbar für die Zeitleisten-Option &#39;Alle&#39;. Bitte wählen Sie eine andere Option.</msg>
+  <msg key="AbsenceCubeNotShownGreateOneYear">Die grafische Darstellung von Abwesenheiten ist nur für Perioden von weniger als einem Jahr verfügbar.</msg>
+  <msg key="AbsenceCubeNotShownPastAbsences">Die grafische Darstellung von Abwesenheiten ist nicht verfügbar für die Zeitleisten-Option &#39;Vergangenheit&#39;. Bitte wählen Sie eine andere Option.</msg>
   <msg key="Absences">Abwesenheiten</msg>
   <msg key="absences">Abwesenheiten</msg>
   <msg key="Absences_Color_Codes">Abwesenheiten - Farbcodes</msg>
@@ -113,7 +117,7 @@
   <msg key="Expense_Dedication">Kostenaufwand</msg>
   <msg key="Export_Absences_to_CSV">Abwesenheiten nach CSV exportieren</msg>
   <msg key="Export_Financial_Items_to_CSV">Finanzen nach CSV exportieren</msg>
-  <msg key="Export_Hours_to_CSV">Geloggte Stunden nach CSV exportieren</msg>
+  <msg key="Export_Hours_to_CSV">Erfasste Zeiten nach CSV exportieren</msg>
   <msg key="F">F</msg>
   <msg key="February">Februar</msg>
   <msg key="Filter">Filter</msg>
@@ -143,8 +147,8 @@
   <msg key="I">I</msg>
   <msg key="Import_Absences_from_CSV">Abwesenheiten von CSV importieren</msg>
   <msg key="Import_Financial_Items_from_CSV">Finanzen von CSV importieren</msg>
-  <msg key="Import_Hours_from_CSV">Geloggte Stunden von CSV importieren</msg>
-  <msg key="Import_Risk_CSV">Risiko CSV importieren</msg>
+  <msg key="Import_Hours_from_CSV">Erfasste Zeiten von CSV importieren</msg>
+  <msg key="Import_Risk_CSV">Risiko von CSV importieren</msg>
   <msg key="Internal_Comment">Interner Kommentar</msg>
   <msg key="J">J</msg>
   <msg key="January">Januar</msg>
@@ -173,7 +177,7 @@
   <msg key="lt_All_the_fields_should_1">Alle Felder müssen vorm  %action% ausgefüllt sein.</msg>
   <msg key="lt_based_select_hours_pe">%based_select% Stunden pro Woche</msg>
   <msg key="lt_Choose_an_employee_to">Wählen sie einen Miterbeiter, um seine erfaßten Stunden zu sehen</msg>
-  <msg key="lt_Click_me_for_download">Clicken sie hier um den Bericht als report.csv-Datei herunterzuladen</msg>
+  <msg key="lt_Click_me_for_download">Bericht nach CSV exportieren</msg>
   <msg key="lt_Click_on_a_persons_na">Clicken sie auf eine Person, um die erfaßte Stunden anzuzeigen</msg>
   <msg key="lt_Click_on_a_project_na">Clicken sie auf ein Projekt um die erfaßten Stunden pro Person anzuzeigen</msg>
   <msg key="lt_Dedication_days_repor">Stundenbericht</msg>
@@ -271,7 +275,7 @@
   <msg key="New_Absence">Neue Abwesenheit</msg>
   <msg key="New_Absence_Type">Neue %absence_type% </msg>
   <msg key="New_Bank_Holiday">Neuer Feiertag</msg>
-  <msg key="New_Hours">Neue Zeiterfassung - Stunde</msg>
+  <msg key="New_Hours">Zeiten erfassen</msg>
   <msg key="New_Personal_Absence">Neue Abwesenheit (privat)</msg>
   <msg key="New_Sick_Leave">Neue Abwesenheit (Krankheit)</msg>
   <msg key="New_Travel_Absence">Neue Abwesenheit (Reise)</msg>
@@ -283,6 +287,7 @@
   <msg key="No_hours_logged">Keine Stunden erfaßt</msg>
   <msg key="No_Users_found">Kein Benutzer gefunden.</msg>
   <msg key="No_users_found">Keine Benutzer gefunden.</msg>
+  <msg key="Nolog_closed_p">Das Projekt oder eines der Oberprojekte ist geschlossen oder benötigt Mitgliedschaft.</msg>
   <msg key="none">kein</msg>
   <msg key="Not_member_of_project">Sie sind nicht Mitglied dieses Projekts.</msg>
   <msg key="Not_Member_of_Projects">Sie sind derzeit in keinem offenen Projekt Mitglied.</msg>
@@ -363,6 +368,8 @@
   <msg key="Time_Period">Zeitraum</msg>
   <msg key="Timescale">Zeitskala</msg>
   <msg key="Timesheet">Zeiterfassung</msg>
+  <msg key="Timesheet_Dashboard">Zeiterfassung-Dashboard</msg>
+  <msg key="Timesheet_Filters">Zeiterfassung Filter</msg>
   <msg key="Timesheet_for_user_name">Zeiterfassung für %user_name%</msg>
   <msg key="Timesheet_Summary">Zusammenfassung Stunden</msg>
   <msg key="Timesheet_Weekly_Report">Zeiterfassung - Wöchentlicher Bericht</msg>
