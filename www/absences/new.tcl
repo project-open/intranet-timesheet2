@@ -39,8 +39,7 @@ if {"" == $return_url} { set return_url "/intranet-timesheet2/absences/index" }
 set focus "absence.var_name"
 set date_format "YYYY-MM-DD"
 set date_time_format "YYYY MM DD"
-set absence_type "Absence"
-
+set absence_type [lang::message::lookup "" intranet-timesheet2.Absence "Absence"]
 
 # Custom redirect? You should change all links to this
 # page to the new URL, but sometimes you miss links...
@@ -59,7 +58,7 @@ if {[info exists absence_id]} {
 
     set old_absence_type_id [db_string type "select absence_type_id from im_user_absences where absence_id = :absence_id" -default 0]
     if {0 != $old_absence_type_id} { set absence_type_id $old_absence_type_id }
-    set absence_type [im_category_from_id $absence_type_id]
+    set absence_type [im_category_from_id -translate_p 1 $absence_type_id]
 
     if {![ad_form_new_p -key absence_id]} {
 	set absence_exists_p [db_string count "select count(*) from im_user_absences where absence_id=:absence_id"]
