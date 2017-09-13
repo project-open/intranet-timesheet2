@@ -207,10 +207,12 @@ set absences_link_text [lang::message::lookup "" intranet-timesheet2.Log_Absence
 db_1row user_name_and_date "
 select 
 	im_name_from_user_id(user_id) as user_name,
-	to_char(to_date(:julian_date, 'J'), 'fmDay fmMonth fmDD, YYYY') as pretty_date
+	to_char(to_date(:julian_date, 'J'), 'fmDay fmMonth fmDD, YYYY') as pretty_date_english,
+	to_char(to_date(:julian_date, 'J'), 'YYYY-MM-DD HH24:MI:SS') as datetime
 from	users
 where	user_id = :user_id_from_search" 
 
+set pretty_date [lc_time_fmt $datetime "%Q"]
 
 # ---------------------------------------------------------
 # Calculate the <- -> buttons at the top of the timesheet page.
