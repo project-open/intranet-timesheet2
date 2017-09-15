@@ -64,6 +64,7 @@
   <msg key="Choose_projects_for_user">Choose projects for user %user_name_from_search%</msg>
   <msg key="Color_codes">Color Codes</msg>
   <msg key="comma_separated">comma separated</msg>
+  <msg key="Comment">Comment</msg>
   <msg key="Comp_VISA">Comp. VISA?</msg>
   <msg key="Companies">Companies</msg>
   <msg key="Company">Company</msg>
@@ -109,6 +110,7 @@
   <msg key="End_Date">End Date</msg>
   <msg key="Ending">Ending:</msg>
   <msg key="equals">equals</msg>
+  <msg key="Estimate_to_Complete">Estimate to Complete</msg>
   <msg key="Euro_Converter">Euro Converter</msg>
   <msg key="Euro_converter">Euro converter</msg>
   <msg key="Eurocalculator">Eurocalculator</msg>
@@ -149,6 +151,7 @@
   <msg key="Import_Financial_Items_from_CSV">Import Financial Items from CSV</msg>
   <msg key="Import_Hours_from_CSV">Import Hours from CSV</msg>
   <msg key="Import_Risk_CSV">Import Risk CSV</msg>
+  <msg key="Indicator">Indicator</msg>
   <msg key="Internal_Comment">Internal Comment</msg>
   <msg key="J">J</msg>
   <msg key="January">January</msg>
@@ -413,6 +416,7 @@ of those units were billed hourly, for a total amount of</msg>
   <msg key="Vacation_Left_for_Period">Vacation Left For Period</msg>
   <msg key="Vacation_Taken_This_Year">Vacation Taken This Year</msg>
   <msg key="Valid_for_Group">Valid For Group</msg>
+  <msg key="Value">Value</msg>
   <msg key="View">View</msg>
   <msg key="View_Absence">View Absence</msg>
   <msg key="View_all_Absences">View all Absences</msg>
