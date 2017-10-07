@@ -271,7 +271,8 @@ set log_hours_on_potential_project_p [parameter::get_from_package_key -package_k
 
 set list_sort_order [parameter::get_from_package_key -package_key "intranet-timesheet2" -parameter TimesheetAddHoursSortOrder -default "order"]
 
-set show_project_nr_p [parameter::get_from_package_key -package_key "intranet-core" -parameter ShowProjectNrAndProjectNameP -default 0]
+set show_project_nr_p [parameter::get_from_package_key -package_key "intranet-timeshee2" -parameter ShowProjectNrAndProjectNameP -default 0]
+set show_company_p [parameter::get_from_package_key -package_key "intranet-timesheet2" -parameter ShowProjectNameAndCompanyNameP -default 0]
 
 # Should we allow users to log hours on a parent project, even though it has children?
 set log_hours_on_parent_with_children_p [parameter::get_from_package_key -package_key "intranet-timesheet2" -parameter LogHoursOnParentWithChildrenP -default 1]
@@ -611,7 +612,7 @@ if {$show_etc_p} {
 
 
 set sql "
-	select
+	select	cust.company_name,
 		parent.project_id as top_project_id,
 		parent.parent_id as top_parent_id,
 		parent.project_name as top_parent_project_name,
@@ -633,11 +634,12 @@ set sql "
 		$sort_order as sort_order
 	from
 		im_projects parent,
+		im_companies cust,
 		im_projects children
 		LEFT OUTER JOIN im_timesheet_tasks t ON (children.project_id = t.task_id)
 		LEFT OUTER JOIN acs_rels r ON (children.project_id = r.object_id_one and r.object_id_two = :current_user_id)
 		LEFT OUTER JOIN im_biz_object_members bom ON (bom.rel_id = r.rel_id)
-	where
+	where	parent.company_id = cust.company_id and
 		parent.parent_id is null
 		and children.tree_sortkey between 
 			parent.tree_sortkey and 
@@ -1030,7 +1032,9 @@ template::multirow foreach hours_multirow {
 
     # Set project title & URL
     set project_url [export_vars -base "/intranet/projects/view?" {project_id return_url}]
-    if {$show_project_nr_p} { set ptitle "$project_nr - $project_name" } else { set ptitle $project_name }
+    set ptitle $project_name
+    if {$show_project_nr_p} { set ptitle "$project_nr - $project_name" } 
+    if {$show_company_p} { set ptitle "$project_name <b>($company_name)</b>" }
 
     if { !$filter_surpress_output_p } { 
 	if { !$top_parent_shown_p && $project_id != $top_project_id && "" != $search_task } {
