@@ -271,7 +271,7 @@ set log_hours_on_potential_project_p [parameter::get_from_package_key -package_k
 
 set list_sort_order [parameter::get_from_package_key -package_key "intranet-timesheet2" -parameter TimesheetAddHoursSortOrder -default "order"]
 
-set show_project_nr_p [parameter::get_from_package_key -package_key "intranet-timeshee2" -parameter ShowProjectNrAndProjectNameP -default 0]
+set show_project_nr_p [parameter::get_from_package_key -package_key "intranet-timesheet2" -parameter ShowProjectNrAndProjectNameP -default 0]
 set show_company_p [parameter::get_from_package_key -package_key "intranet-timesheet2" -parameter ShowProjectNameAndCompanyNameP -default 0]
 
 # Should we allow users to log hours on a parent project, even though it has children?
