@@ -8,7 +8,7 @@
     <singleton-p>t</singleton-p>
     <auto-mount>intranet-timesheet2</auto-mount>
 
-    <version name="5.0.2.4.0" url="http://www.project-open.net/download/apm/intranet-timesheet2-5.0.2.4.0.apm">
+    <version name="5.0.2.4.1" url="http://www.project-open.net/download/apm/intranet-timesheet2-5.0.2.4.1.apm">
         <owner url="mailto:frank.bergmann@project-open.com">Frank Bergmann</owner>
         <release-date>2004-02-07</release-date>
         <vendor url="http://www.project-open.com/">]project-open[</vendor>
@@ -43,6 +43,7 @@
             <parameter datatype="number"  min_n_values="1"  max_n_values="1"  name="TimesheetLastMonthClosingDay"  default="0" description="Should an Employee be able to edit his or her hours of the last month? Default is &quot;0&quot;, indicating that there is no closing date. Please enter a number from 1 to 27 (for example: &quot;5&quot;) to activate a closing day functionality, indicate that the last month becomes &quot;closed&quot; at the 5th of the current month."/>
             <parameter datatype="number"  min_n_values="1"  max_n_values="1"  name="TimesheetLimitToOneDayPerUserAndMainProjectP"  default="0" description="Should we limit the number of days(!) to 1.0, that one user can log on a single main-project? A customer would be surprised to find more then one day billed for a single calendar day. The default value is 0 (disabled)."/>
             <parameter datatype="number"  min_n_values="1"  max_n_values="1"  name="TimesheetLogHoursOnPotentialProjectsP"  default="1" description="Are users allowed to log hours on potential projects? That makes sense for presales guys in a consulting company, but not for IT staff in an IT department."/>
+            <parameter datatype="number"  min_n_values="1"  max_n_values="1"  name="TimesheetLogHoursOnFutureProjectsP"  default="1" description="Are users allowed to log hours on tasks with a start_date in the future? Default is '1', because it sometimes happens that tasks start early."/>
             <parameter datatype="number"  min_n_values="1"  max_n_values="1"  name="TimesheetMaxHoursPerDay"  default="999" description="Maximum number of hours that a user may log to a single day."/>
             <parameter datatype="number"  min_n_values="1"  max_n_values="1"  name="TimesheetRedirectHomeIfEmptyHoursP"  default="0" description="Redirect the user from the Home page to the timesheet if there are not enough hours logged?"/>
             <parameter datatype="number"  min_n_values="1"  max_n_values="1"  name="TimesheetRedirectNumDays"  default="7" description="The number of days to check for redirection"/>

@@ -266,11 +266,9 @@ if {$show_week_p} {
 set context_bar [im_context_bar [list index "[_ intranet-timesheet2.Hours]"] "[_ intranet-timesheet2.Add_hours]"]
 
 set permissive_logging [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter PermissiveHourLogging -default "permissive"]
-
 set log_hours_on_potential_project_p [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter TimesheetLogHoursOnPotentialProjectsP -default 1]
-
+set log_hours_on_future_project_p [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter TimesheetLogHoursOnFutureProjectsP -default 1]
 set list_sort_order [parameter::get_from_package_key -package_key "intranet-timesheet2" -parameter TimesheetAddHoursSortOrder -default "order"]
-
 set show_project_nr_p [parameter::get_from_package_key -package_key "intranet-timesheet2" -parameter ShowProjectNrAndProjectNameP -default 0]
 set show_company_p [parameter::get_from_package_key -package_key "intranet-timesheet2" -parameter ShowProjectNameAndCompanyNameP -default 0]
 
@@ -517,6 +515,7 @@ switch $task_visibility_scope {
 				from	acs_rels r
 				where	r.object_id_two = :user_id_from_search
 	"
+
     }
 }
 
@@ -622,6 +621,7 @@ set sql "
 		children.project_name as project_name,
 		children.project_status_id as project_status_id,
 		children.project_type_id as project_type_id,
+		(children.start_date > now()) as future_p,
 		coalesce(children.percent_completed, 0.0) as percent_completed,
 		im_category_from_id(children.project_status_id) as project_status,
 		parent.project_id as parent_project_id,
@@ -931,6 +931,9 @@ template::multirow foreach hours_multirow {
 	}
     }
 
+    # Allow to log on future projects? Then just say everything is in the past...
+    if {$log_hours_on_future_project_p} { set future_p "f" }
+
     # --------------------------------------------- 
     # Pull out information about the project. Variables:
     #
@@ -996,7 +999,7 @@ template::multirow foreach hours_multirow {
     # ---------------------------------------------
     # Final decision: Should we log or not?
     # Check if the current tree-branch-status is "closed"
-    set closed_p [expr $closed_status == [im_project_status_closed] || [lsearch $closed_stati $project_status_id] > -1]
+    set closed_p [expr $closed_status == [im_project_status_closed] || [lsearch $closed_stati $project_status_id] > -1 || "t" eq $future_p]
 
     # ---------------------------------------------
     # Indent the project line
@@ -1061,6 +1064,7 @@ template::multirow foreach hours_multirow {
     if {$solitary_main_project_p} { 
 	append help_text [lang::message::lookup "" intranet-timesheet2.Nolog_solitary_main_project_p "This is a 'solitary' main project. Your system is configured in such a way, that you can't log hours on it. "] 
     }
+    if {"t" eq $future_p} { append help_text [lang::message::lookup "" intranet-timesheet2.Nolog_future_p "The task will start in the future."] }
     
     # Not a member: This isn't relevant in all modes:
     switch $task_visibility_scope {
