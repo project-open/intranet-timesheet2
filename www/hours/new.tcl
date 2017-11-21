@@ -129,6 +129,7 @@ if { 0 == $hours_allowed_to_register_time_into_future } {
 
 # Estimate to complete?
 set show_etc_p [im_table_exists im_estimate_to_completes]
+set etc_planned_hours_no_default [parameter::get -package_id [apm_package_id_from_key "intranet-estimate-to-complete"] -parameter "EtcDontShowPlannedHoursDefaultP" -default 0]
 
 
 # ---------------------------------------------------------
@@ -1164,6 +1165,7 @@ template::multirow foreach hours_multirow {
 		if {$show_etc_p && "" ne $etc_planned_hours_task && "" ne $etc_assigned_percentage_user && $etc_assigned_percentage_user > 0.0} {
 		    # ETC based on remainting percent_completed
 		    set etc_planned_hours_user [expr round($etc_planned_hours_task * (100.0 - $percent_completed) * 0.1* $etc_assigned_percentage_user / $etc_assigned_percentage_task) / 10.0]
+		    if {$etc_planned_hours_no_default} { set etc_planned_hours_user "" };# Don't show default value if you really want an estimate...
 		    append table_rows "<td width=20><nobr><input name=etc.$project_id size=1 value=$etc_planned_hours_user> [_ intranet-timesheet2.Hours]</nobr></td>\n"
 		}
 	    }
