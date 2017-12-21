@@ -275,47 +275,17 @@ if { "" ne $owner_id && $owner_id != $user_id && ![im_permission $user_id "view_
 }
 
 if { $start_at eq "" && $project_id != 0 } {
-
-    set hours_start_date [db_string get_new_start_at "
-	select	to_char(max(day), :date_format) 
-	from	im_hours 
-	where	project_id = :project_id
-    " -default ""]
-
-    set project_start_date [db_string get_project_start "
-	select	to_char(start_date, :date_format) 
-	from	im_projects
-	where	project_id = :project_id
-    " -default ""]
-
     set todays_date [db_string todays_date "
 	select	to_char(now(), :date_format) 
 	from	dual
     " -default ""]
-
-    set start_at $hours_start_date
-    if {"" == $start_at} { 
-	set start_at $project_start_date 
-    }
-    if {"" == $start_at} { 
-	set start_at $todays_date 
-    }
-    if {"" == $start_at} {
-	ad_return_complaint 1 "Unable to determine start date for project \#$project_id:<br>
-        please set the 'Start Date' of the project"
-	return
-    }
-
+    set start_at $todays_date 
     ad_returnredirect [export_vars -base $return_url {start_at duration project_id owner_id workflow_key}]
-    return
 }
 
+set start_at [db_string get_today "select to_char(next_day(to_date(:start_at, :date_format), 'sun'), :date_format) from dual"]
+set start_at [expr $start_at + 7]
 
-if { $start_at eq "" } {
-    set start_at [db_string get_today "select to_char(next_day(to_date(to_char(sysdate,:date_format),:date_format)+1, 'sun'), :date_format) from dual"]
-} else {
-    set start_at [db_string get_today "select to_char(next_day(to_date(:start_at, :date_format), 'sun'), :date_format) from dual"]
-}
 
 if { $project_id != 0 } {
     set error_msg [lang::message::lookup "" intranet-core.No_name_for_project_id "No Name for project %project_id%"]
@@ -483,7 +453,18 @@ set sql_from_joined [join $sql_from " UNION "]
 set sql_from2_joined [join $sql_from2 " UNION "]
 
 if { $project_id != 0 && $display eq "project"} {
-    set sql_from_imhours "select day, user_id, sum(hours) as val, 'h' as type, '' as descr from im_hours where project_id = :project_id group by user_id, day"
+    set sql_from_imhours "
+	select day, user_id, sum(hours) as val, 'h' as type, '' as descr 
+	from im_hours 
+	where project_id in (
+		select	sub_p.project_id
+		from	im_projects main_p,
+			im_projects sub_p
+		where	main_p.project_id = :project_id and
+			sub_p.tree_sortkey between main_p.tree_sortkey and tree_right(main_p.tree_sortkey)
+	)
+	group by user_id, day
+    "
 } else {
     set sql_from_imhours "select day, user_id, sum(hours) as val, 'h' as type, '' as descr from im_hours group by user_id, day"
 }
