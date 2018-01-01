@@ -258,7 +258,7 @@ ad_proc calendar_basic_month {
             # We are within the normal day of the month.
             set day_ansi [calendar_convert_julian_to_ansi $julian_date]
 
-            ns_log Notice "calendar_basic_month: '$todays_date', '$day_ansi'"
+            # ns_log Notice "calendar_basic_month: '$todays_date', '$day_ansi'"
 
 	    # Set BG color for weekend 
 	    set weekend ""

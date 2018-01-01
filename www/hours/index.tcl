@@ -137,7 +137,6 @@ if {"" ==  $date } {
 }
 
 set julian_date [db_string conv "select to_char(:date::date, 'J')"]
-ns_log Notice "/intranet-timesheet2/index: date=$date, julian_date=$julian_date"
 
 # Set last day of month: 
 set last_day_of_month_ansi [db_string get_last_day_month "select date_trunc('month',add_months(:date,1))::date - 1" -default 0]
@@ -239,7 +238,7 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
     	"
 	set no_ts_approval_wf [db_string workflow_started_p $no_ts_approval_wf_sql -default "0"]
 	if { $confirm_timesheet_hours_p && ("monthly" == $confirmation_period || "weekly" == $confirmation_period) && 0 != $no_ts_approval_wf } { 
-	    ns_log Notice "TS: Entry blocked: Date: $current_date_ansi; Number: $no_ts_approval_wf; $no_ts_approval_wf_sql"
+	    # ns_log Notice "TS: Entry blocked: Date: $current_date_ansi; Number: $no_ts_approval_wf; $no_ts_approval_wf_sql"
 	    set timesheet_entry_blocked_p 1 
     	}
     }
@@ -254,7 +253,6 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
 	if { $timesheet_entry_blocked_p } {
 	    set hours "<span class='log_hours'>[lang::message::lookup "" intranet-timesheet2.Nolog_Workflow_In_Progress "0 hours"]</span>"
 	} else {
-	    ns_log Notice "TS: Not Blocked: $current_date"
 	    if { [string first $week_day $weekly_logging_days] != -1 } {
 		set hours "<span class='log_hours'>[_ intranet-timesheet2.log_hours]</span>"
 	    }
@@ -399,9 +397,6 @@ set next_month_template "
 
 set day_bgcolor "#efefef"
 set day_number_template "<!--\$julian_date--><span class='day_number'>\$day_number</span>"
-
-ns_log Notice "/intranet-timesheet2/index: calendar_details=$calendar_details"
-
 set page_body [calendar_basic_month \
 		   -calendar_details $calendar_details \
 		   -days_of_week $header_days_of_week \

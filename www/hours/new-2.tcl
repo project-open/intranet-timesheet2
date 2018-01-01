@@ -203,8 +203,6 @@ set i 0
 foreach j $weekly_logging_days {
 
     set day_julian [expr $julian_date + $i]
-    ns_log Notice "hours/new2: day=$i: ----------- day_julian=$day_julian -----------"
-
     array unset database_hours_hash
     array unset database_notes_hash
     array unset database_internal_notes_hash
@@ -336,9 +334,6 @@ foreach j $weekly_logging_days {
 	if {"skip" == $action && !$show_week_p && $db_notes != $screen_notes} { set action update }
 	if {"skip" == $action && !$show_week_p && $db_internal_notes != $screen_internal_notes} { set action update }
 	if {"skip" == $action && !$show_week_p && $db_materials != $screen_materials} { set action update }
-
-	ns_log Notice "hours/new-2: pid=$pid, day=$day_julian, db:'$db_hours', screen:'$screen_hours' => action=$action"
-
 	if {"skip" != $action} { set action_hash($pid) $action }
     }
 
@@ -352,22 +347,18 @@ foreach j $weekly_logging_days {
             ad_script_abort
     }
 
-    ns_log Notice "hours/new2: day=$i, database_hours_hash=[array get database_hours_hash]"
-    ns_log Notice "hours/new2: day=$i, screen_hours_hash=[array get screen_hours_hash]"
-    ns_log Notice "hours/new2: day=$i, action_hash=[array get action_hash]"
+    #ns_log Notice "hours/new2: day=$i, database_hours_hash=[array get database_hours_hash]"
+    #ns_log Notice "hours/new2: day=$i, screen_hours_hash=[array get screen_hours_hash]"
+    #ns_log Notice "hours/new2: day=$i, action_hash=[array get action_hash]"
 
 
     # Execute the actions
     foreach project_id [array names action_hash] {
-
-	ns_log Notice "hours/new-2: project_id=$project_id"
+	if {$wf_installed_p} {
 
 	# For all actions: We modify the hours that the person has logged that week, 
 	# so we need to reset/delete the TimesheetConfObject.
-	ns_log Notice "hours/new-2: im_timesheet_conf_object_delete -project_id $project_id -user_id $user_id_from_search -day_julian $day_julian"
-
-	if {$wf_installed_p} {
-
+	# ns_log Notice "hours/new-2: im_timesheet_conf_object_delete -project_id $project_id -user_id $user_id_from_search -day_julian $day_julian"
 # !!!
 #	    im_timesheet_conf_object_delete \
 #		-project_id $project_id \
@@ -382,7 +373,7 @@ foreach j $weekly_logging_days {
 
 	# Delete any cost elements related to the hour.
 	# This time project_id refers to the specific (sub-) project.
-	ns_log Notice "hours/new-2: im_timesheet_costs_delete -project_id $project_id -user_id $user_id_from_search -day_julian $day_julian"
+	# ns_log Notice "hours/new-2: im_timesheet_costs_delete -project_id $project_id -user_id $user_id_from_search -day_julian $day_julian"
 	im_timesheet_costs_delete \
 	    -project_id $project_id \
 	    -user_id $user_id_from_search \
@@ -594,7 +585,7 @@ if {!$performance_mode_p} {
     set new_parent_ids [array names modified_projects_hash]
     lappend new_parent_ids 0
     
-    ns_log Notice "new-2.tcl: new_parent_ids=$new_parent_ids"
+    # ns_log Notice "new-2.tcl: new_parent_ids=$new_parent_ids"
     set new_parent_ids [db_list new_parents "
 	select	distinct parent_id
 	from	im_projects
@@ -612,7 +603,7 @@ if {!$performance_mode_p} {
 		where	parent_id is not null and 
 			project_id in ([join $new_parent_ids ","])
         "]
-	ns_log Notice "new-2.tcl: new_paren_ids=$new_parent_ids"
+	# ns_log Notice "new-2.tcl: new_parent_ids=$new_parent_ids"
 	incr cnt
     }
 
@@ -644,9 +635,7 @@ if {$sync_cost_item_immediately_p} {
 # ----------------------------------------------------------
 
 if { $return_url ne "" } {
-    ns_log Notice "ad_returnredirect $return_url"
     ad_returnredirect $return_url
 } else {
-    ns_log Notice "ad_returnredirect [export_vars -base index {julian_date}]"
     ad_returnredirect [export_vars -base index {julian_date}]
 }
