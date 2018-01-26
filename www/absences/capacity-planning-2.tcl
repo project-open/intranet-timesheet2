@@ -40,17 +40,26 @@ if {"" != $cap_year && ![regexp {^[0-9][0-9][0-9][0-9]$} $cap_year]} {
 
 foreach {cap_index cap_value} [array get capacity] {
 
-	if {"" != $cap_value} {
-		if {$cap_value < 0} {
-			ad_return_complaint 1 "<li>[lang::message::lookup "" intranet-timesheet2.CapacityValuePositiveInteger "Value '%$cap_value%' not accepted, needs to be a positive, numeric value."]"
-	                ad_script_abort
-		}
-		set list_key_comb [split $cap_index "."]
-		set cap_user_id [lindex $list_key_comb 0]
-		set cap_project_id [lindex $list_key_comb 1]
+    set list_key_comb [split $cap_index "."]
+    set cap_user_id [lindex $list_key_comb 0]
+    set cap_project_id [lindex $list_key_comb 1]
+    
+    if {"" eq $cap_value || 0.0 == $cap_value} {
+	db_dml del_cap "
+		delete from im_capacity_planning
+		where	month = :cap_month and 
+			year = :cap_year and 
+			project_id = $cap_project_id and 
+			user_id = $cap_user_id	
+	"
+    } else {
+	if {$cap_value < 0} {
+	    ad_return_complaint 1 "<li>[lang::message::lookup "" intranet-timesheet2.CapacityValuePositiveInteger "Value '%$cap_value%' not accepted, needs to be a positive, numeric value."]"
+	    ad_script_abort
+	}
 
-		if {[catch {
-		    set capacity_p [db_string get_capacity "
+	if {[catch {
+	    set capacity_p [db_string get_capacity "
 			select 
 				count(*)
 			from 
@@ -62,13 +71,13 @@ foreach {cap_index cap_value} [array get capacity] {
 				user_id = $cap_user_id	
 			" -default 0]
 
-			if { 0 == $capacity_p} {
-        		        db_dml write_capacity "
+	    if { 0 == $capacity_p} {
+		db_dml write_capacity "
                 		        insert into im_capacity_planning (user_id, project_id, month, year, days_capacity, last_modified)
 					values ($cap_user_id, $cap_project_id, :cap_month, :cap_year, $cap_value, now())
 	        	        "
-			} else {
-        		        db_dml write_capacity "
+	    } else {
+		db_dml write_capacity "
                 		        update im_capacity_planning 
 					set 
 						days_capacity=$cap_value,
@@ -78,13 +87,13 @@ foreach {cap_index cap_value} [array get capacity] {
 						project_id = $cap_project_id and 
 						month=:cap_month and year=:cap_year
         		        "
-			}
+	    }
 
-    		} errmsg]} {
-			ad_return_complaint 1 "<li>[lang::message::lookup "" intranet-timesheet2-tasks.Unable_Update_Capacity "Unable to update capacity:<br><pre>$errmsg</pre>"]"
-		 	ad_script_abort
-    		}
+	} errmsg]} {
+	    ad_return_complaint 1 "<li>[lang::message::lookup "" intranet-timesheet2-tasks.Unable_Update_Capacity "Unable to update capacity:<br><pre>$errmsg</pre>"]"
+	    ad_script_abort
 	}
+    }
 }
 
 set user_id_from_search [join $user_id_from_search " "]
