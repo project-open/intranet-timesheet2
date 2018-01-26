@@ -18,6 +18,7 @@ ad_page_contract {
     { cap_month:integer "" }
     { cap_year:integer "" }
     {user_id_from_search:multiple}
+    { return_url "" }
 }
 
 
@@ -88,10 +89,11 @@ foreach {cap_index cap_value} [array get capacity] {
 
 set user_id_from_search [join $user_id_from_search " "]
 
-ad_returnredirect [export_vars -base "/intranet-timesheet2/absences/capacity-planning.tcl" {
+if {"" eq $return_url} {
+    set return_url [export_vars -base "/intranet-timesheet2/absences/capacity-planning.tcl" {
         { cap_year "$cap_year" }
         { cap_month "$cap_month" }
         { user_id_from_search "$user_id_from_search" }
-}]
-
-
+    }]
+}
+ad_returnredirect $return_url
