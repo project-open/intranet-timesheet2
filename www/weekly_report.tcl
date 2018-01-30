@@ -283,8 +283,16 @@ if { $start_at eq "" && $project_id != 0 } {
     ad_returnredirect [export_vars -base $return_url {start_at duration project_id owner_id workflow_key}]
 }
 
-set start_at [db_string get_today "select to_char(next_day(to_date(:start_at, :date_format), 'sun'), :date_format) from dual"]
-set start_at [expr $start_at + 7]
+
+
+if {$start_at eq ""} {
+    set start_at [db_string get_today "select to_char(next_day(to_date(to_char(sysdate,:date_format),:date_format)+1, 'sun'), :date_format) from dual"]
+} else {
+    set start_at [db_string get_today "select to_char(next_day(to_date(:start_at, :date_format), 'sun'), :date_format) from dual"]
+}
+
+# set start_at [db_string get_today "select to_char(next_day(to_date(:start_at, :date_format), 'sun'), :date_format) from dual"]
+# set start_at [expr $start_at + 7]
 
 
 if { $project_id != 0 } {
