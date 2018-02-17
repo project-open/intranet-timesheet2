@@ -297,7 +297,7 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
                                 where   c.object_id = h.conf_object_id and
                                         h.day::text like '%[string range [im_date_julian_to_ansi $current_date] 0 9]%' and
                                         c.state <> 'finished' and
-                                        h.user_id = $user_id_from_search
+                                        h.user_id = :user_id_from_search
                         "
 		set no_wf_cases [db_string no_wf_cases $wf_actice_case_sql]
 		if { $no_wf_cases > 0 } {

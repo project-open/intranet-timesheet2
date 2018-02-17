@@ -803,6 +803,7 @@ ad_proc get_unconfirmed_hours_for_period {
     start_date
     end_date
 } {
+    if {[im_security_alert_check_integer -location get_unconfirmed_hours_for_period -message "SQL Injection Attempt" -value $user_id]} { set user_id 0 }
     set sum_hours 0
     set sql "
         select
