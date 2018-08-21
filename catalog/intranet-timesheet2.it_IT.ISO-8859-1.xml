@@ -9,6 +9,7 @@
   <msg key="Absence_Type_1">Tipo di assenza</msg>
   <msg key="Absences">Assenze</msg>
   <msg key="absences">assenze</msg>
+  <msg key="Absences_Color_Codes">Legenda Colori</msg>
   <msg key="Absent">Assente</msg>
   <msg key="Absent_1">Assente:</msg>
   <msg key="Add_a_new_Absence">Nuova assenza</msg>
@@ -80,7 +81,7 @@
   <msg key="Edit">Modifica</msg>
   <msg key="Edit_Absence">Modifica assenza</msg>
   <msg key="Employee">Dipendente</msg>
-  <msg key="End_Date">Fine</msg>
+  <msg key="End_Date">Data inserimento a: </msg>
   <msg key="Ending">Termina:</msg>
   <msg key="equals">equivale a</msg>
   <msg key="Euro_Converter">Euroconvertitore</msg>
@@ -291,7 +292,7 @@
   <msg key="September">Settembre</msg>
   <msg key="Show_one">Mostra uno</msg>
   <msg key="Show_Users">Visualizza utenti</msg>
-  <msg key="Start_Date">Inizio</msg>
+  <msg key="Start_Date">Data inserimento da: </msg>
   <msg key="Starting">Inizio:</msg>
   <msg key="Status">Stato</msg>
   <msg key="submit">invia</msg>
