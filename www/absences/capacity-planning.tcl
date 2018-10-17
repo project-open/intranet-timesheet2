@@ -503,6 +503,7 @@ if { $where_clause ne "" } {
 }
 
 switch $list_sort_order {
+    nr { set sort_order "lower(p.project_nr)" }
     name { set sort_order "lower(p.project_name)" }
     order { set sort_order "p.sort_order" }
     legacy { set sort_order "p.tree_sortkey" }

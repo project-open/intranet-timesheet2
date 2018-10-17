@@ -562,7 +562,10 @@ set child_project_sql "
 set sort_integer 0
 set sort_legacy  0
 switch $list_sort_order {
-    name { 
+    nr {
+	set sort_order "lower(children.project_nr)"
+    }
+    name {
 	set sort_order "lower(children.project_name)"
     }
     order { 
