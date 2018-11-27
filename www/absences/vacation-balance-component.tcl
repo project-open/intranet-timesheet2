@@ -109,7 +109,7 @@ set vacation_sql "
 		a.owner_id = :user_id_from_search and
 		a.start_date <= :end_of_year and
 		a.end_date >= :start_of_year and 
-		a.absence_type_id = 5000 and 
+		a.absence_type_id in (select * from im_sub_categories(5000)) and 
 		a.absence_status_id <> 16006 and 
 		a.absence_status_id <> 16002
 	order by
