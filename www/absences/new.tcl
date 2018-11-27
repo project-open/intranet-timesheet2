@@ -388,9 +388,14 @@ ad_form -extend -name absence -on_request {
 
     # We do not allow entries of type "Vacation" over the turn of the year in order
     # to be able to calculate vacation balance in an unambiguous manner
-    if { $absence_type_id == [im_user_absence_type_vacation] && [lindex $start_date 0] != [lindex $end_date 0] } {
-	set err_msg_default "Entry not allowed. Vacation absences need to begin and end in the same year. Please consider creating two entries."
+    if {[im_category_is_a $absence_type_id [im_user_absence_type_vacation]] && [lindex $start_date 0] != [lindex $end_date 0] } {
+	set err_msg_default "
+	    <b>Entry not allowed</b>:<br>
+	    Vacation absences need to begin and end in the same year.<br>
+	    Otherwise we can not unambiguously calculate the vacation balance per year.<br>&nbsp;<br>
+	    =&gt; <b>Please create two vacation entries</b>, one in the old year and one starting on 1st of January of the new year."
 	ad_return_complaint 1 [lang::message::lookup "" intranet-timesheet2.NoVacationTurnOfTheYear $err_msg_default] 
+	ad_script_abort
     }
 
     db_transaction {
