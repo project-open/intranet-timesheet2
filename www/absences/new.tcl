@@ -49,7 +49,7 @@ if {"" != $redirect_package_url} {
 }
 
 
-
+set absence_owner_id ""
 set absence_under_wf_control_p 0
 if {[info exists absence_id]} { 
     # absence_owner_id determines the list of projects per absence and other DynField widgets
@@ -95,6 +95,7 @@ set context [list $page_title]
 
 set read [im_permission $current_user_id "read_absences_all"]
 set write [im_permission $current_user_id "add_absences"]
+set admin [im_is_user_site_wide_or_intranet_admin $current_user_id]
 set add_absences_for_group_p [im_permission $current_user_id "add_absences_for_group"]
 
 # ad_return_complaint 1 "absence_id=$absence_id"
@@ -110,21 +111,54 @@ if {[info exists absence_id]} {
     }
 }
 
+
+# ------------------------------------------------------------------
+# Delete pressed?
+# ------------------------------------------------------------------
+
+set button_pressed [template::form get_action absence]
+if {"delete" == $button_pressed} {
+
+    # Only the owner of the absence has the right to delete it.
+    set delete_p 0
+    if {$absence_owner_id eq $current_user_id} { set delete_p 1 }
+
+    if {!$delete_p && !$admin} {
+	ad_return_complaint 1 "You don't have the permission to delete this absence."
+	ad_script_abort
+    }
+
+    im_user_absence_nuke $absence_id
+
+    ns_log Notice "new: Nuked absence #$absence_id, about to return to return_url=$return_url"
+    ad_returnredirect $return_url
+}
+
+
+
+# ------------------------------------------------------------------
+# 
+# ------------------------------------------------------------------
+
+
 # Check permissions
 # ad_return_complaint 1 "absence_id=$absence_id, cur_uid=$current_user_id, form_mode=$form_mode, read=$read, write=$write"
 switch [string tolower $form_mode] {
     display {
 	if {!$read} {
 	    ad_return_complaint 1 "<li>[_ intranet-timesheet2.lt_You_dont_have_suffici]"
+	    ad_script_abort
 	}
     }
     edit {
 	if {!$write} {
 	    ad_return_complaint 1 "<li>[lang::message::lookup "" intranet-timesheet2.No_write_permissions "You don't have permissions to modify this absence"]"
+	    ad_script_abort
 	}
     }
     default {
 	ad_return_complaint 1 "<li>[lang::message::lookup "" intranet-timesheet2.Unknown_form_mode "Unknown form_mode='%form_mode%'"]"
+	ad_script_abort
     }
 }
 
@@ -184,15 +218,6 @@ if {[info exists absence_id]} {
     }
 }
 
-# ------------------------------------------------------------------
-# Delete pressed?
-# ------------------------------------------------------------------
-
-set button_pressed [template::form get_action absence]
-if {"delete" == $button_pressed} {
-    im_user_absence_nuke $absence_id
-    ad_returnredirect $return_url
-}
 
 # ------------------------------------------------------------------
 # Build the form
