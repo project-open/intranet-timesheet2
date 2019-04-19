@@ -27,7 +27,7 @@ ad_page_contract {
 
     @creation-date Jan 2006
 } {
-    { project_id 0 }
+    { project_id "" }
     { julian_date "" }
     { gregorian_date "" }
     { return_url "" }
@@ -81,6 +81,7 @@ set tr_class(0) " class='roweven @@visibility-class@@'"
 set tr_class(1) " class='rowodd @@visibility-class@@'"
 
 if {"" == $show_week_p} { set show_week_p 0 }
+set default_project_id [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter TimesheetLoggingActiveProjectsDefault -default ""]
 if {"" == $project_id} { set project_id 0 }
 im_security_alert_check_integer -location "/intranet-timesheet2/www/hours/new" -value $project_id
 
@@ -335,7 +336,38 @@ set edit_hours_closed_message [lang::message::lookup "" intranet-timesheet2.Logg
 set main_project_id_list [list 0]
 set main_project_id 0
 
-if {[string is integer $project_id] && 0 != $project_id} {
+if {$project_id in {1 2}} {
+    # Special case - show project of last week
+
+    set days_in_past 7
+    if {"2" eq $project_id} { set days_in_past 30 }
+
+    set main_project_id_list [db_list main_p "
+	select	main_p.project_id
+	from	im_projects p,
+		im_hours h,
+		im_projects main_p
+	where	p.project_id = h.project_id and
+		h.user_id = :user_id_from_search and
+		h.day > now()::date - :days_in_past::integer and
+		tree_root_key(p.tree_sortkey) = main_p.tree_sortkey
+    "]
+
+    set parent_project_sql "
+			select	p.project_id
+			from	im_projects p
+			where	p.project_id in ([join $main_project_id_list ","])
+    \t\t"
+
+    # Project specified => only one project
+    set one_project_only_p 0
+
+    # Make sure the user can see everything below the single main project
+    if {$show_all_tasks_for_specific_project_p} {
+	set task_visibility_scope "specified"
+    }
+
+} elseif {[string is integer $project_id] && $project_id > 10} {
 
     set main_project_id [db_string main_p "
 	select	main_p.project_id
@@ -1298,6 +1330,22 @@ foreach j $weekly_logging_days {
 # Navbars
 # ---------------------------------------------------------
 
+
+set project_options [im_project_options \
+			 -include_empty 0 \
+			 -include_empty_name "" \
+			 -exclude_subprojects_p 1 \
+			 -project_status_id [im_project_status_open] \
+]
+set project_options [linsert $project_options 0 [list "" ""]];
+set projects_last_month_l10n [lang::message::lookup "" intranet-timesheet2.Projects_last_month "Projects last month"]
+set project_options [linsert $project_options 0 [list $projects_last_month_l10n 2]];# special project_id for projects with logged hours last month
+set projects_last_week_l10n [lang::message::lookup "" intranet-timesheet2.Projects_last_week "Projects last week"]
+set project_options [linsert $project_options 0 [list $projects_last_week_l10n 1]];# special project_id for projects with logged hours last week
+set projects_all_l10n [lang::message::lookup "" intranet-timesheet2.Projects_all "Projects all"]
+set project_options [linsert $project_options 0 [list $projects_all_l10n ""]]; # special project_id for all projects
+
+
 set left_navbar_html "
       <div class='filter-block'>
 	<div class='filter-title'>[lang::message::lookup "" intranet-timesheet2.Timesheet_Filters "Timesheet Filters"]</div>
@@ -1308,9 +1356,18 @@ set left_navbar_html "
 	<table border=0 cellpadding=1 cellspacing=1>
 	<tr>
 	    <td>[lang::message::lookup "" intranet-timesheet2.Project_br_Name "Project<br>Name"]</td>
-	    <td>[im_project_select -include_empty_p 1 -include_empty_name "" -project_status_id [im_project_status_open] -exclude_subprojects_p 1 project_id $project_id_for_default "open"]</td>
+	    <td>
+"
+append left_navbar_html [im_select -ad_form_option_list_style_p 1 -translate_p 0 project_id $project_options $project_id_for_default]
+#append left_navbar_html [im_project_select -include_empty_p 1 -include_empty_name "" -project_status_id [im_project_status_open] -exclude_subprojects_p 1 project_id $project_id_for_default "open"]
+
+append left_navbar_html "
+            </td>
 	</tr>
 "
+
+
+
 if {$add_hours_all_p} {
     append left_navbar_html "
 	<tr>
