@@ -1044,3 +1044,34 @@ ad_proc -public im_menu_absences_admin_links {
 
     return $result_list
 }
+
+
+
+ad_proc -public im_absence_formatted_duration_to_days {
+    days_formatted
+} {
+    Converts a time string to days.
+    Examples: '1 day', '4 hours', '1' (=one day), '0.5' (=half a day)
+} {
+    set days_formatted_1 [string trim [string tolower $days_formatted]]
+    set days_formatted_2 [string map {days d day d hours h hour h} $days_formatted_1]
+
+    set days ""
+    if {[regexp {^(.+)d} $days_formatted_2 match day_string]} { 
+	catch {
+	    set days [expr 1.0 * [string trim $day_string]]
+	}
+    }
+    if {[regexp {^(.+)h} $days_formatted_2 match hour_string]} { 
+	catch {
+	    set days [expr [string trim $hour_string] / 8.0]
+	}
+    }
+    if {"" eq $days} { 
+	catch {
+	    set days [expr 1.0 * $days_formatted_2]
+	}
+    }
+
+    return $days
+}

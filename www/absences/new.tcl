@@ -20,6 +20,7 @@ if {![info exists panel_p]} {
 	{ absence_type_id:integer 0 }
 	{ form_mode "edit" }
 	{ user_id_from_search "" }
+	{ duration_days "" }
     }
 }
 
@@ -40,6 +41,9 @@ set focus "absence.var_name"
 set date_format "YYYY-MM-DD"
 set date_time_format "YYYY MM DD"
 set absence_type [lang::message::lookup "" intranet-timesheet2.Absence "Absence"]
+
+set duration_default_uom [parameter::get_from_package_key -package_key "intranet-timesheet2" -parameter "AbsenceDefaultDurationUnit" -default "days"]
+
 
 # Custom redirect? You should change all links to this
 # page to the new URL, but sometimes you miss links...
@@ -297,12 +301,17 @@ if {!$absence_under_wf_control_p || [im_permission $current_user_id edit_absence
     set form_list {{absence_status_id:text(hidden)}}
 }
 
+
+set duration_days_label [lang::message::lookup {} intranet-timesheet2.Duration_Days {Duration (Days)}]
+if {"edit" eq $form_mode} { set duration_days_label [lang::message::lookup {} intranet-timesheet2.Duration Duration] }
+
+
 ad_form -extend -name absence -form $form_list
 
 ad_form -extend -name absence -form {
     {start_date:date(date) {label "[_ intranet-timesheet2.Start_Date]"} {format "YYYY-MM-DD"} {after_html {<input type="button" style="height:23px; width:23px; background: url('/resources/acs-templating/calendar.gif');" onclick ="return showCalendarWithDateWidget('start_date', 'y-m-d');" >}}}
     {end_date:date(date) {label "[_ intranet-timesheet2.End_Date]"}  {help_text "[lang::message::lookup {} intranet-timesheet2.Absence_end_date_help {Last days of absence. For a one day absence please enter start date = end date.}]"}  {format "YYYY-MM-DD"} {after_html {<input type="button" style="height:23px; width:23px; background: url('/resources/acs-templating/calendar.gif');" onclick ="return showCalendarWithDateWidget('end_date', 'y-m-d');" >}}}
-    {duration_days:float(text) {label "[lang::message::lookup {} intranet-timesheet2.Duration_days {Duration (Days)}]"} {help_text "[lang::message::lookup {} intranet-timesheet2.Duration_days_help {Please specify the absence duration as a number or fraction of days. Examples: '1'=one day, '0.5'=half a day}]"}}
+    {duration_days:text(text) {label "$duration_days_label"} {help_text "[lang::message::lookup {} intranet-timesheet2.Duration_help {Please specify the absence duration as hours or days.<br>Examples: '1 day', '4 hours', '1' (=one day), '0.5' (=half a day)}]"}}
     {description:text(textarea),optional {label "[_ intranet-timesheet2.Description]"} {html {cols 40}}}
     {contact_info:text(textarea),optional {label "[_ intranet-timesheet2.Contact_Info]"} {html {cols 40}}}
 }
@@ -330,7 +339,19 @@ ad_form -extend -name absence -on_request {
     # Populate elements from local variables
     if {![info exists start_date]} { set start_date [db_string today "select to_char(now(), :date_time_format)"] }
     if {![info exists end_date]} { set end_date [db_string today "select to_char(now(), :date_time_format)"] }
-    if {![info exists duration_days]} { set duration_days "" }
+    if {![info exists duration_days] || "" eq $duration_days} { 
+	switch $duration_default_uom {
+	    "hours" {
+		set duration_days "8 [lang::message::lookup "" intranet-core.Hours Hours]" 
+	    }
+	    "days" {
+		set duration_days "1 [lang::message::lookup "" intranet-core.Day Day]" 
+	    }
+	    default {
+		set duration_days "1 [lang::message::lookup "" intranet-core.Day Day]" 
+	    }
+	}
+    }
     if {![info exists absence_owner_id] || 0 == $absence_owner_id} { set absence_owner_id $user_id_from_scratch }
     if {![info exists absence_owner_id] || 0 == $absence_owner_id} { set absence_owner_id $current_user_id }
     if {![info exists absence_type_id]} { set absence_type_id [im_user_absence_type_vacation] }
@@ -351,7 +372,7 @@ ad_form -extend -name absence -on_request {
 } -validate {
 
     {duration_days
-	{$duration_days > 0}
+	{[im_absence_formatted_duration_to_days $duration_days] > 0}
 	"Positive number expected"
     }
     
@@ -370,7 +391,8 @@ ad_form -extend -name absence -on_request {
 
     # Check the number of absence days per interval
     set date_range_days [db_string date_range "select date($end_date_sql) - date($start_date_sql) + 1"]
-    if {$duration_days > [expr {$date_range_days+1}]} {
+    set duration_days_days [im_absence_formatted_duration_to_days $duration_days]
+    if {$duration_days_days > [expr $date_range_days + 1]} {
 	ad_return_complaint 1 "<b>Date Range Error</b>:<br>Duration is longer then date interval."
 	ad_script_abort
     }
@@ -423,13 +445,14 @@ ad_form -extend -name absence -on_request {
 	# Don't add the creator as a participant of a group absence
 	if {"" != $group_id} { set absence_owner_id "" }
 
+	set duration_days_days [im_absence_formatted_duration_to_days $duration_days]
 	db_dml update_absence "
 		UPDATE im_user_absences SET
 			absence_name = :absence_name,
 			owner_id = :absence_owner_id,
 			start_date = $start_date_sql,
 			end_date = $end_date_sql,
-			duration_days = :duration_days,
+			duration_days = :duration_days_days,
 			group_id = :group_id,
 			absence_status_id = :absence_status_id,
 			absence_type_id = :absence_type_id,
@@ -484,7 +507,8 @@ ad_form -extend -name absence -on_request {
 
     # Check the number of absence days per interval
     set date_range_days [db_string date_range "select date($end_date_sql) - date($start_date_sql) + 1"]
-    if {$duration_days > $date_range_days} {
+    set duration_days_days [im_absence_formatted_duration_to_days $duration_days]
+    if {$duration_days_days > $date_range_days} {
 	ad_return_complaint 1 "<b>Date Range Error</b>:<br>Duration is longer then date interval."
 	ad_script_abort
     }
@@ -498,7 +522,7 @@ ad_form -extend -name absence -on_request {
 			owner_id = :absence_owner_id,
 			start_date = $start_date_sql,
 			end_date = $end_date_sql,
-			duration_days = :duration_days,
+			duration_days = :duration_days_days,
 			group_id = :group_id,
 			absence_status_id = :absence_status_id,
 			absence_type_id = :absence_type_id,

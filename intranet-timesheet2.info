@@ -8,7 +8,7 @@
     <singleton-p>t</singleton-p>
     <auto-mount>intranet-timesheet2</auto-mount>
 
-    <version name="5.0.2.4.1" url="http://www.project-open.net/download/apm/intranet-timesheet2-5.0.2.4.1.apm">
+    <version name="5.0.2.4.2" url="http://www.project-open.net/download/apm/intranet-timesheet2-5.0.2.4.2.apm">
         <owner url="mailto:frank.bergmann@project-open.com">Frank Bergmann</owner>
         <release-date>2004-02-07</release-date>
         <vendor url="http://www.project-open.com/">]project-open[</vendor>
@@ -63,6 +63,7 @@
             <parameter datatype="number"  min_n_values="1"  max_n_values="1"  name="ShowAllTasksForSpecificProjectP" default="0" description="Used together with the privilege 'log_hours_all', so that users logging hours on non-member projects can see all tasks. Default is 0, because it somehow breaks permissions."/>
             <parameter scope="instance" datatype="number"  min_n_values="1"  max_n_values="1"  name="ShowProjectNrAndProjectNameP"  default="0" description="Should we show the project_nr together with the project_name in the timesheet entry page? This is useful for companies heavily working with project_nrs such as some translation companies, but useless for GanttProject based schedules, where project_nrs are frequently generated automatically."/>
             <parameter scope="instance" datatype="number"  min_n_values="1"  max_n_values="1"  name="ShowProjectNameAndCompanyNameP"  default="0" description="Should we show the customer name together with the project_name in the timesheet entry page?"/>
+	    <parameter datatype="string"  min_n_values="1"  max_n_values="1"  name="AbsenceDefaultDurationUnit" default="days" description="How should users enter absence duration by default? Options are 'days' or 'hours'. The days are multiplied with 8.0 in order to get hours. Default is 'days'."/>
 	</parameters>
 
     </version>
