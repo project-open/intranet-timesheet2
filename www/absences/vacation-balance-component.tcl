@@ -119,18 +119,18 @@ set vacation_sql "
 if {![info exists vacation_balance] || "" == $vacation_balance} { set vacation_balance 0 }
 if {"" == $vacation_days_per_year} { set vacation_days_per_year 0 }
 
-set vacation_days_left [expr {$vacation_balance + $vacation_days_per_year}]
+set vacation_days_left [expr round(100.0 * ($vacation_balance + $vacation_days_per_year)) / 100.0]
 set vacation_days_taken 0
 
 db_multirow -extend { absence_url absence_type } vacation_balance_multirow vacation_balance $vacation_sql {
 
     set absence_url [export_vars -base "$absence_base_url/new" {{form_mode display} absence_id}]
     set absence_type [im_category_from_id $absence_type_id]
-
-    set vacation_days_taken [expr {$vacation_days_taken + $duration_days}]
-    set vacation_days_left [expr {$vacation_days_left - $duration_days}] 
+    
+    set vacation_days_taken [expr $vacation_days_taken + $duration_days]
+    set vacation_days_left [expr round(100.0 * ($vacation_days_left - $duration_days)) / 100.0]
     set duration_days [format "%.2f" $duration_days]
-
+    
 }
 
 
