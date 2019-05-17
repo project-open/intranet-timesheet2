@@ -64,6 +64,7 @@
             <parameter scope="instance" datatype="number"  min_n_values="1"  max_n_values="1"  name="ShowProjectNrAndProjectNameP"  default="0" description="Should we show the project_nr together with the project_name in the timesheet entry page? This is useful for companies heavily working with project_nrs such as some translation companies, but useless for GanttProject based schedules, where project_nrs are frequently generated automatically."/>
             <parameter scope="instance" datatype="number"  min_n_values="1"  max_n_values="1"  name="ShowProjectNameAndCompanyNameP"  default="0" description="Should we show the customer name together with the project_name in the timesheet entry page?"/>
 	    <parameter datatype="string"  min_n_values="1"  max_n_values="1"  name="AbsenceDefaultDurationUnit" default="days" description="How should users enter absence duration by default? Options are 'days' or 'hours'. The days are multiplied with 8.0 in order to get hours. Default is 'days'."/>
+            <parameter scope="instance" datatype="number"  min_n_values="1"  max_n_values="1"  name="TimesheetNoteTextareaRows"  default="1" description="Should we show a textarea instead of a textbox field? '0' means standard text input. '1' means showing a textarea with 1 row, which is similar to a textbox, but allows resizing. Values > 1 will show bigger textareas. Default is '1' for showing a (resizable) textarea with 1 row."/>
 	</parameters>
 
     </version>

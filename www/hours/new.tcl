@@ -128,9 +128,14 @@ if { 0 == $hours_allowed_to_register_time_into_future } {
     set max_julian_date [clock format [expr { [clock seconds] + ($hours_allowed_to_register_time_into_future * 3600) } ] -format {%J}]
 }
 
+# Special display of the hours entry field?
+set notes0_textarea_rows [parameter::get -package_id [apm_package_id_from_key "intranet-timesheet2"] -parameter "TimesheetNoteTextareaRows" -default "1"]
+
+
 # Estimate to complete?
 set show_etc_p [im_table_exists im_estimate_to_completes]
 set etc_planned_hours_no_default [parameter::get -package_id [apm_package_id_from_key "intranet-estimate-to-complete"] -parameter "EtcDontShowPlannedHoursDefaultP" -default 0]
+
 
 
 # ---------------------------------------------------------
@@ -1084,7 +1089,7 @@ template::multirow foreach hours_multirow {
 	    append table_rows "</td></tr>"
 	    set top_parent_shown_p 1
 	}	
-	append table_rows "<tr $tr_class([expr {$ctr % 2}]) id=\"${project_id}\" hidden_by=\"@@hidden_by@@\" fold_status=\"@@fold_status@@\" >\n<td><nobr>$indent @@fold-icon-class@@ <a href=\"$project_url\">$ptitle</a></nobr></td>\n" 
+	append table_rows "<tr $tr_class([expr {$ctr % 2}]) valign=top id=\"${project_id}\" hidden_by=\"@@hidden_by@@\" fold_status=\"@@fold_status@@\" >\n<td><nobr>$indent @@fold-icon-class@@ <a href=\"$project_url\">$ptitle</a></nobr></td>\n" 
     }
 
 
@@ -1186,13 +1191,19 @@ template::multirow foreach hours_multirow {
 	    set blocked_by_wf_help [im_gif -translate_p 0 help [lang::message::lookup "" intranet-timesheet2.BlockedbyWF "Blocked by TS Approval Workflow"]]
 	}
 	
+	# Determine how to enter notes
+	set notes0_widget "<input name=notes0.$project_id size=$external_comment_size value=\"[ns_quotehtml [value_if_exists note]]\">"
+	if {$notes0_textarea_rows} {
+	    set notes0_widget "<textarea name=notes0.$project_id cols=$external_comment_size rows=$notes0_textarea_rows>[ns_quotehtml [value_if_exists note]]</textarea>"
+	}
+
 	if { "t" == $edit_hours_p && $log_on_parent_p && !$invoice_id && !$solitary_main_project_p && !$closed_p && !$filter_surpress_output_p && !$blocked_by_wf_p && !$max_julian_date_exceed_p } {
 	    # Write editable entries.
 	    append table_rows "<td><input name=hours${i}.$project_id size=5 MAXLENGTH=5 value=\"$hours\"></td>\n"
 	    if {!$show_week_p} {
 		
 		# Normal display - no Estimate to Complete
-		append table_rows "<td><input name=notes0.$project_id size=$external_comment_size value=\"[ns_quotehtml [value_if_exists note]]\"></td>\n"
+		append table_rows "<td>$notes0_widget</td>\n"
 		if {$internal_note_exists_p} { append table_rows "<td><input name=internal_notes0.$project_id size=$internal_comment_size value=\"[ns_quotehtml [value_if_exists internal_note]]\"></td>\n" }
 		if {$materials_p} { append table_rows "<td>[im_select -translate_p 0 -ad_form_option_list_style_p 1 materials0.$project_id $material_options $material_id]</td>\n" }
 
