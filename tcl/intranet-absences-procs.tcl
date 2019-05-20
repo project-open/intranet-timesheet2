@@ -1075,3 +1075,35 @@ ad_proc -public im_absence_formatted_duration_to_days {
 
     return $days
 }
+
+
+
+ad_proc -public im_absences_assign_replacement {
+    -task_id
+} {
+    Assigns a vacation replacement to a task
+} {
+    set current_user_id [ad_conn user_id]
+
+    # ---------------------------------------------------------------------
+    # Does the assigned user have an absence currently?
+    #
+    set assignee_html ""
+    set assignee_sql "
+	select	ua.vacation_replacement_id
+	from	wf_tasks t,
+		wf_task_assignments ta,
+		im_user_absences ua
+	where	t.task_id = :task_id and
+		ta.task_id = t.task_id and
+		ta.party_id = ua.owner_id and
+		now()::date between ua.start_date and ua.end_date
+    "
+    db_foreach assignee $assignee_sql {
+        if {$current_user_id eq $vacation_replacement_id} {
+	    db_string wf_assig "select workflow_case__add_task_assignment (:task_id, :vacation_replacement_id, 'f')"
+	}
+    }
+}
+
+
