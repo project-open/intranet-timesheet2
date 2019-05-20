@@ -1078,7 +1078,7 @@ ad_proc -public im_absence_formatted_duration_to_days {
 
 
 
-ad_proc -public im_absences_assign_replacement {
+ad_proc -public im_absences_assign_vacation_replacement {
     -task_id
 } {
     Assigns a vacation replacement to a task

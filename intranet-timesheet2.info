@@ -21,6 +21,7 @@
         <requires url="intranet-cost" version="5.0.0.0.0"/>
         <requires url="intranet-material" version="5.0.0.0.0"/>
         <requires url="intranet-timesheet2-tasks" version="5.0.0.0.0"/>
+        <requires url="acs-workflow" version="5.0.0.0.0"/>
         <callbacks>
         </callbacks>
         <parameters>
