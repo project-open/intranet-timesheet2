@@ -141,6 +141,7 @@ set julian_date [db_string conv "select to_char(:date::date, 'J')"]
 # Set last day of month: 
 set last_day_of_month_ansi [db_string get_last_day_month "select date_trunc('month',add_months(:date,1))::date - 1" -default 0]
 set first_day_of_month_ansi [db_string get_first_day_month "select date_trunc('month', '$date'::DATE)::date" -default 0]
+set first_day_of_month_julian [db_string fdom_julian "select to_char(:first_day_of_month_ansi::date, 'J')"]
 
 set project_id_for_default [lindex $project_id 0]
 set show_left_functional_menu_p [parameter::get_from_package_key -package_key "intranet-core" -parameter "ShowLeftFunctionalMenupP" -default 0]
@@ -248,7 +249,13 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
     if { [info exists users_hours($current_date)] && $users_hours($current_date) ne "" } {
  	set hours "$users_hours($current_date)  [lang::message::lookup "" intranet-timesheet2.hours "hours"]"
 	set hours_for_this_week [expr {$hours_for_this_week + $users_hours($current_date)}]
-	set hours_for_this_month [expr {$hours_for_this_month + $users_hours($current_date)}]
+
+	# Sum today's hours to total month, if the month has actually started
+	# (we show the last days of the previous months...)
+	if {$current_date >= $first_day_of_month_julian} {
+	    set hours_for_this_month [expr {$hours_for_this_month + $users_hours($current_date)}]
+	}
+
     } else {
 	if { $timesheet_entry_blocked_p } {
 	    set hours "<span class='log_hours'>[lang::message::lookup "" intranet-timesheet2.Nolog_Workflow_In_Progress "0 hours"]</span>"
@@ -322,8 +329,8 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
 
     # ds_comment "$column_ctr, current_date_ansi: $current_date_ansi, last_day_of_month_ansi: $last_day_of_month_ansi, show_last_confirm_button_p: $show_last_confirm_button_p"
 
-    # Render 
-    if {($column_ctr == 7 || $current_date_ansi == $last_day_of_month_ansi) && $show_last_confirm_button_p } {
+    # Weekly total
+    if {($column_ctr == 7 || 0 && $current_date_ansi == $last_day_of_month_ansi) && $show_last_confirm_button_p } {
 	append html "<br>
 		<a href=[export_vars -base "week" {{julian_date $current_date} user_id_from_search}]
 		>[_ intranet-timesheet2.Week_total_1] [format "%.2f" [expr {double(round(100*$hours_for_this_week))/100}]]</a><br>
@@ -344,8 +351,6 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
 	    }
 
 	    set no_unconfirmed_hours [get_unconfirmed_hours_for_period $user_id_from_search $start_date_julian_wf $end_date_julian_wf]
-
-	    # ns_log Notice "Create weekly CONFIRM button: start: $start_date_julian_wf, end: $start_date_julian_wf, No. unconfirmed Hours $no_unconfirmed_hours, confirm: $confirm_timesheet_hours_p" 
 	    if {$confirm_timesheet_hours_p && (0 < $no_unconfirmed_hours || "" != $no_unconfirmed_hours) && $confirmation_period == "weekly" } {
 		set conf_url [export_vars -base $base_url_confirm_wf { {user_id $user_id_from_search} {start_date_julian $start_date_julian_wf} {end_date_julian $end_date_julian_wf } return_url}]
 		set button_txt [lang::message::lookup "" intranet-timesheet2.Confirm_weekly_hours "Confirm hours for this week"]
@@ -354,6 +359,16 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
         }
     }
 
+
+    # Show monthly total
+    if {$current_date_ansi == $last_day_of_month_ansi} {
+	append html "<br>
+		<a href=[export_vars -base "month" {{julian_date $current_date} user_id_from_search}]
+		>[lang::message::lookup "" intranet-timesheet2.Month_total "Month total:"] [format "%.2f" [expr {double(round(100*$hours_for_this_month))/100}]]</a><br>
+	"
+    }
+
+    # Monthly hour approval request
     if { $current_date_ansi == $last_day_of_month_ansi && $confirmation_period == "monthly" } {
 	set start_date_month_julian [dt_ansi_to_julian_single_arg $first_day_of_month_ansi]
 	set end_date_month_julian [dt_ansi_to_julian_single_arg $last_day_of_month_ansi]

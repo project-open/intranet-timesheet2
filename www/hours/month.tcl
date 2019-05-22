@@ -1,6 +1,6 @@
-# /packages/intranet-timesheet2/www/hours/week.tcl
+# /packages/intranet-timesheet2/www/hours/month.tcl
 #
-# Copyright (C) 1998-2004 various parties
+# Copyright (C) 1998-2019 various parties
 # The code is based on ArsDigita ACS 3.4
 #
 # This program is free software. You can redistribute it
@@ -14,15 +14,15 @@
 # See the GNU General Public License for more details.
 
 ad_page_contract {
-    Shows the hour a specified user spend working over the course of a week
+    Shows the hour a specified user spend working over the course of a month
 
-    @param julian_date day in julian format in the week we're currently viewing. Defaults to sysdate
+    @param julian_date last day of the month in julian format. Defaults to sysdate
     @user_id_from_search the user for whom we're viewing hours. Defaults to currently logged in user.
  
     @author Michael Bryzek (mbryzek@arsdigita.com)
+    @author Frank Bergmann (frank.bergmann@project-open.com)
     @creation-date January 2000
-    @cvs-id week.tcl,v 3.7.2.7 2000/09/22 01:38:38 kevin Exp
-   
+    @cvs-id month.tcl,v 3.7.2.7 2000/09/22 01:38:38 kevin Exp   
 } {
     { julian_date "" }
     { user_id_from_search:integer "" }
@@ -40,37 +40,33 @@ if {"" == $user_id_from_search || ![im_permission $user_id "add_hours_all"]} {
     set user_id_from_search $user_id 
 }
 
-
-
 if { $julian_date eq "" } {
     set julian_date [db_string sysdate_as_julian "select to_char(sysdate,'J') from dual"]
 }
 
-
-
 set user_name [db_string user_name "select im_name_from_user_id(:user_id_from_search) from dual"]
 
-db_1row week_select_start_and_end "
-select 
-	to_char(next_day(to_date( :julian_date, 'J' )-1, 'sat' ),'MM/DD/YYYY' ) AS end_date,
-	to_char( next_day(to_date( :julian_date, 'J' )-1, 'sat' )-6,'MM/DD/YYYY' ) AS start_date
-from dual"
-
+db_1row month_select_start_and_end "
+	select 
+		to_char(to_date(:julian_date, 'J' ), 'YYYY-MM-01') AS start_date,
+		(to_char(to_date(:julian_date, 'J' ), 'YYYY-MM-01')::date + '1 month'::interval - '1 day'::interval)::date  AS end_date
+	from dual
+"
 
 set sql "
-SELECT 
-	p.project_id, 
-	p.project_name, 
-	sum(h.hours) as total
-FROM
-	im_hours h,
-	im_projects p
-WHERE
-	p.project_id = h.project_id
-	AND h.day >= trunc( to_date( :start_date, 'MM/DD/YYYY' ),'Day' )
-    	AND h.day < trunc( to_date( :end_date, 'MM/DD/YYYY' ),'Day' ) + 1
-    	AND h.user_id = :user_id_from_search
-GROUP BY p.project_id, p.project_name
+	SELECT 
+		p.project_id, 
+		p.project_name, 
+		sum(h.hours) as total
+	FROM
+		im_hours h,
+		im_projects p
+	WHERE
+		p.project_id = h.project_id
+		AND h.day::date >= :start_date::date
+	    	AND h.day::date < end_date::date + 1
+	    	AND h.user_id = :user_id_from_search
+	GROUP BY p.project_id, p.project_name
 "
 
 set items {}
@@ -83,20 +79,20 @@ db_foreach hour_select $sql {
 }
 
 set sql "
-SELECT
-	p.project_id, 
-	p.project_name, 
-        h.note,
-	TO_CHAR( day, 'Dy, MM/DD/YYYY' ) as nice_day
-FROM 
-	im_hours h, 
-	im_projects p
-WHERE
-	h.project_id = p.project_id
-	AND h.day >= trunc( to_date( :start_date, 'MM/DD/YYYY' ),'Day' )
-    	AND h.day < trunc( to_date( :end_date, 'MM/DD/YYYY' ),'Day' ) + 1
-    	AND h.user_id = :user_id_from_search
-ORDER BY lower(p.project_name), day
+	SELECT
+		p.project_id, 
+		p.project_name, 
+	        h.note,
+		TO_CHAR( day, 'Dy, MM/DD/YYYY' ) as nice_day
+	FROM 
+		im_hours h, 
+		im_projects p
+	WHERE
+		h.project_id = p.project_id
+		AND h.day::date >= :start_date::date
+	    	AND h.day::date < :end_date::date + 1
+	    	AND h.user_id = :user_id_from_search
+	ORDER BY lower(p.project_name), day
 "
 
 set last_id -1
@@ -159,8 +155,8 @@ if {[llength $items] > 0 } {
     	</table>\n"
 }
 
-set page_title "[_ intranet-timesheet2.lt_Weekly_total_by_user_]"
-set context_bar [im_context_bar [list index "[_ intranet-timesheet2.Your_hours]"] "[_ intranet-timesheet2.Weekly_hours]"]
+set page_title "[lang::message::lookup "" intranet-timesheet2.lt_Monthly_total_by_user_ "Monthly total by %user_name%"]"
+set context_bar [im_context_bar [list index "[_ intranet-timesheet2.Your_hours]"] "[_ intranet-timesheet2.Monthly_hours]"]
 
 set page_body "
 $hour_table
