@@ -205,7 +205,7 @@ ad_proc absence_list_for_user_and_time_period {user_id first_julian_date last_ju
 	   set vacation($i) "
 		<a href=\"/intranet-timesheet2/absences/new?form_mode=display&absence_id=$absence_id\"
 		>[_ intranet-timesheet2.Absent_1]</a> 
-		$absence_type_l10n<br>
+		$absence_type_l10n
            "
 	}
     }

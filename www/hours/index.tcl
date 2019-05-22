@@ -333,7 +333,7 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
     if {($column_ctr == 7 || 0 && $current_date_ansi == $last_day_of_month_ansi) && $show_last_confirm_button_p } {
 	append html "<br>
 		<a href=[export_vars -base "week" {{julian_date $current_date} user_id_from_search}]
-		>[_ intranet-timesheet2.Week_total_1] [format "%.2f" [expr {double(round(100*$hours_for_this_week))/100}]]</a><br>
+		>[_ intranet-timesheet2.Week_total_1] [format "%.2f" [expr {double(round(100*$hours_for_this_week))/100}]]</a>
 	"
 
 	if { $current_date_ansi == $last_day_of_month_ansi} { set show_last_confirm_button_p 0 }
@@ -364,7 +364,7 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
     if {$current_date_ansi == $last_day_of_month_ansi} {
 	append html "<br>
 		<a href=[export_vars -base "month" {{julian_date $current_date} user_id_from_search}]
-		>[lang::message::lookup "" intranet-timesheet2.Month_total "Month total:"] [format "%.2f" [expr {double(round(100*$hours_for_this_month))/100}]]</a><br>
+		>[lang::message::lookup "" intranet-timesheet2.Month_total "Month total:"] [format "%.2f" [expr {double(round(100*$hours_for_this_month))/100}]]</a>
 	"
     }
 
