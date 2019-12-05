@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<message_catalog package_key="intranet-timesheet2" locale="zh_TW" charset="utf-8">
+
+  <msg key="Add_hours">添加工時</msg>
+  <msg key="Associated_reports">相關報告</msg>
+  <msg key="End_Date">結束日期</msg>
+  <msg key="Filter">篩選</msg>
+  <msg key="Hours">小時</msg>
+  <msg key="Log_Absences">缺勤記錄</msg>
+  <msg key="log_hours">小時記錄</msg>
+  <msg key="Log_hours_for_user">記錄：</msg>
+  <msg key="lt_A_total_of_total_hour">該專案一共花費 %total_hours_str% 個單位</msg>
+  <msg key="lt_Add_hours_on_other_pr">添加其他專案工時</msg>
+  <msg key="lt_Log_hours_for_a_diffe">另一天的工時記錄</msg>
+  <msg key="lt_Log_your_log_hours_li">記錄 %log_hours_link% 小時</msg>
+  <msg key="lt_Return_to_previous_pa">返回前一頁</msg>
+  <msg key="lt_Today_you_didnt_log_y">今天,您還沒有記錄自己的單位!</msg>
+  <msg key="lt_View_hours_logged_dur">按人查看上週工時記錄</msg>
+  <msg key="lt_View_the_hours_logged">查看其他人的工時記錄</msg>
+  <msg key="lt_View_time_spent_on_al">按人查看所有專案花費的工時</msg>
+  <msg key="lt_View_your_hours_on_al">查看您所有專案的工時</msg>
+  <msg key="lt_You_have_loged_total_">在這個專案上您已經記錄%total_hours_str% 單位</msg>
+  <msg key="Name">名稱</msg>
+  <msg key="Other_Options">其他選項</msg>
+  <msg key="Project">項目</msg>
+  <msg key="Project_br_Name">專案&lt;br&gt;名稱</msg>
+  <msg key="Project_name">專案名稱</msg>
+  <msg key="Start_Date">開始日期</msg>
+  <msg key="Timesheet">工時單</msg>
+  <msg key="Timesheet_for_user_name">%user_name% 工時單</msg>
+  <msg key="Type">類型</msg>
+  <msg key="User">用戶</msg>
+  <msg key="Week_total_1">週合計</msg>
+  <msg key="Work_done">工作完成</msg>
+  <msg key="You_need_to_log_hours">  You have so far logged only %num_hours% hours worktime
+  %absences_hours_message% of the required %expected_hours% hours in the last
+  %num_days% days. Please log you hours now or contact your manager.
+  </msg>
+</message_catalog>
