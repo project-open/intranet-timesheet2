@@ -8,5 +8,5 @@ update lang_messages set message = 'Last 3 months' where message = 'last 3 month
 
 -- New category in order to modify the color for weekend
 SELECT im_category_new (5008, 'Weekend', 'Intranet Absence Type'); 
-update im_categories set aux_string2 = 'BBBBBB' where category_id = 5008;
+update im_categories set aux_string2 = 'BBBBBB', enabled_p = 'f' where category_id = 5008;
 

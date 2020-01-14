@@ -302,7 +302,7 @@ update im_categories set aux_string2 = 'FFCC99' where category_id = 5004;
 update im_categories set aux_string2 = 'CCCCCC' where category_id = 5005;
 update im_categories set aux_string2 = 'FF99CC' where category_id = 5006;
 update im_categories set aux_string2 = 'FF9999' where category_id = 5007;
-update im_categories set aux_string2 = 'BBBBBB' where category_id = 5008;
+update im_categories set aux_string2 = 'BBBBBB', enabled_p = 'f' where category_id = 5008;
 
 
 -----------------------------------------------------------
