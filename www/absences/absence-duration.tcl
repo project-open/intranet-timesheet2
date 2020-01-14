@@ -18,16 +18,10 @@ ad_page_contract {
 }
 
 set current_user_id [auth::require_login]
+set work_days [db_string days_in_period "select sum(unnest) / 100.0 from unnest(im_resource_mgmt_work_days(:current_user_id, :start_date::date, :end_date::date))"]
+if {"" eq $work_days} { set work_days "invalid" }
 
-
-
-set work_days_string [db_string days_in_period "select im_resource_mgmt_work_days(:current_user_id, :start_date::date, :end_date::date)"]
-set work_days_array [lindex [split $work_days_string "="] 1]
-regsub -all {,} $work_days_array " " work_days_array
-set work_days_array [string range $work_days_array 1 end-1]
-set work_days 0
-foreach d $work_days_array { set work_days [expr $work_days + $d] }
-set work_days [expr $work_days / 100.0]
+ns_log Notice "absence-duration.tcl: start=$start_date, end=$end_date -> $work_days"
 
 set work_units_uom [parameter::get_from_package_key -package_key "intranet-timesheet2" -parameter "AbsenceDefaultDurationUnit" -default "days"]
 switch $work_units_uom {
