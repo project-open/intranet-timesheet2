@@ -30,7 +30,9 @@ ad_proc -public im_user_absence_type_sick {} { return 5002 }
 ad_proc -public im_user_absence_type_travel {} { return 5003 }
 ad_proc -public im_user_absence_type_training {} { return 5004 }
 ad_proc -public im_user_absence_type_bank_holiday {} { return 5005 }
-
+ad_proc -public im_user_absence_type_overtime {} { return 5006 }
+ad_proc -public im_user_absence_type_reduction {} { return 5007 }
+ad_proc -public im_user_absence_type_weekend {} { return 5008 }
 
 ad_proc -public im_user_absence_status_active {} { return 16000 }
 ad_proc -public im_user_absence_status_deleted {} { return 16002 }
@@ -676,7 +678,7 @@ ad_proc im_absence_cube {
 
 	set date_month [lang::message::lookup "" intranet-timesheet2.$date_month $date_month]
 
-	if {$date_weekday eq "Sat" || $date_weekday eq "Sun"} { set holiday_hash($date_date) [im_user_absence_type_bank_holiday] } 
+	if {$date_weekday eq "Sat" || $date_weekday eq "Sun"} { set holiday_hash($date_date) [im_user_absence_type_weekend] } 
 	lappend day_list [list $date_date $date_day_of_month $date_month $date_year]
     }
 
@@ -828,8 +830,13 @@ ad_proc im_absence_cube {
 	    if {[info exists absence_hash($key)]} { set value $absence_hash($key) }
 	    if {[info exists holiday_hash($date_date)]} { lappend value $holiday_hash($date_date) }
  
-	    append table_body [im_absence_cube_render_cell $value]
-	    ns_log Notice "intranet-absences-procs::im_absence_cube_render_cell: $value"
+	    set cell [im_absence_cube_render_cell $value]
+
+	    if {$user_id == 624} {
+		ns_log Notice "intranet-absences-procs: key=$key, im_absence_cube_render_cell($value) -> $cell"
+	    }
+
+	    append table_body $cell
 	}
 	append table_body "</tr>\n"
 	incr row_ctr

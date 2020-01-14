@@ -280,8 +280,10 @@ SELECT im_category_new (5002, 'Sick', 'Intranet Absence Type');
 SELECT im_category_new (5003, 'Travel', 'Intranet Absence Type');
 SELECT im_category_new (5004, 'Training', 'Intranet Absence Type');
 SELECT im_category_new (5005, 'Bank Holiday', 'Intranet Absence Type');
-SELECT im_category_new(5006, 'Overtime', 'Intranet Absence Type');
-SELECT im_category_new(5007, 'Reduction in Working Hours', 'Intranet Absence Type'); 
+SELECT im_category_new (5006, 'Overtime', 'Intranet Absence Type');
+SELECT im_category_new (5007, 'Reduction in Working Hours', 'Intranet Absence Type'); 
+SELECT im_category_new (5008, 'Weekend', 'Intranet Absence Type'); 
+
 
 -- Set the default WF for each absence type
 update im_categories set aux_string1 = 'vacation_approval_wf' where category_id = 5000;
@@ -300,7 +302,7 @@ update im_categories set aux_string2 = 'FFCC99' where category_id = 5004;
 update im_categories set aux_string2 = 'CCCCCC' where category_id = 5005;
 update im_categories set aux_string2 = 'FF99CC' where category_id = 5006;
 update im_categories set aux_string2 = 'FF9999' where category_id = 5007;
-
+update im_categories set aux_string2 = 'BBBBBB' where category_id = 5008;
 
 
 -----------------------------------------------------------
