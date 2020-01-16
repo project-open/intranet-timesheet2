@@ -130,6 +130,7 @@ ad_proc -public im_timesheet2_sync_timesheet_costs {
     if {!$sync_timesheet_costs} { return }
     
     set default_currency [im_parameter -package_id [im_package_cost_id] "DefaultCurrency" "" "EUR"]
+    set default_hourly_cost [parameter::get_from_package_key -package_key intranet-cost -parameter DefaultTimesheetHourlyCost -default 100]
 
     set user_sql ""
     set project_sql ""
@@ -154,7 +155,7 @@ ad_proc -public im_timesheet2_sync_timesheet_costs {
 		h.*,
 		h.day::date as hour_date,
 		h.user_id as hour_user_id,
-		coalesce(e.hourly_cost, 0) as billing_rate,
+		coalesce(e.hourly_cost, :default_hourly_cost) as billing_rate,
 		coalesce(e.currency, :default_currency) as billing_currency,
 		p.company_id as customer_id,
 		p.project_nr,
