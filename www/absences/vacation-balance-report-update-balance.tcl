@@ -29,12 +29,27 @@ foreach uid [array names vacation_balance] {
     set new_vacation_balance $vacation_balance($uid)
     set new_vacation_balance_year $vacation_balance_year($uid)
 
+    # Write Audit Trail before update, just in case
+    im_audit -object_id $uid -action before_update
+
+    # Backup the old value, just in case...
+    db_dml backup_old_balance "
+	update im_employees set
+		vacation_balance_backup_previous_year = vacation_balance
+	where employee_id = :uid
+    "
+
+    # Update the value and the date of the value
     db_dml update_balance "
 	update im_employees set
 		vacation_balance = :new_vacation_balance,
 		vacation_balance_year = :new_vacation_balance_year::date
 	where employee_id = :uid
     "
+
+    # Write Audit Trail after the update
+    im_audit -object_id $uid -action after_update
+
 }
 
 

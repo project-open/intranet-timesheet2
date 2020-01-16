@@ -1,5 +1,11 @@
 <if @view_absences_p@ or @view_absences_all_p@>
 
+	<!-- Show a message if there are old vacation balances in the system -->
+	<if @vacation_balance_update_msg@ not nil>
+	@vacation_balance_update_msg;noquote@
+	</if>
+
+
 	<table>
 	<!--
 	<tr class=rowtitle>
@@ -33,7 +39,6 @@
 	</table>
 
 	<br>
-
 	<h2><%=[lang::message::lookup "" intranet-timesheet2.Absences_This_Year "Current Year"]%></h2>
 	<listtemplate name="vacation_balance"></listtemplate>
 	<br>

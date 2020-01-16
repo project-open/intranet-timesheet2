@@ -58,22 +58,46 @@ if {"" == $number_locale} { set number_locale [lang::user::locale] }
 # ------------------------------------------------------------
 # Page Title, Bread Crums and Help
 #
-set page_title [lang::message::lookup "" intranet-reporting.HR_Vacation_Balance "HR Vacation Balance"]
+set page_title [lang::message::lookup "" intranet-reporting.HR_Update_Vacation_Balance "HR Update Vacation Balance"]
 set context_bar [im_context_bar $page_title]
 set help_text "
 	<strong>$page_title:</strong><br>
-	[lang::message::lookup "" intranet-reporting.HR_Vacation_Balance_help "
-	Shows the vacation status of all employees in the company.<br>
-	The report only shows users in group 'Employees', who are <br>
-	'active' (not deleted or disabled) and belong to a proper department.
+	[lang::message::lookup "" intranet-reporting.HR_Update_Vacation_Balance_help "
+
+	During January of a new year, this report will allow HR staff to update<br>
+	the 'vacation balance' of users from the previous year to the current year.<br>
+	<br>
+	The 'vacation balance' is the number of vacation days from the previous year<br>
+	that could be carried over to the current year. It is a simple number, so it<br>
+	is relatively easy to hande.<br>
+	<br>
+	This report allows you to update this number at the beginning of a new year.<br>
+	It takes the old vacation balance, adds the general 'vacation days available per<br>
+	year' and subtracts the vacation actually taken last year:<br>
+
+	<blockquote><b>
+	new_vacation_balance := old_vacation_balance + vacation_available_per_year - vacations_actually_taken
+	</b></blockquote>
+
+	This value should be the new vacation balance.<br>
+	Some companies have complex HR rules about the maximum number of days <br>
+	are are allowed to be carried over from one year to the next. \]po\[ does not<br>
+	want to model all of these rules, because it would be too complex.<br>
+	Instead,  we have made the new vacation blance an editable input fields, so that<br>
+	HR staff would just manually correct the HR rules.<br>
+	<br>
+	Please Note:
+	<ul>
+	<li>The report only shows users in group 'Employees' who are <br>
+	'active' (not deleted or disabled).
+	<li>This report only talks about 'vacation' type of absences.<br>
+	All other absences (sick, overtime compensation, are not counted as <br>
+	vacations.
+	</ul>
 "]"
 
 
 append help_text "
-	<br>&nbsp;<br>
-	During January of a new year, the report will allow HR staff to <br>
-	update the vacation balance of users from the previous year to the<br>
-	current year.
 "
 
 
@@ -130,59 +154,64 @@ if {$include_users_without_department_p} {
 
 set report_sql "
 	select 
-	       department_id,
-	       cost_center_code as department_code,
-	       cost_center_name as department_name,
-	       user_id,
-	       user_name,
-	       vacation_balance_from_last_year,
-	       vacation_balance_year,
-	       vacation_days_per_year,
-	       vacation_days_taken,
-	       vacation_days_taken_last_year,
-	       vacation_balance_from_last_year + vacation_days_per_year - vacation_days_taken as vacation_left_this_year
+		department_id,
+		cost_center_code as department_code,
+		cost_center_name as department_name,
+		user_id,
+		user_name,
+		vacation_balance_from_last_year,
+		vacation_balance_year,
+		to_char(vacation_balance_year, 'YYYY-MM') as vacation_balance_year_year,
+		vacation_days_per_year,
+		vacation_days_taken,
+		vacation_days_taken_last_year,
+		vacation_balance_from_last_year + vacation_days_per_year - vacation_days_taken as vacation_left_this_year,
+		CASE WHEN now()::date - vacation_balance_year >= 365 THEN 1 ELSE 0 END as vacation_balance_needs_update
 	from (
-	       select u.user_id,
-	       	      coalesce(e.department_id, 0) as department_id,
-		      dept.tree_sortkey,
-		      coalesce(dept.cost_center_code, 'undef') as cost_center_code,
-		      coalesce(dept.cost_center_name, 'undefined') as cost_center_name,
-		      im_name_from_user_id(u.user_id) as user_name,
-		      e.vacation_days_per_year,
-		      coalesce(e.vacation_balance,0.0) as vacation_balance_from_last_year,
-		      to_char(e.vacation_balance_year, 'YYYY-MM') as vacation_balance_year,
+		select	u.user_id,
+			coalesce(e.department_id, 0) as department_id,
+			dept.tree_sortkey,
+			coalesce(dept.cost_center_code, 'undef') as cost_center_code,
+			coalesce(dept.cost_center_name, 'undefined') as cost_center_name,
+			im_name_from_user_id(u.user_id) as user_name,
+			e.vacation_days_per_year,
+			coalesce(e.vacation_balance,0.0) as vacation_balance_from_last_year,
+			vacation_balance_year,
 
-		      coalesce((select sum(duration_days)
-			      from    im_user_absences a
-			      where   a.owner_id = e.employee_id and
-				      a.start_date < date_trunc('year', now())::date + 0 and
-				      a.end_date >= date_trunc('year', now())::date - 365 and
-				      a.absence_type_id in (select * from im_sub_categories([im_user_absence_type_vacation])) and
-				      a.absence_status_id not in ([im_user_absence_status_deleted], [im_user_absence_status_rejected])
-		       ),0.0) as vacation_days_taken_last_year,
+			coalesce((
+				select	sum(duration_days)
+				from	im_user_absences a
+				where   a.owner_id = e.employee_id and
+					a.start_date < date_trunc('year', now())::date + 0 and
+					a.end_date >= date_trunc('year', now())::date - 365 and
+					a.absence_type_id in (select * from im_sub_categories([im_user_absence_type_vacation])) and
+					a.absence_status_id not in ([im_user_absence_status_deleted], [im_user_absence_status_rejected])
+			),0.0) as vacation_days_taken_last_year,
 
-		      coalesce((select sum(duration_days)
-			      from    im_user_absences a
-			      where   a.owner_id = e.employee_id and
-				      a.start_date < date_trunc('year', now())::date +365 and
-				      a.end_date >= date_trunc('year', now())::date and
-				      a.absence_type_id in (select * from im_sub_categories([im_user_absence_type_vacation])) and
-				      a.absence_status_id not in ([im_user_absence_status_deleted], [im_user_absence_status_rejected])
-		       ),0.0) as vacation_days_taken
-
-		from   cc_users u,
-		       persons pe,
-		       im_employees e
-		       LEFT OUTER JOIN im_cost_centers dept ON (e.department_id = dept.cost_center_id)
-		where  u.user_id = e.employee_id and
-		       u.user_id = pe.person_id and
-		       u.member_state = 'approved'
-		       and e.employee_id in (
-		       		select	member_id from	group_distinct_member_map
+			coalesce((
+				select sum(duration_days)
+				from	im_user_absences a
+				where   a.owner_id = e.employee_id and
+					a.start_date < date_trunc('year', now())::date +365 and
+					a.end_date >= date_trunc('year', now())::date and
+					a.absence_type_id in (select * from im_sub_categories([im_user_absence_type_vacation])) and
+					a.absence_status_id not in ([im_user_absence_status_deleted], [im_user_absence_status_rejected])
+			),0.0) as vacation_days_taken
+		from
+			cc_users u,
+			persons pe,
+			im_employees e
+			LEFT OUTER JOIN im_cost_centers dept ON (e.department_id = dept.cost_center_id)
+		where
+			u.user_id = e.employee_id and
+			u.user_id = pe.person_id and
+			u.member_state = 'approved'
+			and e.employee_id in (
+				select	member_id from	group_distinct_member_map
 				where	group_id in (select group_id from groups where group_name = 'Employees')
-		       )
-		       $include_users_without_department_sql
-		       $cc_sql
+			)
+			$include_users_without_department_sql
+			$cc_sql
 		) t
 	order by
 		tree_sortkey,
@@ -200,16 +229,14 @@ set report_sql "
 set header0 [list \
 	"Department" \
 	"User" \
-	"Vacation days<br> from last year" \
-	"... from" \
-	"Vacation days<br> per year" \
-	"Vacation days<br> taken in $current_year_year" \
-	"Vacation days<br> left in $current_year_year" \
+	"Vacation<br> balance..." \
+	"... last<br>updated" \
+	"Vacation days<br> available per year" \
 ]
 
 if {$january_p} {
     lappend header0 "Vacation days<br> taken in $last_year_year"
-    lappend header0 "Update 'Vacation days from last year' to new value"
+    lappend header0 "#align=right <input type=submit value='Update vacation balance'>"
 }
 
 
@@ -218,17 +245,13 @@ set user_header_vars {
     "<a href=$department_url$department_id target=_>$department_code</a>"
     "<a href=$user_url$user_id target=_>$user_name</a>"
     "#align=right $vacation_balance_from_last_year_pretty"
-    "#align=right $vacation_balance_year"
+    "#align=right $vacation_balance_year_year"
     "#align=right $vacation_days_per_year_pretty"
-    "#align=right $vacation_days_taken_pretty"
-    "#align=right $vacation_left_this_year_pretty"
 }
 
 if {$january_p} {
     lappend user_header_vars "#align=right \$vacation_days_taken_last_year_pretty"
-    set balance_input "<input type=text name=vacation_balance.\$user_id size=4 value='\$new_vacation_balance'>"
-    set balance_year_input "<input type=text name=vacation_balance_year.\$user_id size=10 value='$current_year_year-01-01'>"
-    lappend user_header_vars "#align=right $balance_input at $balance_year_input"
+    lappend user_header_vars "#align=right \$balance_update"
 }
 
 set department_header {
@@ -240,13 +263,12 @@ set department_header {
 set department_footer {
     "#colspan=3 <b><a href=$department_url$department_id target=_>$department_name</a></b>"
     "#colspan=3 #align=right <b>Average: ($users_per_dept_subtotal Users): [expr round(10.0 * $vacation_left_subtotal / ($users_per_dept_subtotal + 0.0000001)) / 10.0]</b>"
-    "#align=right <b>$vacation_left_subtotal_pretty</b>"
 }
 
 set footer0 {
     "#colspan=3 &nbsp;"
     "#colspan=3 #align=right <i>Average ($users_total Users): [expr round(10.0 * $vacation_left_total / ($users_total + 0.0000001)) / 10.0]</i>"
-    "#align=right <i>$vacation_left_total_pretty</i>"
+    "#align=right <input type=submit value='Update vacation balance'>"
 }
 
 # Disable cost_center for CSV output
@@ -304,10 +326,10 @@ set user_total_counter [list \
 ]
 
 set counters [list \
-		  $vacation_left_subtotal_counter \
-		  $vacation_left_total_counter \
-		  $user_per_dept_counter \
-		  $user_total_counter \
+		$vacation_left_subtotal_counter \
+		$vacation_left_total_counter \
+		$user_per_dept_counter \
+		$user_total_counter \
 ]
 
 # Set the values to 0 as default (New!)
@@ -386,6 +408,8 @@ switch $output_format {
 	  </td>
 	</tr>
 	</table>
+
+	<br>&nbsp;<br>
 	
 	<!-- Here starts the main report table -->
 	<form action=/intranet-timesheet2/absences/vacation-balance-report-update-balance.tcl method=POST>
@@ -414,10 +438,13 @@ db_foreach sql $report_sql {
     set vacation_days_taken_pretty [im_report_format_number $vacation_days_taken $output_format $number_locale]
     set vacation_left_this_year_pretty [im_report_format_number $vacation_left_this_year $output_format $number_locale]
     set vacation_days_taken_last_year_pretty [im_report_format_number $vacation_days_taken_last_year $output_format $number_locale]
-
     set new_vacation_balance [expr round(100.0 * ($vacation_balance_from_last_year + $vacation_days_per_year - $vacation_days_taken_last_year)) / 100.0]
 
-    
+    # Create input fields for updating the vacation_balance
+    set balance_input "<input type=text name=vacation_balance.$user_id size=4 value='$new_vacation_balance'>"
+    set balance_year_input "<input type=text name=vacation_balance_year.$user_id size=10 value='$current_year_year-01-01'>"
+    set balance_update "#align=right $balance_input at $balance_year_input"
+    if {!$vacation_balance_needs_update} { set balance_update "everything up to date" }
 
     im_report_display_footer \
 	-output_format $output_format \
@@ -443,12 +470,12 @@ db_foreach sql $report_sql {
 			]
 
     set footer_array_list [im_report_render_footer \
-			       -output_format $output_format \
-			       -group_def $report_def \
-			       -last_value_array_list $last_value_list \
-			       -level_of_detail $level_of_detail \
-			       -row_class $class \
-			       -cell_class $class
+				-output_format $output_format \
+				-group_def $report_def \
+				-last_value_array_list $last_value_list \
+				-level_of_detail $level_of_detail \
+				-row_class $class \
+				-cell_class $class
 			  ]
 
     incr counter
@@ -477,7 +504,6 @@ im_report_render_row \
 switch $output_format {
     html {
 	ns_write "</table>\n"
-	ns_write "<input type=submit value='Update vacation balance'>\n"
 	ns_write "</form>\n"
 	ns_write "<br>&nbsp;<br>"
 	ns_write [im_footer]
