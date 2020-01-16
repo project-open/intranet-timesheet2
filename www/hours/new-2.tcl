@@ -576,8 +576,11 @@ if {$wf_installed_p && [array size modified_projects_hash] > 0} {
 # modified projects and update hours for these projects.
 # ----------------------------------------------------------
 
+# ad_return_complaint 1 "perf=$performance_mode_p, action_hash=[array get action_hash]"
+
 if {!$performance_mode_p} {
-    array set modified_projects_hash [array get all_project_ids]
+    # Safe and slow
+    foreach pid $all_project_ids { set modified_projects_hash($pid) $pid }
 } else {
     # Experimental - may lead to cache inconsistencies
 
@@ -608,6 +611,10 @@ if {!$performance_mode_p} {
     }
 
 }
+
+
+# ad_return_complaint 1 "action_hash=[array get action_hash], mod=[array get modified_projects_hash], all=$all_project_ids"
+
 
 # Create cost items for every logged hours?
 # This may take up to a second per user, so we may want to avoid this
