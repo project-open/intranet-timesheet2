@@ -56,6 +56,8 @@ function calculateAbsenceDuration() {
 	var end_year = document.getElementById("end_date.year").value;
 	var end_date = end_year + '-' + end_month + '-' + end_day;
 
+	var owner_id = document.getElementById("absence:absence_owner_id:0").value;
+
 	var xmlHttp = new XMLHttpRequest();
 	xmlHttp.onreadystatechange = function() {
 		if (debug) console.log('absences/new: readyState='+xmlHttp.readyState+', status='+xmlHttp.status+', responseText='+xmlHttp.responseText);
@@ -70,7 +72,7 @@ function calculateAbsenceDuration() {
 			alert('Error processing server response from /intranet-timesheet2/absences/absence-duration:\n\n '+error);
 		}
         }
-	xmlHttp.open("GET","/intranet-timesheet2/absences/absence-duration?start_date="+start_date+"&end_date="+end_date);
+	xmlHttp.open("GET","/intranet-timesheet2/absences/absence-duration?user_id="+owner_id+"&start_date="+start_date+"&end_date="+end_date);
 	xmlHttp.send(null);
 
 	if (debug) console.log('absences/new: Calculating absence duration: Finished');

@@ -15,10 +15,25 @@ ad_page_contract {
 } {
     start_date
     end_date
+    { user_id:integer "" }
+}
+
+
+
+# Check that Start & End-Date have correct format
+if {"" != $start_date && ![regexp {^[0-9][0-9][0-9][0-9]\-[0-9][0-9]\-[0-9][0-9]$} $start_date]} {
+    doc_return 200 "text/html" "invalid"
+    ad_script_abort
+}
+
+if {"" != $end_date && ![regexp {^[0-9][0-9][0-9][0-9]\-[0-9][0-9]\-[0-9][0-9]$} $end_date]} {
+    doc_return 200 "text/html" "invalid"
+    ad_script_abort
 }
 
 set current_user_id [auth::require_login]
-set work_days [db_string days_in_period "select sum(unnest) / 100.0 from unnest(im_resource_mgmt_work_days(:current_user_id, :start_date::date, :end_date::date))"]
+if {"" eq $user_id || 0 eq $user_id} { set user_id $current_user_id }
+set work_days [db_string days_in_period "select sum(unnest) / 100.0 from unnest(im_resource_mgmt_work_days(:user_id, :start_date::date, :end_date::date))"]
 if {"" eq $work_days} { set work_days "invalid" }
 
 ns_log Notice "absence-duration.tcl: start=$start_date, end=$end_date -> $work_days"
@@ -46,3 +61,4 @@ if {[regexp {^(.*)\.0$} $work_units match rounded_work_units]} {
 
 
 doc_return 200 "text/html" "$work_units $work_units_uom_l10n"
+
