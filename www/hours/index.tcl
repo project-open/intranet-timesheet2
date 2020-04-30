@@ -510,15 +510,6 @@ if {$add_absences_p} {
     "
 }
 
-if {$return_url ne "" && ![regexp {^/intranet-timesheet2/hours/index} $return_url]} {
-    append left_navbar_html "
-	    <li><a href='$return_url'>[_ intranet-timesheet2.lt_Return_to_previous_pa]</a></li>
-    "
-}
-
-
-
-
 # ----------------------------------------------------------
 # Do we have to show administration links?
 # ---------------------------------------------------------------
