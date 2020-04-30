@@ -1419,11 +1419,6 @@ if {[im_permission $current_user_id view_projects_all]} {
 	    <li><a href='$different_project_url'>[_ intranet-timesheet2.lt_Add_hours_on_other_pr]</A></li>
     "
 }
-if {$return_url ne ""} {
-    append left_navbar_html "
-	    <li><a href='$return_url'>[_ intranet-timesheet2.lt_Return_to_previous_pa]</a></li>
-    "
-}
 
 append left_navbar_html "
 	    <!-- Dynamically added menu links -->
