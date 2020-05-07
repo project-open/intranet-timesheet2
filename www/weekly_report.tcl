@@ -256,7 +256,7 @@ ad_page_contract {
     { start_at:integer "" }
     { display "project" }
     { cost_center_id:integer 0 }
-    { workflow_key ""}
+    { workflow_key:word ""}
 }
 
 # ---------------------------------------------------------------
