@@ -38,21 +38,12 @@ ad_page_contract {
 }
 
 set form [ns_conn form]
-if {$form eq ""} {
-    set form [ns_set new]
-}
+if {$form eq ""} { set form [ns_set new]}
 
 set from [validate_ad_dateentrywidget "" from_date $form allownull]
-if { $from eq "" } {
-    set from [db_string sysdate \
-            "select to_char(add_months(sysdate,-3),'YYYY-MM-DD') from dual"]
-}
-
+if { $from eq "" } { set from [db_string sysdate "select to_char(add_months(sysdate,-3),'YYYY-MM-DD') from dual"] }
 set ending [validate_ad_dateentrywidget "" to_date $form allownull]
-if { $ending eq "" } {
-    set ending [db_string sysdate \
-            "select to_char(sysdate,'YYYY-MM-DD') from dual"]
-}
+if { $ending eq "" } { set ending [db_string sysdate "select to_char(sysdate,'YYYY-MM-DD') from dual"] }
 
 
 set columns 3

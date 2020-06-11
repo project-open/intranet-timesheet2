@@ -26,22 +26,14 @@ ad_page_contract {
 # user_id already validated by /intranet filters
 set user_id [ad_conn user_id]
 set user_admin_p [im_is_user_site_wide_or_intranet_admin $user_id]
-
 set date_format "YYYY-MM-DD"
 
 set form [ns_conn form]
-if {$form eq ""} {
-    set form [ns_set new]
-}
+if {$form eq ""} { set form [ns_set new] }
 set start [validate_ad_dateentrywidget from_date from_date $form allownull]
-if { $start eq "" } {
-    set start "2000-01-01"
-}
+if { $start eq "" } { set start "2000-01-01" }
 set end [validate_ad_dateentrywidget to_date to_date $form allownull]
-if { $end eq "" } {
-    set end [db_string sysdate \
-            "select to_char(sysdate,'YYYY-MM-DD') from dual"]
-}
+if { $end eq "" } { set end [db_string sysdate "select to_char(sysdate,'YYYY-MM-DD') from dual"] }
 
 if { $employee ne "" } {
     append sql_employee " select u.user_id as employee_id, \
