@@ -268,20 +268,19 @@ append table_main_html "</tbody></table></td>"
 
 db_foreach projects_info_query $title_sql  {
 	
-    	if { $workload ne "" } {
-		set workload_formatted [expr [round_down [expr {$workload / [concat $work_days$floating_point_helper]}] 100 ] * 100]
-	    	set workload_formatted [string range $workload_formatted 0 [string length $workload_formatted]-3]
+    	if {$workload ne ""} {
+		set workload_formatted [expr round(1000.0 * $workload / $work_days) / 10.0]
 	} else {
-                set workload_formatted 0
 		set workload 0
+                set workload_formatted 0
 	}
-	if { $workload_formatted > 100} {
+	if {$workload_formatted > 100} {
 		set workload_formatted "<span style='color:red;font-weight:bold'>$workload_formatted%</span>"
 	} else {
 		set workload_formatted "$workload_formatted%"
 	}
 	
-        if { [expr {$work_days-$workload}] < 0} {
+        if {[expr {$work_days-$workload}] < 0} {
                 set capacity_formatted "<span style='color:red;font-weight:bold'>[expr {$work_days-$workload}]</span>"
         } else {
                 set capacity_formatted [expr {$work_days-$workload}]
