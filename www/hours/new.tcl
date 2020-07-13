@@ -357,11 +357,12 @@ if {$project_id in {1 2}} {
 		h.day > now()::date - :days_in_past::integer and
 		tree_root_key(p.tree_sortkey) = main_p.tree_sortkey
     "]
+    if {[llength $main_project_id_list] == 0} { set main_project_id_list [list 0] }
 
     set parent_project_sql "
-			select	p.project_id
-			from	im_projects p
-			where	p.project_id in ([join $main_project_id_list ","])
+			select	pppp.project_id
+			from	im_projects pppp
+			where	pppp.project_id in ([join $main_project_id_list ","])
     \t\t"
 
     # Project specified => only one project
@@ -406,9 +407,9 @@ if {$project_id in {1 2}} {
     "]
 
     set parent_project_sql "
-			select	p.project_id
-			from	im_projects p
-			where	p.project_id in ([join $main_project_id_list ","])
+			select	ppp.project_id
+			from	im_projects ppp
+			where	ppp.project_id in ([join $main_project_id_list ","])
     \t\t"
 
     # An entire list of project has been selected
@@ -1328,12 +1329,15 @@ set week_header_html ""
 
 set i 0 
 foreach j $weekly_logging_days {
-    set julian_day_offset [expr {$julian_week_start + $i}]
+    set julian_day_offset [expr $julian_week_start + $i]
     im_security_alert_check_integer -location "intranet-timesheet2/hours/new.tcl" -value $julian_day_offset
     set header_day_of_week [util_memoize [list db_string day_of_week "select to_char(to_date('$julian_day_offset', 'J'), 'Dy')"]]
     set header_day_of_week_l10n [lang::message::lookup "" intranet-timesheet2.Day_of_week_$header_day_of_week $header_day_of_week]
     set header_date [util_memoize [list db_string header "select to_char(to_date('$julian_day_offset', 'J'), '$weekly_column_date_format')"]]
-    append week_header_html "<th>$header_day_of_week_l10n<br>$header_date</th>\n"
+
+    set header_single_day_link [export_vars -base "/intranet-timesheet2/hours/new" {return_url {julian_date $julian_day_offset} user_id_from_search {show_week_p 0}}]
+
+    append week_header_html "<th><a href='$header_single_day_link'>$header_day_of_week_l10n<br>$header_date</a></th>\n"
     incr i
 }
 
