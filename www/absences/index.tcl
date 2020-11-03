@@ -459,12 +459,12 @@ ad_form \
 	{start_date:text(text) \
 		{label "[_ intranet-timesheet2.Start_Date]"} \
 		{html {size 10}} {value "$start_date"} \
-		{after_html {<input type="button" style="height:23px; width:23px; background: url('/resources/acs-templating/calendar.gif');" onclick ="return showCalendar('start_date', 'y-m-d');" >}} \
+		{after_html {<input id=start_date_calendar type="button" style="height:23px; width:23px; background: url('/resources/acs-templating/calendar.gif');">}} \
 	}
 	{end_date:text(text) \
 		{label "[_ intranet-timesheet2.End_Date]"} \ 
 		{html {size 10}} {value "$end_date"} \
-		{after_html {<input type="button" style="height:23px; width:23px; background: url('/resources/acs-templating/calendar.gif');" onclick ="return showCalendar('end_date', 'y-m-d');" >}} \
+		{after_html {<input id=end_date_calendar type="button" style="height:23px; width:23px; background: url('/resources/acs-templating/calendar.gif');">}} \
 	}
 	{status_id:text(im_category_tree) \
 		optional {label #intranet-core.Status#} {value $status_id} \

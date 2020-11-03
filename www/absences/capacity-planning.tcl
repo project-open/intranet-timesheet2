@@ -268,6 +268,8 @@ append table_main_html "</tbody></table></td>"
 
 db_foreach projects_info_query $title_sql  {
 	
+        if {$work_days < 0.001} { set work_days 0.001 }
+
     	if {$workload ne ""} {
 		set workload_formatted [expr round(1000.0 * $workload / $work_days) / 10.0]
 	} else {

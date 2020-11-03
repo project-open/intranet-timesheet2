@@ -1285,7 +1285,7 @@ template::multirow foreach hours_multirow {
 		set in_out "out"
 		set fold_status "c"
 	    } 
-	    regsub -all "@@fold-icon-class@@" $table_rows "<input class=\"fold_${in_out}_link\" id=\"lnk$project_id\" type=\"button\" value=\"\" onclick=\"toggle_visibility('lnk$project_id', '${project_id}');\">" table_rows	   
+	    regsub -all "@@fold-icon-class@@" $table_rows "<input class=\"fold_${in_out}_link\" id=\"lnk$project_id\" project_id=$project_id type=\"button\" value=\"\" >" table_rows	   
 	    regsub -all "@@fold_status@@" $table_rows $fold_status table_rows		  
 	} else {
 	    regsub -all "@@fold-icon-class@@" $table_rows "\\&nbsp;\\&nbsp;\\&nbsp;" table_rows

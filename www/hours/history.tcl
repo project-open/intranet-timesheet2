@@ -48,7 +48,7 @@ if { $ending eq "" } { set ending [db_string sysdate "select to_char(sysdate,'YY
 
 set columns 3
 set colno 0
-set project_select "<script language=javascript>
+set project_select "<script type=\"text/javascript\" nonce=\"[im_csp_nonce]\">
 <!--
 var names=new Object();
 var values=new Object();
@@ -154,7 +154,7 @@ if {[ns_conn form] eq "" || $on_what_id eq ""} {
     return
 } else {
     doc_body_append "
-<script language=javascript>
+<script type=\"text/javascript\" nonce=\"[im_csp_nonce]\">
 <!--
 function set_select_boxes() {
     var let=new String(\"$letters\").charCodeAt(0)-new String(\"A\").charCodeAt(0);

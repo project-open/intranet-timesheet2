@@ -5,6 +5,26 @@
 <property name="left_navbar">@left_navbar_html;literal@</property>
 <property name="show_context_help_p">@show_context_help_p;literal@</property>
 
+<script type="text/javascript" <if @::__csp_nonce@ not nil>nonce="@::__csp_nonce;literal@"</if>>
+window.addEventListener('load', function() { 
+
+    document.querySelectorAll('.fold_in_link').forEach(item => {
+	var id = item.id;
+	var project_id = item.getAttribute('project_id');
+	item.addEventListener('click', function() { toggle_visibility(id, project_id);});
+    });
+
+    document.querySelectorAll('.fold_out_link').forEach(item => {
+	var id = item.id;
+	var project_id = item.getAttribute('project_id');
+	item.addEventListener('click', function() { toggle_visibility(id, project_id);});
+    })
+
+});
+</script>
+
+
+
 <%= [im_box_header $page_title] %>
 
 <form name=timesheet method=POST action=new-2>
@@ -71,7 +91,7 @@
 </table>
 </form>
 
-<script type="text/javascript">
+<script type="text/javascript" <if @::__csp_nonce@ not nil>nonce="@::__csp_nonce;literal@"</if>>
 	// Scripts for fold-in/fold out 
 	var obj_nested_list = [],
     	    child_arr = [],

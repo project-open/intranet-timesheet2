@@ -61,7 +61,7 @@ template::list::create \
 	project_chk {
 	    label "<input type=\"checkbox\" 
                           name=\"_dummy\" 
-                          onclick=\"acs_ListCheckAll('project_list', this.checked)\" 
+                          id=list_check_all \
                           title=\"Check/uncheck all rows\">"
 	    display_template {
 		@multirow.project_chk;noquote@

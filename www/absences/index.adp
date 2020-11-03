@@ -4,8 +4,15 @@
 <property name="main_navbar_label">timesheet2_absences</property>
 <property name="left_navbar">@left_navbar_html;literal@</property>
 
+<!-- Show calendar on start- and end-date -->
+<script type="text/javascript" <if @::__csp_nonce@ not nil>nonce="@::__csp_nonce;literal@"</if>>
+window.addEventListener('load', function() { 
+     document.getElementById('start_date_calendar').addEventListener('click', function() { showCalendar('start_date', 'y-m-d'); });
+     document.getElementById('end_date_calendar').addEventListener('click', function() { showCalendar('end_date', 'y-m-d'); });
+});
+</script>
 
-<script type="text/javascript">
+<script type="text/javascript" <if @::__csp_nonce@ not nil>nonce="@::__csp_nonce;literal@"</if>>
 $(".po_form_element").each(function(index) {
      $(this).children().each(function( index_1 ) {
         if ( $(this).is('input') && $(this).attr('name') == 'start_date') {
