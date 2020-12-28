@@ -928,7 +928,7 @@ ad_proc -public im_absence_vacation_balance_component_ajax {
 		<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 		<img src=\"/intranet/images/ajax-loader.gif\" alt=\"ajaxloader\">
 		</div>
-        <script type='text/JavaScript'>
+        <script type='text/JavaScript' nonce='[im_csp_nonce]'>
                 \$(function(){
                         function getVacationPortlet() {
                                 var LoadMsg = '<img src=\"/intranet/images/ajax-loader.gif\" alt=\"ajaxloader\">';
