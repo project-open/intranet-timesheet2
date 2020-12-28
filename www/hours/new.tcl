@@ -37,6 +37,20 @@ ad_page_contract {
 }
 
 # ---------------------------------------------------------
+# Redirect?
+# ---------------------------------------------------------
+
+# Custom redirect? Only here in "page mode"
+set redirect_package_url [parameter::get_from_package_key -package_key "intranet-timesheet2" -parameter "TimesheetRedirectPackageUrl" -default ""]
+if {"" ne $redirect_package_url} {
+    set form_vars [ns_conn form]
+    if {"" == $form_vars} { set form_vars [ns_set create] }
+    set var_list [ns_set array $form_vars]
+    set redirect_url [export_vars -base "$redirect_package_url/new" $var_list]
+    ad_returnredirect $redirect_url
+}
+
+# ---------------------------------------------------------
 # Default & Security
 # ---------------------------------------------------------
 

@@ -8,7 +8,7 @@
     <singleton-p>t</singleton-p>
     <auto-mount>intranet-timesheet2</auto-mount>
 
-    <version name="5.0.4.0.0" url="http://www.project-open.net/download/apm/intranet-timesheet2-5.0.4.0.0.apm">
+    <version name="5.0.4.0.1" url="http://www.project-open.net/download/apm/intranet-timesheet2-5.0.4.0.1.apm">
         <owner url="mailto:frank.bergmann@project-open.com">Frank Bergmann</owner>
         <release-date>2004-02-07</release-date>
         <vendor url="http://www.project-open.com/">]project-open[</vendor>
@@ -66,7 +66,8 @@
             <parameter scope="instance" datatype="number"  min_n_values="1"  max_n_values="1"  name="ShowProjectNameAndCompanyNameP"  default="0" description="Should we show the customer name together with the project_name in the timesheet entry page?"/>
 	    <parameter datatype="string"  min_n_values="1"  max_n_values="1"  name="AbsenceDefaultDurationUnit" default="days" description="How should users enter absence duration by default? Options are 'days' or 'hours'. The days are multiplied with 8.0 in order to get hours. Default is 'days'."/>
             <parameter scope="instance" datatype="number"  min_n_values="1"  max_n_values="1"  name="TimesheetNoteTextareaRows"  default="1" description="Should we show a textarea instead of a textbox field? '0' means standard text input. '1' means showing a textarea with 1 row, which is similar to a textbox, but allows resizing. Values > 1 will show bigger textareas. Default is '1' for showing a (resizable) textarea with 1 row."/>
-	</parameters>
+            <parameter scope="instance" datatype="string"  min_n_values="1"  max_n_values="1"  name="TimesheetRedirectPackageUrl" default="" description="Use a custom implementation of intranet-timesheet2? Default is '' (empty string), in order to use the standard implementation. A value of '/intranet-cust-custname/timesheet' (no trailing slash '/'!) would redirect to a custom implementation in ~/packages/intranet-cust-custname/www/timesheet/."/>
+	  </parameters>
 
     </version>
 </package>
