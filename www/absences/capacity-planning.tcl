@@ -27,7 +27,7 @@ ad_page_contract {
 # because it identifies unquely the report's Menu and
 # its permissions.
 set current_user_id [auth::require_login]
-set menu_label "capacity-planning"
+set menu_label "portfolio"
 
 set read_p [db_string report_perms "
         select  im_object_permission_p(m.menu_id, :current_user_id, 'read')
