@@ -17,10 +17,11 @@ BEGIN
 	FOR row IN
 		select 	absence_id
 		from 	im_user_absences
-		where 	not exists (select * from acs_objects where object_id = absence_id);
+		where 	not exists (select * from acs_objects where object_id = absence_id)
 	LOOP
 		IF row.absence_id < 5000 THEN
-			delete from im_user_absences where absence_id = row.absence_id
+			-- some old absences
+			delete from im_user_absences where absence_id = row.absence_id;
 		ELSE
 			insert into acs_objects (object_id, object_type) values (row.absence_id, 'im_user_absence');
 		END IF;
