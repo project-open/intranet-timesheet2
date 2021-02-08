@@ -3,6 +3,12 @@
 SELECT acs_log__debug('/packages/intranet-timesheet2/sql/postgresql/upgrade/upgrade-5.0.4.0.0-5.0.4.0.1.sql','');
 
 
+-- Fix missing status
+update im_user_absences
+set absence_status_id = 16000
+where absence_status_id is null;
+
+alter table im_user_absences alter column absence_status_id set not null;
 
 
 -- Add missing columns to acs_datatype
