@@ -99,12 +99,13 @@ set context [list $page_title]
 
 set read [im_permission $current_user_id "read_absences_all"]
 set write [im_permission $current_user_id "add_absences"]
-set admin [im_is_user_site_wide_or_intranet_admin $current_user_id]
+set user_admin_p [im_is_user_site_wide_or_intranet_admin $current_user_id]
 set add_absences_for_group_p [im_permission $current_user_id "add_absences_for_group"]
 
 # ad_return_complaint 1 "absence_id=$absence_id"
 # ad_script_abort
 
+set admin $user_admin_p
 if {[info exists absence_id]} {
     set absence_exists_p [db_string exists_p "select count(*) from im_user_absences where absence_id = :absence_id"]
     if {$absence_exists_p} {
@@ -202,10 +203,15 @@ if {[info exists absence_id]} {
 	    set edit_perm_func [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter AbsenceNewPageWfEditButtonPerm -default "im_absence_new_page_wf_perm_edit_button"]
 	    set delete_perm_func [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter AbsenceNewPageWfDeleteButtonPerm -default "im_absence_new_page_wf_perm_delete_button"]
 
-	    if {[eval [list $edit_perm_func -absence_id $absence_id]]} {
+	    set edit_p [eval [list $edit_perm_func -absence_id $absence_id]]
+	    set delete_p [eval [list $delete_perm_func -absence_id $absence_id]]
+
+#	    ad_return_complaint 1 "edit_p=$edit_p, delete_p=$delete_p, admin=$admin, user_admin_p=$user_admin_p, edit_func=$edit_perm_func, delete_perm_func=$delete_perm_func"
+	    
+	    if {$user_admin_p || $edit_p} {
 		lappend actions [list [lang::message::lookup {} intranet-timesheet2.Edit Edit] edit]
 	    }
-	    if {[eval [list $delete_perm_func -absence_id $absence_id]]} {
+	    if {$user_admin_p || $delete_p} {
 		lappend actions [list [lang::message::lookup {} intranet-timesheet2.Delete Delete] delete]
 	    }
 

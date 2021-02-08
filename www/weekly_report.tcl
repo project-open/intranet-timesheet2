@@ -123,11 +123,11 @@ ad_proc im_do_row {
     'days' is a list of dates in format 'YYYYMMDD' with seven elements, first day 
 
 } {
-
     set user_view_page "/intranet/users/view"
     set absence_view_page "/intranet-timesheet2/absences/new?form_mode=display"
     set date_format "YYYY-MM-DD"
-
+    set label_hours_weekly_report [lang::message::lookup "" intranet-timesheet2.hours_weekly_report "h"]
+    
     array set bgcolor $bgcolorl
     array set user_days $user_daysl
     array set absence $absencel
@@ -191,7 +191,6 @@ ad_proc im_do_row {
 
 	# Check for hours logged and write hours logged for this day (if applicable) 
 	if { [info exists user_days([lindex $days $i])] } {
-	    set label_hours_weekly_report [lang::message::lookup "" intranet-timesheet2.hours_weekly_report "h"]
 	    lappend cell_text "$user_days([lindex $days $i]) $label_hours_weekly_report"
 	    set absent_p "t"	
 	    if { "" != $workflow_key } {
@@ -212,8 +211,9 @@ ad_proc im_do_row {
 	
 	# If no hours are logged and no absences are registered, set bg color of cell to yellow 
         if { $absent_p == "f" } {
-             lappend cell_text "[_ intranet-timesheet2.No_hours_logged]"
-             lappend cell_param "style=\"background-color: #ffcc66;\""
+	    # lappend cell_text "[_ intranet-timesheet2.No_hours_logged]"
+	    lappend cell_text "0.00 $label_hours_weekly_report"
+	    lappend cell_param "style=\"background-color: #ffcc66;\""
         }
 
         # Color code weekends?
