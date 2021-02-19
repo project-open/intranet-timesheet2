@@ -3,7 +3,7 @@
 # Copyright (c) 2003-2019 ]project-open[
 #
 # All rights reserved. 
-# Please see http://www.project-open.com/ for licensing.
+# Please see https://www.project-open.com/ for licensing.
 
 ad_page_contract {
     Lists vacation balance per user

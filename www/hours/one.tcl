@@ -3,7 +3,7 @@
 # Copyright (C) 2003-2007 ]project-open[
 #
 # All rights reserved. Please check
-# http://www.project-open.com/license/ for details.
+# https://www.project-open.com/license/ for details.
 
 ad_page_contract {
     Edit an existing timesheet element to allow an Admin to assign
