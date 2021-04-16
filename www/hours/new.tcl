@@ -383,7 +383,7 @@ db_foreach missing_members $missing_member_sql {
 	Adding user to parent as a member with role $role_id</li>"
     continue
 }
-if {"" ne $debug_ul} {
+if {0 && "" ne $debug_ul} {
     ad_return_complaint 1 "<h2>Inconsistent Project Memberhips</h2>
 	<p>Maybe somebody moved a project?</p>
 	<p>We have fixed the following issues. Please reload the page.</p>
