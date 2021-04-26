@@ -238,7 +238,7 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
 			and user_id = :current_user_id
     	"
 	set no_ts_approval_wf [db_string workflow_started_p $no_ts_approval_wf_sql -default "0"]
-	if { $confirm_timesheet_hours_p && ("monthly" == $confirmation_period || "weekly" == $confirmation_period) && 0 != $no_ts_approval_wf } { 
+	if {$confirm_timesheet_hours_p && ("monthly" in $confirmation_period || "weekly" in $confirmation_period) && 0 != $no_ts_approval_wf } { 
 	    # ns_log Notice "TS: Entry blocked: Date: $current_date_ansi; Number: $no_ts_approval_wf; $no_ts_approval_wf_sql"
 	    set timesheet_entry_blocked_p 1 
     	}
@@ -351,7 +351,7 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
 	    }
 
 	    set no_unconfirmed_hours [get_unconfirmed_hours_for_period $user_id_from_search $start_date_julian_wf $end_date_julian_wf]
-	    if {$confirm_timesheet_hours_p && (0 < $no_unconfirmed_hours || "" != $no_unconfirmed_hours) && $confirmation_period == "weekly" } {
+	    if {$confirm_timesheet_hours_p && (0 < $no_unconfirmed_hours || "" != $no_unconfirmed_hours) && ("weekly" in $confirmation_period) } {
 		set conf_url [export_vars -base $base_url_confirm_wf { {user_id $user_id_from_search} {start_date_julian $start_date_julian_wf} {end_date_julian $end_date_julian_wf } return_url}]
 		set button_txt [lang::message::lookup "" intranet-timesheet2.Confirm_weekly_hours "Confirm hours for this week"]
 		append html "<p>&nbsp;</p><a href='$conf_url' class=button>$button_txt</a>"
@@ -369,7 +369,7 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
     }
 
     # Monthly hour approval request
-    if { $current_date_ansi == $last_day_of_month_ansi && $confirmation_period == "monthly" } {
+    if { $current_date_ansi == $last_day_of_month_ansi && ("monthly" in $confirmation_period) } {
 	set start_date_month_julian [dt_ansi_to_julian_single_arg $first_day_of_month_ansi]
 	set end_date_month_julian [dt_ansi_to_julian_single_arg $last_day_of_month_ansi]
 	set conf_url [export_vars -base $base_url_confirm_wf { {user_id $user_id_from_search} {start_date_julian $start_date_month_julian } {end_date_julian $end_date_month_julian}  return_url } ]
