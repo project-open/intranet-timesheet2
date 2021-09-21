@@ -292,6 +292,10 @@ set log_hours_on_future_project_p [parameter::get_from_package_key -package_key 
 set list_sort_order [parameter::get_from_package_key -package_key "intranet-timesheet2" -parameter TimesheetAddHoursSortOrder -default "order"]
 set show_project_nr_p [parameter::get_from_package_key -package_key "intranet-timesheet2" -parameter ShowProjectNrAndProjectNameP -default 0]
 set show_company_p [parameter::get_from_package_key -package_key "intranet-timesheet2" -parameter ShowProjectNameAndCompanyNameP -default 0]
+set project_name_max_length [parameter::get_from_package_key -package_key "intranet-timesheet2" -parameter TimesheetProjectNameMaxLength -default 50]
+set project_nr_max_length [parameter::get_from_package_key -package_key "intranet-timesheet2" -parameter TimesheetProjectNrMaxLength -default 12]
+
+
 
 # Should we allow users to log hours on a parent project, even though it has children?
 set log_hours_on_parent_with_children_p [parameter::get_from_package_key -package_key "intranet-timesheet2" -parameter LogHoursOnParentWithChildrenP -default 1]
@@ -1137,9 +1141,23 @@ template::multirow foreach hours_multirow {
 
     # Set project title & URL
     set project_url [export_vars -base "/intranet/projects/view?" {project_id return_url}]
-    set ptitle $project_name
-    if {$show_project_nr_p} { set ptitle "$project_nr - $project_name" }
-    if {$show_company_p} { set ptitle "$project_name <b>($company_name)</b>" }
+
+    # Cut down the name of the task/ticket 
+    set pname $project_name
+    if {$project_name_max_length != 0} {
+	set pname [string range $project_name 0 $project_name_max_length]
+	if {$pname ne $project_name} { append pname "..." }
+    }
+
+    set pnr $project_nr
+    if {$project_nr_max_length != 0} {
+	set pnr [string range $project_nr 0 $project_nr_max_length]
+	if {$pnr ne $project_nr} { append pnr "..." }
+    }
+
+    set ptitle $pname
+    if {$show_project_nr_p} { set ptitle "$pnr - $pname" }
+    if {$show_company_p} { set ptitle "$pname <b>($company_name)</b>" }
 
     if { !$filter_surpress_output_p } {
 	if { !$top_parent_shown_p && $project_id != $top_project_id && "" != $search_task } {
