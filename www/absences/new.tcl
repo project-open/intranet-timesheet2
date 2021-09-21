@@ -50,6 +50,7 @@ set duration_default_uom [parameter::get_from_package_key -package_key "intranet
 set redirect_package_url [parameter::get_from_package_key -package_key "intranet-timesheet2" -parameter "AbsenceRedirectPackageUrl" -default ""]
 if {"" != $redirect_package_url} {
     ad_returnredirect "$redirect_package_url/new"
+    ad_script_abort
 }
 
 
@@ -137,6 +138,7 @@ if {"delete" == $button_pressed} {
 
     ns_log Notice "new: Nuked absence #$absence_id, about to return to return_url=$return_url"
     ad_returnredirect $return_url
+    ad_script_abort
 }
 
 
@@ -180,6 +182,7 @@ if {0 == $absence_type_id && ![info exists absence_id]} {
 	    {return_url $current_url} 
 	    {type_id_var "absence_type_id"} 
 	}]
+	ad_script_abort
     }
 }
 
