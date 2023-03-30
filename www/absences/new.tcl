@@ -208,9 +208,6 @@ if {[info exists absence_id]} {
 
 	    set edit_p [eval [list $edit_perm_func -absence_id $absence_id]]
 	    set delete_p [eval [list $delete_perm_func -absence_id $absence_id]]
-
-#	    ad_return_complaint 1 "edit_p=$edit_p, delete_p=$delete_p, admin=$admin, user_admin_p=$user_admin_p, edit_func=$edit_perm_func, delete_perm_func=$delete_perm_func"
-	    
 	    if {$user_admin_p || $edit_p} {
 		lappend actions [list [lang::message::lookup {} intranet-timesheet2.Edit Edit] edit]
 	    }
@@ -380,9 +377,17 @@ ad_form -extend -name absence -on_request {
 
 } -validate {
 
-    {duration_days
+    {
+	duration_days
 	{[im_absence_formatted_duration_to_days $duration_days] > 0}
 	"Positive number expected"
+    }
+
+    {
+	start_date
+	{  [lindex $start_date 0] >= [db_string this_year "select extract(year from now())"] || $user_admin_p }
+	"You can not create new absences for the last year or earlier.<br>
+        Please contact your administrator for exceptions."
     }
     
 } -new_data {
