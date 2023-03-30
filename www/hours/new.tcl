@@ -1283,7 +1283,7 @@ template::multirow foreach hours_multirow {
 
 	if { "t" == $edit_hours_p && $log_on_parent_p && !$invoice_id && !$solitary_main_project_p && !$closed_p && !$filter_surpress_output_p && !$blocked_by_wf_p && !$max_julian_date_exceed_p } {
 	    # Write editable entries.
-	    append table_rows "<td><input name=hours${i}.$project_id size=5 MAXLENGTH=5 value=\"$hours\"></td>\n"
+	    append table_rows "<td>\n<input name=hours${i}.$project_id size=5 MAXLENGTH=5 value=\"$hours\">\n"
 	    if {!$show_week_p} {
 		
 		# Normal display - no Estimate to Complete
@@ -1298,7 +1298,11 @@ template::multirow foreach hours_multirow {
 		    if {$etc_planned_hours_no_default} { set etc_planned_hours_user "" };# Don't show default value if you really want an estimate...
 		    append table_rows "<td width=20><nobr><input name=etc.$project_id size=1 value=$etc_planned_hours_user> [_ intranet-timesheet2.Hours]</nobr></td>\n"
 		}
+	    } else {
+		# show_week_p
+		append table_rows "<input name=notes${i}.$project_id type=hidden value=\"[ns_quotehtml [value_if_exists note]]\">\n"
 	    }
+	    append table_rows "\n</td>\n"
 	} else {
 	    if { $filter_surpress_output_p } {
 		# Filter in use - write only hidden fields

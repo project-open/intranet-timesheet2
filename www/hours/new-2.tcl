@@ -41,6 +41,12 @@ ad_page_contract {
     hours5:array,optional
     hours6:array,optional
     notes0:array,optional
+    notes1:array,optional
+    notes2:array,optional
+    notes3:array,optional
+    notes4:array,optional
+    notes5:array,optional
+    notes6:array,optional
     internal_notes0:array,optional
     materials0:array,optional
     etc:array,optional
@@ -334,6 +340,7 @@ foreach j $weekly_logging_days {
 	if {"skip" == $action && !$show_week_p && $db_notes != $screen_notes} { set action update }
 	if {"skip" == $action && !$show_week_p && $db_internal_notes != $screen_internal_notes} { set action update }
 	if {"skip" == $action && !$show_week_p && $db_materials != $screen_materials} { set action update }
+
 	if {"skip" != $action} { set action_hash($pid) $action }
     }
 
