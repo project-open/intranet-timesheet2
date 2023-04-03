@@ -22,7 +22,7 @@ proc stripzeros {value} {
 ad_proc wf_status_list  {
     { user_id }
     { days  }
-    { workflow_key }
+    { workflow_key:word }
 } {
     Returns list of lists of format {[ansi-date] [wf-status]}
     Example: {20120720 2} {20120719 2} {20120721 1}
