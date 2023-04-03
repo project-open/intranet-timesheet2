@@ -374,7 +374,7 @@ set missing_member_sql "
 			select	*
 			from	acs_rels r2
 			where	r2.object_id_one = p.parent_id and
-				r2.object_id_two = :user_id_from_search
+			r2.object_id_two = :user_id_from_search
 		)
 	"
 set debug_ul ""
@@ -662,7 +662,7 @@ set child_project_sql "
 #
 
 set sort_integer_p 0
-set sort_legacy_p  0
+set sort_legacy_p 0
 switch $list_sort_order {
     nr {
 	set sort_order "lower(children.project_nr)"
@@ -1238,7 +1238,7 @@ template::multirow foreach hours_multirow {
     set i 0
     foreach j $weekly_logging_days {
 
-	set julian_day_offset [expr {$julian_date + $i}]
+	set julian_day_offset [expr $julian_date + $i]
 	set hours ""
 	set note ""
 	set internal_note ""
