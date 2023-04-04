@@ -22,7 +22,7 @@ proc stripzeros {value} {
 ad_proc wf_status_list  {
     { user_id }
     { days  }
-    { workflow_key:word }
+    { workflow_key }
 } {
     Returns list of lists of format {[ansi-date] [wf-status]}
     Example: {20120720 2} {20120719 2} {20120721 1}
@@ -118,10 +118,11 @@ ad_proc im_do_row {
     { today_date }
     { descrl }
     { workflow_key }
+    { number_locale }
+    { output_format }
 } {
     Returns a row with the hours loged of one user
     'days' is a list of dates in format 'YYYYMMDD' with seven elements, first day 
-
 } {
     set user_view_page "/intranet/users/view"
     set absence_view_page "/intranet-timesheet2/absences/new?form_mode=display"
@@ -191,7 +192,10 @@ ad_proc im_do_row {
 
 	# Check for hours logged and write hours logged for this day (if applicable) 
 	if { [info exists user_days([lindex $days $i])] } {
-	    lappend cell_text "$user_days([lindex $days $i]) $label_hours_weekly_report"
+
+	    set user_days_formatted [im_report_format_number $user_days([lindex $days $i]) $output_format $number_locale]
+
+	    lappend cell_text "$user_days_formatted $label_hours_weekly_report"
 	    set absent_p "t"	
 	    if { "" != $workflow_key } {
 		switch $wf_status_array([lindex $days $i]) {
@@ -212,7 +216,8 @@ ad_proc im_do_row {
 	# If no hours are logged and no absences are registered, set bg color of cell to yellow 
         if { $absent_p == "f" } {
 	    # lappend cell_text "[_ intranet-timesheet2.No_hours_logged]"
-	    lappend cell_text "0.00 $label_hours_weekly_report"
+	    set zero_formatted [im_report_format_number 0.00 $output_format $number_locale]
+	    lappend cell_text "$zero_formatted $label_hours_weekly_report"
 	    lappend cell_param "style=\"background-color: #ffcc66;\""
         }
 
@@ -221,6 +226,7 @@ ad_proc im_do_row {
         if { [lsearch -exact $holydays [lindex $days $i]] >= 0 && !$color_code_we_p } {
             set cell_param "style=\"background-color: \#DDDDDD;\""
         }
+	lappend cell_param "align=right"
 	append html "<td [join $cell_param " "]>[join $cell_text "<br>"]</td>\n"
     }
     append html "</tr>\n"
@@ -254,9 +260,11 @@ ad_page_contract {
     { project_id:integer 0 }
     { duration:integer "7" }
     { start_at:integer "" }
-    { display "project" }
+    { display:word "project" }
     { cost_center_id:integer 0 }
     { workflow_key:word ""}
+    { output_format "html" }
+    { number_locale "" }
 }
 
 # ---------------------------------------------------------------
@@ -268,6 +276,9 @@ set subsite_id [ad_conn subsite_id]
 set site_url "/intranet-timesheet2"
 set return_url "$site_url/weekly_report"
 set date_format "YYYYMMDD"
+
+set locale [lang::user::locale]
+if {"" == $number_locale} { set number_locale $locale  }
  
 if { "" ne $owner_id && $owner_id != $user_id && ![im_permission $user_id "view_hours_all"] } {
     ad_return_complaint 1 "<li>[_ intranet-timesheet2.lt_You_have_no_rights_to]"
@@ -282,8 +293,6 @@ if { $start_at eq "" && $project_id != 0 } {
     set start_at $todays_date 
     ad_returnredirect [export_vars -base $return_url {start_at duration project_id owner_id workflow_key}]
 }
-
-
 
 if {$start_at eq ""} {
     set start_at [db_string get_today "select to_char(next_day(to_date(to_char(sysdate,:date_format),:date_format)+1, 'sun'), :date_format) from dual"]
@@ -317,8 +326,7 @@ if { $project_id != 0 } {
 	[export_vars -form {start_at duration project_id owner_id workflow_key}]
 	<table border=0 cellpadding=0 cellspacing=0>
 	<tr>
-	  <td colspan='2' class=rowtitle align=center>
-	[_ intranet-timesheet2.Filter]
+	  <td colspan='2' class=rowtitle align=center>[_ intranet-timesheet2.Filter]
 	  </td>
 	</tr>
 	<tr>
@@ -346,8 +354,22 @@ if { $project_id != 0 } {
 		<div class='filter-title'>[_ intranet-timesheet2.Filter]</div>
 		<table border=0 cellpadding=5 cellspacing=5>
 		<tr>
-	        <td valign=top><strong>[_ intranet-core.Cost_Center]:</strong><br>$im_cc_select </td>
+	        <td valign=top><strong>[_ intranet-core.Cost_Center]:</strong><br>$im_cc_select</td>
 	        </tr>
+
+        <tr>
+                  <td valign=top><strong>Format:</strong><br>
+                    [im_report_output_format_select output_format "" $output_format]
+                  </td>
+        </tr>
+        <tr>
+                  <td valign=top><strong>Number Format</strong><br>
+                    [im_report_number_locale_select number_locale $number_locale]
+                  </td>
+       </tr>
+
+
+
                 <tr>
                 <td valign=top>&nbsp;</td>
                 </tr>
@@ -588,6 +610,8 @@ db_foreach get_hours $sql {
 				    $today_date \
 				    [array get user_ab_descr] \
 				    $workflow_key \
+				    $number_locale \
+				    $output_format \
 			       ]
 	set old_owner [list $curr_owner_id $owner_name]
 	array unset user_days
@@ -614,7 +638,7 @@ set colspan [expr {[llength $days]+1}]
 if { $ctr > 0 } {
     # Writing last record 
     ns_log notice  "weekly_report: left loop, now writing last record" 
-    append table_body_html [im_do_row [array get bgcolor] $ctr $curr_owner_id $owner_name $days [array get user_days] [array get user_absences] $holydays $today_date [array get user_ab_descr] $workflow_key ]
+    append table_body_html [im_do_row [array get bgcolor] $ctr $curr_owner_id $owner_name $days [array get user_days] [array get user_absences] $holydays $today_date [array get user_ab_descr] $workflow_key $number_locale $output_format]
 } elseif { $table_body_html eq "" } {
     # Show a reasonable message when there are no result rows:
     set table_body_html "
