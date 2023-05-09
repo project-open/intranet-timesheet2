@@ -37,13 +37,14 @@
 		<td>@vacation_days_left@</td>
 	</tr>
 	</table>
+</if>
 
+<if @view_absences_details_p@>
 	<br>
 	<h2><%=[lang::message::lookup "" intranet-timesheet2.Absences_This_Year "Current Year"]%></h2>
 	<listtemplate name="vacation_balance"></listtemplate>
 	<br>
         <h2><%=[lang::message::lookup "" intranet-timesheet2.Absences_Next_Year "Next Year"]%></h2>
 	<listtemplate name="vacation_days_next_year"></listtemplate>
-
 </if>
 
