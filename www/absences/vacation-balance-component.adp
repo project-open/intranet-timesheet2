@@ -30,7 +30,7 @@
 	</tr>
 	<tr class=rowodd>
 		<td><%= [lang::message::lookup "" intranet-timesheet2.Vacation_Taken_This_Year "Vacation taken this Year"] %></td>
-		<td>@vacation_days_taken@</td>
+		<td><%= [format "%.2f" $vacation_days_taken] %></td>
 	</tr>
 	<tr class=rowodd>
 		<td><%= [lang::message::lookup "" intranet-timesheet2.Vacation_Left_for_Period "Vacation Days left for Period"] %></td>
