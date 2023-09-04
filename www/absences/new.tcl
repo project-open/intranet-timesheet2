@@ -22,6 +22,8 @@ if {![info exists panel_p]} {
 	{ user_id_from_search "" }
 	{ duration_days "" }
     }
+} else {
+    set user_id_from_search ""
 }
 
 if {![info exists enable_master_p]} { set enable_master_p 1}
@@ -90,7 +92,7 @@ if {![info exists absence_id]} {
     set page_title [lang::message::lookup "" intranet-timesheet2.Absence_absence_type "%absence_type%"]
 }
 
-if {([info exists user_id_from_search] && $user_id_from_search ne "")} {
+if {$user_id_from_search ne ""} {
     set user_from_search_name [db_string name "select im_name_from_user_id(:user_id_from_search)" -default ""]
     append page_title " "
     append page_title [lang::message::lookup "" intranet-timesheet2.for_username " for %user_from_search_name%"]
