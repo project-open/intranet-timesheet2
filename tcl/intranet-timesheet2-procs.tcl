@@ -262,7 +262,6 @@ ad_proc -public im_timesheet_home_component {user_id} {
     the current project and a link to log the users hours.
 } {
     if {[im_security_alert_check_integer -location im_timesheet_home_component -message "SQL Injection Attempt" -value $user_id]} { set user_id 0 }
-
     # skip the entire component if the user doesn't have
     # the permission to log hours
     set add_hours [im_permission $user_id "add_hours"]
@@ -271,6 +270,7 @@ ad_proc -public im_timesheet_home_component {user_id} {
     set add_absences [im_permission $user_id "add_absences"]
     set view_hours_all [im_permission $user_id view_hours_all]
     if {!$add_hours && !$add_absences && !$view_hours_all} { return "" }
+    set admin_p [im_is_user_site_wide_or_intranet_admin $user_id]
 
     # Get the number of hours in the number of days, and whether
     # we should redirect if the user didn't log them...
@@ -307,7 +307,7 @@ ad_proc -public im_timesheet_home_component {user_id} {
 	"
 	set message "<b>[lang::message::lookup "" intranet-timesheet2.You_need_to_log_hours $default_message]</b>"
 
-	if {$redirect_p} {
+	if {$redirect_p && !$admin_p} {
 	    set header [lang::message::lookup "" intranet-timesheet2.Please_Log_Your_Hours "Please Log Your Hours"]
 	    ad_returnredirect [export_vars -base "/intranet-timesheet2/hours/index" {header message}]
 	}
