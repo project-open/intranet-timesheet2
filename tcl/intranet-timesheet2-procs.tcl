@@ -126,8 +126,16 @@ ad_proc -public im_timesheet2_sync_timesheet_costs {
         create costs for new im_hours entries coming
         from an external application
 } {
+    ns_log Notice "im_timesheet2_sync_timesheet_costs -user_id $user_id -project_id $project_id -julian_date $julian_date"
     set sync_timesheet_costs [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter SyncHoursP -default 1]
-    if {!$sync_timesheet_costs} { return }
+    if {"0" eq $sync_timesheet_costs} { return }
+    if {"1" ne $sync_timesheet_costs} {
+	# Use custom procedure to sync hours
+	ns_log Notice "im_timesheet2_sync_timesheet_costs: custom sync procedure '$sync_timesheet_costs'"
+	set result [$sync_timesheet_costs -user_id $user_id -project_id $project_id -julian_date $julian_date]
+	ns_log Notice "im_timesheet2_sync_timesheet_costs: custom sync: $result"
+	return $result
+    }
     
     set default_currency [im_parameter -package_id [im_package_cost_id] "DefaultCurrency" "" "EUR"]
     set default_hourly_cost [parameter::get_from_package_key -package_key intranet-cost -parameter DefaultTimesheetHourlyCost -default 100]
