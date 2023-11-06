@@ -126,8 +126,16 @@ ad_proc -public im_timesheet2_sync_timesheet_costs {
         create costs for new im_hours entries coming
         from an external application
 } {
+    ns_log Notice "im_timesheet2_sync_timesheet_costs -user_id $user_id -project_id $project_id -julian_date $julian_date"
     set sync_timesheet_costs [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter SyncHoursP -default 1]
-    if {!$sync_timesheet_costs} { return }
+    if {"0" eq $sync_timesheet_costs} { return }
+    if {"1" ne $sync_timesheet_costs} {
+	# Use custom procedure to sync hours
+	ns_log Notice "im_timesheet2_sync_timesheet_costs: custom sync procedure '$sync_timesheet_costs'"
+	set result [$sync_timesheet_costs -user_id $user_id -project_id $project_id -julian_date $julian_date]
+	ns_log Notice "im_timesheet2_sync_timesheet_costs: custom sync: $result"
+	return $result
+    }
     
     set default_currency [im_parameter -package_id [im_package_cost_id] "DefaultCurrency" "" "EUR"]
     set default_hourly_cost [parameter::get_from_package_key -package_key intranet-cost -parameter DefaultTimesheetHourlyCost -default 100]
@@ -175,7 +183,7 @@ ad_proc -public im_timesheet2_sync_timesheet_costs {
     db_foreach hours $sql {
 
 	ns_log Notice "sync: uid=$hour_user_id, pid=$project_id, day=$day"
-	set cost_name "Timesheet $hour_date $project_nr $user_name"
+	set cost_name "$hours hours on $hour_date on $project_nr by $user_name"
 	set cost_id [im_cost::new -cost_name $cost_name -user_id $hour_user_id -creation_ip "0.0.0.0" -cost_type_id [im_cost_type_timesheet]]
 	lappend cost_ids $cost_id
 	db_dml update_hours "
@@ -262,7 +270,6 @@ ad_proc -public im_timesheet_home_component {user_id} {
     the current project and a link to log the users hours.
 } {
     if {[im_security_alert_check_integer -location im_timesheet_home_component -message "SQL Injection Attempt" -value $user_id]} { set user_id 0 }
-
     # skip the entire component if the user doesn't have
     # the permission to log hours
     set add_hours [im_permission $user_id "add_hours"]
@@ -271,6 +278,7 @@ ad_proc -public im_timesheet_home_component {user_id} {
     set add_absences [im_permission $user_id "add_absences"]
     set view_hours_all [im_permission $user_id view_hours_all]
     if {!$add_hours && !$add_absences && !$view_hours_all} { return "" }
+    set admin_p [im_is_user_site_wide_or_intranet_admin $user_id]
 
     # Get the number of hours in the number of days, and whether
     # we should redirect if the user didn't log them...
@@ -305,8 +313,9 @@ ad_proc -public im_timesheet_home_component {user_id} {
 		in the last $num_days days out of $expected_hours expected hours.
 	"
 	set message "<b>[lang::message::lookup "" intranet-timesheet2.You_need_to_log_hours $default_message]</b>"
-	
-	if {$redirect_p} {
+
+	# Only redirect if it's not the admin...
+	if {$redirect_p && !$admin_p} {
 	    set header [lang::message::lookup "" intranet-timesheet2.Please_Log_Your_Hours "Please Log Your Hours"]
 	    ad_returnredirect [export_vars -base "/intranet-timesheet2/hours/index" {header message}]
 	}

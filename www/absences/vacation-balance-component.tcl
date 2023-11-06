@@ -35,18 +35,20 @@ set view_absences_p [im_permission $current_user_id "view_absences"]
 set view_absences_all_p [im_permission $current_user_id "view_absences_all"]
 set add_absences_p [im_permission $current_user_id "add_absences"]
 set today [db_string today "select now()::date"]
-
 set page_title [lang::message::lookup "" intranet-timesheet2.Vacation_Balance "Vacation Balance"]
 set absence_base_url "/intranet-timesheet2/absences"
 set return_url [im_url_with_query]
 set user_view_url "/intranet/users/view"
-
-
 set current_year [db_string current_year "select to_char(now(), 'YYYY')"]
-
 set start_of_year "$current_year-01-01"
 set end_of_year "$current_year-12-31"
 
+
+# Absence details should be only visible for those managing HR or the specific user (ToDo)
+set view_absences_details_p 0
+if {[im_permission $current_user_id "view_absences_for_group"]} { set view_absences_details_p 1 }
+if {[im_permission $current_user_id "view_hr"]} { set view_absences_details_p 1 }
+if {$current_user_id == $user_id_from_search} { set view_absences_details_p 1 }; # the user him/herself
 
 # ------------------------------------------------------------------
 # User Info
