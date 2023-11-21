@@ -98,8 +98,7 @@ set fill_up_first_last_row_p [parameter::get -package_id [apm_package_id_from_ke
 set start_day [parameter::get -package_id [apm_package_id_from_key intranet-timesheet2] -parameter "WeekStartDay" -default 0]
 set show_link_log_hours_for_week_p [parameter::get -package_id [apm_package_id_from_key intranet-timesheet2] -parameter "ShowLinkToWeeklyTimesheetP" -default 0]
 set hours_base_url [parameter::get -package_id [apm_package_id_from_key intranet-timesheet2] -parameter "HourURL" -default "/intranet-timesheet2/hours"]
-
-
+set attendance_management_installed_p [im_table_exists im_attendance_intervals]
 
 set header_days_of_week "";
 
@@ -165,6 +164,52 @@ if { "" != [parameter::get -package_id [apm_package_id_from_key intranet-timeshe
 }
 
 if {![im_column_exists im_hours conf_object_id]} { set confirm_timesheet_hours_p 0 }
+
+
+
+
+
+
+# ---------------------------------------------------------------
+# Attendance Management
+# ---------------------------------------------------------------
+
+if {$attendance_management_installed_p} {
+
+    set attendance_sql "
+	select	ai.*,
+		to_char(ai.attendance_start, 'J') as attendance_start_julian,
+		im_category_from_id(ai.attendance_type_id) as type,
+		round((extract(epoch from attendance_end - attendance_start) / 3600)::numeric, 2) as duration_hours
+	from 	im_attendance_intervals ai
+	where	ai.attendance_start::date >= :first_day_of_month_ansi::date and
+		ai.attendance_id is not null and -- discard elements in process
+		ai.attendance_end::date <= :last_day_of_month_ansi::date
+    "
+
+    # Sum up all attendances for all days of that month
+    # and store into att_work_hash and att_break_hash
+    db_foreach attendances $attendance_sql {
+	set att_type [string tolower $type]
+	switch $attendance_type_id {
+	    92100 {
+		# Work Attendance
+		set v 0.0
+		if {[info exists att_work_hash($attendance_start_julian)]} { set v $att_work_hash($attendance_start_julian) }
+		set v [expr $v + $duration_hours]
+		set att_work_hash($attendance_start_julian) $v
+	    }
+	    92110 {
+		# Break
+		set v 0.0
+		if {[info exists att_break_hash($attendance_start_julian)]} { set v $att_break_hash($attendance_start_julian) }
+		set v [expr $v + $duration_hours]
+		set att_break_hash($attendance_start_julian) $v
+	    }
+	}
+    }
+    
+}
 
 
 # ---------------------------------------------------------------
@@ -327,8 +372,6 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
 	set html "${hours}${curr_absence}$log_hours_for_the_week_html"
     }
 
-    # ds_comment "$column_ctr, current_date_ansi: $current_date_ansi, last_day_of_month_ansi: $last_day_of_month_ansi, show_last_confirm_button_p: $show_last_confirm_button_p"
-
     # Weekly total
     if {($column_ctr == 7 || 0 && $current_date_ansi == $last_day_of_month_ansi) && $show_last_confirm_button_p } {
 	append html "<br>
@@ -377,6 +420,23 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
 	append html "<p>&nbsp;</p><a href='$conf_url' class=button>$button_txt</a>"
     } 
 
+
+    # Attendance Management
+    if {$attendance_management_installed_p} {
+	set work ""
+	if {[info exists att_work_hash($current_date)]} { set work $att_work_hash($current_date) }
+	set break ""
+	if {[info exists att_break_hash($current_date)]} { set work $att_break_hash($current_date) }
+
+	set line_items [list]
+	if {"" ne $work} { lappend line_items "Work: ${work}h" }
+	if {"" ne $break} { lappend line_items "Break: ${break}h" }
+	if {[llength $line_items] > 0} {
+	    append html "<br>[join $line_items ", "]"
+	}
+    }
+
+    
     ns_set put $calendar_details $current_date "$html<br>&nbsp;"
     
     # we keep track of the day of the week we are on
