@@ -167,9 +167,6 @@ if {![im_column_exists im_hours conf_object_id]} { set confirm_timesheet_hours_p
 
 
 
-
-
-
 # ---------------------------------------------------------------
 # Attendance Management
 # ---------------------------------------------------------------
@@ -182,8 +179,9 @@ if {$attendance_management_installed_p} {
 		im_category_from_id(ai.attendance_type_id) as type,
 		round((extract(epoch from attendance_end - attendance_start) / 3600)::numeric, 2) as duration_hours
 	from 	im_attendance_intervals ai
-	where	ai.attendance_start::date >= :first_day_of_month_ansi::date and
-		ai.attendance_id is not null and -- discard elements in process
+	where	ai.attendance_user_id = :current_user_id and
+		ai.attendance_start::date >= :first_day_of_month_ansi::date and
+		ai.attendance_id is not null and       -- discard elements in process of completing
 		ai.attendance_end::date <= :last_day_of_month_ansi::date
     "
 
@@ -424,9 +422,13 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
     # Attendance Management
     if {$attendance_management_installed_p} {
 	set work ""
-	if {[info exists att_work_hash($current_date)]} { set work $att_work_hash($current_date) }
+	if {[info exists att_work_hash($current_date)]} { 
+	    set work [expr round(10.0 * $att_work_hash($current_date)) / 10.0] 
+	}
 	set break ""
-	if {[info exists att_break_hash($current_date)]} { set work $att_break_hash($current_date) }
+	if {[info exists att_break_hash($current_date)]} { 
+	    set work [expr round(10.0 * $att_break_hash($current_date)) / 10.0]
+	}
 
 	set line_items [list]
 	if {"" ne $work} { lappend line_items "Work: ${work}h" }
