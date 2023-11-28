@@ -206,7 +206,6 @@ if {$attendance_management_installed_p} {
 	    }
 	}
     }
-    
 }
 
 
@@ -427,7 +426,7 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
 	}
 	set break ""
 	if {[info exists att_break_hash($current_date)]} { 
-	    set work [expr round(10.0 * $att_break_hash($current_date)) / 10.0]
+	    set break [expr round(10.0 * $att_break_hash($current_date)) / 10.0]
 	}
 
 	set line_items [list]
