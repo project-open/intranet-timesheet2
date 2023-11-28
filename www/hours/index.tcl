@@ -55,6 +55,10 @@ set add_hours_all_p [im_permission $current_user_id "add_hours_all"]
 set add_hours_direct_reports_p [im_permission $current_user_id "add_hours_direct_reports"]
 set base_url_confirm_wf "/intranet-timesheet2-workflow/conf-objects/new-timesheet-workflow"
 
+set work_l10n [lang::message::lookup "" intranet-attendance-management.Work "Work"]
+set break_l10n [lang::message::lookup "" intranet-attendance-management.Break "Break"]
+set hour_l10n [lang::message::lookup "" intranet-core.Hour_abbrev "h"]
+
 switch $user_id_from_search {
     "" - all - mine - direct_reports - employees - customers - providers { 
 	set user_id_from_search $current_user_id 
@@ -187,6 +191,8 @@ if {$attendance_management_installed_p} {
 
     # Sum up all attendances for all days of that month
     # and store into att_work_hash and att_break_hash
+    set attendance_work 0.0
+    set attendance_break 0.0
     db_foreach attendances $attendance_sql {
 	set att_type [string tolower $type]
 	switch $attendance_type_id {
@@ -196,6 +202,7 @@ if {$attendance_management_installed_p} {
 		if {[info exists att_work_hash($attendance_start_julian)]} { set v $att_work_hash($attendance_start_julian) }
 		set v [expr $v + $duration_hours]
 		set att_work_hash($attendance_start_julian) $v
+		set attendance_work [expr $attendance_work + $duration_hours;]
 	    }
 	    92110 {
 		# Break
@@ -203,6 +210,7 @@ if {$attendance_management_installed_p} {
 		if {[info exists att_break_hash($attendance_start_julian)]} { set v $att_break_hash($attendance_start_julian) }
 		set v [expr $v + $duration_hours]
 		set att_break_hash($attendance_start_julian) $v
+		set attendance_break [expr $attendance_break + $duration_hours;]
 	    }
 	}
     }
@@ -408,6 +416,64 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
 	"
     }
 
+
+    # Attendance Management
+    if {$attendance_management_installed_p} {
+	# Get the URL and the ID of the portlet in order to show a direct link
+	if {[catch {
+	    db_1row portlet_props "
+		select	plugin_id, page_url
+		from	im_component_plugins
+		where	plugin_name = 'Attendance Management' and
+			package_name = 'intranet-attendance-management'
+	    "
+	} err_msg]} {
+	    ad_return_complaint 1 "<b>Error locating the attendance portlet</b>: 
+            There is no portlet named 'Attendance Management' of package 'intranet-attendance-management'.<br>"
+	}
+	set work_url [export_vars -base $page_url {{view_name "component"} plugin_id {julian $current_date}}]
+
+	# Calculate the actual work/break time
+	set work 0
+	if {[info exists att_work_hash($current_date)]} { 
+	    set work [expr round(10.0 * $att_work_hash($current_date)) / 10.0] 
+	}
+	set break ""
+	if {[info exists att_break_hash($current_date)]} { 
+	    set break [expr round(10.0 * $att_break_hash($current_date)) / 10.0]
+	}
+
+	# Calculate color coding
+	set attendance_required [im_attendance_daily_attendance_hours -user_id $current_user_id]
+	set color_html ""
+	if {$work < $attendance_required} { set color_html "<font color=red>" }
+	set color_html_end ""
+	if {"" ne $color_html} { set color_html_end "</font>" }
+
+	# Write out lines for work and break
+	set line_items [list]
+	if {"" ne $work} { 
+	    lappend line_items "<a href=$work_url target=_>$color_html $work_l10n: ${work}${hour_l10n}$color_html_end</a>"
+	}
+	if {"" ne $break} { 
+	    lappend line_items "$break_l10n: ${break}${hour_l10n}" 
+	}
+	if {[llength $line_items] > 0} {
+	    append html "<br>[join $line_items ",<br> "]"
+	}
+
+	# Count workdays
+
+
+	# Comparison at the end of the month
+	if {$current_date_ansi == $last_day_of_month_ansi} {
+	    append html "<br>Attend. month: [expr round(10.0 * $attendance_work) / 10.0]${hour_l10n}"
+	} 
+
+
+    }
+
+
     # Monthly hour approval request
     if { $current_date_ansi == $last_day_of_month_ansi && ("monthly" in $confirmation_period) } {
 	set start_date_month_julian [dt_ansi_to_julian_single_arg $first_day_of_month_ansi]
@@ -417,25 +483,6 @@ for { set current_date $first_julian_date} { $current_date <= $last_julian_date 
 	append html "<p>&nbsp;</p><a href='$conf_url' class=button>$button_txt</a>"
     } 
 
-
-    # Attendance Management
-    if {$attendance_management_installed_p} {
-	set work ""
-	if {[info exists att_work_hash($current_date)]} { 
-	    set work [expr round(10.0 * $att_work_hash($current_date)) / 10.0] 
-	}
-	set break ""
-	if {[info exists att_break_hash($current_date)]} { 
-	    set break [expr round(10.0 * $att_break_hash($current_date)) / 10.0]
-	}
-
-	set line_items [list]
-	if {"" ne $work} { lappend line_items "Work: ${work}h" }
-	if {"" ne $break} { lappend line_items "Break: ${break}h" }
-	if {[llength $line_items] > 0} {
-	    append html "<br>[join $line_items ", "]"
-	}
-    }
 
     
     ns_set put $calendar_details $current_date "$html<br>&nbsp;"
