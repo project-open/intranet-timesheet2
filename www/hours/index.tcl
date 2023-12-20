@@ -108,22 +108,22 @@ set header_days_of_week "";
 
 # Patch: http://sourceforge.net/projects/project-open/forums/forum/295937/topic/3324310
 for {set i $start_day} {$i < 7} {incr i} {
-    if {$i ==0} { append header_days_of_week "[_ intranet-timesheet2.Sunday] " }
-    if {$i ==1} { append header_days_of_week "[_ intranet-timesheet2.Monday] " }
-    if {$i ==2} { append header_days_of_week "[_ intranet-timesheet2.Tuesday] " }
-    if {$i ==3} { append header_days_of_week "[_ intranet-timesheet2.Wednesday] " }
-    if {$i ==4} { append header_days_of_week "[_ intranet-timesheet2.Thursday] " }
-    if {$i ==5} { append header_days_of_week "[_ intranet-timesheet2.Friday] " }
-    if {$i ==6} { append header_days_of_week "[_ intranet-timesheet2.Saturday] " }
+    if {$i == 0} { append header_days_of_week "[_ intranet-timesheet2.Sunday] " }
+    if {$i == 1} { append header_days_of_week "[_ intranet-timesheet2.Monday] " }
+    if {$i == 2} { append header_days_of_week "[_ intranet-timesheet2.Tuesday] " }
+    if {$i == 3} { append header_days_of_week "[_ intranet-timesheet2.Wednesday] " }
+    if {$i == 4} { append header_days_of_week "[_ intranet-timesheet2.Thursday] " }
+    if {$i == 5} { append header_days_of_week "[_ intranet-timesheet2.Friday] " }
+    if {$i == 6} { append header_days_of_week "[_ intranet-timesheet2.Saturday] " }
 }
 for {set i 0} {$i < $start_day} {incr i} {
-    if {$i ==0} { append header_days_of_week "[_ intranet-timesheet2.Sunday] " }
-    if {$i ==1} { append header_days_of_week "[_ intranet-timesheet2.Monday] " }
-    if {$i ==2} { append header_days_of_week "[_ intranet-timesheet2.Tuesday] " }
-    if {$i ==3} { append header_days_of_week "[_ intranet-timesheet2.Wednesday] " }
-    if {$i ==4} { append header_days_of_week "[_ intranet-timesheet2.Thursday] " }
-    if {$i ==5} { append header_days_of_week "[_ intranet-timesheet2.Friday] " }
-    if {$i ==6} { append header_days_of_week "[_ intranet-timesheet2.Saturday] " }
+    if {$i == 0} { append header_days_of_week "[_ intranet-timesheet2.Sunday] " }
+    if {$i == 1} { append header_days_of_week "[_ intranet-timesheet2.Monday] " }
+    if {$i == 2} { append header_days_of_week "[_ intranet-timesheet2.Tuesday] " }
+    if {$i == 3} { append header_days_of_week "[_ intranet-timesheet2.Wednesday] " }
+    if {$i == 4} { append header_days_of_week "[_ intranet-timesheet2.Thursday] " }
+    if {$i == 5} { append header_days_of_week "[_ intranet-timesheet2.Friday] " }
+    if {$i == 6} { append header_days_of_week "[_ intranet-timesheet2.Saturday] " }
 }
 
 set weekly_logging_days [parameter::get_from_package_key -package_key intranet-timesheet2 -parameter TimesheetWeeklyLoggingDays -default "0 1 2 3 4 5 6"]
@@ -131,11 +131,11 @@ set weekly_logging_days [parameter::get_from_package_key -package_key intranet-t
 # ---------------------------------
 # Date Logic: We are working with "YYYY-MM-DD" dates in this page.
 
-if {"" ==  $date} {
+if {"" == $date} {
     if {"" != $julian_date} {
-	set date [db_string julian_date_select "select to_char( to_date(:julian_date,'J'), 'YYYY-MM-DD') from dual"]
+	set date [db_string julian_date_select "select to_char(to_date(:julian_date,'J'), 'YYYY-MM-DD') from dual"]
     } else {
-	set date [db_string ansi_date_select "select to_char( sysdate, 'YYYY-MM-DD') from dual"]
+	set date [db_string ansi_date_select "select to_char(sysdate, 'YYYY-MM-DD') from dual"]
     }
 }
 
@@ -170,30 +170,49 @@ if {"" != [parameter::get -package_id [apm_package_id_from_key intranet-timeshee
 if {![im_column_exists im_hours conf_object_id]} { set confirm_timesheet_hours_p 0 }
 
 
+# ---------------------------------------------------------------
+# Render the Calendar widget
+# ---------------------------------------------------------------
+
+set calendar_details [ns_set create calendar_details]
+
+# figure out the first and last julian days in the month
+# This call defines a whole set of variables in our environment
+calendar_get_info_from_db $date
+
+
+
 
 # ---------------------------------------------------------------
 # Attendance Management
 # ---------------------------------------------------------------
 
 if {$attendance_management_installed_p} {
-
     set attendance_sql "
 	select	ai.*,
+		to_char(ai.attendance_start, 'YYYY-MM-DD') as attendance_start_date,
 		to_char(ai.attendance_start, 'J') as attendance_start_julian,
 		im_category_from_id(ai.attendance_type_id) as type,
-		round((extract(epoch from attendance_end - attendance_start) / 3600)::numeric, 2) as duration_hours
-	from 	im_attendance_intervals ai
-	where	ai.attendance_user_id = :current_user_id and
-		ai.attendance_start::date >= :first_day_of_month_ansi::date and
-		ai.attendance_id is not null and       -- discard elements in process of completing
-		ai.attendance_end::date <= :last_day_of_month_ansi::date
-    "
+		round((extract(epoch from attendance_end - attendance_start) / 3600)::numeric, 2) as duration_hours,
+		coalesce(EXTRACT(EPOCH FROM ai.attendance_end - ai.attendance_start) / 3600, 0) as attendance_duration_hours,
 
-    # Sum up all attendances for all days of that month
-    # and store into att_work_hash and att_break_hash
+		(select sum(hours) from im_hours h where h.user_id = :user_id_from_search and h.day::date = ai.attendance_start::date) as ts_sum_per_user_day
+
+	from 	im_attendance_intervals ai
+	where	ai.attendance_user_id = :user_id_from_search and
+		ai.attendance_start::date >= to_date(:first_julian_date, 'J') and
+		ai.attendance_end is not null and       -- discard elements in process of completing
+		ai.attendance_end::date <= to_date(:last_julian_date, 'J')
+	order by
+		ai.attendance_start
+    "
+    
     set attendance_work 0.0
     set attendance_break 0.0
     db_foreach attendances $attendance_sql {
+
+	# -----------------------------------------------------------
+	# Sum up all attendances for all days of that month and store into att_work_hash and att_break_hash
 	set att_type [string tolower $type]
 	switch $attendance_type_id {
 	    92100 {
@@ -213,20 +232,27 @@ if {$attendance_management_installed_p} {
 		set attendance_break [expr $attendance_break + $duration_hours;]
 	    }
 	}
+
+	# -----------------------------------------------------------
+	# Check for consistence: Create a list of atts for each $key order by attendance_start
+	# Aggregate attendance data per day and user
+	# cell_hash: Temporary hash with the ordered list of attendances per day
+	# error_hash: List of all errors in atts per day
+	set key "$attendance_start_julian"
+	set v [list]
+	if {[info exists cell_hash($key)]} { set v $cell_hash($key) }
+	
+	# Write attendance data into hash-list
+	set list [list]
+	set vars {attendance_id attendance_type_id attendance_start_date attendance_start attendance_end attendance_duration_hours ts_sum_per_user_day}
+	foreach var $vars { lappend list $var [set $var] }
+	lappend v $list
+	set cell_hash($key) $v       
     }
 }
 
 
-# ---------------------------------------------------------------
-# Render the Calendar widget
-# ---------------------------------------------------------------
-
-set calendar_details [ns_set create calendar_details]
-
-# figure out the first and last julian days in the month
-# This call defines a whole set of variables in our environment
-
-calendar_get_info_from_db $date
+# ad_return_complaint 1 "<pre>[join [array get cell_hash] "\n"]\n\n\n[array get error_hash]</pre>"
 
 # --------------------------------------------------------------
 # Grab all the hours from im_hours
@@ -240,18 +266,13 @@ set sql "
 	group by
 		to_char(day, 'J')
 "
-db_foreach hours_logged $sql {
-    set users_hours($julian_date) $hours
-}
+db_foreach hours_logged $sql { set users_hours($julian_date) $hours }
 
 # --------------------------------------------------------------
 # Render the calendar
 
 set hours_for_this_week 0.0
 set hours_for_this_month 0.0
-
-set unconfirmed_hours_for_this_week 0.0
-set unconfirmed_hours_for_this_month 0.0
 
 set absence_list [absence_list_for_user_and_time_period $user_id_from_search $first_julian_date $last_julian_date]
 set absence_index 0
@@ -271,13 +292,18 @@ if {1 == $start_day} {
 
 # Helper to determine location of last WF confirm button -> last day shown or last day of month
 set show_last_confirm_button_p 1
-
 set timesheet_entry_blocked_p 0
 
 # And now fill in information for every day of the month
 for {set current_date $first_julian_date} {$current_date <= $last_julian_date} {incr current_date} {
 
+    # -------------------------------------------------------------------------
+    # Setup base variables
     set current_date_ansi [dt_julian_to_ansi $current_date]
+
+    # Unconfirmed hours in workflow
+    if {![info exists unconfirmed_hours($current_date)]} { set unconfirmed_hours($current_date) "" }
+    if {"" == $unconfirmed_hours($current_date)} { set unconfirmed_hours($current_date) 0 }
 
     if {$confirm_timesheet_hours_p} {
 	set no_ts_approval_wf_sql "
@@ -298,7 +324,7 @@ for {set current_date $first_julian_date} {$current_date <= $last_julian_date} {
     # User's hours for the day
     set hours ""
     if {[info exists users_hours($current_date)] && $users_hours($current_date) ne ""} {
- 	set hours "$users_hours($current_date)  [lang::message::lookup "" intranet-timesheet2.hours "hours"]"
+ 	set hours "[lang::message::lookup "" intranet-timesheet2.Projects "Projects"]: $users_hours($current_date)[lang::message::lookup "" intranet-timesheet2.h "h"]"
 	set hours_for_this_week [expr {$hours_for_this_week + $users_hours($current_date)}]
 
 	# Sum today's hours to total month, if the month has actually started
@@ -306,23 +332,16 @@ for {set current_date $first_julian_date} {$current_date <= $last_julian_date} {
 	if {$current_date >= $first_day_of_month_julian} {
 	    set hours_for_this_month [expr {$hours_for_this_month + $users_hours($current_date)}]
 	}
-
     } else {
 	if {$timesheet_entry_blocked_p} {
-	    set hours "<span class='log_hours'>[lang::message::lookup "" intranet-timesheet2.Nolog_Workflow_In_Progress "0 hours"]</span>"
+	    # Fraber 2023-12-12: I'm quite sure that is unreachable code, because there are no hours for that day.
+	    set hours "<span class='log_hours'>[lang::message::lookup "" intranet-timesheet2.Nolog_Workflow_In_Progress "0 hours"] xxx </span>"
 	} else {
 	    if {[string first $week_day $weekly_logging_days] != -1} {
-		set hours "<span class='log_hours'>[lang::message::lookup "" intranet-timesheet2.Log_hours "Log hours"]</span>"
+		set hours "<span class='log_hours'><nobr>[lang::message::lookup "" intranet-timesheet2.Projects "Projects"]: [lang::message::lookup "" intranet-timesheet2.Log_hours "Log hours"]</nobr></span>"
 	    }
 	}	
     }
-
-    if {![info exists unconfirmed_hours($current_date)]} { set unconfirmed_hours($current_date) "" }
-    if {"" == $unconfirmed_hours($current_date)} { set unconfirmed_hours($current_date) 0 }
-
-    # Sum up unconfirmed_hours - KH: 160624: This might be broken and it seems that vars are not being used.
-    set unconfirmed_hours_for_this_week [expr {$unconfirmed_hours_for_this_week + $unconfirmed_hours($current_date)}]
-    set unconfirmed_hours_for_this_month [expr {$unconfirmed_hours_for_this_month + $unconfirmed_hours($current_date)}]
 
     # User's Absences for the day
     set curr_absence [lindex $absence_list $absence_index]
@@ -338,8 +357,10 @@ for {set current_date $first_julian_date} {$current_date <= $last_julian_date} {
 
     if {$column_ctr == 1 && $show_link_log_hours_for_week_p} {
 	set log_hours_for_the_week_html "<br>
+                <nobr>
                 <a href=[export_vars -base "$hours_base_url/new" {user_id_from_search {julian_date $current_date} {show_week_p 1} return_url}]
-                ><span class='log_hours'>[lang::message::lookup "" intranet-timesheet2.Log_hours_for_the_week "Log hours for the week"]</span></a>
+                ><span class='log_hours'>[lang::message::lookup "" intranet-timesheet2.Projects "Projects"]: 
+                [lang::message::lookup "" intranet-timesheet2.Log_for_the_week "Log for the week"]</span></a></nobr>
  	    "
     } else {
 	set log_hours_for_the_week_html ""
@@ -366,8 +387,8 @@ for {set current_date $first_julian_date} {$current_date <= $last_julian_date} {
 	    } else {
 		set html "${hours}${curr_absence}<br>"
 		if {$confirm_timesheet_hours_p} {
-		    append html "[lang::message::lookup "" intranet-timesheet2.ToConfirm "To confirm"]:&nbsp;"
-		    append html "<span id='hours_confirmed_red'>${no_unconfirmed_hours}&nbsp;[_ intranet-timesheet2.hours]</span>"
+		    append html "<nobr>[lang::message::lookup "" intranet-timesheet2.ToConfirm "To confirm"]:&nbsp;"
+		    append html "<span id='hours_confirmed_red'>${no_unconfirmed_hours}&nbsp;[_ intranet-timesheet2.hours]</span></nobr>"
 		}	
 		append html "$log_hours_for_the_week_html"
 	    }
@@ -377,7 +398,8 @@ for {set current_date $first_julian_date} {$current_date <= $last_julian_date} {
     } else {
 	set html "${hours}${curr_absence}$log_hours_for_the_week_html"
     }
-
+    
+    # -------------------------------------------------------------------------
     # Weekly total
     if {($column_ctr == 7 || 0 && $current_date_ansi == $last_day_of_month_ansi) && $show_last_confirm_button_p} {
 	append html "<br>
@@ -409,6 +431,7 @@ for {set current_date $first_julian_date} {$current_date <= $last_julian_date} {
     }
 
 
+    # -------------------------------------------------------------------------
     # Show monthly total
     if {$current_date_ansi == $last_day_of_month_ansi} {
 	append html "<br>
@@ -418,6 +441,7 @@ for {set current_date $first_julian_date} {$current_date <= $last_julian_date} {
     }
 
 
+    # -------------------------------------------------------------------------
     # Attendance Management
     if {$attendance_management_installed_p} {
 	# Get the URL and the ID of the portlet in order to show a direct link
@@ -444,34 +468,40 @@ for {set current_date $first_julian_date} {$current_date <= $last_julian_date} {
 	    set break [expr round(10.0 * $att_break_hash($current_date)) / 10.0]
 	}
 
+
 	# Calculate color coding
-	set attendance_required [im_attendance_daily_attendance_hours -user_id $current_user_id]
+	
+	# -------------------------------------------------------------------------
+	# Call consistency checker
+	set v [list]
+	if {[info exists cell_hash($current_date)]} { set v $cell_hash($current_date) }
+	ns_log Notice "timesheet2/index: Before im_attendance_check_consistency: $v"
+	set attendance_errors [im_attendance_check_consistency -user_id $user_id_from_search -date $current_date_ansi -attendance_hashs $v]
+
 	set color_html ""
-	if {$work < $attendance_required} { set color_html "<font color=red>" }
 	set color_html_end ""
-	if {"" ne $color_html} { set color_html_end "</font>" }
 
 	# Write out lines for work and break
 	set line_items [list]
 	if {"" ne $work} {
-	    lappend line_items "<a href=$work_url target=_>$color_html $work_l10n: ${work}${hour_l10n}$color_html_end</a>"
+	    lappend line_items "<nobr><a href=$work_url target=_>$color_html $work_l10n: ${work}${hour_l10n}$color_html_end</a></nobr>"
 	}
 	if {"" ne $break} {
-	    lappend line_items "$break_l10n: ${break}${hour_l10n}"
+	    lappend line_items "<nobr>$break_l10n: ${break}${hour_l10n}</nobr>"
 	}
+
+	if {[llength $attendance_errors] > 0} {
+	    lappend line_items "<font color=red><ul><li>[join $attendance_errors "</li>\n<li>"]</ul></font></div"
+	}
+
 	if {[llength $line_items] > 0} {
 	    append html "<br>[join $line_items ",<br> "]"
 	}
 
-	# Count workdays
-
-
 	# Comparison at the end of the month
 	if {$current_date_ansi == $last_day_of_month_ansi} {
-	    append html "<br>Attend. month: [expr round(10.0 * $attendance_work) / 10.0]${hour_l10n}"
+	    append html "<br>Month work total: [expr round(10.0 * $attendance_work) / 10.0]${hour_l10n}"
 	}
-
-
     }
 
 
@@ -493,7 +523,6 @@ for {set current_date $first_julian_date} {$current_date <= $last_julian_date} {
     if {$column_ctr > 7} {
 	set column_ctr 1
 	set hours_for_this_week 0.0
-	set unconfirmed_hours_for_this_week 0.0
     }
 
     # Weekday needs to be in range [0..6]
