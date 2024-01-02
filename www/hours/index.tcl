@@ -57,7 +57,7 @@ set base_url_confirm_wf "/intranet-timesheet2-workflow/conf-objects/new-timeshee
 
 set work_l10n [lang::message::lookup "" intranet-attendance-management.Work "Work"]
 set break_l10n [lang::message::lookup "" intranet-attendance-management.Break "Break"]
-set hour_l10n [lang::message::lookup "" intranet-core.Hour_abbrev "h"]
+set hour_l10n [lang::message::lookup "" intranet-timesheet2.Hour_abbrev "h"]
 
 switch $user_id_from_search {
     "" - all - mine - direct_reports - employees - customers - providers {
@@ -249,6 +249,22 @@ if {$attendance_management_installed_p} {
 	lappend v $list
 	set cell_hash($key) $v       
     }
+
+    # -----------------------------------------------------------
+    # Calculate link to Attendance management widget
+    if {[catch {
+	db_1row portlet_props "
+		select	plugin_id, page_url
+		from	im_component_plugins
+		where	plugin_name = 'Attendance Management' and
+			package_name = 'intranet-attendance-management'
+	"
+    } err_msg]} {
+	ad_return_complaint 1 "<b>Error locating the attendance portlet</b>:
+            There is no portlet named 'Attendance Management' of package 'intranet-attendance-management'.<br>"
+    }
+    set attendance_portlet_url [export_vars -base $page_url {{view_name "component"} plugin_id}]
+
 }
 
 
@@ -294,6 +310,10 @@ if {1 == $start_day} {
 set show_last_confirm_button_p 1
 set timesheet_entry_blocked_p 0
 
+set monthly_work_total 0.0
+set monthly_break_total 0.0
+set monthly_expected_total 0.0
+
 # And now fill in information for every day of the month
 for {set current_date $first_julian_date} {$current_date <= $last_julian_date} {incr current_date} {
 
@@ -324,7 +344,7 @@ for {set current_date $first_julian_date} {$current_date <= $last_julian_date} {
     # User's hours for the day
     set hours ""
     if {[info exists users_hours($current_date)] && $users_hours($current_date) ne ""} {
- 	set hours "[lang::message::lookup "" intranet-timesheet2.Projects "Projects"]: $users_hours($current_date)[lang::message::lookup "" intranet-timesheet2.h "h"]"
+ 	set hours "[lang::message::lookup "" intranet-timesheet2.Projects "Projects"]: $users_hours($current_date)[lang::message::lookup "" intranet-timesheet2.Hour_abbrev "h"]"
 	set hours_for_this_week [expr {$hours_for_this_week + $users_hours($current_date)}]
 
 	# Sum today's hours to total month, if the month has actually started
@@ -338,7 +358,7 @@ for {set current_date $first_julian_date} {$current_date <= $last_julian_date} {
 	    set hours "<span class='log_hours'>[lang::message::lookup "" intranet-timesheet2.Nolog_Workflow_In_Progress "0 hours"] xxx </span>"
 	} else {
 	    if {[string first $week_day $weekly_logging_days] != -1} {
-		set hours "<span class='log_hours'><nobr>[lang::message::lookup "" intranet-timesheet2.Projects "Projects"]: [lang::message::lookup "" intranet-timesheet2.Log_hours "Log hours"]</nobr></span>"
+		set hours "<span><nobr>[lang::message::lookup "" intranet-timesheet2.Projects "Projects"]: [lang::message::lookup "" intranet-timesheet2.Log_hours "Log hours"]</nobr></span>"
 	    }
 	}	
     }
@@ -399,13 +419,90 @@ for {set current_date $first_julian_date} {$current_date <= $last_julian_date} {
 	set html "${hours}${curr_absence}$log_hours_for_the_week_html"
     }
     
+
+
+    # -------------------------------------------------------------------------
+    # Show monthly total
+    if {$current_date_ansi == $last_day_of_month_ansi} {
+	set monthly_total_url [export_vars -base "month" {{julian_date $current_date} user_id_from_search}]
+	set monthly_total_l10n [lang::message::lookup "" intranet-timesheet2.Project_month "Projects month"]
+	set monthly_total_pretty [format "%.2f" [expr round(100.0 * $hours_for_this_month)/100.0]]
+	append html "<br><a href=$monthly_total_url>$monthly_total_l10n: $monthly_total_pretty</a>"
+    }
+
+
+    # -------------------------------------------------------------------------
+    # Attendance Management
+    if {$attendance_management_installed_p} {
+	# Calculate the actual work/break time
+	set work 0
+	if {[info exists att_work_hash($current_date)]} {
+	    set work [expr round(10.0 * $att_work_hash($current_date)) / 10.0]
+	}
+	set break ""
+	if {[info exists att_break_hash($current_date)]} {
+	    set break [expr round(10.0 * $att_break_hash($current_date)) / 10.0]
+	}
+	
+	# Hours to be expected for today
+	set expected_hours [im_attendance_daily_attendance_hours -user_id $current_user_id -date $current_date_ansi]
+
+	# Calculate the monthly sum of all three types of hours
+	set monthly_work_total [expr $monthly_work_total + $work]
+	if {"" ne $break} { set monthly_break_total [expr $monthly_break_total + $break] }
+	set monthly_expected_total [expr $monthly_expected_total + $expected_hours]
+
+
+	# -------------------------------------------------------------------------
+	# Comparison at the end of the month
+	if {$current_date_ansi == $last_day_of_month_ansi} {
+	    if {$attendance_work < $monthly_expected_total} {
+		set font_html "color=red"
+	    } else {
+		set font_html ""
+	    }
+	    append html "<br><font $font_html>Month work total: [expr round(10.0 * $attendance_work) / 10.0]${hour_l10n}, expected $monthly_expected_total${hour_l10n}</font>"
+	}
+
+
+	# -------------------------------------------------------------------------
+	# Call consistency checker
+	set v [list]
+	if {[info exists cell_hash($current_date)]} { set v $cell_hash($current_date) }
+	ns_log Notice "timesheet2/index: Before im_attendance_check_consistency: $v"
+	set attendance_errors [im_attendance_check_consistency -user_id $user_id_from_search -date $current_date_ansi -attendance_hashs $v]
+
+	set color_html ""
+	set color_html_end ""
+
+	# Write out lines for work and break
+	set line_items [list]
+	if {"" ne $work} {
+	    # Get the URL of a portlet with right julian date to enter attendances
+	    set attendance_portlet_julian_url [export_vars -base $attendance_portlet_url {{julian $current_date}}]
+	    lappend line_items "<nobr><a href=$attendance_portlet_julian_url target=_>$color_html $work_l10n: ${work}${hour_l10n}$color_html_end</a></nobr>"
+	}
+	if {"" ne $break} {
+	    lappend line_items "<nobr>$break_l10n: ${break}${hour_l10n}</nobr>"
+	}
+
+	if {[llength $attendance_errors] > 0} {
+	    lappend line_items "<font color=red><ul><li>[join $attendance_errors "</li>\n<li>"]</ul></font></div"
+	}
+
+	if {[llength $line_items] > 0} {
+	    append html "<br>[join $line_items ",<br> "]"
+	}
+
+    }
+
     # -------------------------------------------------------------------------
     # Weekly total
     if {($column_ctr == 7 || 0 && $current_date_ansi == $last_day_of_month_ansi) && $show_last_confirm_button_p} {
-	append html "<br>
-		<a href=[export_vars -base "week" {{julian_date $current_date} user_id_from_search}]
-		>[_ intranet-timesheet2.Week_total_1] [format "%.2f" [expr {double(round(100*$hours_for_this_week))/100}]]</a>
-	"
+	set weekly_total_url [export_vars -base "week" {{julian_date $current_date} user_id_from_search}]
+	set weekly_total_l10n [lang::message::lookup "" intranet-timesheet2.Project_week "Projects week"]
+	set weekly_total_pretty [format "%.2f" [expr round(100.0 * $hours_for_this_week)/100.0]]
+	append html "<br><a href=$weekly_total_url>$weekly_total_l10n: $weekly_total_pretty</a>"
 
 	if {$current_date_ansi == $last_day_of_month_ansi} { set show_last_confirm_button_p 0 }
 
@@ -430,81 +527,7 @@ for {set current_date $first_julian_date} {$current_date <= $last_julian_date} {
         }
     }
 
-
     # -------------------------------------------------------------------------
-    # Show monthly total
-    if {$current_date_ansi == $last_day_of_month_ansi} {
-	append html "<br>
-		<a href=[export_vars -base "month" {{julian_date $current_date} user_id_from_search}]
-		>[lang::message::lookup "" intranet-timesheet2.Month_total "Month total:"] [format "%.2f" [expr {double(round(100*$hours_for_this_month))/100}]]</a>
-	"
-    }
-
-
-    # -------------------------------------------------------------------------
-    # Attendance Management
-    if {$attendance_management_installed_p} {
-	# Get the URL and the ID of the portlet in order to show a direct link
-	if {[catch {
-	    db_1row portlet_props "
-		select	plugin_id, page_url
-		from	im_component_plugins
-		where	plugin_name = 'Attendance Management' and
-			package_name = 'intranet-attendance-management'
-	    "
-	} err_msg]} {
-	    ad_return_complaint 1 "<b>Error locating the attendance portlet</b>:
-            There is no portlet named 'Attendance Management' of package 'intranet-attendance-management'.<br>"
-	}
-	set work_url [export_vars -base $page_url {{view_name "component"} plugin_id {julian $current_date}}]
-
-	# Calculate the actual work/break time
-	set work 0
-	if {[info exists att_work_hash($current_date)]} {
-	    set work [expr round(10.0 * $att_work_hash($current_date)) / 10.0]
-	}
-	set break ""
-	if {[info exists att_break_hash($current_date)]} {
-	    set break [expr round(10.0 * $att_break_hash($current_date)) / 10.0]
-	}
-
-
-	# Calculate color coding
-	
-	# -------------------------------------------------------------------------
-	# Call consistency checker
-	set v [list]
-	if {[info exists cell_hash($current_date)]} { set v $cell_hash($current_date) }
-	ns_log Notice "timesheet2/index: Before im_attendance_check_consistency: $v"
-	set attendance_errors [im_attendance_check_consistency -user_id $user_id_from_search -date $current_date_ansi -attendance_hashs $v]
-
-	set color_html ""
-	set color_html_end ""
-
-	# Write out lines for work and break
-	set line_items [list]
-	if {"" ne $work} {
-	    lappend line_items "<nobr><a href=$work_url target=_>$color_html $work_l10n: ${work}${hour_l10n}$color_html_end</a></nobr>"
-	}
-	if {"" ne $break} {
-	    lappend line_items "<nobr>$break_l10n: ${break}${hour_l10n}</nobr>"
-	}
-
-	if {[llength $attendance_errors] > 0} {
-	    lappend line_items "<font color=red><ul><li>[join $attendance_errors "</li>\n<li>"]</ul></font></div"
-	}
-
-	if {[llength $line_items] > 0} {
-	    append html "<br>[join $line_items ",<br> "]"
-	}
-
-	# Comparison at the end of the month
-	if {$current_date_ansi == $last_day_of_month_ansi} {
-	    append html "<br>Month work total: [expr round(10.0 * $attendance_work) / 10.0]${hour_l10n}"
-	}
-    }
-
-
     # Monthly hour approval request
     if {$current_date_ansi == $last_day_of_month_ansi && ("monthly" in $confirmation_period)} {
 	set start_date_month_julian [dt_ansi_to_julian_single_arg $first_day_of_month_ansi]
