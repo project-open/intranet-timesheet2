@@ -137,7 +137,9 @@
   <msg key="go">go</msg>
   <msg key="Grand_Total">Grand Total</msg>
   <msg key="H">H</msg>
+  <msg key="h">h</msg>
   <msg key="here">here</msg>
+  <msg key="Hour_abbrev">h</msg>
   <msg key="Hour_logging__Casex">Hour logging &amp; Casex</msg>
   <msg key="Hours">Hours</msg>
   <msg key="hours">hours</msg>
@@ -169,7 +171,9 @@
   <msg key="Log_Absences">Log Absences</msg>
   <msg key="Log_Absences_for_user_name">Log absences for %user_name%</msg>
   <msg key="log_dedication">log dedication</msg>
+  <msg key="Log_for_the_week">Log for the week</msg>
   <msg key="Log_Hours">Log Hours</msg>
+  <msg key="Log_hours">Log hours</msg>
   <msg key="log_hours">log hours</msg>
   <msg key="Log_hours_for_the_week">Log hours for the week</msg>
   <msg key="Log_hours_for_user">Log for:</msg>
@@ -282,6 +286,7 @@ of those units were billed hourly, for a total amount of</msg>
   <msg key="Mine">Mine</msg>
   <msg key="Monday">Monday</msg>
   <msg key="Month">Month</msg>
+  <msg key="Month_total">Month total</msg>
   <msg key="More_currencies">More currencies</msg>
   <msg key="N">N</msg>
   <msg key="Name">Name</msg>
@@ -340,6 +345,7 @@ of those units were billed hourly, for a total amount of</msg>
   <msg key="Project_name">Project name</msg>
   <msg key="Project_Summaries">Project Summaries</msg>
   <msg key="Project_units">Project units</msg>
+  <msg key="Projects">Projects</msg>
   <msg key="Providers">Providers</msg>
   <msg key="Q">Q</msg>
   <msg key="R">R</msg>
