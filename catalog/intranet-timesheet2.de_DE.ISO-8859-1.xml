@@ -330,9 +330,11 @@
   <msg key="Project">Projekt</msg>
   <msg key="Project_br_Name">Projekt-&lt;br&gt;Name</msg>
   <msg key="Project_History">Projekthistorie</msg>
+  <msg key="Project_month">Projekte Monat</msg>
   <msg key="Project_name">Aufgabenname</msg>
   <msg key="Project_Summaries">Projektzusammenfassung</msg>
   <msg key="Project_units">Projekteinheiten</msg>
+  <msg key="Project_week">Projekte Woche</msg>
   <msg key="Projects">Projekte</msg>
   <msg key="Providers">Lieferanten</msg>
   <msg key="Q">Q</msg>

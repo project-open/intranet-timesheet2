@@ -342,9 +342,11 @@ of those units were billed hourly, for a total amount of</msg>
   <msg key="Project">Project</msg>
   <msg key="Project_br_Name">Project&lt;br&gt;Name</msg>
   <msg key="Project_History">Project History</msg>
+  <msg key="Project_month">Projects month</msg>
   <msg key="Project_name">Project name</msg>
   <msg key="Project_Summaries">Project Summaries</msg>
   <msg key="Project_units">Project units</msg>
+  <msg key="Project_week">Projects week</msg>
   <msg key="Projects">Projects</msg>
   <msg key="Providers">Providers</msg>
   <msg key="Q">Q</msg>

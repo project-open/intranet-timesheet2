@@ -1,0 +1,12 @@
+# Temporary files
+*.log
+*.orig
+*~
+.\#*
+.~*
+\#*\#
+
+# Helpers
+emacs.bash
+
+
