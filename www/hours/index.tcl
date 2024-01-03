@@ -145,6 +145,7 @@ set julian_date [db_string conv "select to_char(:date::date, 'J')"]
 set last_day_of_month_ansi [db_string get_last_day_month "select date_trunc('month',add_months(:date,1))::date - 1" -default 0]
 set first_day_of_month_ansi [db_string get_first_day_month "select date_trunc('month', '$date'::DATE)::date" -default 0]
 set first_day_of_month_julian [db_string fdom_julian "select to_char(:first_day_of_month_ansi::date, 'J')"]
+set today_ansi [db_string today "select now()::date"]
 
 set project_id_for_default [lindex $project_id 0]
 set show_left_functional_menu_p [parameter::get_from_package_key -package_key "intranet-core" -parameter "ShowLeftFunctionalMenupP" -default 0]
@@ -446,12 +447,17 @@ for {set current_date $first_julian_date} {$current_date <= $last_julian_date} {
 	
 	# Hours to be expected for today
 	set expected_hours [im_attendance_daily_attendance_hours -user_id $current_user_id -date $current_date_ansi]
+	if {$current_date_ansi < $first_day_of_month_ansi} { set expected_hours 0.0 }
+	if {$current_date_ansi > $last_day_of_month_ansi} { set expected_hours 0.0 }
+	if {$current_date_ansi > $today_ansi} { set expected_hours 0.0 }
+
 
 	# Calculate the monthly sum of all three types of hours
 	set monthly_work_total [expr $monthly_work_total + $work]
 	if {"" ne $break} { set monthly_break_total [expr $monthly_break_total + $break] }
 	set monthly_expected_total [expr $monthly_expected_total + $expected_hours]
 
+	ns_log Notice "intranet-timesheet2/hours/index: date=$current_date_ansi, expected=$expected_hours, xxx"
 
 	# -------------------------------------------------------------------------
 	# Comparison at the end of the month
