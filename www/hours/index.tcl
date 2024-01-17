@@ -170,6 +170,9 @@ if {"" != [parameter::get -package_id [apm_package_id_from_key intranet-timeshee
 
 if {![im_column_exists im_hours conf_object_id]} { set confirm_timesheet_hours_p 0 }
 
+# Rounding by two digits
+set rounding_factor 100.0
+
 
 # ---------------------------------------------------------------
 # Render the Calendar widget
@@ -438,11 +441,11 @@ for {set current_date $first_julian_date} {$current_date <= $last_julian_date} {
 	# Calculate the actual work/break time
 	set work 0
 	if {[info exists att_work_hash($current_date)]} {
-	    set work [expr round(10.0 * $att_work_hash($current_date)) / 10.0]
+	    set work [expr round($rounding_factor * $att_work_hash($current_date)) / $rounding_factor]
 	}
 	set break ""
 	if {[info exists att_break_hash($current_date)]} {
-	    set break [expr round(10.0 * $att_break_hash($current_date)) / 10.0]
+	    set break [expr round($rounding_factor * $att_break_hash($current_date)) / $rounding_factor]
 	}
 	
 	# Hours to be expected for today
@@ -467,7 +470,7 @@ for {set current_date $first_julian_date} {$current_date <= $last_julian_date} {
 	    } else {
 		set font_html ""
 	    }
-	    append html "<br><font $font_html>Month work total: [expr round(10.0 * $attendance_work) / 10.0]${hour_l10n}, expected $monthly_expected_total${hour_l10n}</font>"
+	    append html "<br><font $font_html>Month work total: [expr round($rounding_factor * $attendance_work) / $rounding_factor]${hour_l10n}, expected $monthly_expected_total${hour_l10n}</font>"
 	}
 
 
@@ -486,10 +489,12 @@ for {set current_date $first_julian_date} {$current_date <= $last_julian_date} {
 	if {"" ne $work} {
 	    # Get the URL of a portlet with right julian date to enter attendances
 	    set attendance_portlet_julian_url [export_vars -base $attendance_portlet_url {{julian $current_date}}]
-	    lappend line_items "<nobr><a href=$attendance_portlet_julian_url target=_>$color_html $work_l10n: ${work}${hour_l10n}$color_html_end</a></nobr>"
+	    set work_formatted [format "%.2f" $work]
+	    lappend line_items "<nobr><a href=$attendance_portlet_julian_url target=_>$color_html $work_l10n: ${work_formatted}${hour_l10n}$color_html_end</a></nobr>"
 	}
 	if {"" ne $break} {
-	    lappend line_items "<nobr>$break_l10n: ${break}${hour_l10n}</nobr>"
+	    set break_formatted [format "%.2f" $break]
+	    lappend line_items "<nobr>$break_l10n: ${break_formatted}${hour_l10n}</nobr>"
 	}
 
 	if {[llength $attendance_errors] > 0} {
