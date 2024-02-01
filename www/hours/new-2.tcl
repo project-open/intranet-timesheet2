@@ -356,9 +356,31 @@ foreach j $weekly_logging_days {
 
     #ns_log Notice "hours/new2: day=$i, database_hours_hash=[array get database_hours_hash]"
     #ns_log Notice "hours/new2: day=$i, screen_hours_hash=[array get screen_hours_hash]"
-    #ns_log Notice "hours/new2: day=$i, action_hash=[array get action_hash]"
+    ns_log Notice "hours/new2: day=$i, action_hash=[array get action_hash]"
 
 
+    # ----------------------------------------------------------
+    # Custom validation of action_hash
+    # Allows to veto entry of certain hours
+    set cust_action_hash_function [parameter::get -package_id [apm_package_id_from_key intranet-timesheet2] -parameter "CustomHoursActionHashFunction" -default ""]
+    if {"" ne $cust_action_hash_function} {
+	if {[catch {
+	    set cust_action_hash_function_result [$cust_action_hash_function -user_id $user_id_from_search -julian_date $day_julian -action_hash_list [array get action_hash]]
+	} err_msg]} {
+	    ad_return_complaint 1 "<b>Error executing custom function</b>:<br>
+            Function: <pre>$cust_action_hash_function -action_hash \[array get action_hash\]</pre><br>
+            Error: <pre>$err_msg</pre><br>
+            Stack: <pre>[ad_print_stack_trace]</pre>
+            "
+	    ad_script_abort
+	}
+    }
+
+    # ad_return_complaint 1 "hours/new2: day=$i, action_hash=[array get action_hash]"
+    # ad_script_abort
+
+
+    # ----------------------------------------------------------
     # Execute the actions
     foreach project_id [array names action_hash] {
 	if {$wf_installed_p} {
@@ -620,7 +642,7 @@ if {!$performance_mode_p} {
 }
 
 
-# ad_return_complaint 1 "action_hash=[array get action_hash], mod=[array get modified_projects_hash], all=$all_project_ids"
+# ad_return_complaint 1 "action_hash=[array get action_hash],<br>mod=[array get modified_projects_hash],<br>all=$all_project_ids"
 
 
 # Create cost items for every logged hours?
@@ -634,7 +656,6 @@ if {$sync_cost_item_immediately_p} {
 	im_timesheet_update_timesheet_cache -project_id $project_id
 	# Create timesheet cost_items for all modified projects
 	im_timesheet2_sync_timesheet_costs -project_id $project_id
-
     }
 
     # Fraber 140103: !!!

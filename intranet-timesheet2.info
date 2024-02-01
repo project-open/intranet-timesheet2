@@ -67,12 +67,9 @@
 	    <parameter datatype="string"  min_n_values="1"  max_n_values="1"  name="AbsenceDefaultDurationUnit" default="days" description="How should users enter absence duration by default? Options are 'days' or 'hours'. The days are multiplied with 8.0 in order to get hours. Default is 'days'."/>
             <parameter scope="instance" datatype="number"  min_n_values="1"  max_n_values="1"  name="TimesheetNoteTextareaRows"  default="1" description="Should we show a textarea instead of a textbox field? '0' means standard text input. '1' means showing a textarea with 1 row, which is similar to a textbox, but allows resizing. Values > 1 will show bigger textareas. Default is '1' for showing a (resizable) textarea with 1 row."/>
             <parameter scope="instance" datatype="string"  min_n_values="1"  max_n_values="1"  name="TimesheetRedirectPackageUrl" default="" description="Use a custom implementation of intranet-timesheet2? Default is '' (empty string), in order to use the standard implementation. A value of '/intranet-cust-custname/timesheet' (no trailing slash '/'!) would redirect to a custom implementation in ~/packages/intranet-cust-custname/www/timesheet/."/>
-
-
             <parameter scope="instance" datatype="number"  min_n_values="1"  max_n_values="1"  name="TimesheetProjectNameMaxLength"  default="50" description="Should we cut down the name of a task or ticket in the timesheet entry page to a maximum size? Default is 50, 0 disables this feature."/>
             <parameter scope="instance" datatype="number"  min_n_values="1"  max_n_values="1"  name="TimesheetProjectNrMaxLength"  default="12" description="Should we cut down the nr (short name) of a task or ticket in the timesheet entry page to a maximum size? Default is 12, 0 disables this feature."/>
-
+            <parameter scope="instance" datatype="string"  min_n_values="1"  max_n_values="1"  name="CustomHoursActionHashFunction" default="" description="Hook/callback in intranet-timesheet2/new-2 function to perform on the 'action hash' of update/delete/create actions resulting from the entry of hours by the user. For example, cosine has a 'im_cust_cosine_veto_action_hash' custom function to veto entries if prices are not set correctly. "/>
 	  </parameters>
-
     </version>
 </package>
