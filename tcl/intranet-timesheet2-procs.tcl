@@ -288,12 +288,17 @@ ad_proc -public im_timesheet_home_component {user_id} {
     set expected_hours [parameter::get -package_id [im_package_timesheet2_id] -parameter "TimesheetRedirectNumHoursInDays" -default 32]
     set available_perc [util_memoize [list db_string percent_available "select availability from im_employees where employee_id = $user_id" -default 100] 60]
     if {"" == $available_perc} { set available_perc 100 }
-    set expected_hours [expr {$expected_hours * $available_perc / 100}]
+    set expected_hours [expr $expected_hours * $available_perc / 100]
 
     set hours_html ""
     set log_them_now_link "<a href=/intranet-timesheet2/hours/index>"
     set num_hours [im_timesheet_hours_sum -user_id $user_id -number_days $num_days]
-    set absences_hours [im_timesheet_absences_sum -user_id $user_id -number_days $num_days]
+    set absence_hours [im_timesheet_absences_sum -user_id $user_id -number_days $num_days]
+    
+    set absences_hours_message ""
+    if {$absence_hours > 0} { 
+	set absences_hours_message [lang::message::lookup "" intranet-timesheet2.and_absence_hours "and %absence_hours% hours of absences"]
+    }
 
     if {$num_hours == 0} {
         set message "<b>[_ intranet-timesheet2.lt_You_havent_logged_you]</a></b>\n"
@@ -301,20 +306,15 @@ ad_proc -public im_timesheet_home_component {user_id} {
         set message "[_ intranet-timesheet2.lt_You_logged_num_hours_]"
     }
 
-    set absences_hours_message ""
-    if { [expr {$num_hours + $absences_hours}] < $expected_hours && $add_hours } {
+    if {[expr $num_hours + $absence_hours] < $expected_hours && $add_hours} {
 
-	if {$absences_hours > 0} { 
-	    set absences_hours_message [lang::message::lookup "" \
-					intranet-timesheet2.and_absences_hours \
-					"and %absences_hours% hours of absences"]
-	}
 	set default_message "
-		You have only logged %num_hours% hours %absences_hours_message% 
-		in the last %num_days% days out of %expected_hours% expected hours.
+		You have only logged $num_hours hours of project work $absences_hours_message
+		in the last $num_days days out of $expected_hours expected hours.
 	"
 	set message "<b>[lang::message::lookup "" intranet-timesheet2.You_need_to_log_hours $default_message]</b>"
 
+	# Only redirect if it's not the admin...
 	if {$redirect_p && !$admin_p} {
 	    set header [lang::message::lookup "" intranet-timesheet2.Please_Log_Your_Hours "Please Log Your Hours"]
 	    ad_returnredirect [export_vars -base "/intranet-timesheet2/hours/index" {header message}]

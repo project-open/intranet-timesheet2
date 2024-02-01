@@ -134,7 +134,9 @@
   <msg key="go">los</msg>
   <msg key="Grand_Total">Gesamtsumme</msg>
   <msg key="H">H</msg>
+  <msg key="h">h</msg>
   <msg key="here">hier</msg>
+  <msg key="Hour_abbrev">h</msg>
   <msg key="Hour_logging__Casex">Erfasste Stunden</msg>
   <msg key="Hours">Stunden</msg>
   <msg key="hours">Stunden</msg>
@@ -166,7 +168,9 @@
   <msg key="Log_Absences">Abwesenheiten melden</msg>
   <msg key="Log_Absences_for_user_name">Abwesenheiten erfassen für %user_name%</msg>
   <msg key="log_dedication">Stunden erfassen</msg>
+  <msg key="Log_for_the_week">Für die Woche loggen</msg>
   <msg key="Log_Hours">Stunden erfassen</msg>
+  <msg key="Log_hours">Stunden loggen</msg>
   <msg key="log_hours">Stunden für den Tag erfassen</msg>
   <msg key="Log_hours_for_the_week">Stunden für die Woche erfassen</msg>
   <msg key="Log_hours_for_user">Stunden für Benutzer erfassen</msg>
@@ -270,6 +274,7 @@
   <msg key="Mine">Meine</msg>
   <msg key="Monday">Montag</msg>
   <msg key="Month">Monat</msg>
+  <msg key="Month_total">Monat gesamt</msg>
   <msg key="More_currencies">Weitere Währungen</msg>
   <msg key="N">N</msg>
   <msg key="Name">Name</msg>
@@ -325,9 +330,12 @@
   <msg key="Project">Projekt</msg>
   <msg key="Project_br_Name">Projekt-&lt;br&gt;Name</msg>
   <msg key="Project_History">Projekthistorie</msg>
+  <msg key="Project_month">Projekte Monat</msg>
   <msg key="Project_name">Aufgabenname</msg>
   <msg key="Project_Summaries">Projektzusammenfassung</msg>
   <msg key="Project_units">Projekteinheiten</msg>
+  <msg key="Project_week">Projekte Woche</msg>
+  <msg key="Projects">Projekte</msg>
   <msg key="Providers">Lieferanten</msg>
   <msg key="Q">Q</msg>
   <msg key="R">R</msg>
