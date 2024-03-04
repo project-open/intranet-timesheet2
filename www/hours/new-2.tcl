@@ -63,6 +63,8 @@ ad_page_contract {
 set current_user_id [auth::require_login]
 set add_hours_p [im_permission $current_user_id "add_hours"]
 set add_hours_all_p [im_permission $current_user_id "add_hours_all"]
+
+# ToDo: add_hours_direct_reports_p is not checked, is it possible to add hours to other users?
 set add_hours_direct_reports_p [im_permission $current_user_id "add_hours_direct_reports"]
 
 # Estimate to complete?

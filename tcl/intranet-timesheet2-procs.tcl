@@ -56,6 +56,9 @@ ad_proc -public im_hour_permissions {
 } {
     Fill the by-reference variables read, write and admin
     with the permissions of $user_id on $hour_id
+
+    Fraber 2024-03-04: ToDo: add_hours_direct_reports is not 100%
+    correct, and view_hours_direct_reports isn't used yet.
 } {
     upvar $view_var view
     upvar $read_var read

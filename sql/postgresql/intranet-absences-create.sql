@@ -232,8 +232,8 @@ SELECT acs_privilege__add_child('admin', 'add_absences_for_group');
 -- add absences for direct reports?
 select acs_privilege__create_privilege('view_absences_direct_reports','View Absences Direct Reports','View Absences Direct Reports');
 select acs_privilege__add_child('view', 'view_absences_direct_reports');
-select acs_privilege__create_privilege('add_hours_direct_reports','Add hours for direct reports','');
-select acs_privilege__add_child('admin', 'add_hours_direct_reports');
+select acs_privilege__create_privilege('add_absences_direct_reports','Add Absences for direct reports','');
+select acs_privilege__add_child('admin', 'add_absences_direct_reports');
 
 
 
