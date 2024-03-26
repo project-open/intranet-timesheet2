@@ -283,6 +283,11 @@ ad_proc -public im_timesheet_home_component {user_id} {
     if {!$add_hours && !$add_absences && !$view_hours_all} { return "" }
     set admin_p [im_is_user_site_wide_or_intranet_admin $user_id]
 
+    # All users need to log hours here, because they got "add_hours" privilege.
+    # However, Admins who are note employees don't need to do that.
+    # We need to go with group membership here, because admins have all privileges.
+    set needs_to_add_hours [im_user_is_employee_p $user_id]
+
     # Get the number of hours in the number of days, and whether
     # we should redirect if the user didn't log them...
     #
@@ -303,13 +308,13 @@ ad_proc -public im_timesheet_home_component {user_id} {
 	set absences_hours_message [lang::message::lookup "" intranet-timesheet2.and_absence_hours "and %absence_hours% hours of absences"]
     }
 
-    if {$num_hours == 0} {
+    if {$num_hours == 0 && $needs_to_add_hours} {
         set message "<b>[_ intranet-timesheet2.lt_You_havent_logged_you]</a></b>\n"
     } else {
         set message "[_ intranet-timesheet2.lt_You_logged_num_hours_]"
     }
 
-    if {[expr $num_hours + $absence_hours] < $expected_hours && $add_hours} {
+    if {[expr $num_hours + $absence_hours] < $expected_hours && $needs_to_add_hours} {
 
 	set default_message "
 		You have only logged $num_hours hours of project work $absences_hours_message
