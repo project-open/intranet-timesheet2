@@ -197,11 +197,9 @@ if {$attendance_management_installed_p} {
 		to_char(ai.attendance_start, 'YYYY-MM-DD') as attendance_start_date,
 		to_char(ai.attendance_start, 'J') as attendance_start_julian,
 		im_category_from_id(ai.attendance_type_id) as type,
-		round((extract(epoch from attendance_end - attendance_start) / 3600)::numeric, 2) as duration_hours,
+		(extract(epoch from attendance_end - attendance_start) / 3600)::numeric as duration_hours,
 		coalesce(EXTRACT(EPOCH FROM ai.attendance_end - ai.attendance_start) / 3600, 0) as attendance_duration_hours,
-
 		(select sum(hours) from im_hours h where h.user_id = :user_id_from_search and h.day::date = ai.attendance_start::date) as ts_sum_per_user_day
-
 	from 	im_attendance_intervals ai
 	where	ai.attendance_user_id = :user_id_from_search and
 		ai.attendance_start::date >= to_date(:first_julian_date, 'J') and
