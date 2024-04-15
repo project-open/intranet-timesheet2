@@ -225,7 +225,7 @@ if {$attendance_management_installed_p} {
 		if {[info exists att_work_hash($attendance_start_julian)]} { set v $att_work_hash($attendance_start_julian)}
 		set v [expr $v + $duration_hours]
 		set att_work_hash($attendance_start_julian) $v
-		set attendance_work [expr $attendance_work + $duration_hours;]
+		set attendance_work [expr $attendance_work + $duration_hours]
 	    }
 	    92110 {
 		# Break
@@ -233,7 +233,7 @@ if {$attendance_management_installed_p} {
 		if {[info exists att_break_hash($attendance_start_julian)]} { set v $att_break_hash($attendance_start_julian)}
 		set v [expr $v + $duration_hours]
 		set att_break_hash($attendance_start_julian) $v
-		set attendance_break [expr $attendance_break + $duration_hours;]
+		set attendance_break [expr $attendance_break + $duration_hours]
 	    }
 	}
 
