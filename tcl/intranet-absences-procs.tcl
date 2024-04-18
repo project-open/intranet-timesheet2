@@ -360,7 +360,7 @@ ad_proc -public im_absence_color_table { } {
 	from	im_categories
 	where	category_type = 'Intranet Absence Type' and
 		(enabled_p is null or enabled_p = 't')
-	order by category_id
+	order by coalesce(sort_order, category_id)
     "
     set index 0
     db_foreach cols $col_sql {
