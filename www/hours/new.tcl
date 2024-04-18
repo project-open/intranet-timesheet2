@@ -1186,7 +1186,7 @@ template::multirow foreach hours_multirow {
 
     set ptitle $pname
     if {$show_project_nr_p} { set ptitle "$pnr - $pname" }
-    if {$show_company_p} { set ptitle "$pname <b>($company_name)</b>" }
+    if {$show_company_p && $subproject_level == 0} { set ptitle "$pname <b>($company_name)</b>" }
 
     if { !$filter_surpress_output_p } {
 	if { !$top_parent_shown_p && $project_id != $top_project_id && "" != $search_task } {
