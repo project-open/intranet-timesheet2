@@ -102,6 +102,7 @@ im_security_alert_check_integer -location "/intranet-timesheet2/www/hours/new" -
 # Get the date. Accept a gregorian or julian format. Use today as default.
 if {$gregorian_date ne ""} { set julian_date [db_string sysdate_as_julian "select to_char(:gregorian_date::date, 'J')"] }
 if {$julian_date eq ""} { set julian_date [db_string sysdate_as_julian "select to_char(sysdate,'J') from dual"] }
+# set iso_date [db_string iso_date "select to_date(:julian_date, 'J')::date"]
 
 if {"" == $return_url} { set return_url [export_vars -base "/intranet-timesheet2/hours/index" {julian_date user_id_from_search}] }
 
@@ -235,6 +236,8 @@ where	user_id = :user_id_from_search"
 
 set pretty_date [lc_time_fmt $datetime "%Q"]
 
+
+
 # ---------------------------------------------------------
 # Calculate the <- -> buttons at the top of the timesheet page.
 # ---------------------------------------------------------
@@ -244,8 +247,8 @@ set right_gif [im_gif arrow_comp_right]
 
 if {$show_week_p} {
 
+    # Showing an entire week - advance by 7 days
     set page_title [lang::message::lookup "" intranet-timesheet2.The_week_for_user "The week for %user_name_from_search%"]
-
     set prev_week_julian_date [expr {$julian_date - 7}]
     set prev_week_url [export_vars -base "new" {{julian_date $prev_week_julian_date} user_id_from_search return_url project_id show_week_p}]
     set prev_week_link "<a href=$prev_week_url>$left_gif</a>"
@@ -264,14 +267,35 @@ if {$show_week_p} {
 
 } else {
 
+    # Showing just a single day - advance by 1 day
     set page_title "[lang::message::lookup "" intranet-timesheet2.Date_for_user "%pretty_date% for %user_name_from_search%"]"
 
-    set prev_day_julian_date [expr {$julian_date - 1}]
-    set prev_day_url [export_vars -base "new" {{julian_date $prev_day_julian_date} user_id_from_search project_id show_week_p}]
+    # Previous day arrow
+    set prev_day_julian $julian_date
+    set maxcount 7
+    ns_log Notice "hours/new: julian_date=$julian_date"
+    while {$maxcount > 0} {
+	incr maxcount -1
+	set prev_day_julian [expr $prev_day_julian - 1]
+	set prev_day_dow [expr [db_string dow "select to_char(to_date(:prev_day_julian, 'J'), 'D')"] - 1]; # 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sam
+	ns_log Notice "hours/new: maxcount=$maxcount, prev_day_julian=$prev_day_julian, prev_day_dow=$prev_day_dow, weekly_logging_days=$weekly_logging_days"
+	if {[string first $prev_day_dow $weekly_logging_days] >= 0} { break }; # Break if day is supported
+    }
+    set prev_day_url [export_vars -base "new" {{julian_date $prev_day_julian} user_id_from_search project_id show_week_p}]
     set prev_day_link "<a href=$prev_day_url>$left_gif</a>"
 
-    set next_day_julian_date [expr {$julian_date + 1}]
-    set next_day_url [export_vars -base "new" {{julian_date $next_day_julian_date} user_id_from_search project_id show_week_p}]
+    # Next day arrow
+    set next_day_julian $julian_date
+    set maxcount 7
+    ns_log Notice "hours/new: julian_date=$julian_date"
+    while {$maxcount > 0} {
+	incr maxcount -1
+	set next_day_julian [expr $next_day_julian + 1]
+	set next_day_dow [expr [db_string dow "select to_char(to_date(:next_day_julian, 'J'), 'D')"] - 1]; # 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sam
+	ns_log Notice "hours/new: maxcount=$maxcount, next_day_julian=$next_day_julian, next_day_dow=$next_day_dow, weekly_logging_days=$weekly_logging_days"
+	if {[string first $next_day_dow $weekly_logging_days] >= 0} { break }; # Break if day is supported
+    }
+    set next_day_url [export_vars -base "new" {{julian_date $next_day_julian} user_id_from_search project_id show_week_p}]
     set next_day_link "<a href=$next_day_url>$right_gif</a>"
 
     set forward_backward_buttons "
