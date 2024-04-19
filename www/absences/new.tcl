@@ -46,6 +46,10 @@ set absence_type [lang::message::lookup "" intranet-timesheet2.Absence "Absence"
 
 set duration_default_uom [parameter::get_from_package_key -package_key "intranet-timesheet2" -parameter "AbsenceDefaultDurationUnit" -default "days"]
 
+# Autogenerate the absence title using a template?
+# absence_id, absence_type, absence_user, absence_start_date and absence_end_date at the moment, prefixed by a dollar so that it can be evaluated as a string using TCL 'eval'."/>
+# set autogenerate_title_default {$absence_type $absence_start_date bis $absence_end_date von $absence_owner}
+set autogenerate_title_template [parameter::get_from_package_key -package_key "intranet-timesheet2" -parameter "AbsenceAutogenerateTitleTemplate" -default ""]
 
 # Custom redirect? You should change all links to this
 # page to the new URL, but sometimes you miss links...
@@ -238,8 +242,19 @@ if {[info exists absence_id]} {
 set form_fields {
 	absence_id:key
 	{absence_owner_id:text(hidden),optional}
-	{absence_name:text(text) {label "[_ intranet-timesheet2.Absence_Name]"} {html {size 40}}}
 }
+
+# Should we autogenerate the title?
+# ad_return_complaint 1 $autogenerate_title_template
+if {"" eq $autogenerate_title_template} {
+    # No autogeneration, just add the field
+    # {absence_name:text(text) {label "[_ intranet-timesheet2.Absence_Name]"} {html {size 40}}}
+    lappend form_fields "absence_name:text(text) {label \"[_ intranet-timesheet2.Absence_Name]\"} {html {size 40}}"
+} else {
+    # Autogeneration, add a hidden field
+    lappend form_fields "absence_name:text(hidden) {label \"[_ intranet-timesheet2.Absence_Name]\"} {html {size 40}}"
+}
+
 
 # -------
 # By setting RequireAbsenceTypeInUrlP to '1' an 'Absence Type' can be set only by passing 
@@ -367,6 +382,14 @@ ad_form -extend -name absence -on_request {
     if {![info exists user_id_from_search]} { set user_id_from_search "" }
     if { $current_user_id != $user_id_from_search && ![im_permission $current_user_id "add_absences_all"] } {
 	set user_id_from_search $current_user_id
+    }
+
+    # Autogenerate the absence_name
+    if {"" ne $autogenerate_title_template} {
+	set absence_owner [im_name_from_user_id $absence_owner_id]
+	set absence_start_date [string map {" " "-"} $start_date]
+	set absence_end_date [string map {" " "-"} $end_date]
+	set absence_name [eval "set a \"$autogenerate_title_template\""]
     }
     
 } -select_query {
