@@ -142,7 +142,9 @@ ad_proc calendar_basic_month {
 	-next_month_template ""  
 	-prev_month_template ""
 	-prev_next_links_in_title 0
-	-fill_all_days 0 } 
+	-fill_all_days 0
+	-grey_cell_list {}
+    }
 } "
 	Returns a calendar for a specific month, with details supplied 
 	by Julian date. Defaults to this month.
@@ -151,7 +153,6 @@ ad_proc calendar_basic_month {
 	the day, and the value is a string (possibly with HTML formatting) that 
 	represents the details.
 " {
-
     set start_day [parameter::get -package_id [apm_package_id_from_key intranet-timesheet2] -parameter "WeekStartDay" -default 0]
 
     calendar_get_info_from_db $date
@@ -162,8 +163,6 @@ ad_proc calendar_basic_month {
     }
 
     set day_of_week $first_day_of_month
-
-
     set julian_date $first_julian_date
 
     set month_heading [format "%s %s" [_ intranet-timesheet2.$month] $year]
@@ -208,20 +207,11 @@ ad_proc calendar_basic_month {
     }
 
     append output "</tr>"
-    # KH: Following code would produce an unnecessary, ugly row
-    # Tested various configurations, in none of them this snippet produces valuable output 
-    #     if { $fill_all_days == 0 } {
-    #	 	for { set n 1} { $n < $first_day_of_month } { incr n } {
-    #	    		append output "<td id='empty_bg' bgcolor=$empty_bgcolor align=right valign=top></td>"
-    #	 	}
-    #     }
-
     set day_of_week 1
     set julian_date $first_julian_date
     set day_number $first_day
 
     while {1} {
-
         if {$julian_date < $first_julian_date_of_month} {
             set before_month_p 1
             set after_month_p 0
@@ -237,7 +227,7 @@ ad_proc calendar_basic_month {
             set day_number 1
         } elseif {$julian_date > $last_julian_date} {
             break
-        } elseif {$julian_date == [expr {$last_julian_date_in_month +1}]} {
+        } elseif {$julian_date == [expr $last_julian_date_in_month + 1]} {
             set day_number 1
         }
 
@@ -254,21 +244,23 @@ ad_proc calendar_basic_month {
 		append output "[subst $day_number_template]&nbsp;"
 	    }
 	} else {
-
             # We are within the normal day of the month.
             set day_ansi [calendar_convert_julian_to_ansi $julian_date]
-
             # ns_log Notice "calendar_basic_month: '$todays_date', '$day_ansi'"
 
 	    # Set BG color for weekend 
 	    set weekend ""
-
 	    if { "1" == $start_day  } {
 		    if { "6" == $day_of_week || "7" == $day_of_week } {	set weekend "_weekend" }  	
 	    } else {
 		    if { "1" == $day_of_week || "7" == $day_of_week } {	set weekend "_weekend" }  	
 	    }
 
+	    # Should we show the day in grey for weekend? That's for bank holidays
+	    if {$julian_date in $grey_cell_list} {
+		set weekend "_weekend"
+	    }
+	    
             if {$todays_date eq $day_ansi} {
 	        append output "<td class='todays_date$weekend' bgcolor=#6699CC align=right valign=top>[subst $day_number_template]&nbsp;"
             } else {
@@ -276,22 +268,15 @@ ad_proc calendar_basic_month {
             }
 	}
 
-	if { (! $skip_day) && $large_calendar_p == 1 } {
+	if { (!$skip_day) && $large_calendar_p == 1 } {
 	    append output "<div class='link_log_hours' align=left>"
-
 	    set calendar_day_index [ns_set find $calendar_details $julian_date]
-	    
 	    while { $calendar_day_index >= 0 } {
-		    
 		set calendar_day [ns_set value $calendar_details $calendar_day_index]
-		ns_set delete $calendar_details $calendar_day_index
-		
+		ns_set delete $calendar_details $calendar_day_index		
 		append output "$calendar_day"
-		
-		set calendar_day_index [ns_set find $calendar_details $julian_date]
-		
-	    }
-	    
+		set calendar_day_index [ns_set find $calendar_details $julian_date]		
+	    }	    
 	    append output "</div>"
 	}
 
@@ -318,7 +303,6 @@ ad_proc calendar_basic_month {
     append output "</table>"
 
     return $output
-
 }
 
 ad_proc calendar_small_month { {

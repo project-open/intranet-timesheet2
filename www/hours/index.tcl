@@ -567,6 +567,32 @@ for {set current_date $first_julian_date} {$current_date <= $last_julian_date} {
     set timesheet_entry_blocked_p 0
 }
 
+
+# ---------------------------------------------------------------
+# Check bank holidays for the month
+# ---------------------------------------------------------------
+
+set bank_holiday_sql "
+	select	ua.*,
+		to_char(ua.start_date, 'J') as start_date_julian,
+		to_char(ua.end_date, 'J') as end_date_julian
+	from	im_user_absences ua
+	where	ua.absence_type_id in ([join [im_sub_categories -include_disabled_p 1 [im_user_absence_type_bank_holiday]] ","]) and
+		ua.start_date::date <= :last_day_of_month_ansi::date and
+		ua.end_date::date >= :first_day_of_month_ansi::date
+"
+# ad_return_complaint 1 [im_ad_hoc_query -format html $bank_holiday_sql]
+set grey_cell_list [list]
+db_foreach bank_holidays $bank_holiday_sql {
+    for {set j $start_date_julian} {$j <= $end_date_julian} {incr j} {
+	lappend grey_cell_list $j
+    }
+}
+
+# ---------------------------------------------------------------
+# Render the calendar
+# ---------------------------------------------------------------
+
 set prev_month_template "
 <font color=white>&lt;</font>
 <a href=\"[export_vars -base index {user_id_from_search}]&date=\$ansi_date\">
@@ -590,7 +616,9 @@ set page_body [calendar_basic_month \
 		   -date $date \
 		   -prev_next_links_in_title 1 \
 		   -fill_all_days $fill_up_first_last_row_p \
-		   -empty_bgcolor "\#cccccc"]
+		   -empty_bgcolor "\#cccccc" \
+		   -grey_cell_list $grey_cell_list \
+		  ]
 
 # ---------------------------------------------------------------
 # Render the Calendar widget
