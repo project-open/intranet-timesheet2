@@ -386,6 +386,7 @@ ad_form -extend -name absence -on_request {
 
     # Autogenerate the absence_name
     if {"" ne $autogenerate_title_template} {
+	set absence_type [im_category_from_id $absence_type_id]
 	set absence_owner [im_name_from_user_id $absence_owner_id]
 	set absence_start_date [string map {" " "-"} $start_date]
 	set absence_end_date [string map {" " "-"} $end_date]
