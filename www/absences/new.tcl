@@ -45,6 +45,7 @@ set date_time_format "YYYY MM DD"
 set absence_type [lang::message::lookup "" intranet-timesheet2.Absence "Absence"]
 
 set duration_default_uom [parameter::get_from_package_key -package_key "intranet-timesheet2" -parameter "AbsenceDefaultDurationUnit" -default "days"]
+set absence_since_past_days [parameter::get_from_package_key -package_key "intranet-timesheet2" -parameter "AbsenceSincePastDays" -default 100]
 
 # Autogenerate the absence title using a template?
 # absence_id, absence_type, absence_user, absence_start_date and absence_end_date at the moment, prefixed by a dollar so that it can be evaluated as a string using TCL 'eval'."/>
@@ -411,12 +412,13 @@ ad_form -extend -name absence -on_request {
 
     {
 	start_date
-	{  [lindex $start_date 0] >= [db_string this_year "select extract(year from now())"] || $user_admin_p }
-	"You can not create new absences for the last year or earlier.<br>
-        Please contact your administrator for exceptions."
+	{ [db_string pastday "select to_date('[lrange $start_date 0 2]', 'YYYY MM DD') > now()::date - 100"] eq "t" || $user_admin_p }
+	"You can not create new absences starting more than $absence_since_past_days in the past."
     }
     
 } -new_data {
+
+    # { [lindex $start_date 0] >= [db_string this_year "select extract(year from now())"] || $user_admin_p }
 
     set start_date_sql [template::util::date get_property sql_timestamp $start_date]
     set end_date_sql [template::util::date get_property sql_timestamp $end_date]

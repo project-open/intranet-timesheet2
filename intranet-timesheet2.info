@@ -8,7 +8,7 @@
     <singleton-p>t</singleton-p>
     <auto-mount>intranet-timesheet2</auto-mount>
 
-    <version name="5.1.0.0.1" url="https://www.project-open.net/download/apm/intranet-timesheet2-5.1.0.0.1.apm">
+    <version name="5.1.0.0.2" url="https://www.project-open.net/download/apm/intranet-timesheet2-5.1.0.0.2.apm">
         <owner url="mailto:frank.bergmann@project-open.com">Frank Bergmann</owner>
         <release-date>2004-02-07</release-date>
         <vendor url="https://www.project-open.com/">]project-open[</vendor>
@@ -71,6 +71,7 @@
             <parameter scope="instance" datatype="number"  min_n_values="1"  max_n_values="1"  name="TimesheetProjectNrMaxLength"  default="12" description="Should we cut down the nr (short name) of a task or ticket in the timesheet entry page to a maximum size? Default is 12, 0 disables this feature."/>
             <parameter scope="instance" datatype="string"  min_n_values="1"  max_n_values="1"  name="CustomHoursActionHashFunction" default="" description="Hook/callback in intranet-timesheet2/new-2 function to perform on the 'action hash' of update/delete/create actions resulting from the entry of hours by the user. For example, cosine has a 'im_cust_cosine_veto_action_hash' custom function to veto entries if prices are not set correctly. "/>
             <parameter datatype="number"  min_n_values="1"  max_n_values="1"  name="AbsenceAutogenerateTitleTemplate"  default="" description="Should the system automatically generate the title of an absence? An non-empty string will be treated as a template, you can use the variables absence_id, absence_type, absence_owner, absence_start_date and absence_end_date at the moment, prefixed by a dollar so that it can be evaluated as a string using TCL 'eval'. Example (without single quotes): '$absence_type from $absence_start_date to $absence_end_date by $absence_owner'"/>
+            <parameter scope="instance" datatype="number"  min_n_values="1"  max_n_values="1"  name="AbsenceSincePastDays"  default="100" description="Should we allow users to create absences in the past? Default is 100 for 100 days. A value of 0 means that absences can only be requested for today and the future."/>
 	  </parameters>
     </version>
 </package>
