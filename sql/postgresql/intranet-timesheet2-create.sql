@@ -115,6 +115,10 @@ select acs_privilege__add_child('admin', 'add_hours_direct_reports');
 select acs_privilege__create_privilege('view_hours_direct_reports','View hours for direct reports','View hours for direct reports');
 select acs_privilege__add_child('admin', 'view_hours_direct_reports');
 
+-- Add privilege to view hours of project members
+select acs_privilege__create_privilege('view_hours_project_members','View hours of project members','View hours of project members');
+select acs_privilege__add_child('admin', 'view_hours_project_members');
+
 
 select im_priv_create('add_hours', 'Employees');
 
