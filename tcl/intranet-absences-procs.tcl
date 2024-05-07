@@ -504,7 +504,7 @@ ad_proc im_absence_mix_colors {
     append color [lindex $hex_list [expr {$b / 16}]]
     append color [lindex $hex_list [expr {$b % 16}]]
 
-    ns_log Notice "im_absence_mix_colors: absence_type_ids=$absence_type_ids, color=$color"
+    # ns_log Notice "im_absence_mix_colors: absence_type_ids=$absence_type_ids, color=$color"
     return $color
 }
 
