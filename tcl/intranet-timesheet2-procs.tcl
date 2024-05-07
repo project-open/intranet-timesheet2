@@ -396,6 +396,7 @@ ad_proc -public im_timesheet_project_component {user_id project_id} {
     }
 
     set view_ours_all_p [im_permission $user_id "view_hours_all"]
+    set admin_p [im_is_user_site_wide_or_intranet_admin $user_id]
 
     # disable the component for users who can neither see stuff nor add stuff
     set add_hours [im_permission $user_id "add_hours"]
@@ -434,8 +435,7 @@ ad_proc -public im_timesheet_project_component {user_id project_id} {
 	if {"" == $available_perc} { set available_perc 100 }
 	set expected_hours [expr {$expected_hours * $available_perc / 100}]
         set num_hours [im_timesheet_hours_sum -user_id $user_id -number_days $num_days]
-	if { $redirect_p && $num_hours < $expected_hours && $add_hours } {
-
+	if { $redirect_p && $num_hours < $expected_hours && $add_hours && !$admin_p} {
             set default_message "
 		You have logged %num_hours% hours in the last %num_days% days.
 		However, you are expected to log atleast %expected_hours% hours
