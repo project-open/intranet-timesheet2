@@ -516,8 +516,9 @@ ad_proc im_timesheet_hours_sum {
     # --------------------------------------------------------
     # Count the number of hours in the last days.
 
+    set criteria [list "1=1"]
     if {0 != $user_id} {
-	set criteria [list "user_id = :user_id"]
+	lappend criteria "user_id = :user_id"
     }
 
     if {0 != $project_id} {
@@ -543,7 +544,7 @@ ad_proc im_timesheet_hours_sum {
     set num_hours [db_string sum_hours "
 	select	sum(h.hours) 
 	from	im_hours h
-	where	h.day::date <= now()::date and
+	where	-- h.day::date <= now()::date and
 		[join $criteria "\n    and "]
     " -default 0]
     if {"" == $num_hours} { set num_hours 0}
