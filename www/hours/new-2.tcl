@@ -60,6 +60,10 @@ ad_page_contract {
 # Security / setting user
 # ----------------------------------------------------------
 
+# switch on detailed SQL logging
+set debug_sql_p [ns_logctl severity "Debug(sql)"]
+ns_logctl severity "Debug(sql)" 1
+
 set current_user_id [auth::require_login]
 set add_hours_p [im_permission $current_user_id "add_hours"]
 set add_hours_all_p [im_permission $current_user_id "add_hours_all"]
@@ -209,7 +213,6 @@ if {!$show_week_p} { set weekly_logging_days [list 0]}
 # Go through all days of the week (or just a single one in case of single-day logging
 set i 0 
 foreach j $weekly_logging_days {
-
     set day_julian [expr $julian_date + $i]
     array unset database_hours_hash
     array unset database_notes_hash
@@ -241,8 +244,7 @@ foreach j $weekly_logging_days {
 			h.day = to_date(:day_julian, 'J') and
 			h.project_id = p.project_id
     "
-    db_foreach hours $database_hours_logged_sql {
-
+    db_foreach database_hours $database_hours_logged_sql {
         set key "$hour_project_id"
 	if {"" == $hours} { set hours 0 }
 
@@ -294,8 +296,6 @@ foreach j $weekly_logging_days {
     # Create the "action_hash" with a mapping (pid) => action for all lines where we
     # have to take an action. We construct this hash by iterating through all entries 
     # (both db and screen) and comparing their content.
-
-
     set total_screen_hours 0 
     foreach pid $all_project_ids {
 	# Extract the hours and notes from the database hashes
@@ -355,9 +355,8 @@ foreach j $weekly_logging_days {
 	    "]"
             ad_script_abort
     }
-
-    #ns_log Notice "hours/new2: day=$i, database_hours_hash=[array get database_hours_hash]"
-    #ns_log Notice "hours/new2: day=$i, screen_hours_hash=[array get screen_hours_hash]"
+    ns_log Notice "hours/new2: day=$i, database_hours_hash=[array get database_hours_hash]"
+    ns_log Notice "hours/new2: day=$i, screen_hours_hash=[array get screen_hours_hash]"
     ns_log Notice "hours/new2: day=$i, action_hash=[array get action_hash]"
 
 
@@ -367,6 +366,7 @@ foreach j $weekly_logging_days {
     set cust_action_hash_function [parameter::get -package_id [apm_package_id_from_key intranet-timesheet2] -parameter "CustomHoursActionHashFunction" -default ""]
     if {"" ne $cust_action_hash_function} {
 	if {[catch {
+	    ns_log Notice "hours/new2: $cust_action_hash_function -user_id $user_id_from_search -julian_date $day_julian -action_hash_list [array get action_hash]"
 	    set cust_action_hash_function_result [$cust_action_hash_function -user_id $user_id_from_search -julian_date $day_julian -action_hash_list [array get action_hash]]
 	} err_msg]} {
 	    ad_return_complaint 1 "<b>Error executing custom function</b>:<br>
@@ -402,15 +402,6 @@ foreach j $weekly_logging_days {
 	    set modified_projects_hash($project_id) $modified_julians
 	}
 
-	# Delete any cost elements related to the hour.
-	# This time project_id refers to the specific (sub-) project.
-	# ns_log Notice "hours/new-2: im_timesheet_costs_delete -project_id $project_id -user_id $user_id_from_search -day_julian $day_julian"
-	im_timesheet_costs_delete \
-	    -project_id $project_id \
-	    -user_id $user_id_from_search \
-	    -day_julian $day_julian
-
-
 	# Prepare hours_worked and hours_notes for insert & update actions
 	set hours_worked 0
 	if {[info exists screen_hours_hash($project_id)]} { set hours_worked $screen_hours_hash($project_id) }
@@ -436,9 +427,8 @@ foreach j $weekly_logging_days {
 	}
 
 	set action $action_hash($project_id)
-	# ns_log Notice "hours/new-2: action=$action, project_id=$project_id"
+	ns_log Notice "hours/new-2: action=$action, project_id=$project_id"
 	switch $action {
-
 	    insert {
 		db_dml hours_insert "
 		    insert into im_hours (
@@ -456,42 +446,43 @@ foreach j $weekly_logging_days {
 			:note,
 			:internal_note
 		     )"
-	    
-		# Update the reported hours on the timesheet task
-		db_dml update_timesheet_task ""
-		# ToDo: Propagate change through hierarchy?
-
 	    }
 
 	    delete {
-		db_dml hours_delete "
+		db_transaction {
+		    # Delete any cost elements related to the project_id, user_id and day
+		    ns_log Notice "hours/new-2: im_timesheet_costs_delete -project_id $project_id -user_id $user_id_from_search -day_julian $day_julian"
+		    im_timesheet_costs_delete -project_id $project_id -user_id $user_id_from_search -day_julian $day_julian
+
+		    db_dml hours_delete "
 			delete	from im_hours
 			where	project_id = :project_id
 				and user_id = :user_id_from_search
 				and day = to_date(:day_julian, 'J')
-	        "
-
-		# Update the project's accummulated hours cache
-		if { [db_resultrows] != 0 } {
-		    db_dml update_timesheet_task {}
+	            "
 		}
 	    }
 
 	    update {
-		db_dml hours_update "
-		update im_hours
-		set 
-			hours = :hours_worked, 
-			days = :days_worked,
-			note = :note,
-			internal_note = :internal_note,
-			cost_id = null,
-			material_id = :material
-		where
-			project_id = :project_id
-			and user_id = :user_id_from_search
-			and day = to_date(:day_julian, 'J')
-	        "
+		db_transaction {
+		    # Delete any cost elements related to the project_id, user_id and day
+		    ns_log Notice "hours/new-2: im_timesheet_costs_delete -project_id $project_id -user_id $user_id_from_search -day_julian $day_julian"
+		    im_timesheet_costs_delete -project_id $project_id -user_id $user_id_from_search -day_julian $day_julian
+
+		    db_dml hours_update "
+			update im_hours set 
+				hours = :hours_worked, 
+				days = :days_worked,
+				note = :note,
+				internal_note = :internal_note,
+				cost_id = null,
+				material_id = :material
+			where
+				project_id = :project_id
+				and user_id = :user_id_from_search
+				and day = to_date(:day_julian, 'J')
+		        "
+		}
 	    }
 
 	}
@@ -665,6 +656,11 @@ if {$sync_cost_item_immediately_p} {
     im_cost_cache_sweeper
 }
 
+
+
+# Return to previous level of SQL debugging,
+# at least when the page finishes without error...
+ns_logctl severity "Debug(sql)" $debug_sql_p
 
 
 # ----------------------------------------------------------
