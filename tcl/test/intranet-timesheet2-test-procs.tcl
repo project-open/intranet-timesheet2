@@ -43,3 +43,30 @@ aa_register_case \
 	# timesheet_test_basic_teardown
     }
 }
+
+
+aa_register_case \
+    -cats { smoke production_safe web } \
+    -libraries tclwebtest \
+    timesheet_google_form \
+{
+    Tests ::tclwebtest::form submit, which seems to have issues when run from within NS
+} {
+    set debug 1
+
+    tclwebtest::user_agent_id "Custom mozilla"
+
+    # get number of found entries for tclwebtest
+    tclwebtest::do_request "http://www.google.com/"
+    tclwebtest::field fill tclwebtest
+    tclwebtest::form submit
+    aa_log "user_info: response1_url=[tclwebtest::response url]"
+    
+    # go directly to the first entry
+    tclwebtest::do_request http://www.google.com/
+    tclwebtest::field fill tclwebtest
+    tclwebtest::form submit {feeling lucky}
+    
+    aa_log "user_info: response2_url=[tclwebtest::response url]"
+
+}

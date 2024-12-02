@@ -412,7 +412,7 @@ ad_form -extend -name absence -on_request {
 
     {
 	start_date
-	{ [db_string pastday "select to_date('[lrange $start_date 0 2]', 'YYYY MM DD') > now()::date - 100"] eq "t" || $user_admin_p }
+	{ [db_string pastday "select to_date('[lrange $start_date 0 2]', 'YYYY MM DD') > now()::date - $absence_since_past_days"] eq "t" || $user_admin_p }
 	"You can not create new absences starting more than $absence_since_past_days in the past."
     }
     
