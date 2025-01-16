@@ -416,6 +416,14 @@ ad_form -extend -name absence -on_request {
 	"You can not create new absences starting more than $absence_since_past_days in the past."
     }
     
+    {
+	end_date
+	{ 
+	    [string range $start_date 0 3] eq [string range $end_date 0 3]
+	}
+	"You can not create an absence across the year boundary. Please create two absences, one in December and one in January"
+    }
+    
 } -new_data {
 
     # { [lindex $start_date 0] >= [db_string this_year "select extract(year from now())"] || $user_admin_p }
