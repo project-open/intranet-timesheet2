@@ -20,7 +20,7 @@
 ad_page_contract {
     Shows all absences. Filters for type, who and when
 
-    @param absence_type_id	if specified, limits view to absences of this type
+    @param report_type_id	if specified, limits view to absences of this type
     @param user_selection	if specified, limits view to absences to mine or all
     @param timescale		if specified, limits view to absences of this time slice
     @param order_by		Specifies order for the table
@@ -32,11 +32,11 @@ ad_page_contract {
     @author Marc Fleischer (marc.fleischer@leinhaeuser-solutions.de)
 
 } {
-    { status_id:integer "" }
+    { report_status_id:integer "" }
+    { report_type_id:integer "-1" }
     { start_idx:integer 0 }
-    { order_by "User" }
     { how_many "" }
-    { absence_type_id:integer "-1" }
+    { order_by "User" }
     { user_selection "all" }
     { timescale "next_3w" }
     { view_name "absence_list_home" }
@@ -44,6 +44,8 @@ ad_page_contract {
     { end_date "" }
     { user_id_from_search "" }
     { user_department_id:integer ""}
+    { output_format "html" }
+    { number_locale "" }
 }
 
 # ---------------------------------------------------------------
@@ -60,7 +62,6 @@ set view_absences_all_p [expr [im_permission $user_id "view_absences_all"] || $a
 set add_absences_direct_reports_p [im_permission $user_id "add_absences_direct_reports"]
 set view_absences_direct_reports_p [expr {[im_permission $user_id "view_absences_direct_reports"] || $add_absences_direct_reports_p}]
 set add_absences_p [im_permission $user_id "add_absences"]
-set org_absence_type_id $absence_type_id
 set show_context_help_p 1
 set name_order [parameter::get -package_id [apm_package_id_from_key intranet-core] -parameter "NameOrder" -default 1]
 set today [db_string today "select now()::date"]
@@ -172,9 +173,16 @@ foreach { value text } $timescale_types {
     lappend timescale_type_list [list $text $value]
 }
 
-if { (![info exists absence_type_id] || $absence_type_id eq "") } {
+if { (![info exists report_type_id] || $report_type_id eq "") } {
     # Default type is "all" == -1 - select the id once and memoize it
-    set absence_type_id -1
+    set report_type_id -1
+}
+
+if {"csv" eq $output_format} {
+    # Show all items in CSV mode
+    set start_idx 0
+    set how_many 10000000
+    set end_idx $how_many
 }
 
 set end_idx [expr {$start_idx + $how_many - 1}]
@@ -296,8 +304,8 @@ switch $user_selection {
     }
 }
 
-if { $absence_type_id ne "" &&  $absence_type_id != -1 } {
-    lappend criteria "a.absence_type_id = :absence_type_id"
+if { $report_type_id ne "" &&  $report_type_id != -1 } {
+    lappend criteria "a.absence_type_id = :report_type_id"
 }
 
 switch $timescale {
@@ -365,8 +373,8 @@ if {"" != $user_department_id} {
 "
 }
 
-# Limit to status_id 
-if { "" ne $status_id } { lappend criteria "a.absence_status_id = :status_id" }
+# Limit to report_status_id 
+if { "" ne $report_status_id } { lappend criteria "a.absence_status_id = :report_status_id" }
 
 set order_by_clause ""
 switch $order_by {
@@ -384,8 +392,6 @@ set where_clause [join $criteria " and\n	    "]
 if { $where_clause ne "" } {
     set where_clause " and $where_clause"
 }
-
-# ad_return_complaint 1 "<pre>$where_clause<br>$absence_type_id</pre>"
 
 set sql "
 	select
@@ -452,7 +458,7 @@ ad_form \
     -method GET \
     -export {start_idx order_by how_many view_name}\
     -form {
-	{absence_type_id:text(select),optional {label "[_ intranet-timesheet2.Absence_Type]"} {options $absence_type_list }}
+	{report_type_id:text(select),optional {label "[_ intranet-timesheet2.Absence_Type]"} {options $absence_type_list }}
 	{user_selection:text(select),optional {label "[_ intranet-timesheet2.Show_Users]"} {options $user_selection_options }}
 	{user_department_id:text(select),optional {label "[_ intranet-core.Department]"} { options $user_department_options}}
 	{timescale:text(select),optional {label "[_ intranet-timesheet2.Timescale]"} {options $timescale_type_list }}
@@ -466,8 +472,8 @@ ad_form \
 		{html {size 10}} {value "$end_date"} \
 		{after_html {<input id=end_date_calendar type="button" style="height:23px; width:23px; background: url('/resources/acs-templating/calendar.gif');">}} \
 	}
-	{status_id:text(im_category_tree) \
-		optional {label #intranet-core.Status#} {value $status_id} \
+	{report_status_id:text(im_category_tree) \
+		optional {label #intranet-core.Status#} {value $report_status_id} \
 		{custom {category_type "Intranet Absence Status" translate_p 1 include_empty_name $l10n_all}} \
 	}
     }
@@ -502,13 +508,20 @@ if {[string is integer $user_selection]} {
     }
 }
 
-set admin_html [im_menu_ul_list "timesheet2_absences" [list user_id_from_search $for_user_id return_url $return_url]]
+set admin_lis [im_menu_ul_list -no_uls 1 "timesheet2_absences" [list user_id_from_search $for_user_id return_url $return_url]]
+set export_vars {report_type_id report_status_id timescale user_selection user_department_id start_date end_date order_by view_name {output_format "csv"}}
+set export_csv_l10n [lang::message::lookup "" intranet-timesheet2.Export_Absences_CSV "Export Absences CSV"]
+set export_csv_link "<a href='[export_vars -base "/intranet-timesheet2/absences/index" $export_vars]'>$export_csv_l10n</a>"
+append admin_lis "<li>$export_csv_link</li>\n"
+
+set admin_html "<ul>$admin_lis</ul>"
 
 # ----------------------------------------------------------
 # Set color scheme 
 # ----------------------------------------------------------
 
 append admin_html [im_absence_color_table]
+
 
 # ---------------------------------------------------------------
 # 7. Format the List Table Header
@@ -527,21 +540,28 @@ if { $query_string ne "" } {
     append url "$query_string&"
 }
 
-append table_header_html "<tr>\n"
+if {"csv" ne $output_format} { append table_header_html "<tr>\n" }
 set ctr 0
 
 foreach col $column_headers {
     set wrench_html [lindex $column_headers_admin $ctr]
     regsub -all " " $col "_" col_key
     set col_txt [lang::message::lookup "" intranet-core.$col_key $col]
-    if {$order_by eq $col} {
-	append table_header_html "  <td class=rowtitle>$col_txt$wrench_html</td>\n"
+
+    if {"csv" ne $output_format} {
+	if {$order_by eq $col} {
+	    append table_header_html "  <td class=rowtitle>$col_txt$wrench_html</td>\n"
+	} else {
+	    append table_header_html "  <td class=rowtitle><a href=\"${url}order_by=[ns_urlencode $col]\">$col_txt</a>$wrench_html</td>\n"
+	}
     } else {
-	append table_header_html "  <td class=rowtitle><a href=\"${url}order_by=[ns_urlencode $col]\">$col_txt</a>$wrench_html</td>\n"
+	set col_txt_rendered [im_report_render_cell -cell $col_txt -cell_class "" -output_format $output_format -no_write_p 1]
+	append table_header_html "$col_txt_rendered"
     }
+
     incr ctr
 }
-append table_header_html "</tr>\n"
+if {"csv" ne $output_format} { append table_header_html "</tr>\n" }
 
 
 # ---------------------------------------------------------------
@@ -576,14 +596,20 @@ db_foreach absences_list $selection {
     }
 
     #Append together a line of data based on the "column_vars" parameter list
-    append table_body_html "<tr $bgcolor([expr {$ctr % 2}])>\n"
-    foreach column_var $column_vars {
-	append table_body_html "\t<td valign=top>"
-	set cmd "append table_body_html $column_var"
-	eval $cmd
-	append table_body_html "</td>\n"
+    if {"csv" ne $output_format} {
+	append table_body_html "<tr $bgcolor([expr {$ctr % 2}])>\n"
     }
-    append table_body_html "</tr>\n"
+    foreach column_var $column_vars {
+	set cmd "set cell $column_var"
+	eval $cmd
+	set cell_rendered [im_report_render_cell -cell $cell -cell_class "" -output_format $output_format -no_write_p 1]
+	append table_body_html $cell_rendered
+    }
+    if {"csv" ne $output_format} {
+	append table_body_html "</tr>\n"
+    } else {
+	append table_body_html "\n"
+    }
 
     incr ctr
     if { $how_many > 0 && $ctr >= $how_many } {
@@ -591,6 +617,16 @@ db_foreach absences_list $selection {
     }
     incr idx
 } 
+
+if {"csv" eq $output_format} {
+    # Set the name of the download file that will come out of this
+    set outputheaders [ns_conn outputheaders]
+    ns_set cput $outputheaders "Content-Disposition" "attachment; filename=absences.csv"
+
+    doc_return 200 "application/csv" "$table_header_html\n$table_body_html"
+    ad_script_abort
+}
+
 
 # Show a reasonable message when there are no result rows:
 if { $table_body_html eq "" } {
@@ -672,8 +708,8 @@ switch $timescale {
     }
     default {
 	set absence_cube_html [im_absence_cube \
-				   -absence_status_id $status_id \
-				   -absence_type_id $org_absence_type_id \
+				   -absence_status_id $report_status_id \
+				   -absence_type_id $report_type_id \
 				   -user_department_id $user_department_id \
 				   -user_selection $user_selection \
 				   -report_start_date $org_start_date \
